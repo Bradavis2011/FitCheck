@@ -68,10 +68,13 @@ else
     echo "ℹ️  PostgreSQL check skipped (pg_isready not found)"
 fi
 
+# Generate Prisma client first
+echo "Generating Prisma client..."
+npm run db:generate
+
 # Run database migrations
 echo "Running database migrations..."
 npm run db:push
-npm run db:generate
 
 echo ""
 echo "✅ Setup complete!"

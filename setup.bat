@@ -50,9 +50,11 @@ REM Setup database
 echo 🗄️  Setting up database...
 cd ..\fitcheck-api
 
+echo Generating Prisma client...
+call npm run db:generate
+
 echo Running database migrations...
 call npm run db:push
-call npm run db:generate
 
 echo.
 echo ✅ Setup complete!
