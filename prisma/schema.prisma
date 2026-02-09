@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  profileImageUrl String? @map("profile_image_url")
+
+  // Preferences
+  stylePreferences Json? @default("{}") @map("style_preferences")
+  bodyType         String? @map("body_type")
+  colorSeason      String? @map("color_season")
+
+  // Subscription
+  tier                  String   @default("free") // free, plus, pro
+  subscriptionExpiresAt DateTime? @map("subscription_expires_at")
+
+  // Usage tracking
+  dailyChecksUsed   Int      @default(0) @map("daily_checks_used")
+  dailyChecksResetAt DateTime @default(now()) @map("daily_checks_reset_at") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  outfitChecks OutfitCheck[]
+  userStats    UserStats?
+
+  @@map("users")
+}
+
+model OutfitCheck {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Image data
+  imageUrl  String @map("image_url")
+  imageType String @default("photo") @map("image_type") // photo, video
+
+  // Context provided by user
+  occasion         String
+  setting          String?
+  weather          String?
+  vibe             String?
+  specificConcerns String? @map("specific_concerns")
+
+  // AI Feedback
+  aiFeedback     Json?     @map("ai_feedback")
+  aiScore        Float?    @map("ai_score")
+  aiProcessedAt  DateTime? @map("ai_processed_at")
+
+  // User rating of feedback
+  feedbackHelpful Boolean? @map("feedback_helpful")
+  feedbackRating  Int?     @map("feedback_rating") // 1-5
+
+  // Metadata
+  isFavorite Boolean @default(false) @map("is_favorite")
+  isDeleted  Boolean @default(false) @map("is_deleted")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  followUps FollowUp[]
+
+  @@map("outfit_checks")
+}
+
+model FollowUp {
+  id            String      @id @default(uuid())
+  outfitCheckId String      @map("outfit_check_id")
+  outfitCheck   OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+
+  userQuestion String @map("user_question")
+  aiResponse   String? @map("ai_response")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("follow_ups")
+}
+
+model UserStats {
+  userId String @id @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  totalFeedbackGiven Int @default(0) @map("total_feedback_given")
+  totalHelpfulVotes  Int @default(0) @map("total_helpful_votes")
+  currentStreak      Int @default(0) @map("current_streak")
+  longestStreak      Int @default(0) @map("longest_streak")
+  points             Int @default(0)
+  level              Int @default(1)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_stats")
+}
