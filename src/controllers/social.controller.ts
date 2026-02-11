@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
+import { createNotification } from './notification.controller.js';
 
 // Validation schemas
 const ReportSchema = z.object({
@@ -183,7 +184,15 @@ export async function getPublicOutfit(req: AuthenticatedRequest, res: Response) 
 // Get community feed (public outfits)
 export async function getCommunityFeed(req: AuthenticatedRequest, res: Response) {
   try {
+    const userId = req.userId!;
     const { limit = '20', offset = '0', filter = 'recent' } = req.query;
+
+    // Get blocked user IDs
+    const blockedUsers = await prisma.blockedUser.findMany({
+      where: { userId },
+      select: { blockedId: true },
+    });
+    const blockedUserIds = blockedUsers.map((b) => b.blockedId);
 
     // Determine sort order based on filter
     let orderBy: any = { createdAt: 'desc' }; // Default: recent
@@ -201,6 +210,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         isPublic: true,
         isDeleted: false,
         user: { isPublic: true },
+        NOT: { userId: { in: blockedUserIds } },
       },
       select: {
         id: true,
@@ -232,6 +242,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         isPublic: true,
         isDeleted: false,
         user: { isPublic: true },
+        NOT: { userId: { in: blockedUserIds } },
       },
     });
 
@@ -264,6 +275,9 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
         isPublic: true,
         isDeleted: false,
       },
+      include: {
+        user: true,
+      },
     });
 
     if (!outfit) {
@@ -273,6 +287,18 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
     // Prevent feedback on own outfits
     if (outfit.userId === userId) {
       throw new AppError(400, 'Cannot give feedback on your own outfit');
+    }
+
+    // Check if outfit owner has blocked the feedback author
+    const isBlocked = await prisma.blockedUser.findFirst({
+      where: {
+        userId: outfit.userId,
+        blockedId: userId,
+      },
+    });
+
+    if (isBlocked) {
+      throw new AppError(403, 'You are blocked from interacting with this user');
     }
 
     // Create or update feedback
@@ -295,6 +321,22 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
       },
     });
 
+    // Get feedbacker info for notification
+    const feedbacker = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, name: true },
+    });
+
+    // Create notification for the outfit owner
+    await createNotification({
+      userId: outfit.userId,
+      type: 'feedback',
+      title: 'New Outfit Feedback',
+      body: `${feedbacker?.username || feedbacker?.name || 'Someone'} gave feedback on your outfit (${data.score}/10)`,
+      linkType: 'outfit',
+      linkId: data.outfitId,
+    });
+
     res.json(feedback);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -307,7 +349,15 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
 // Get community feedback for an outfit
 export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response) {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
+    // Get blocked user IDs
+    const blockedUsers = await prisma.blockedUser.findMany({
+      where: { userId },
+      select: { blockedId: true },
+    });
+    const blockedUserIds = blockedUsers.map((b) => b.blockedId);
 
     // Verify outfit is public
     const outfit = await prisma.outfitCheck.findFirst({
@@ -323,7 +373,10 @@ export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response
     }
 
     const feedback = await prisma.communityFeedback.findMany({
-      where: { outfitId: id },
+      where: {
+        outfitId: id,
+        NOT: { userId: { in: blockedUserIds } },
+      },
       include: {
         user: {
           select: {
@@ -740,6 +793,22 @@ export async function followUser(req: AuthenticatedRequest, res: Response) {
         followerId: userId,
         followingId: userToFollow.id,
       },
+    });
+
+    // Get follower info for notification
+    const follower = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, name: true },
+    });
+
+    // Create notification for the user being followed
+    await createNotification({
+      userId: userToFollow.id,
+      type: 'follow',
+      title: 'New Follower',
+      body: `${follower?.username || follower?.name || 'Someone'} started following you`,
+      linkType: 'user',
+      linkId: userId,
     });
 
     res.json({ success: true, following: userToFollow.username });

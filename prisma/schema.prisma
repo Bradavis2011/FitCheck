@@ -35,12 +35,17 @@ model User {
 
   outfitChecks OutfitCheck[]
   userStats    UserStats?
-  communityFeedback CommunityFeedback[]
+  communityFeedbackGiven CommunityFeedback[] @relation("UserFeedbackGiven")
   reports      Report[]
-  blockedUsers BlockedUser[] @relation("UserBlocks")
-  blockedBy    BlockedUser[] @relation("UserBlockedBy")
-  followers    Follow[]      @relation("UserFollowers")
-  following    Follow[]      @relation("UserFollowing")
+  blockedUsers BlockedUser[]  @relation("UserBlocks")
+  blockedBy    BlockedUser[]  @relation("UserBlockedBy")
+  followers        Follow[]            @relation("UserFollowers")
+  following        Follow[]            @relation("UserFollowing")
+  notifications    Notification[]      @relation("UserNotifications")
+  pushTokens       PushToken[]         @relation("UserPushTokens")
+  hostedSessions   LiveSession[]       @relation("UserLiveSessions")
+  liveChatMessages LiveChatMessage[]   @relation("UserLiveChatMessages")
+  liveSessionViews LiveSessionViewer[] @relation("UserLiveSessionViews")
 
   @@map("users")
 }
@@ -119,7 +124,7 @@ model CommunityFeedback {
   outfitId  String      @map("outfit_id")
   outfit    OutfitCheck @relation(fields: [outfitId], references: [id], onDelete: Cascade)
   userId    String      @map("user_id")
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation("UserFeedbackGiven", fields: [userId], references: [id], onDelete: Cascade)
   score     Int
   comment   String
   createdAt DateTime    @default(now()) @map("created_at")
@@ -164,4 +169,85 @@ model Follow {
 
   @@unique([followerId, followingId])
   @@map("follows")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "feedback", "follow", "milestone", "live"
+  title     String
+  body      String
+  linkType  String?  @map("link_type") // "outfit", "user", "live_session"
+  linkId    String?  @map("link_id")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+  @@index([userId, createdAt])
+}
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation("UserPushTokens", fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String   // "ios" or "android"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("push_tokens")
+  @@index([userId])
+}
+
+model LiveSession {
+  id            String    @id @default(uuid())
+  hostId        String    @map("host_id")
+  host          User      @relation("UserLiveSessions", fields: [hostId], references: [id], onDelete: Cascade)
+  title         String
+  status        String    @default("waiting") // "waiting", "live", "ended"
+  livekitRoom   String?   @map("livekit_room")
+  aiAnalysisId  String?   @map("ai_analysis_id")
+  aiAnalyzedAt  DateTime? @map("ai_analyzed_at")
+  peakViewers   Int       @default(0) @map("peak_viewers")
+  totalViewers  Int       @default(0) @map("total_viewers")
+  startedAt     DateTime? @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  chatMessages  LiveChatMessage[]
+  viewers       LiveSessionViewer[]
+
+  @@map("live_sessions")
+  @@index([hostId, status])
+  @@index([status, startedAt])
+}
+
+model LiveChatMessage {
+  id          String      @id @default(uuid())
+  sessionId   String      @map("session_id")
+  session     LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId      String?     @map("user_id")
+  user        User?       @relation("UserLiveChatMessages", fields: [userId], references: [id], onDelete: SetNull)
+  isAi        Boolean     @default(false) @map("is_ai")
+  messageType String      @default("text") @map("message_type") // "text", "ai_feedback", "system"
+  content     String      @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@map("live_chat_messages")
+  @@index([sessionId, createdAt])
+}
+
+model LiveSessionViewer {
+  id        String      @id @default(uuid())
+  sessionId String      @map("session_id")
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String      @map("user_id")
+  user      User        @relation("UserLiveSessionViews", fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime    @default(now()) @map("joined_at")
+  leftAt    DateTime?   @map("left_at")
+
+  @@unique([sessionId, userId])
+  @@map("live_session_viewers")
+  @@index([sessionId])
+  @@index([userId])
 }
