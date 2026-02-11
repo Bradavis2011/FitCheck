@@ -26,6 +26,9 @@ router.put('/:id/rate', asyncHandler(outfitController.rateFeedback));
 // Toggle favorite
 router.put('/:id/favorite', asyncHandler(outfitController.toggleFavorite));
 
+// Toggle public visibility
+router.put('/:id/public', asyncHandler(outfitController.togglePublic));
+
 // Delete outfit check
 router.delete('/:id', asyncHandler(outfitController.deleteOutfitCheck));
 

@@ -37,6 +37,83 @@ async function generateThumbnail(base64Image: string): Promise<string> {
   }
 }
 
+async function updateUserStreakAndPoints(userId: string): Promise<void> {
+  try {
+    // Get all outfit checks for this user, ordered by creation date
+    const outfitChecks = await prisma.outfitCheck.findMany({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
+    if (outfitChecks.length === 0) {
+      return;
+    }
+
+    // Calculate streak: count consecutive calendar days with at least 1 outfit check
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Group checks by date
+    const checksByDate = new Map<string, number>();
+    for (const check of outfitChecks) {
+      const dateKey = new Date(check.createdAt).toDateString();
+      checksByDate.set(dateKey, (checksByDate.get(dateKey) || 0) + 1);
+    }
+
+    // Count consecutive days backwards from today
+    let checkDate = new Date(today);
+    while (true) {
+      const dateKey = checkDate.toDateString();
+      if (checksByDate.has(dateKey)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    // Calculate points: +10 per outfit submission, +5 bonus if streak >= 3
+    let pointsToAdd = 10;
+    if (currentStreak >= 3) {
+      pointsToAdd += 5;
+    }
+
+    // Get or create user stats
+    const existingStats = await prisma.userStats.findUnique({
+      where: { userId },
+    });
+
+    const newPoints = (existingStats?.points || 0) + pointsToAdd;
+    const newLevel = Math.min(50, Math.floor(newPoints / 100) + 1);
+    const newLongestStreak = Math.max(existingStats?.longestStreak || 0, currentStreak);
+
+    // Upsert user stats
+    await prisma.userStats.upsert({
+      where: { userId },
+      create: {
+        userId,
+        currentStreak,
+        longestStreak: currentStreak,
+        points: pointsToAdd,
+        level: newLevel,
+      },
+      update: {
+        currentStreak,
+        longestStreak: newLongestStreak,
+        points: newPoints,
+        level: newLevel,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to update user streak and points:', error);
+  }
+}
+
 export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
@@ -100,6 +177,9 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         dailyChecksUsed: { increment: 1 },
       },
     });
+
+    // Update user streak and points
+    await updateUserStreakAndPoints(userId);
 
     // Trigger AI analysis asynchronously
     analyzeOutfit(outfitCheck.id, data).catch((error) => {
@@ -256,6 +336,43 @@ export async function toggleFavorite(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function togglePublic(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const userId = req.userId!;
+
+    // Verify the outfit belongs to this user
+    const outfitCheck = await prisma.outfitCheck.findFirst({
+      where: { id, userId, isDeleted: false },
+    });
+
+    if (!outfitCheck) {
+      throw new AppError(404, 'Outfit check not found');
+    }
+
+    // If making public, ensure user has set up their public profile
+    if (!outfitCheck.isPublic) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true, isPublic: true },
+      });
+
+      if (!user?.username) {
+        throw new AppError(400, 'You must set a username before sharing outfits publicly. Go to Profile > Edit Profile to set one.');
+      }
+    }
+
+    const updated = await prisma.outfitCheck.update({
+      where: { id },
+      data: { isPublic: !outfitCheck.isPublic },
+    });
+
+    res.json({ isPublic: updated.isPublic });
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function rateFeedback(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
@@ -275,6 +392,31 @@ export async function rateFeedback(req: AuthenticatedRequest, res: Response) {
       data: {
         feedbackHelpful: helpful,
         feedbackRating: rating,
+      },
+    });
+
+    // Update user stats: increment feedback counts and add points
+    const existingStats = await prisma.userStats.findUnique({
+      where: { userId },
+    });
+
+    const newPoints = (existingStats?.points || 0) + 5;
+    const newLevel = Math.min(50, Math.floor(newPoints / 100) + 1);
+
+    await prisma.userStats.upsert({
+      where: { userId },
+      create: {
+        userId,
+        totalFeedbackGiven: 1,
+        totalHelpfulVotes: helpful ? 1 : 0,
+        points: 5,
+        level: 1,
+      },
+      update: {
+        totalFeedbackGiven: { increment: 1 },
+        totalHelpfulVotes: helpful ? { increment: 1 } : undefined,
+        points: newPoints,
+        level: newLevel,
       },
     });
 

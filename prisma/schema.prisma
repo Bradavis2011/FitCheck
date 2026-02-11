@@ -36,6 +36,11 @@ model User {
   outfitChecks OutfitCheck[]
   userStats    UserStats?
   communityFeedback CommunityFeedback[]
+  reports      Report[]
+  blockedUsers BlockedUser[] @relation("UserBlocks")
+  blockedBy    BlockedUser[] @relation("UserBlockedBy")
+  followers    Follow[]      @relation("UserFollowers")
+  following    Follow[]      @relation("UserFollowing")
 
   @@map("users")
 }
@@ -121,4 +126,42 @@ model CommunityFeedback {
 
   @@unique([outfitId, userId])
   @@map("community_feedback")
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reporterId String   @map("reporter_id")
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  targetType String   @map("target_type") // "outfit" or "user"
+  targetId   String   @map("target_id")
+  reason     String   // "inappropriate", "spam", "other"
+  details    String?
+  status     String   @default("pending") // "pending", "reviewed", "resolved"
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
+}
+
+model BlockedUser {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation("UserBlocks", fields: [userId], references: [id], onDelete: Cascade)
+  blockedId String   @map("blocked_id")
+  blocked   User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, blockedId])
+  @@map("blocked_users")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String   @map("following_id")
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([followerId, followingId])
+  @@map("follows")
 }

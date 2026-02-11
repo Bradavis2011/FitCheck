@@ -41,7 +41,7 @@ Return ONLY valid JSON matching this exact structure:
   }
 }
 
-Be specific and helpful. Give 2-3 items for whatsWorking and consider each.
+IMPORTANT: Keep details concise (under 15 words each). Give exactly 2-3 items for whatsWorking and consider each. Be specific but brief.
 
 SCORING GUIDE:
 - 1-4: Significant issues (rare - be constructive)
@@ -83,10 +83,11 @@ export async function analyzeOutfit(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         systemInstruction: SYSTEM_PROMPT,
         generationConfig: {
-          temperature: 0.5, // Lower temp for more consistent output
+          temperature: 0.5,
+          maxOutputTokens: 2048, // Prevent truncation
           maxOutputTokens: 2048,
           responseMimeType: 'application/json', // Force JSON format
           responseSchema: {
