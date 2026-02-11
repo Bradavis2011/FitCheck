@@ -1,18 +1,41 @@
 import { Response } from 'express';
 import { z } from 'zod';
+import sharp from 'sharp';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { analyzeOutfit, handleFollowUpQuestion } from '../services/ai-feedback.service.js';
 
 const OutfitCheckSchema = z.object({
-  imageUrl: z.string().url(),
-  occasion: z.string().min(1),
+  imageUrl: z.string().url().optional(),
+  imageBase64: z.string().optional(),
+  occasions: z.array(z.string()).min(1),
   setting: z.string().optional(),
   weather: z.string().optional(),
   vibe: z.string().optional(),
   specificConcerns: z.string().optional(),
+}).refine(data => data.imageUrl || data.imageBase64, {
+  message: 'Either imageUrl or imageBase64 must be provided',
 });
+
+async function generateThumbnail(base64Image: string): Promise<string> {
+  try {
+    // Remove data:image prefix if present
+    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Resize to 200px width, JPEG quality 60
+    const thumbnail = await sharp(buffer)
+      .resize(200, null, { fit: 'inside' })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+
+    return `data:image/jpeg;base64,${thumbnail.toString('base64')}`;
+  } catch (error) {
+    console.error('Thumbnail generation failed:', error);
+    return base64Image; // Fallback to original
+  }
+}
 
 export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response) {
   try {
@@ -22,7 +45,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     const data = OutfitCheckSchema.parse(req.body);
 
     // Get user to check daily limit
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
@@ -35,7 +58,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     const resetDate = new Date(user.dailyChecksResetAt).toDateString();
 
     if (today !== resetDate) {
-      await prisma.user.update({
+      user = await prisma.user.update({
         where: { id: userId },
         data: {
           dailyChecksUsed: 0,
@@ -49,12 +72,20 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
     }
 
+    // Generate thumbnail if base64 image provided
+    let thumbnailData: string | null = null;
+    if (data.imageBase64) {
+      thumbnailData = await generateThumbnail(data.imageBase64);
+    }
+
     // Create outfit check record
     const outfitCheck = await prisma.outfitCheck.create({
       data: {
         userId,
-        imageUrl: data.imageUrl,
-        occasion: data.occasion,
+        imageUrl: data.imageUrl || null,
+        imageData: data.imageBase64 || null,
+        thumbnailData,
+        occasions: data.occasions,
         setting: data.setting,
         weather: data.weather,
         vibe: data.vibe,
@@ -126,7 +157,7 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
     };
 
     if (occasion) {
-      where.occasion = occasion;
+      where.occasions = { has: occasion };
     }
 
     if (isFavorite === 'true') {
@@ -141,7 +172,8 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
       select: {
         id: true,
         imageUrl: true,
-        occasion: true,
+        thumbnailData: true,
+        occasions: true,
         aiScore: true,
         isFavorite: true,
         createdAt: true,

@@ -37,8 +37,7 @@ export async function register(req: Request, res: Response) {
       data: {
         email: data.email,
         name: data.name,
-        // Note: In production, you'd store the password hash
-        // For now, we're not storing it (relying on Clerk for auth)
+        passwordHash: hashedPassword,
       },
     });
 
@@ -80,8 +79,11 @@ export async function login(req: Request, res: Response) {
       throw new AppError(401, 'Invalid credentials');
     }
 
-    // In production, verify password hash here
-    // For now, we're using Clerk for authentication
+    // Verify password
+    const validPassword = await bcrypt.compare(data.password, user.passwordHash);
+    if (!validPassword) {
+      throw new AppError(401, 'Invalid credentials');
+    }
 
     const token = generateToken(user.id);
 

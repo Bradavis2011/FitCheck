@@ -3,13 +3,19 @@ import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set.');
+}
+
+// Type assertion - we've already checked it's defined above
+const jwtSecret: string = JWT_SECRET;
 
 export async function authenticateToken(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -18,7 +24,7 @@ export async function authenticateToken(
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, jwtSecret) as { userId: string };
 
     // Fetch user from database
     const user = await prisma.user.findUnique({
@@ -40,5 +46,5 @@ export async function authenticateToken(
 
 export function generateToken(userId: string): string {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn });
+  return jwt.sign({ userId }, jwtSecret, { expiresIn });
 }

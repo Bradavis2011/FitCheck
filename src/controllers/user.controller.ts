@@ -6,6 +6,9 @@ import { prisma } from '../utils/prisma.js';
 
 const UpdateProfileSchema = z.object({
   name: z.string().optional(),
+  username: z.string().min(3).max(20).optional(),
+  bio: z.string().max(200).optional(),
+  isPublic: z.boolean().optional(),
   profileImageUrl: z.string().url().optional(),
   stylePreferences: z.record(z.any()).optional(),
   bodyType: z.string().optional(),
@@ -22,6 +25,9 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
         id: true,
         email: true,
         name: true,
+        username: true,
+        bio: true,
+        isPublic: true,
         profileImageUrl: true,
         stylePreferences: true,
         bodyType: true,
@@ -55,6 +61,9 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
         id: true,
         email: true,
         name: true,
+        username: true,
+        bio: true,
+        isPublic: true,
         profileImageUrl: true,
         stylePreferences: true,
         bodyType: true,
@@ -76,6 +85,14 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        tier: true,
+        dailyChecksUsed: true,
+      },
+    });
+
     const stats = await prisma.userStats.findUnique({
       where: { userId },
     });
@@ -88,10 +105,18 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
       where: { userId, isFavorite: true, isDeleted: false },
     });
 
+    // Calculate daily checks limit based on tier
+    const dailyChecksLimit = user?.tier === 'free' ? 3 : 999;
+    const dailyChecksUsed = user?.dailyChecksUsed || 0;
+    const dailyChecksRemaining = Math.max(0, dailyChecksLimit - dailyChecksUsed);
+
     res.json({
       ...stats,
       totalOutfits: outfitCount,
       totalFavorites: favoriteCount,
+      dailyChecksUsed,
+      dailyChecksLimit,
+      dailyChecksRemaining,
     });
   } catch (error) {
     throw error;

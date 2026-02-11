@@ -31,8 +31,9 @@ export interface OutfitFeedback {
 }
 
 export interface OutfitCheckInput {
-  imageUrl: string;
-  occasion: string;
+  imageUrl?: string;
+  imageBase64?: string;
+  occasions: string[];
   setting?: string;
   weather?: string;
   vibe?: string;

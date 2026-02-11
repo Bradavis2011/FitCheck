@@ -11,7 +11,11 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String?
+  username  String?  @unique
+  bio       String?
+  passwordHash String  @map("password_hash")
   profileImageUrl String? @map("profile_image_url")
+  isPublic  Boolean  @default(false) @map("is_public")
 
   // Preferences
   stylePreferences Json? @default("{}") @map("style_preferences")
@@ -31,6 +35,7 @@ model User {
 
   outfitChecks OutfitCheck[]
   userStats    UserStats?
+  communityFeedback CommunityFeedback[]
 
   @@map("users")
 }
@@ -41,11 +46,13 @@ model OutfitCheck {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Image data
-  imageUrl  String @map("image_url")
+  imageUrl  String? @map("image_url")
+  imageData String? @db.Text
+  thumbnailData String? @db.Text @map("thumbnail_data")
   imageType String @default("photo") @map("image_type") // photo, video
 
   // Context provided by user
-  occasion         String
+  occasions        String[]
   setting          String?
   weather          String?
   vibe             String?
@@ -63,10 +70,12 @@ model OutfitCheck {
   // Metadata
   isFavorite Boolean @default(false) @map("is_favorite")
   isDeleted  Boolean @default(false) @map("is_deleted")
+  isPublic   Boolean @default(false) @map("is_public")
 
   createdAt DateTime @default(now()) @map("created_at")
 
   followUps FollowUp[]
+  communityFeedback CommunityFeedback[]
 
   @@map("outfit_checks")
 }
@@ -98,4 +107,18 @@ model UserStats {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_stats")
+}
+
+model CommunityFeedback {
+  id        String      @id @default(uuid())
+  outfitId  String      @map("outfit_id")
+  outfit    OutfitCheck @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  userId    String      @map("user_id")
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score     Int
+  comment   String
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([outfitId, userId])
+  @@map("community_feedback")
 }
