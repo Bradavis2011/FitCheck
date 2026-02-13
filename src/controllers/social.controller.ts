@@ -64,6 +64,7 @@ export async function getUserProfile(req: AuthenticatedRequest, res: Response) {
           where: { isPublic: true, isDeleted: false },
           select: {
             id: true,
+            thumbnailUrl: true,
             thumbnailData: true,
             imageUrl: true,
             occasions: true,
@@ -110,6 +111,7 @@ export async function getUserProfileByUsername(req: AuthenticatedRequest, res: R
           where: { isPublic: true, isDeleted: false },
           select: {
             id: true,
+            thumbnailUrl: true,
             thumbnailData: true,
             imageUrl: true,
             occasions: true,
@@ -149,6 +151,7 @@ export async function getPublicOutfit(req: AuthenticatedRequest, res: Response) 
       select: {
         id: true,
         userId: true,
+        thumbnailUrl: true,
         thumbnailData: true,
         imageData: true,
         imageUrl: true,
@@ -214,6 +217,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
       },
       select: {
         id: true,
+        thumbnailUrl: true,
         thumbnailData: true,
         occasions: true,
         aiScore: true,

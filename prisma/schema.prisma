@@ -58,6 +58,7 @@ model OutfitCheck {
   // Image data
   imageUrl  String? @map("image_url")
   imageData String? @db.Text
+  thumbnailUrl String? @map("thumbnail_url")
   thumbnailData String? @db.Text @map("thumbnail_data")
   imageType String @default("photo") @map("image_type") // photo, video
 

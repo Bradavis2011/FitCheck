@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { analyzeOutfit, handleFollowUpQuestion } from '../services/ai-feedback.service.js';
+import { uploadBuffer } from '../services/s3.service.js';
 
 const OutfitCheckSchema = z.object({
   imageUrl: z.string().url().optional(),
@@ -18,23 +19,18 @@ const OutfitCheckSchema = z.object({
   message: 'Either imageUrl or imageBase64 must be provided',
 });
 
-async function generateThumbnail(base64Image: string): Promise<string> {
-  try {
-    // Remove data:image prefix if present
-    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
+async function generateThumbnail(base64Image: string): Promise<Buffer> {
+  // Remove data:image prefix if present
+  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+  const buffer = Buffer.from(base64Data, 'base64');
 
-    // Resize to 200px width, JPEG quality 60
-    const thumbnail = await sharp(buffer)
-      .resize(200, null, { fit: 'inside' })
-      .jpeg({ quality: 60 })
-      .toBuffer();
+  // Resize to 200px width, JPEG quality 60
+  const thumbnail = await sharp(buffer)
+    .resize(200, null, { fit: 'inside' })
+    .jpeg({ quality: 60 })
+    .toBuffer();
 
-    return `data:image/jpeg;base64,${thumbnail.toString('base64')}`;
-  } catch (error) {
-    console.error('Thumbnail generation failed:', error);
-    return base64Image; // Fallback to original
-  }
+  return thumbnail;
 }
 
 async function updateUserStreakAndPoints(userId: string): Promise<void> {
@@ -149,19 +145,46 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
     }
 
-    // Generate thumbnail if base64 image provided
-    let thumbnailData: string | null = null;
+    // Generate UUID for the outfit (needed for S3 key)
+    const { randomUUID } = await import('crypto');
+    const outfitId = randomUUID();
+
+    // Upload images to S3 if base64 provided
+    let s3ImageUrl: string | null = null;
+    let s3ThumbnailUrl: string | null = null;
+
     if (data.imageBase64) {
-      thumbnailData = await generateThumbnail(data.imageBase64);
+      try {
+        // Decode base64 to buffer for original image
+        const base64Data = data.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+
+        // Upload original to S3
+        const originalKey = `outfits/${userId}/${outfitId}/original.jpg`;
+        s3ImageUrl = await uploadBuffer(imageBuffer, originalKey, 'image/jpeg');
+
+        // Generate and upload thumbnail
+        const thumbnailBuffer = await generateThumbnail(data.imageBase64);
+        const thumbnailKey = `outfits/${userId}/${outfitId}/thumbnail.jpg`;
+        s3ThumbnailUrl = await uploadBuffer(thumbnailBuffer, thumbnailKey, 'image/jpeg');
+      } catch (error) {
+        console.error('S3 upload failed:', error);
+        // Fall back to storing in database if S3 fails
+        // This ensures the app doesn't break if S3 is misconfigured
+      }
     }
 
     // Create outfit check record
+    // If S3 upload succeeded, use S3 URLs (imageData/thumbnailData will be null)
+    // If S3 failed, fall back to base64 storage
     const outfitCheck = await prisma.outfitCheck.create({
       data: {
+        id: outfitId,
         userId,
-        imageUrl: data.imageUrl || null,
-        imageData: data.imageBase64 || null,
-        thumbnailData,
+        imageUrl: s3ImageUrl || data.imageUrl || null,
+        imageData: s3ImageUrl ? null : (data.imageBase64 || null),
+        thumbnailUrl: s3ThumbnailUrl,
+        thumbnailData: null,
         occasions: data.occasions,
         setting: data.setting,
         weather: data.weather,
@@ -252,6 +275,7 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
       select: {
         id: true,
         imageUrl: true,
+        thumbnailUrl: true,
         thumbnailData: true,
         occasions: true,
         aiScore: true,
