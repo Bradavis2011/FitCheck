@@ -89,13 +89,37 @@ AWS_REGION=us-east-1
 - **Old outfits**: Continue to display from database via fallback chain
 - **New outfits**: Stored in S3 if configured, database if not
 
-## Migration (Optional)
-To migrate existing base64 images to S3, you can create a migration script that:
-1. Reads all outfits with `imageData` but no `imageUrl`
-2. Decodes base64 to buffer
-3. Uploads to S3 using the same key structure
-4. Updates the record with S3 URLs
-5. Optionally nulls out the base64 columns to free space
+## Migration (Automated Script Included!)
+A migration script is provided to move existing base64 images to S3:
+
+```bash
+cd fitcheck-api
+
+# Dry run (preview what would happen)
+npm run migrate:s3 -- --dry-run
+
+# Migrate all images
+npm run migrate:s3
+
+# Migrate in smaller batches
+npm run migrate:s3 -- --batch-size=5
+
+# Migrate only first 100 outfits
+npm run migrate:s3 -- --limit=100
+```
+
+The script will:
+1. Find all outfits with base64 images but no S3 URLs
+2. Upload images to S3 using the correct key structure
+3. Generate thumbnails if missing
+4. Update database records with S3 URLs
+5. Null out base64 columns to free space
+6. Show progress and statistics
+
+After migration, run `VACUUM FULL` on your database to reclaim space:
+```sql
+psql $DATABASE_URL -c "VACUUM FULL outfit_checks;"
+```
 
 ## Cost Estimate
 - **Storage**: ~$0.023/GB/month
