@@ -1,141 +1,93 @@
 import { Request, Response } from 'express';
-import { z } from 'zod';
-import bcrypt from 'bcryptjs';
+import { Webhook } from 'svix';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
-import { generateToken } from '../middleware/auth.js';
 
-const RegisterSchema = z.object({
-  email: z.string().email(),
-  name: z.string().optional(),
-  password: z.string().min(8),
-});
-
-const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
-
-export async function register(req: Request, res: Response) {
+/**
+ * Clerk Webhook Handler
+ *
+ * Handles user.created and user.updated events from Clerk
+ * Syncs Clerk users to our database
+ */
+export async function handleClerkWebhook(req: Request, res: Response) {
   try {
-    const data = RegisterSchema.parse(req.body);
-
-    // Check if user already exists
-    const existing = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
-
-    if (existing) {
-      throw new AppError(409, 'Email already registered');
+    const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+    if (!WEBHOOK_SECRET) {
+      throw new AppError(500, 'Clerk webhook secret not configured');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    // Verify webhook signature
+    const svix_id = req.headers['svix-id'] as string;
+    const svix_timestamp = req.headers['svix-timestamp'] as string;
+    const svix_signature = req.headers['svix-signature'] as string;
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        name: data.name,
-        passwordHash: hashedPassword,
-      },
-    });
-
-    // Create user stats
-    await prisma.userStats.create({
-      data: {
-        userId: user.id,
-      },
-    });
-
-    const token = generateToken(user.id);
-
-    res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        tier: user.tier,
-      },
-      token,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new AppError(400, 'Invalid request data');
-    }
-    throw error;
-  }
-}
-
-export async function login(req: Request, res: Response) {
-  try {
-    const data = LoginSchema.parse(req.body);
-
-    const user = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
-
-    if (!user) {
-      throw new AppError(401, 'Invalid credentials');
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      throw new AppError(400, 'Missing svix headers');
     }
 
-    // Verify password
-    const validPassword = await bcrypt.compare(data.password, user.passwordHash);
-    if (!validPassword) {
-      throw new AppError(401, 'Invalid credentials');
+    const wh = new Webhook(WEBHOOK_SECRET);
+    let evt: any;
+
+    try {
+      evt = wh.verify(JSON.stringify(req.body), {
+        'svix-id': svix_id,
+        'svix-timestamp': svix_timestamp,
+        'svix-signature': svix_signature,
+      });
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      throw new AppError(400, 'Invalid webhook signature');
     }
 
-    const token = generateToken(user.id);
+    const { id, email_addresses, first_name, last_name } = evt.data;
+    const eventType = evt.type;
 
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        tier: user.tier,
-      },
-      token,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new AppError(400, 'Invalid request data');
-    }
-    throw error;
-  }
-}
+    // Get primary email
+    const primaryEmail = email_addresses?.find(
+      (e: any) => e.id === evt.data.primary_email_address_id
+    );
+    const email = primaryEmail?.email_address;
 
-// For Clerk webhook integration
-export async function syncClerkUser(req: Request, res: Response) {
-  try {
-    const { id, email_addresses, first_name, last_name } = req.body.data;
-
-    const email = email_addresses[0]?.email_address;
     if (!email) {
       throw new AppError(400, 'Email is required');
     }
 
-    // Upsert user
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        name: first_name && last_name ? `${first_name} ${last_name}` : first_name || null,
-      },
-      create: {
-        id,
-        email,
-        name: first_name && last_name ? `${first_name} ${last_name}` : first_name || null,
-      },
-    });
+    const fullName = first_name && last_name
+      ? `${first_name} ${last_name}`
+      : first_name || null;
 
-    // Create user stats if not exists
-    await prisma.userStats.upsert({
-      where: { userId: user.id },
-      update: {},
-      create: { userId: user.id },
-    });
+    if (eventType === 'user.created') {
+      // Create user in our database
+      const user = await prisma.user.create({
+        data: {
+          id,
+          email,
+          name: fullName,
+        },
+      });
+
+      // Create user stats
+      await prisma.userStats.create({
+        data: { userId: user.id },
+      });
+
+      console.log(`✓ Created user ${user.id} (${email})`);
+    } else if (eventType === 'user.updated') {
+      // Update user in our database
+      await prisma.user.update({
+        where: { id },
+        data: {
+          email,
+          name: fullName,
+        },
+      });
+
+      console.log(`✓ Updated user ${id} (${email})`);
+    }
 
     res.json({ success: true });
   } catch (error) {
+    console.error('Clerk webhook error:', error);
     throw error;
   }
 }

@@ -13,7 +13,7 @@ model User {
   name      String?
   username  String?  @unique
   bio       String?
-  passwordHash String  @map("password_hash")
+  passwordHash String?  @map("password_hash") // Optional: null for Clerk users
   profileImageUrl String? @map("profile_image_url")
   isPublic  Boolean  @default(false) @map("is_public")
 
