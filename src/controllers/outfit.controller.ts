@@ -6,6 +6,8 @@ import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { analyzeOutfit, handleFollowUpQuestion } from '../services/ai-feedback.service.js';
 import { uploadBuffer } from '../services/s3.service.js';
+import { getTierLimits } from '../constants/tiers.js';
+import { getRecommendations as getOutfitRecommendations } from '../services/recommendation.service.js';
 
 const OutfitCheckSchema = z.object({
   imageUrl: z.string().url().optional(),
@@ -140,8 +142,9 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       });
     }
 
-    // Check daily limit for free tier
-    if (user.tier === 'free' && user.dailyChecksUsed >= 3) {
+    // Check daily limit based on tier
+    const limits = getTierLimits(user.tier);
+    if (limits.dailyChecks !== Infinity && user.dailyChecksUsed >= limits.dailyChecks) {
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
     }
 
@@ -204,8 +207,8 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     // Update user streak and points
     await updateUserStreakAndPoints(userId);
 
-    // Trigger AI analysis asynchronously
-    analyzeOutfit(outfitCheck.id, data).catch((error) => {
+    // Trigger AI analysis asynchronously (pass user for personalization)
+    analyzeOutfit(outfitCheck.id, data, user).catch((error) => {
       console.error('Background AI analysis failed:', error);
     });
 
@@ -254,10 +257,25 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
     const userId = req.userId!;
     const { occasion, isFavorite, limit = '20', offset = '0' } = req.query;
 
+    // Get user tier for history gating
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tier: true },
+    });
+
+    const tierLimits = getTierLimits(user?.tier || 'free');
+
     const where: any = {
       userId,
       isDeleted: false,
     };
+
+    // Apply history gating for free tier
+    if (tierLimits.historyDays !== Infinity) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - tierLimits.historyDays);
+      where.createdAt = { gte: cutoffDate };
+    }
 
     if (occasion) {
       where.occasions = { has: occasion };
@@ -316,13 +334,14 @@ export async function submitFollowUpQuestion(req: AuthenticatedRequest, res: Res
       throw new AppError(404, 'Outfit check not found');
     }
 
-    // Limit follow-ups for free tier
+    // Limit follow-ups based on tier
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
-    if (user?.tier === 'free' && outfitCheck.followUps.length >= 3) {
-      throw new AppError(429, 'Follow-up limit reached. Upgrade to Plus for unlimited questions!');
+    const limits = getTierLimits(user?.tier || 'free');
+    if (outfitCheck.followUps.length >= limits.followUpsPerCheck) {
+      throw new AppError(429, 'Follow-up limit reached. Upgrade to Plus for more questions!');
     }
 
     const answer = await handleFollowUpQuestion(id, question);
@@ -470,6 +489,36 @@ export async function deleteOutfitCheck(req: AuthenticatedRequest, res: Response
 
     res.json({ success: true });
   } catch (error) {
+    throw error;
+  }
+}
+
+const RecommendationQuerySchema = z.object({
+  occasion: z.string().optional(),
+  weather: z.string().optional(),
+  formality: z.coerce.number().min(1).max(5).optional(),
+});
+
+/**
+ * GET /api/outfits/recommendations
+ * Get personalized outfit recommendations based on StyleDNA
+ */
+export async function getRecommendations(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const { occasion, weather, formality } = RecommendationQuerySchema.parse(req.query);
+
+    const recommendations = await getOutfitRecommendations(userId, {
+      occasion,
+      weather,
+      formality,
+    });
+
+    res.json({ recommendations });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new AppError(400, 'Invalid query parameters');
+    }
     throw error;
   }
 }

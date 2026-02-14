@@ -11,6 +11,9 @@ router.use(authenticateToken);
 // Submit outfit for feedback
 router.post('/check', asyncHandler(outfitController.submitOutfitCheck));
 
+// Get personalized recommendations (must be before /:id to avoid conflicts)
+router.get('/recommendations', asyncHandler(outfitController.getRecommendations));
+
 // Get outfit feedback by ID
 router.get('/:id', asyncHandler(outfitController.getOutfitFeedback));
 
