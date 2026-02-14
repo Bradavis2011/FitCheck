@@ -13,6 +13,10 @@ import socialRoutes from './routes/social.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import pushRoutes from './routes/push.routes.js';
 import liveRoutes from './routes/live.routes.js';
+import subscriptionRoutes from './routes/subscription.routes.js';
+import trendsRoutes from './routes/trends.routes.js';
+import { handleWebhook } from './controllers/subscription.controller.js';
+import { asyncHandler } from './middleware/asyncHandler.js';
 import { initializeSocketService } from './services/socket.service.js';
 
 // Load environment variables
@@ -21,6 +25,9 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Trust proxy - required for rate limiting with reverse proxies (ngrok, Cloudflare Tunnel, etc.)
+app.set('trust proxy', true);
 
 // Security headers
 app.use(helmet());
@@ -44,6 +51,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// RevenueCat webhook (before rate limiter - RevenueCat may send bursts)
+app.post('/api/webhooks/revenuecat', asyncHandler(handleWebhook));
+
 // Rate limiting
 app.use('/api', limiter);
 
@@ -60,6 +70,8 @@ app.use('/api/social', socialRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/live', liveRoutes);
+app.use('/api', subscriptionRoutes);
+app.use('/api/trends', trendsRoutes);
 
 // 404 handler
 app.use((req, res) => {
