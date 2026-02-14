@@ -325,6 +325,20 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
       },
     });
 
+    // Update cached community score after feedback submission
+    const agg = await prisma.communityFeedback.aggregate({
+      where: { outfitId: data.outfitId },
+      _avg: { score: true },
+      _count: { score: true },
+    });
+    await prisma.outfitCheck.update({
+      where: { id: data.outfitId },
+      data: {
+        communityAvgScore: agg._avg.score,
+        communityScoreCount: agg._count.score,
+      },
+    });
+
     // Get feedbacker info for notification
     const feedbacker = await prisma.user.findUnique({
       where: { id: userId },

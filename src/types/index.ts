@@ -9,6 +9,22 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+export interface StyleDNAExtraction {
+  dominantColors: string[];
+  colorHarmony: string | null;
+  colorCount: number | null;
+  formalityLevel: number | null;
+  styleArchetypes: string[];
+  silhouetteType: string | null;
+  garments: string[];
+  patterns: string[];
+  textures: string[];
+  colorScore: number | null;
+  proportionScore: number | null;
+  fitScore: number | null;
+  coherenceScore: number | null;
+}
+
 export interface OutfitFeedback {
   overallScore: number;
   summary: string;
@@ -28,6 +44,7 @@ export interface OutfitFeedback {
     score: number;
     notes: string;
   };
+  styleDNA: StyleDNAExtraction;
 }
 
 export interface OutfitCheckInput {

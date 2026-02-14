@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
+import { getTierLimits } from '../constants/tiers.js';
 
 const UpdateProfileSchema = z.object({
   name: z.string().optional(),
@@ -125,7 +126,8 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
     });
 
     // Calculate daily checks limit based on tier
-    const dailyChecksLimit = user?.tier === 'free' ? 3 : 999;
+    const limits = getTierLimits(user?.tier || 'free');
+    const dailyChecksLimit = limits.dailyChecks === Infinity ? 999 : limits.dailyChecks;
     const dailyChecksUsed = user?.dailyChecksUsed || 0;
     const dailyChecksRemaining = Math.max(0, dailyChecksLimit - dailyChecksUsed);
 
@@ -140,4 +142,161 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
   } catch (error) {
     throw error;
   }
+}
+
+// GET /api/user/style-profile - Aggregated Style DNA
+export async function getStyleProfile(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const styleDNAs = await prisma.styleDNA.findMany({
+      where: { userId },
+      include: { outfitCheck: { select: { aiScore: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (styleDNAs.length === 0) {
+      return res.json({
+        message: 'No style data yet. Submit some outfits to see your style profile!',
+        topColors: [],
+        dominantArchetypes: [],
+        averageScores: null,
+        totalOutfits: 0,
+      });
+    }
+
+    // Top colors (by frequency + score)
+    const colorScores = new Map<string, { total: number; count: number }>();
+    styleDNAs.forEach(dna => {
+      if (dna.outfitCheck.aiScore) {
+        dna.dominantColors.forEach(color => {
+          const entry = colorScores.get(color) || { total: 0, count: 0 };
+          entry.total += dna.outfitCheck.aiScore!;
+          entry.count++;
+          colorScores.set(color, entry);
+        });
+      }
+    });
+    const topColors = [...colorScores.entries()]
+      .map(([color, v]) => ({ color, avgScore: v.total / v.count, appearances: v.count }))
+      .sort((a, b) => b.avgScore - a.avgScore)
+      .slice(0, 10);
+
+    // Dominant style archetypes
+    const archetypeCounts = new Map<string, number>();
+    styleDNAs.forEach(dna => {
+      dna.styleArchetypes.forEach(a => {
+        archetypeCounts.set(a, (archetypeCounts.get(a) || 0) + 1);
+      });
+    });
+    const dominantArchetypes = [...archetypeCounts.entries()]
+      .map(([archetype, count]) => ({ archetype, count, percentage: (count / styleDNAs.length) * 100 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Average sub-scores
+    const avgScores = {
+      color: 0, proportion: 0, fit: 0, coherence: 0, count: 0,
+    };
+    styleDNAs.forEach(dna => {
+      if (dna.colorScore && dna.proportionScore && dna.fitScore && dna.coherenceScore) {
+        avgScores.color += dna.colorScore;
+        avgScores.proportion += dna.proportionScore;
+        avgScores.fit += dna.fitScore;
+        avgScores.coherence += dna.coherenceScore;
+        avgScores.count++;
+      }
+    });
+
+    const averageScores = avgScores.count > 0 ? {
+      colorCoordination: +(avgScores.color / avgScores.count).toFixed(2),
+      proportions: +(avgScores.proportion / avgScores.count).toFixed(2),
+      fit: +(avgScores.fit / avgScores.count).toFixed(2),
+      styleCoherence: +(avgScores.coherence / avgScores.count).toFixed(2),
+    } : null;
+
+    res.json({
+      topColors,
+      dominantArchetypes,
+      averageScores,
+      totalOutfits: styleDNAs.length,
+    });
+  } catch (error) {
+    throw error;
+  }
+  return;
+}
+
+// GET /api/user/style-evolution - Style trends over time
+export async function getStyleEvolution(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const styleDNAs = await prisma.styleDNA.findMany({
+      where: { userId },
+      include: { outfitCheck: { select: { aiScore: true, createdAt: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (styleDNAs.length === 0) {
+      return res.json({
+        message: 'No style data yet. Submit some outfits to track your evolution!',
+        weeklyData: [],
+      });
+    }
+
+    // Group by week (YYYY-Www format)
+    const weeklyGroups = new Map<string, {
+      scores: { color: number; proportion: number; fit: number; coherence: number; overall: number }[];
+    }>();
+
+    styleDNAs.forEach(dna => {
+      const date = new Date(dna.outfitCheck.createdAt);
+      const year = date.getFullYear();
+      const weekNum = getWeekNumber(date);
+      const weekKey = `${year}-W${String(weekNum).padStart(2, '0')}`;
+
+      const group = weeklyGroups.get(weekKey) || { scores: [] };
+      if (dna.colorScore && dna.proportionScore && dna.fitScore && dna.coherenceScore && dna.outfitCheck.aiScore) {
+        group.scores.push({
+          color: dna.colorScore,
+          proportion: dna.proportionScore,
+          fit: dna.fitScore,
+          coherence: dna.coherenceScore,
+          overall: dna.outfitCheck.aiScore,
+        });
+      }
+      weeklyGroups.set(weekKey, group);
+    });
+
+    // Calculate weekly averages (filter out weeks with no scores)
+    const weeklyData = [...weeklyGroups.entries()]
+      .filter(([_, data]) => data.scores.length > 0)
+      .map(([week, data]) => {
+        const n = data.scores.length;
+        return {
+          week,
+          outfitCount: n,
+          avgColorScore: +(data.scores.reduce((sum, s) => sum + s.color, 0) / n).toFixed(2),
+          avgProportionScore: +(data.scores.reduce((sum, s) => sum + s.proportion, 0) / n).toFixed(2),
+          avgFitScore: +(data.scores.reduce((sum, s) => sum + s.fit, 0) / n).toFixed(2),
+          avgCoherenceScore: +(data.scores.reduce((sum, s) => sum + s.coherence, 0) / n).toFixed(2),
+          avgOverallScore: +(data.scores.reduce((sum, s) => sum + s.overall, 0) / n).toFixed(2),
+        };
+      });
+
+    res.json({ weeklyData });
+  } catch (error) {
+    throw error;
+  }
+  return;
+}
+
+// Helper: Get ISO week number
+function getWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }

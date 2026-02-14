@@ -21,10 +21,18 @@ model User {
   stylePreferences Json? @default("{}") @map("style_preferences")
   bodyType         String? @map("body_type")
   colorSeason      String? @map("color_season")
+  height           String? // "petite", "average", "tall"
+  lifestyle        String[] @default([]) // ["Student", "Office worker", "Creative professional", etc.]
+  fashionGoals     String[] @default([]) @map("fashion_goals") // ["Look professional", "Express creativity", etc.]
+  fitPreference    String? @map("fit_preference") // "relaxed", "fitted", "balanced"
+  budgetLevel      String? @map("budget_level") // "budget", "mid-range", "investment"
 
   // Subscription
   tier                  String   @default("free") // free, plus, pro
   subscriptionExpiresAt DateTime? @map("subscription_expires_at")
+  revenuecatId          String?  @unique @map("revenuecat_id")
+  subscriptionProductId String?  @map("subscription_product_id")
+  subscriptionStore     String?  @map("subscription_store")
 
   // Usage tracking
   dailyChecksUsed   Int      @default(0) @map("daily_checks_used")
@@ -46,6 +54,7 @@ model User {
   hostedSessions   LiveSession[]       @relation("UserLiveSessions")
   liveChatMessages LiveChatMessage[]   @relation("UserLiveChatMessages")
   liveSessionViews LiveSessionViewer[] @relation("UserLiveSessionViews")
+  subscriptionEvents SubscriptionEvent[]
 
   @@map("users")
 }
@@ -78,6 +87,10 @@ model OutfitCheck {
   feedbackHelpful Boolean? @map("feedback_helpful")
   feedbackRating  Int?     @map("feedback_rating") // 1-5
 
+  // Community scores (cached)
+  communityAvgScore   Float? @map("community_avg_score")
+  communityScoreCount Int    @default(0) @map("community_score_count")
+
   // Metadata
   isFavorite Boolean @default(false) @map("is_favorite")
   isDeleted  Boolean @default(false) @map("is_deleted")
@@ -87,6 +100,7 @@ model OutfitCheck {
 
   followUps FollowUp[]
   communityFeedback CommunityFeedback[]
+  styleDNA StyleDNA?
 
   @@map("outfit_checks")
 }
@@ -251,4 +265,71 @@ model LiveSessionViewer {
   @@map("live_session_viewers")
   @@index([sessionId])
   @@index([userId])
+}
+
+model StyleDNA {
+  id             String   @id @default(uuid())
+  outfitCheckId  String   @unique @map("outfit_check_id")
+  outfitCheck    OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  userId         String   @map("user_id")
+
+  // Colors extracted from image
+  dominantColors String[] @map("dominant_colors")   // ["navy", "white", "tan"]
+  colorHarmony   String?  @map("color_harmony")     // "complementary", "analogous", "monochromatic", "neutral"
+  colorCount     Int?     @map("color_count")
+
+  // Style classification
+  formalityLevel Int?     @map("formality_level")    // 1-5 (1=very casual, 5=black tie)
+  styleArchetypes String[] @map("style_archetypes")  // ["minimalist", "classic", "streetwear"]
+  silhouetteType String?  @map("silhouette_type")    // "fitted", "relaxed", "layered", "structured"
+
+  // Garments detected
+  garments       String[]                             // ["blazer", "chinos", "sneakers", "watch"]
+  patterns       String[]                             // ["solid", "striped", "plaid"]
+  textures       String[]                             // ["denim", "cotton", "leather", "knit"]
+
+  // Scores (from AI analysis)
+  colorScore       Float? @map("color_score")         // 1-10
+  proportionScore  Float? @map("proportion_score")    // 1-10
+  fitScore         Float? @map("fit_score")           // 1-10
+  coherenceScore   Float? @map("coherence_score")     // 1-10
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("style_dna")
+}
+
+model CalibrationSnapshot {
+  id           String   @id @default(uuid())
+  period       String   // "2026-02-W07", "2026-02"
+  sampleSize   Int      @map("sample_size")
+  avgAiScore   Float    @map("avg_ai_score")
+  avgCommunity Float    @map("avg_community_score")
+  delta        Float    // avgAiScore - avgCommunity (positive = AI scores higher)
+  correlation  Float?   // Pearson correlation coefficient
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([period])
+  @@map("calibration_snapshots")
+}
+
+model SubscriptionEvent {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventType      String   @map("event_type")
+  productId      String?  @map("product_id")
+  entitlementIds String[] @map("entitlement_ids")
+  store          String?
+  environment    String?
+
+  rawPayload     Json?    @map("raw_payload")
+
+  processedAt    DateTime @default(now()) @map("processed_at")
+
+  @@map("subscription_events")
+  @@index([userId, processedAt])
 }
