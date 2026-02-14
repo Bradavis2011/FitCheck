@@ -1,30 +1,5 @@
-# Dependencies
-node_modules/
-
-# Environment
+node_modules
+dist
 .env
-.env.local
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build outputs
-dist/
-build/
-
-# Logs
 *.log
-npm-debug.log*
-
-# Subdirectories have their own git repos
-fitcheck-app/
-fitcheck-api/
-test-app/
-lovable-mockup/
+.DS_Store
