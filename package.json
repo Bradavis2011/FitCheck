@@ -1,51 +1,17 @@
 {
-  "name": "fitcheck-api",
+  "name": "orthis-monorepo",
   "version": "1.0.0",
-  "description": "FitCheck API Server",
-  "main": "dist/server.js",
+  "description": "Or This? - AI-powered outfit feedback app",
+  "private": true,
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "migrate:s3": "tsx scripts/migrate-images-to-s3.ts"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.989.0",
-    "@clerk/clerk-sdk-node": "^4.13.23",
-    "@clerk/express": "^1.7.69",
-    "@google/generative-ai": "^0.21.0",
-    "@prisma/client": "^6.2.0",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "expo-server-sdk": "^3.10.0",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "livekit-server-sdk": "^2.9.1",
-    "morgan": "^1.10.1",
-    "multer": "^1.4.5-lts.1",
-    "sharp": "^0.34.5",
-    "socket.io": "^4.8.1",
-    "svix": "^1.85.0",
-    "zod": "^3.24.1"
+    "dev": "cd fitcheck-app && npm run dev",
+    "start": "npm run dev",
+    "backend": "cd fitcheck-api && npm run dev",
+    "frontend": "cd fitcheck-app && npm start",
+    "install-all": "npm install && cd fitcheck-app && npm install && cd ../fitcheck-api && npm install",
+    "clean": "cd fitcheck-app && rm -rf node_modules && cd ../fitcheck-api && rm -rf node_modules"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/jsonwebtoken": "^9.0.7",
-    "@types/morgan": "^1.9.10",
-    "@types/multer": "^1.4.12",
-    "@types/node": "^22.10.5",
-    "prisma": "^6.2.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
-  },
-  "private": true
+    "concurrently": "^9.2.1"
+  }
 }
