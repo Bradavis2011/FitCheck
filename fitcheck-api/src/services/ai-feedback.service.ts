@@ -656,11 +656,14 @@ export async function analyzeOutfit(
       // Prepare image data for Gemini
       let imagePart;
       if (input.imageBase64) {
+        // Strip data URL prefix if present (e.g., "data:image/jpeg;base64,")
+        const cleanBase64 = input.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
         // Base64 image data
         imagePart = {
           inlineData: {
             mimeType: 'image/jpeg',
-            data: input.imageBase64,
+            data: cleanBase64,
           },
         };
       } else if (input.imageUrl) {

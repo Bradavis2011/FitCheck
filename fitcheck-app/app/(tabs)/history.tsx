@@ -30,6 +30,18 @@ export default function HistoryScreen() {
 
   const outfits = data?.outfits || [];
 
+  // Debug logging
+  if (outfits.length > 0) {
+    console.log('[History] First outfit data:', {
+      id: outfits[0].id,
+      hasThumbnailUrl: !!outfits[0].thumbnailUrl,
+      hasThumbnailData: !!outfits[0].thumbnailData,
+      hasImageUrl: !!outfits[0].imageUrl,
+      hasImageData: !!outfits[0].imageData,
+      thumbnailDataLength: outfits[0].thumbnailData?.length || 0,
+    });
+  }
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -48,7 +60,7 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Your Outfits</Text>

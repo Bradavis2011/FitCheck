@@ -18,6 +18,13 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
   // Ensure imageUrl is valid (not empty string or just whitespace)
   const hasValidImage = imageUrl && imageUrl.trim().length > 0;
 
+  // Debug logging
+  if (!hasValidImage) {
+    console.log('[OutfitCard] No valid image:', { imageUrl: imageUrl?.substring(0, 50) });
+  } else {
+    console.log('[OutfitCard] Image URI:', imageUrl.substring(0, 100) + '...');
+  }
+
   const content = (
     <Animated.View entering={FadeInDown.duration(400).springify()} style={styles.card}>
       {hasValidImage ? (
