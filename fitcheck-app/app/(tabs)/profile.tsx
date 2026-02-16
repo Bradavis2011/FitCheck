@@ -10,7 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useUserStats, useUser, useUpdateProfile } from '../../src/hooks/useApi';
+import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals } from '../../src/hooks/useApi';
 import PillButton from '../../src/components/PillButton';
 import { styles as styleOptions } from '../../src/lib/mockData';
 
@@ -23,6 +23,8 @@ export default function ProfileScreen() {
   const { tier } = useSubscriptionStore();
   const { data: stats } = useUserStats();
   const { data: userProfile } = useUser();
+  const { data: badgesData } = useBadges();
+  const { data: dailyGoals } = useDailyGoals();
   const updateProfile = useUpdateProfile();
 
   // Style preferences accordion
@@ -211,6 +213,112 @@ export default function ProfileScreen() {
               {tier.charAt(0).toUpperCase() + tier.slice(1)}
             </Text>
           </View>
+        </View>
+
+        {/* Gamification Card */}
+        <View style={styles.gamificationCard}>
+          {/* Level & XP Section */}
+          <LinearGradient
+            colors={[Colors.primary, Colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.levelSection}
+          >
+            <View style={styles.levelHeader}>
+              <View>
+                <Text style={styles.levelBadge}>Level {stats?.level || 1}</Text>
+                <Text style={styles.levelName}>
+                  {stats?.level === 1 ? 'Style Newbie' :
+                   stats?.level === 2 ? 'Fashion Friend' :
+                   stats?.level === 3 ? 'Style Advisor' :
+                   stats?.level === 4 ? 'Outfit Expert' :
+                   stats?.level === 5 ? 'Trusted Reviewer' :
+                   stats?.level === 6 ? 'Style Guru' :
+                   stats?.level === 7 ? 'Fashion Icon' :
+                   stats?.level === 8 ? 'Legend' : 'Style Enthusiast'}
+                </Text>
+              </View>
+              <Text style={styles.pointsTotal}>{(stats?.points || 0).toLocaleString()} pts</Text>
+            </View>
+
+            {/* XP Progress Bar */}
+            <View style={styles.xpSection}>
+              <View style={styles.xpBar}>
+                <View
+                  style={[
+                    styles.xpFill,
+                    {
+                      width: `${stats?.xpToNextLevel
+                        ? Math.min(100, ((stats?.points || 0) % (stats?.xpToNextLevel || 100)) / (stats?.xpToNextLevel || 100) * 100)
+                        : 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.xpText}>
+                {stats?.xpToNextLevel && stats.xpToNextLevel > 0
+                  ? `${stats.xpToNextLevel} XP to Level ${(stats.level || 1) + 1}`
+                  : 'Max Level!'}
+              </Text>
+            </View>
+          </LinearGradient>
+
+          {/* Daily Goals Preview */}
+          {dailyGoals && (
+            <View style={styles.dailyGoalsPreview}>
+              <Text style={styles.dailyGoalsTitle}>Today's Progress</Text>
+              <View style={styles.goalsRow}>
+                <View style={styles.goalItem}>
+                  <Ionicons name="heart" size={16} color={Colors.primary} />
+                  <Text style={styles.goalText}>
+                    {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal} feedback
+                  </Text>
+                </View>
+                <View style={styles.goalItem}>
+                  <Ionicons name="thumbs-up" size={16} color={Colors.success} />
+                  <Text style={styles.goalText}>
+                    {dailyGoals.helpfulVotes}/{dailyGoals.helpfulGoal} helpful
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Badges Preview */}
+          {badgesData && badgesData.badges && badgesData.badges.length > 0 && (
+            <View style={styles.badgesSection}>
+              <View style={styles.badgesHeader}>
+                <Text style={styles.badgesTitle}>Badges Earned</Text>
+                <Text style={styles.badgesCount}>{badgesData.totalBadges}</Text>
+              </View>
+              <View style={styles.badgesGrid}>
+                {badgesData.badges.slice(0, 6).map((badge: any) => (
+                  <View key={badge.id} style={styles.badgeItem}>
+                    <Text style={styles.badgeIcon}>{badge.icon}</Text>
+                    <Text style={styles.badgeName} numberOfLines={1}>
+                      {badge.name}
+                    </Text>
+                  </View>
+                ))}
+                {badgesData.totalBadges > 6 && (
+                  <View style={[styles.badgeItem, styles.badgeMore]}>
+                    <Text style={styles.badgeMoreText}>+{badgesData.totalBadges - 6}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Leaderboard Link */}
+          <TouchableOpacity
+            style={styles.leaderboardLink}
+            onPress={() => router.push('/leaderboard' as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="trophy" size={20} color={Colors.warning} />
+            <Text style={styles.leaderboardLinkText}>View Leaderboard</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* Edit Profile */}
@@ -926,5 +1034,164 @@ const styles = StyleSheet.create({
   },
   modalToggleThumbActive: {
     alignSelf: 'flex-end',
+  },
+  // Gamification Card
+  gamificationCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  levelSection: {
+    padding: Spacing.lg,
+  },
+  levelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  levelBadge: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 4,
+  },
+  levelName: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  pointsTotal: {
+    fontSize: FontSize.xxl,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  xpSection: {
+    marginTop: Spacing.xs,
+  },
+  xpBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    marginBottom: Spacing.xs,
+  },
+  xpFill: {
+    height: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.full,
+  },
+  xpText: {
+    fontSize: FontSize.sm,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+  },
+  dailyGoalsPreview: {
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  dailyGoalsTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  goalsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  goalItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: BorderRadius.md,
+  },
+  goalText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  badgesSection: {
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  badgesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  badgesTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  badgesCount: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  badgeItem: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xs,
+  },
+  badgeIcon: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  badgeName: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  badgeMore: {
+    backgroundColor: Colors.primaryAlpha10,
+  },
+  badgeMoreText: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  leaderboardLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  leaderboardLinkText: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
   },
 });

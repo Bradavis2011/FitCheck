@@ -1,5 +1,8 @@
 import { api, setAuthToken } from '../lib/api';
 
+// Re-export api for use in other files
+export { api };
+
 // Types
 export interface StylePreferences {
   styles?: string[];
@@ -124,6 +127,7 @@ export interface UserStats {
   longestStreak: number;
   points: number;
   level: number;
+  xpToNextLevel: number;
   totalOutfits: number;
   totalFavorites: number;
   dailyChecksUsed: number;
@@ -267,6 +271,14 @@ export interface CommunityFeedback {
   comment: string;
   createdAt: string;
   user: PublicUser;
+  gamification?: {
+    pointsAwarded: number;
+    totalPoints: number;
+    level: number;
+    leveledUp: boolean;
+    oldLevel?: number;
+    newBadges?: string[];
+  };
 }
 
 export const socialService = {

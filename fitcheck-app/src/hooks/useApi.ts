@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { outfitService, userService, socialService, notificationService, subscriptionService, OutfitCheckInput } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, OutfitCheckInput } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -225,6 +225,26 @@ export function useLeaderboard(type: string, limit?: number) {
     queryKey: queryKeys.leaderboard(type) as readonly unknown[],
     queryFn: () => socialService.getLeaderboard(type, limit),
     enabled: !!type,
+  });
+}
+
+export function useBadges() {
+  return useQuery({
+    queryKey: ['badges'] as const,
+    queryFn: async () => {
+      const response = await api.get('/api/user/badges');
+      return response.data;
+    },
+  });
+}
+
+export function useDailyGoals() {
+  return useQuery({
+    queryKey: ['dailyGoals'] as const,
+    queryFn: async () => {
+      const response = await api.get('/api/user/daily-goals');
+      return response.data;
+    },
   });
 }
 

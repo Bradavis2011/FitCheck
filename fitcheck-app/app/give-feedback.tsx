@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import { useCommunityFeed, useSubmitCommunityFeedback } from '../src/hooks/useApi';
 import Slider from '@react-native-community/slider';
+import CelebrationModal from '../src/components/CelebrationModal';
 
 export default function GiveFeedbackScreen() {
   const router = useRouter();
@@ -24,6 +25,8 @@ export default function GiveFeedbackScreen() {
   const [score, setScore] = useState(7);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [celebrationData, setCelebrationData] = useState<any>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const { data, isLoading, refetch } = useCommunityFeed({
     filter: 'recent',
@@ -46,7 +49,7 @@ export default function GiveFeedbackScreen() {
       setIsSubmitting(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      await submitMutation.mutateAsync({
+      const result = await submitMutation.mutateAsync({
         outfitId: currentOutfit.id,
         score,
         comment: comment.trim(),
@@ -55,6 +58,59 @@ export default function GiveFeedbackScreen() {
       // Reset for next outfit
       setComment('');
       setScore(7);
+
+      // Check for gamification celebrations
+      if (result?.gamification) {
+        const { leveledUp, oldLevel, level, newBadges, pointsAwarded } = result.gamification;
+
+        // Level up celebration
+        if (leveledUp) {
+          const levelNames: Record<number, string> = {
+            1: 'Style Newbie',
+            2: 'Fashion Friend',
+            3: 'Style Advisor',
+            4: 'Outfit Expert',
+            5: 'Trusted Reviewer',
+            6: 'Style Guru',
+            7: 'Fashion Icon',
+            8: 'Legend',
+          };
+
+          setCelebrationData({
+            type: 'levelup',
+            oldLevel,
+            newLevel: level,
+            levelName: levelNames[level] || 'Style Enthusiast',
+            pointsAwarded,
+          });
+          setShowCelebration(true);
+        }
+        // Badge unlock celebration (check after level up dismissal)
+        else if (newBadges && newBadges.length > 0) {
+          // Show first badge (can queue others if needed)
+          const badgeMetadata: Record<string, { name: string; description: string; icon: string }> = {
+            helpful_hero: { name: 'Helpful Hero', description: 'Received 50 helpful votes', icon: '⭐' },
+            streak_master: { name: 'Streak Master', description: '30-day streak achieved', icon: '🔥' },
+            century_club: { name: 'Century Club', description: 'Gave 100 feedbacks', icon: '💯' },
+            trusted_reviewer: { name: 'Trusted Reviewer', description: 'Level 5 with quality feedback', icon: '✅' },
+            dedicated: { name: 'Dedicated', description: '7-day streak achieved', icon: '🎯' },
+          };
+
+          const badgeId = newBadges[0];
+          const badge = badgeMetadata[badgeId];
+
+          if (badge) {
+            setCelebrationData({
+              type: 'badge',
+              badgeId,
+              badgeName: badge.name,
+              badgeDescription: badge.description,
+              badgeIcon: badge.icon,
+            });
+            setShowCelebration(true);
+          }
+        }
+      }
 
       // Move to next outfit or refetch if we're at the end
       if (currentIndex < outfits.length - 1) {
@@ -310,6 +366,16 @@ export default function GiveFeedbackScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {/* Celebration Modal */}
+      <CelebrationModal
+        visible={showCelebration}
+        data={celebrationData}
+        onDismiss={() => {
+          setShowCelebration(false);
+          setCelebrationData(null);
+        }}
+      />
     </View>
   );
 }

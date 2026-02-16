@@ -300,3 +300,71 @@ function getWeekNumber(date: Date): number {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
+
+// ========== GAMIFICATION ENDPOINTS ==========
+
+// Import gamification service
+import * as gamificationService from '../services/gamification.service.js';
+
+// GET /api/user/leaderboard/:type - Get leaderboard (weekly, monthly, alltime)
+export async function getLeaderboard(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const { type } = req.params as { type: 'weekly' | 'monthly' | 'alltime' };
+
+    if (!['weekly', 'monthly', 'alltime'].includes(type)) {
+      throw new AppError(400, 'Invalid leaderboard type. Must be weekly, monthly, or alltime');
+    }
+
+    const leaderboard = await gamificationService.getLeaderboard(type, 50);
+    const userRank = await gamificationService.getUserRank(userId, type);
+
+    res.json({
+      type,
+      leaderboard,
+      userRank,
+    });
+  } catch (error) {
+    throw error;
+  }
+}
+
+// GET /api/user/daily-goals - Get daily goals progress
+export async function getDailyGoals(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const progress = await gamificationService.getDailyGoalsProgress(userId);
+
+    res.json(progress);
+  } catch (error) {
+    throw error;
+  }
+}
+
+// GET /api/user/badges - Get user's badges with metadata
+export async function getBadges(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const stats = await prisma.userStats.findUnique({
+      where: { userId },
+    });
+
+    if (!stats) {
+      return res.json({ badges: [] });
+    }
+
+    const badgesWithMetadata = stats.badges.map((badgeId) => ({
+      id: badgeId,
+      ...gamificationService.BADGE_METADATA[badgeId],
+    }));
+
+    res.json({
+      badges: badgesWithMetadata,
+      totalBadges: stats.badges.length,
+    });
+  } catch (error) {
+    throw error;
+  }
+}
