@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/the
 import OutfitCard from '../../src/components/OutfitCard';
 import PillButton from '../../src/components/PillButton';
 import { HistoryGridSkeleton } from '../../src/components/SkeletonLoader';
+import ErrorState from '../../src/components/ErrorState';
 import { useOutfits, useToggleFavorite } from '../../src/hooks/useApi';
 
 const FILTERS = ['All', 'Favorites', 'Work', 'Casual', 'Date Night', 'Event', 'Interview'];
@@ -23,10 +24,20 @@ export default function HistoryScreen() {
     filters.occasion = activeFilter;
   }
 
-  const { data, isLoading } = useOutfits(filters);
+  const { data, isLoading, isError, error, refetch } = useOutfits(filters);
   const toggleFavoriteMutation = useToggleFavorite();
+  const [refreshing, setRefreshing] = useState(false);
 
   const outfits = data?.outfits || [];
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleToggleFavorite = async (outfitId: string) => {
     try {
@@ -61,8 +72,15 @@ export default function HistoryScreen() {
       </ScrollView>
 
       {/* Grid */}
-      {isLoading ? (
+      {isLoading && !refreshing ? (
         <HistoryGridSkeleton count={6} />
+      ) : isError ? (
+        <ErrorState
+          title="Couldn't load outfits"
+          message={(error as Error)?.message || "We couldn't load your outfit history. Please check your connection and try again."}
+          onRetry={() => refetch()}
+          icon="shirt-outline"
+        />
       ) : outfits.length > 0 ? (
         <FlatList
           data={outfits}
@@ -70,6 +88,14 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.gridRow}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
           renderItem={({ item }) => {
             // Format image URI properly - add base64 prefix if needed
             let imageUri = '';

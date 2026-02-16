@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,13 +15,23 @@ export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { tier } = useSubscriptionStore();
-  const { data: outfitsData } = useOutfits({ limit: 5 });
-  const { data: stats } = useUserStats();
+  const { data: outfitsData, isError: outfitsError, refetch: refetchOutfits } = useOutfits({ limit: 5 });
+  const { data: stats, isError: statsError, refetch: refetchStats } = useUserStats();
   const toggleFavoriteMutation = useToggleFavorite();
+  const [refreshing, setRefreshing] = useState(false);
 
   const outfits = outfitsData?.outfits || [];
   const firstName = user?.name?.split(' ')[0] || 'there';
   const greeting = getTimeGreeting();
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchOutfits(), refetchStats()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getInitials = () => {
     const name = user?.name || user?.email?.split('@')[0] || 'User';
@@ -41,7 +52,18 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -82,9 +104,15 @@ export default function HomeScreen() {
 
         {/* Daily checks counter */}
         <View style={styles.dailyChecks}>
-          <Text style={styles.dailyChecksText}>
-            Today's checks: {stats ? `${stats.dailyChecksRemaining}/${stats.dailyChecksLimit}` : '3/3'} remaining
-          </Text>
+          {statsError ? (
+            <Text style={[styles.dailyChecksText, { color: Colors.textMuted }]}>
+              Couldn't load check count
+            </Text>
+          ) : (
+            <Text style={styles.dailyChecksText}>
+              Today's checks: {stats ? `${stats.dailyChecksRemaining}/${stats.dailyChecksLimit}` : '3/3'} remaining
+            </Text>
+          )}
         </View>
 
         {/* Quick Actions */}

@@ -28,17 +28,24 @@ const slides: OnboardingSlide[] = [
   },
   {
     id: 2,
-    title: 'Confidence in Every Choice',
-    subtitle: 'Compare options, get honest feedback, walk out knowing you nailed it',
+    title: 'How It Works',
+    subtitle: '1. Take a photo of your outfit\n2. Tell us the occasion\n3. Get AI-powered feedback in seconds',
     icon: 'bulb',
     gradient: [Colors.primaryLight, Colors.primary],
   },
   {
     id: 3,
-    title: 'Ready to Go',
-    subtitle: 'Your supportive style community awaits',
-    icon: 'sparkles',
+    title: 'AI + Community',
+    subtitle: 'Get instant AI feedback, then share with the community for more perspectives',
+    icon: 'people',
     gradient: [Colors.primary, Colors.primaryLight],
+  },
+  {
+    id: 4,
+    title: 'Ready to Go',
+    subtitle: 'Your supportive style community awaits. Let\'s check your first outfit!',
+    icon: 'sparkles',
+    gradient: [Colors.primaryLight, Colors.primary],
   },
 ];
 

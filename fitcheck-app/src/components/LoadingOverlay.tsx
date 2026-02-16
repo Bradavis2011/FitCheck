@@ -7,10 +7,17 @@ import { loadingMessages } from '../lib/mockData';
 
 type Props = {
   messages?: string[];
+  showEstimatedTime?: boolean;
+  estimatedSeconds?: number;
 };
 
-export default function LoadingOverlay({ messages = loadingMessages }: Props) {
+export default function LoadingOverlay({
+  messages = loadingMessages,
+  showEstimatedTime = true,
+  estimatedSeconds = 15
+}: Props) {
   const [messageIndex, setMessageIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Spinning ring animation
   const rotation = useSharedValue(0);
@@ -44,6 +51,14 @@ export default function LoadingOverlay({ messages = loadingMessages }: Props) {
     return () => clearInterval(interval);
   }, [messages]);
 
+  useEffect(() => {
+    if (!showEstimatedTime) return;
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showEstimatedTime]);
+
   const rotationStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
@@ -51,6 +66,9 @@ export default function LoadingOverlay({ messages = loadingMessages }: Props) {
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+
+  const remainingSeconds = Math.max(0, estimatedSeconds - elapsedSeconds);
+  const progressPercentage = Math.min(100, (elapsedSeconds / estimatedSeconds) * 100);
 
   return (
     <Modal visible transparent animationType="fade">
@@ -63,6 +81,19 @@ export default function LoadingOverlay({ messages = loadingMessages }: Props) {
             </Animated.View>
           </View>
           <Text style={styles.message}>{messages[messageIndex]}</Text>
+          {showEstimatedTime && (
+            <>
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
+              </View>
+              <Text style={styles.timeEstimate}>
+                {remainingSeconds > 0
+                  ? `About ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''} remaining...`
+                  : 'Almost there...'
+                }
+              </Text>
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -109,6 +140,26 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     textAlign: 'center',
+    fontWeight: '500',
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.md,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.full,
+  },
+  timeEstimate: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
     fontWeight: '500',
   },
 });
