@@ -107,7 +107,6 @@ export default function CommunityScreen() {
             activeOpacity={0.7}
           >
             <Ionicons name="notifications-outline" size={20} color={Colors.text} />
-            {/* Badge for unread count - can be added later */}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}

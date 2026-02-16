@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius, getScoreColor } from '../constants/theme';
 
 type Props = {
@@ -17,6 +18,9 @@ type Props = {
 export default function ShareableScoreCard({ score, imageUri, summary, occasion, username }: Props) {
   const scoreColor = getScoreColor(score);
   const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
+
+  // Ensure we have a valid image URI
+  const validImageUri = imageUri && imageUri.trim().length > 0 ? imageUri : null;
 
   return (
     <View style={styles.container}>
@@ -38,9 +42,18 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
         {/* Main Content */}
         <View style={styles.content}>
           {/* Outfit Image */}
-          {imageUri && (
+          {validImageUri ? (
             <View style={styles.imageContainer}>
-              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+              <Image
+                source={{ uri: validImageUri }}
+                style={styles.image}
+                resizeMode="cover"
+                onError={(e) => console.error('ShareableScoreCard image load error:', e.nativeEvent.error)}
+              />
+            </View>
+          ) : (
+            <View style={[styles.imageContainer, styles.placeholderImageContainer]}>
+              <Ionicons name="shirt-outline" size={80} color="rgba(255,255,255,0.5)" />
             </View>
           )}
 
@@ -133,6 +146,11 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  placeholderImageContainer: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scoreContainer: {
     flexDirection: 'row',
