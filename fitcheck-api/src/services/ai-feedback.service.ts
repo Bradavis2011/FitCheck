@@ -227,11 +227,16 @@ IMPORTANT:
 - Reference specific principles when relevant ("rule of thirds", "complementary colors", etc.)
 - Be specific but brief
 
-SCORING GUIDE:
-- 1-4: Significant issues (rare - be constructive)
-- 5-6: Works but has clear room for improvement
-- 7-8: Good outfit, minor tweaks possible (most outfits)
-- 9-10: Excellent, well-executed (reserve for standouts)`;
+SCORING GUIDE (use the full 1-10 range naturally):
+- 1-3: Major issues with fit, color, or appropriateness that need immediate fixing
+- 4-5: Several noticeable problems, but salvageable with adjustments
+- 6: Works okay but has clear areas for improvement
+- 7: Solid outfit with minor tweaks needed
+- 8: Strong outfit, well-executed with maybe one small refinement
+- 9: Excellent execution across all dimensions
+- 10: Perfect - exemplary outfit that nails every principle
+
+IMPORTANT: Use the FULL scoring range based on actual quality. Don't default to 7-8. A typical casual outfit might be 5-6, a well-thought-out look 7-8, only exceptional outfits deserve 9-10. Be honest and differentiate - users need varied scores to understand progress.`;
 
 // Export response schema for training/testing
 export const RESPONSE_SCHEMA = {
