@@ -408,6 +408,24 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Privacy & Settings */}
+        <View style={styles.settingsCard}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => router.push('/privacy-settings' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="shield-checkmark" size={22} color={Colors.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingLabel}>Privacy & Security</Text>
+              <Text style={styles.settingDescription}>Face blur, visibility, auto-delete</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
         {/* App Settings Card */}
         <View style={styles.settingsCard}>
           <TouchableOpacity
@@ -681,6 +699,33 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
     marginTop: Spacing.md,
     overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: `${Colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  settingDescription: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
   },
   accordionHeader: {
     flexDirection: 'row',

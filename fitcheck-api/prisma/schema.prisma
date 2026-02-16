@@ -27,6 +27,10 @@ model User {
   fitPreference    String? @map("fit_preference") // "relaxed", "fitted", "balanced"
   budgetLevel      String? @map("budget_level") // "budget", "mid-range", "investment"
 
+  // Privacy Settings
+  privacySettings Json? @default("{\"blurFaceDefault\":true,\"visibility\":\"all\",\"autoDelete\":\"never\"}") @map("privacy_settings")
+  // privacySettings fields: { blurFaceDefault: boolean, visibility: "all"|"followers"|"trusted", autoDelete: "never"|"24h"|"7d"|"30d" }
+
   // Subscription
   tier                  String   @default("free") // free, plus, pro
   subscriptionExpiresAt DateTime? @map("subscription_expires_at")
@@ -70,6 +74,7 @@ model OutfitCheck {
   thumbnailUrl String? @map("thumbnail_url")
   thumbnailData String? @db.Text @map("thumbnail_data")
   imageType String @default("photo") @map("image_type") // photo, video
+  blurFace  Boolean @default(false) @map("blur_face") // Whether face is blurred in this outfit
 
   // Context provided by user
   occasions        String[]
@@ -95,6 +100,8 @@ model OutfitCheck {
   isFavorite Boolean @default(false) @map("is_favorite")
   isDeleted  Boolean @default(false) @map("is_deleted")
   isPublic   Boolean @default(false) @map("is_public")
+  visibility String  @default("all") // "all", "followers", "trusted" - who can see when public
+  expiresAt  DateTime? @map("expires_at") // Auto-delete timestamp based on user's autoDelete setting
 
   createdAt DateTime @default(now()) @map("created_at")
 

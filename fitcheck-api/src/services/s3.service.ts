@@ -21,13 +21,21 @@ function getS3Client(): S3Client {
   }
 
   if (!s3Client) {
-    s3Client = new S3Client({
+    const config: any = {
       region: process.env.AWS_REGION!,
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
       },
-    });
+    };
+
+    // Support Cloudflare R2 custom endpoint
+    if (process.env.AWS_ENDPOINT) {
+      config.endpoint = process.env.AWS_ENDPOINT;
+      config.forcePathStyle = true; // Required for R2
+    }
+
+    s3Client = new S3Client(config);
   }
 
   return s3Client;
@@ -56,6 +64,15 @@ export async function uploadBuffer(
   await client.send(command);
 
   // Return public URL (assumes bucket has public read access)
+  // For Cloudflare R2, use public domain if configured, otherwise use R2 dev domain
+  if (process.env.AWS_ENDPOINT) {
+    // Cloudflare R2: https://pub-<id>.r2.dev/<key> or custom domain
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN ||
+      `https://pub-${process.env.AWS_ENDPOINT.split('//')[1].split('.')[0]}.r2.dev`;
+    return `${publicDomain}/${key}`;
+  }
+
+  // AWS S3: standard URL format
   return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
 
