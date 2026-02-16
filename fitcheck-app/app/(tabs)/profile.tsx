@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
@@ -14,6 +15,7 @@ import { styles as styleOptions } from '../../src/lib/mockData';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const { tier } = useSubscriptionStore();
@@ -101,8 +103,14 @@ export default function ProfileScreen() {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
-        await clearAuth();
-        router.replace('/login' as any);
+        try {
+          await clearAuth(); // Clear local state
+          await signOut(); // Sign out from Clerk
+          router.replace('/login' as any);
+        } catch (error) {
+          console.error('Sign out failed:', error);
+          Alert.alert('Error', 'Failed to sign out. Please try again.');
+        }
       }},
     ]);
   };
@@ -235,7 +243,29 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Style Profile */}
+        {/* Style Preferences */}
+        <View style={styles.editProfileCard}>
+          <TouchableOpacity
+            style={styles.editProfileButton}
+            onPress={() => router.push('/style-preferences' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.editProfileIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="color-palette-outline" size={20} color="#8B5CF6" />
+            </View>
+            <View style={styles.editProfileText}>
+              <Text style={styles.editProfileTitle}>Style Preferences</Text>
+              <Text style={styles.editProfileDesc}>
+                {selectedStyles.length > 0
+                  ? `${selectedStyles.slice(0, 2).join(', ')}${selectedStyles.length > 2 ? '...' : ''}`
+                  : 'Personalize your AI feedback'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Style Profile - Analytics */}
         {stats?.totalOutfits && stats.totalOutfits >= 3 && (
           <View style={styles.editProfileCard}>
             <TouchableOpacity

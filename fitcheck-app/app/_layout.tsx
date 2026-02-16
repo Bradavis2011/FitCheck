@@ -11,7 +11,7 @@ import { useAuthStore } from '../src/stores/authStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
-import OfflineIndicator from '../src/components/OfflineIndicator';
+// import OfflineIndicator from '../src/components/OfflineIndicator'; // Temporarily disabled
 
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -93,7 +93,7 @@ export default function RootLayout() {
         <ClerkLoaded>
           <QueryClientProvider client={queryClient}>
             <StatusBar style="dark" />
-            <OfflineIndicator />
+            {/* <OfflineIndicator /> Temporarily disabled */}
             <AuthGate />
           </QueryClientProvider>
         </ClerkLoaded>
