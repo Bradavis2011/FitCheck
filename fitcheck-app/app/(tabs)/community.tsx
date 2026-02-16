@@ -160,6 +160,15 @@ export default function CommunityScreen() {
           <Text style={styles.guidelinesLink}>Community Guidelines</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/create-comparison' as any)}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="add" size={28} color={Colors.white} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -265,5 +274,21 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 80,
+    right: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
