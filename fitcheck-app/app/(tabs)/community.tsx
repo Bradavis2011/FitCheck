@@ -103,17 +103,17 @@ export default function CommunityScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
+            onPress={() => router.push('/challenges' as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="trophy" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
             onPress={() => router.push('/notifications' as any)}
             activeOpacity={0.7}
           >
             <Ionicons name="notifications-outline" size={20} color={Colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/leaderboard' as any)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trophy" size={20} color={Colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
