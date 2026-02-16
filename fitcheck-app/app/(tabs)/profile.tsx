@@ -298,7 +298,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Wardrobe - HIDDEN FOR MVP (Phase 2 feature)
+        {/* Wardrobe */}
         <View style={styles.editProfileCard}>
           <TouchableOpacity
             style={styles.editProfileButton}
@@ -311,13 +311,12 @@ export default function ProfileScreen() {
             <View style={styles.editProfileText}>
               <Text style={styles.editProfileTitle}>My Wardrobe</Text>
               <Text style={styles.editProfileDesc}>
-                Manage your clothing items
+                Build outfits from your closet
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
-        */}
 
         {/* Stats */}
         <View style={styles.statsCard}>
