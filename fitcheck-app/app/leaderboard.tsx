@@ -6,191 +6,240 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
-import { useLeaderboard } from '../src/hooks/useApi';
+import { api } from '../src/services/api.service';
 
-type LeaderboardType = 'top-rated' | 'most-helpful' | 'most-popular' | 'weekly';
+type LeaderboardType = 'weekly' | 'monthly' | 'alltime';
 
-type LeaderboardEntry = {
-  id: string;
-  username: string;
+interface LeaderboardEntry {
   rank: number;
-  score: number;
-  label: string;
-};
+  userId: string;
+  username: string;
+  profileImageUrl?: string;
+  points: number;
+  level: number;
+  badges: string[];
+}
+
+interface LeaderboardData {
+  type: string;
+  leaderboard: LeaderboardEntry[];
+  userRank: number | null;
+}
 
 export default function LeaderboardScreen() {
   const router = useRouter();
-  const [type, setType] = useState<LeaderboardType>('top-rated');
+  const [activeTab, setActiveTab] = useState<LeaderboardType>('weekly');
 
-  // Fetch real leaderboard data
-  const { data, isLoading, error } = useLeaderboard(type, 50);
+  const { data, isLoading, refetch, isRefetching } = useQuery<LeaderboardData>({
+    queryKey: ['leaderboard', activeTab],
+    queryFn: async () => {
+      const response = await api.get(`/api/user/leaderboard/${activeTab}`);
+      return response.data;
+    },
+  });
 
-  const getScoreLabel = () => {
-    switch (type) {
-      case 'top-rated':
-        return 'Avg Score';
-      case 'most-helpful':
-        return 'Feedback Given';
-      case 'most-popular':
-        return 'Total Votes';
-      case 'weekly':
-        return 'Weekly Score';
-      default:
-        return 'Score';
-    }
+  const getMedalEmoji = (rank: number): string | null => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return null;
   };
 
-  const leaderboardData: LeaderboardEntry[] = data?.leaderboard?.map((item) => ({
-    id: item.userId,
-    username: item.username || 'user',
-    rank: item.rank,
-    score: item.score,
-    label: getScoreLabel(),
-  })) || [];
+  const getRankColor = (rank: number): string => {
+    if (rank === 1) return '#FFD700'; // Gold
+    if (rank === 2) return '#C0C0C0'; // Silver
+    if (rank === 3) return '#CD7F32'; // Bronze
+    return Colors.text;
+  };
 
-  const getTitle = () => {
-    switch (type) {
-      case 'top-rated':
-        return 'Top Rated';
-      case 'most-helpful':
-        return 'Most Helpful';
-      case 'most-popular':
-        return 'Most Popular';
+  const getTabTitle = (tab: LeaderboardType): string => {
+    switch (tab) {
       case 'weekly':
         return 'This Week';
-      default:
-        return 'Leaderboard';
+      case 'monthly':
+        return 'This Month';
+      case 'alltime':
+        return 'All Time';
     }
   };
 
-  const getDescription = () => {
-    switch (type) {
-      case 'top-rated':
-        return 'Users with highest avg outfit scores (min 5 public outfits)';
-      case 'most-helpful':
-        return 'Users who give the most feedback to others';
-      case 'most-popular':
-        return 'Users with most total community votes received';
+  const getResetInfo = (): string => {
+    switch (activeTab) {
       case 'weekly':
-        return 'Top performers this week (resets Monday)';
-      default:
-        return '';
+        return 'Resets every Monday at midnight';
+      case 'monthly':
+        return 'Resets on the 1st of each month';
+      case 'alltime':
+        return 'Lifetime rankings';
     }
   };
 
-  const renderFilterButton = (label: string, value: LeaderboardType) => (
+  const renderTabButton = (tab: LeaderboardType, label: string) => (
     <TouchableOpacity
-      style={[styles.filterButton, type === value && styles.filterButtonActive]}
-      onPress={() => setType(value)}
+      style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
+      onPress={() => setActiveTab(tab)}
       activeOpacity={0.7}
     >
-      <Text style={[styles.filterText, type === value && styles.filterTextActive]}>
+      <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
         {label}
       </Text>
     </TouchableOpacity>
   );
 
   const renderLeaderboardItem = ({ item }: { item: LeaderboardEntry }) => {
-    const getRankColor = (rank: number) => {
-      if (rank === 1) return Colors.warning;
-      if (rank === 2) return Colors.textSecondary;
-      if (rank === 3) return '#CD7F32'; // Bronze
-      return Colors.textMuted;
-    };
-
-    const getRankIcon = (rank: number) => {
-      if (rank === 1) return 'trophy';
-      if (rank === 2) return 'medal';
-      if (rank === 3) return 'medal-outline';
-      return null;
-    };
-
+    const medal = getMedalEmoji(item.rank);
     const rankColor = getRankColor(item.rank);
-    const rankIcon = getRankIcon(item.rank);
 
     return (
       <TouchableOpacity
-        style={styles.leaderboardItem}
-        onPress={() => router.push(`/user/${item.username}` as any)}
+        style={[
+          styles.leaderboardItem,
+          item.rank <= 3 && styles.leaderboardItemTopThree,
+        ]}
         activeOpacity={0.7}
       >
+        {/* Rank */}
         <View style={styles.rankSection}>
-          {rankIcon ? (
-            <Ionicons name={rankIcon} size={24} color={rankColor} />
+          {medal ? (
+            <Text style={styles.medalEmoji}>{medal}</Text>
           ) : (
-            <Text style={[styles.rankNumber, { color: rankColor }]}>#{item.rank}</Text>
+            <Text style={[styles.rankNumber, { color: rankColor }]}>
+              #{item.rank}
+            </Text>
           )}
         </View>
 
+        {/* User Info */}
         <View style={styles.userSection}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.userAvatarText}>{item.username.charAt(0).toUpperCase()}</Text>
+          <View style={styles.avatarContainer}>
+            {item.profileImageUrl ? (
+              <Image
+                source={{ uri: item.profileImageUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {item.username.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.username}>@{item.username}</Text>
-            <Text style={styles.scoreLabel}>{item.label}</Text>
+            <Text style={styles.username} numberOfLines={1}>
+              @{item.username}
+            </Text>
+            <View style={styles.userMeta}>
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelText}>Lvl {item.level}</Text>
+              </View>
+              {item.badges.length > 0 && (
+                <View style={styles.badgeCount}>
+                  <Ionicons name="trophy" size={12} color={Colors.warning} />
+                  <Text style={styles.badgeCountText}>{item.badges.length}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
-        <View style={styles.scoreSection}>
-          <Text style={styles.scoreValue}>{item.score.toFixed(1)}</Text>
+        {/* Points */}
+        <View style={styles.pointsSection}>
+          <Text style={[styles.pointsValue, item.rank <= 3 && styles.pointsValueTopThree]}>
+            {item.points.toLocaleString()}
+          </Text>
+          <Text style={styles.pointsLabel}>pts</Text>
         </View>
       </TouchableOpacity>
     );
   };
+
+  const renderUserRankBanner = () => {
+    if (!data?.userRank) return null;
+
+    return (
+      <View style={styles.userRankBanner}>
+        <Ionicons name="person" size={20} color={Colors.primary} />
+        <Text style={styles.userRankText}>
+          You're <Text style={styles.userRankBold}>#{data.userRank}</Text> {getTabTitle(activeTab).toLowerCase()}!
+        </Text>
+      </View>
+    );
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="trophy-outline" size={80} color={Colors.textMuted} />
+      <Text style={styles.emptyTitle}>No Rankings Yet</Text>
+      <Text style={styles.emptyText}>
+        Start giving feedback to others to earn points and climb the leaderboard!
+      </Text>
+    </View>
+  );
+
+  const renderFooter = () => (
+    <View style={styles.footer}>
+      <Ionicons name="information-circle-outline" size={16} color={Colors.textMuted} />
+      <Text style={styles.footerText}>{getResetInfo()}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
             <Ionicons name="arrow-back" size={24} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Leaderboard</Text>
-          <View style={{ width: 40 }} />
+          <View style={styles.backButton} />
         </View>
 
-        {/* Type Filters */}
-        <View style={styles.filterContainer}>
-          {renderFilterButton('Top Rated', 'top-rated')}
-          {renderFilterButton('Helpful', 'most-helpful')}
-        </View>
-        <View style={styles.filterContainer}>
-          {renderFilterButton('Popular', 'most-popular')}
-          {renderFilterButton('This Week', 'weekly')}
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          {renderTabButton('weekly', 'This Week')}
+          {renderTabButton('monthly', 'This Month')}
+          {renderTabButton('alltime', 'All Time')}
         </View>
 
-        {/* Description */}
-        <View style={styles.descriptionSection}>
-          <Text style={styles.descriptionText}>{getDescription()}</Text>
-        </View>
+        {/* User Rank Banner */}
+        {renderUserRankBanner()}
 
         {/* Leaderboard List */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading leaderboard...</Text>
           </View>
         ) : (
           <FlatList
-            data={leaderboardData}
+            data={data?.leaderboard || []}
             renderItem={renderLeaderboardItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.userId}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Ionicons name="trophy-outline" size={64} color={Colors.textMuted} />
-                <Text style={styles.emptyTitle}>No data yet</Text>
-                <Text style={styles.emptyText}>
-                  Start sharing outfits and giving feedback to appear on the leaderboard!
-                </Text>
-              </View>
+            ListEmptyComponent={renderEmptyState}
+            ListFooterComponent={renderFooter}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={Colors.primary}
+                colors={[Colors.primary]}
+              />
             }
           />
         )}
@@ -212,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -221,55 +270,75 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 9999,
   },
   headerTitle: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xl,
     fontWeight: '700',
     color: Colors.text,
   },
-  filterContainer: {
+  tabsContainer: {
     flexDirection: 'row',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
   },
-  filterButton: {
+  tabButton: {
     flex: 1,
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.surface,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  filterButtonActive: {
+  tabButtonActive: {
     backgroundColor: Colors.primary,
   },
-  filterText: {
+  tabText: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.text,
+    color: Colors.textSecondary,
   },
-  filterTextActive: {
+  tabTextActive: {
     color: Colors.white,
   },
-  descriptionSection: {
-    paddingHorizontal: Spacing.md,
+  userRankBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
     paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.primaryAlpha10,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
-  descriptionText: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    textAlign: 'center',
+  userRankText: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  userRankBold: {
+    fontWeight: '700',
+    color: Colors.primary,
+    fontSize: FontSize.lg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
   },
   listContent: {
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xxl,
   },
   leaderboardItem: {
     flexDirection: 'row',
@@ -281,10 +350,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  leaderboardItemTopThree: {
+    borderWidth: 2,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   rankSection: {
-    width: 48,
+    width: 50,
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
+  },
+  medalEmoji: {
+    fontSize: 32,
   },
   rankNumber: {
     fontSize: FontSize.lg,
@@ -294,19 +374,27 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: Spacing.md,
   },
-  userAvatar: {
-    width: 40,
-    height: 40,
+  avatarContainer: {
+    marginRight: Spacing.sm,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.sm,
   },
-  userAvatarText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
+  avatarText: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
     color: Colors.primary,
   },
   userInfo: {
@@ -316,35 +404,83 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.text,
+    marginBottom: 4,
   },
-  scoreLabel: {
+  userMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  levelBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    backgroundColor: Colors.secondaryAlpha10,
+    borderRadius: BorderRadius.sm,
+  },
+  levelText: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginTop: 2,
+    fontWeight: '600',
+    color: Colors.secondary,
   },
-  scoreSection: {
-    marginLeft: Spacing.md,
+  badgeCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    backgroundColor: Colors.warningAlpha10,
+    borderRadius: BorderRadius.sm,
   },
-  scoreValue: {
+  badgeCountText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    color: Colors.warning,
+  },
+  pointsSection: {
+    alignItems: 'flex-end',
+  },
+  pointsValue: {
     fontSize: FontSize.xl,
     fontWeight: '700',
     color: Colors.primary,
   },
+  pointsValueTopThree: {
+    fontSize: FontSize.xxl,
+  },
+  pointsLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl * 2,
-    paddingHorizontal: Spacing.lg,
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxl * 3,
+    paddingHorizontal: Spacing.xl,
   },
   emptyTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
+    fontSize: FontSize.xl,
+    fontWeight: '700',
     color: Colors.text,
-    marginTop: Spacing.md,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.textMuted,
     textAlign: 'center',
-    marginTop: Spacing.xs,
+    lineHeight: 22,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  footerText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
   },
 });

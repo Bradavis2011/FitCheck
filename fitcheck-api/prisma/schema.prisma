@@ -129,16 +129,41 @@ model UserStats {
   userId String @id @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Core Stats
   totalFeedbackGiven Int @default(0) @map("total_feedback_given")
   totalHelpfulVotes  Int @default(0) @map("total_helpful_votes")
-  currentStreak      Int @default(0) @map("current_streak")
-  longestStreak      Int @default(0) @map("longest_streak")
+
+  // Gamification
   points             Int @default(0)
   level              Int @default(1)
+  xpToNextLevel      Int @default(100) @map("xp_to_next_level")
+
+  // Streaks
+  currentStreak      Int @default(0) @map("current_streak")
+  longestStreak      Int @default(0) @map("longest_streak")
+  lastActiveDate     DateTime? @map("last_active_date") @db.Date
+  streakFreezeUsed   Boolean @default(false) @map("streak_freeze_used") // Resets weekly
+
+  // Leaderboards
+  weeklyPoints       Int @default(0) @map("weekly_points")
+  monthlyPoints      Int @default(0) @map("monthly_points")
+  lastWeeklyReset    DateTime @default(now()) @map("last_weekly_reset")
+  lastMonthlyReset   DateTime @default(now()) @map("last_monthly_reset")
+
+  // Badges
+  badges             String[] @default([]) // Array of badge IDs like ["early_bird", "streak_master"]
+
+  // Daily Goals
+  dailyFeedbackCount Int @default(0) @map("daily_feedback_count")
+  dailyHelpfulVotes  Int @default(0) @map("daily_helpful_votes")
+  dailyGoalsResetAt  DateTime @default(now()) @map("daily_goals_reset_at") @db.Date
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_stats")
+  @@index([weeklyPoints(sort: Desc)])
+  @@index([monthlyPoints(sort: Desc)])
+  @@index([points(sort: Desc)])
 }
 
 model CommunityFeedback {

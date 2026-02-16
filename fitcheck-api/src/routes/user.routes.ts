@@ -14,4 +14,9 @@ router.get('/stats', asyncHandler(userController.getUserStats));
 router.get('/style-profile', asyncHandler(userController.getStyleProfile));
 router.get('/style-evolution', asyncHandler(userController.getStyleEvolution));
 
+// Gamification endpoints
+router.get('/leaderboard/:type', asyncHandler(userController.getLeaderboard));
+router.get('/daily-goals', asyncHandler(userController.getDailyGoals));
+router.get('/badges', asyncHandler(userController.getBadges));
+
 export default router;
