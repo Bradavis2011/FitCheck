@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/clerk-expo';
+import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
@@ -16,6 +17,7 @@ import { styles as styleOptions } from '../../src/lib/mockData';
 export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const { tier } = useSubscriptionStore();
@@ -104,7 +106,16 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
         try {
-          await clearAuth(); // Clear local state
+          // Clear all app state
+          await clearAuth(); // Clear auth store
+          queryClient.clear(); // Clear React Query cache (history, stats, etc.)
+          useSubscriptionStore.setState({
+            tier: 'free',
+            isLoaded: false,
+            offerings: null,
+            customerInfo: null,
+            limits: null
+          }); // Reset subscription store
           await signOut(); // Sign out from Clerk
           router.replace('/login' as any);
         } catch (error) {
