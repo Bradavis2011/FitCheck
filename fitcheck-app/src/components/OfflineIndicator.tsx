@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useOnlineManager } from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
 import { Colors, Spacing, FontSize } from '../constants/theme';
 
 export default function OfflineIndicator() {
-  const onlineManager = useOnlineManager();
   const [isOffline, setIsOffline] = useState(false);
   const slideAnim = useState(new Animated.Value(-100))[0];
 
   useEffect(() => {
-    // React Query's online manager provides network status
-    const unsubscribe = onlineManager.subscribe((isOnline) => {
-      const offline = !isOnline;
+    // Use NetInfo for network status monitoring
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const offline = !state.isConnected;
       setIsOffline(offline);
 
       if (offline) {
@@ -31,7 +30,7 @@ export default function OfflineIndicator() {
     });
 
     return () => unsubscribe();
-  }, [onlineManager]);
+  }, []);
 
   if (!isOffline) return null;
 

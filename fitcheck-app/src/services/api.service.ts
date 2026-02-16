@@ -1,6 +1,12 @@
 import { api, setAuthToken } from '../lib/api';
 
 // Types
+export interface StylePreferences {
+  styles?: string[];
+  priorities?: string[];
+  bodyConcerns?: string[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -9,7 +15,7 @@ export interface User {
   bio?: string;
   isPublic?: boolean;
   profileImageUrl?: string;
-  stylePreferences?: Record<string, any>;
+  stylePreferences?: StylePreferences;
   bodyType?: string;
   colorSeason?: string;
   tier: 'free' | 'plus' | 'pro';
