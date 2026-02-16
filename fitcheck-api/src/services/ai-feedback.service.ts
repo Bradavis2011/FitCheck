@@ -395,6 +395,22 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
     // Style preferences from JSON
     if (user.stylePreferences) {
       const prefs = user.stylePreferences;
+
+      // New structure from style-preferences screen
+      if (prefs.styles?.length > 0) {
+        parts.push(`- Style categories: ${prefs.styles.join(', ')} (align recommendations with their aesthetic)`);
+      }
+      if (prefs.priorities?.length > 0) {
+        parts.push(`- Fashion priorities: ${prefs.priorities.join(', ')} (emphasize what matters most to them)`);
+      }
+      if (prefs.bodyConcerns?.length > 0) {
+        const concerns = prefs.bodyConcerns.filter((c: string) => c !== 'No specific concerns');
+        if (concerns.length > 0) {
+          parts.push(`- Styling goals: ${concerns.join(', ')} (tailor advice to their body confidence goals)`);
+        }
+      }
+
+      // Legacy structure (keep for backward compatibility)
       if (prefs.preferredStyles?.length > 0) {
         parts.push(`- Preferred styles: ${prefs.preferredStyles.join(', ')}`);
       }
