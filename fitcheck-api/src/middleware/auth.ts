@@ -51,19 +51,29 @@ export async function authenticateToken(
           return;
         }
 
-        const newUser = await prisma.user.create({
-          data: {
+        const name = clerkUser.firstName && clerkUser.lastName
+          ? `${clerkUser.firstName} ${clerkUser.lastName}`
+          : clerkUser.firstName || null;
+
+        // Upsert user - if email exists, update the Clerk ID; if not, create new
+        const newUser = await prisma.user.upsert({
+          where: { email },
+          update: {
+            id: clerkUserId, // Update Clerk ID for existing user
+            name,
+          },
+          create: {
             id: clerkUserId,
             email,
-            name: clerkUser.firstName && clerkUser.lastName
-              ? `${clerkUser.firstName} ${clerkUser.lastName}`
-              : clerkUser.firstName || null,
+            name,
           },
         });
 
-        // Create user stats
-        await prisma.userStats.create({
-          data: { userId: newUser.id },
+        // Create user stats if they don't exist
+        await prisma.userStats.upsert({
+          where: { userId: newUser.id },
+          update: {},
+          create: { userId: newUser.id },
         });
 
         req.userId = newUser.id;
