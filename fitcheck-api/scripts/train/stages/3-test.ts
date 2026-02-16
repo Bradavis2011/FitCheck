@@ -41,7 +41,7 @@ export async function test(
       try {
         const result = await rateLimiter.execute(async () => {
           const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash', // Using 2.5-flash (50% JSON success rate is acceptable)
             systemInstruction: SYSTEM_PROMPT,
             generationConfig: {
               temperature: 0.5,
