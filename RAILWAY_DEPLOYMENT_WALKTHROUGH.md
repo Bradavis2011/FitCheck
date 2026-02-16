@@ -82,7 +82,7 @@ CLERK_WEBHOOK_SECRET=whsec_G7oevn/rRj879RdlPPwg6kVfB94ueozP
 
 **AI Service:**
 ```
-GEMINI_API_KEY=AIzaSyBSpQ3ZRvUEeX-mVH2vS7ijEzErOZesv_8
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 **RevenueCat:**
