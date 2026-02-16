@@ -178,6 +178,9 @@ export default function FeedbackScreen() {
       setIsGeneratingShare(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      // Small delay to ensure image is loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Capture the shareable card as an image
       const uri = await viewShotRef.current.capture?.();
 
@@ -189,10 +192,10 @@ export default function FeedbackScreen() {
       const isAvailable = await Sharing.isAvailableAsync();
 
       if (isAvailable) {
-        // Share the image
+        // Share the image to social media (Instagram, TikTok, etc.)
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
-          dialogTitle: 'Share Your Outfit Score',
+          dialogTitle: 'Share to Social Media',
         });
       } else {
         // Fallback to text sharing on platforms that don't support image sharing
@@ -388,7 +391,7 @@ export default function FeedbackScreen() {
                 <View style={styles.shareProminentContent}>
                   <Text style={styles.shareProminentTitle}>🔥 Great score!</Text>
                   <Text style={styles.shareProminentDesc}>
-                    Share your outfit with the community and inspire others
+                    Add to Community Feed and get feedback from others
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -397,12 +400,12 @@ export default function FeedbackScreen() {
                   activeOpacity={0.8}
                 >
                   <Ionicons
-                    name={isPublic ? 'checkmark-circle' : 'share-outline'}
+                    name={isPublic ? 'checkmark-circle' : 'people-outline'}
                     size={20}
                     color={isPublic ? Colors.white : Colors.primary}
                   />
                   <Text style={[styles.shareToggleText, isPublic && styles.shareToggleTextActive]}>
-                    {isPublic ? 'Shared' : 'Share'}
+                    {isPublic ? 'In Community' : 'Add to Community'}
                   </Text>
                 </TouchableOpacity>
               </LinearGradient>
@@ -412,9 +415,9 @@ export default function FeedbackScreen() {
             <View style={styles.shareSecondaryContainer}>
               <View style={styles.shareSecondaryRow}>
                 <View>
-                  <Text style={styles.shareSecondaryTitle}>Share to Community</Text>
+                  <Text style={styles.shareSecondaryTitle}>Add to Community Feed</Text>
                   <Text style={styles.shareSecondaryDesc}>
-                    Get feedback from others
+                    Let others see and comment on your outfit
                   </Text>
                 </View>
                 <TouchableOpacity
