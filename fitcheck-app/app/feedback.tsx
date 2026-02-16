@@ -18,8 +18,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
-import ViewShot from 'react-native-view-shot';
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
@@ -27,7 +25,6 @@ import ScoreDisplay from '../src/components/ScoreDisplay';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
-import ShareableScoreCard from '../src/components/ShareableScoreCard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
@@ -54,7 +51,6 @@ export default function FeedbackScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
-  const viewShotRef = useRef<ViewShot>(null);
 
   // Handle hardware back button
   useEffect(() => {
@@ -457,19 +453,6 @@ export default function FeedbackScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Off-screen shareable card for image generation */}
-      <View style={styles.offscreenContainer}>
-        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
-          <ShareableScoreCard
-            score={score}
-            imageUri={imageUri}
-            summary={feedback.summary}
-            occasion={outfit.occasions?.[0]}
-            username={user?.username || user?.email?.split('@')[0]}
-          />
-        </ViewShot>
-      </View>
-
       {/* Follow-up modal */}
       <FollowUpModal
         visible={showFollowUp}
@@ -782,11 +765,5 @@ const styles = StyleSheet.create({
   },
   shareSecondaryThumbActive: {
     alignSelf: 'flex-end',
-  },
-  offscreenContainer: {
-    position: 'absolute',
-    left: -9999,
-    top: -9999,
-    opacity: 0,
   },
 });
