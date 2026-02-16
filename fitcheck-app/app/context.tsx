@@ -89,7 +89,7 @@ export default function ContextScreen() {
       console.log('[Context] API response received:', response.id);
 
       // Navigate to feedback with outfit ID
-      router.push({ pathname: '/feedback', params: { outfitId: response.id } });
+      router.push(`/feedback?outfitId=${response.id}`);
     } catch (error: any) {
       console.error('[Context] Failed to submit outfit check:', error);
       console.error('[Context] Error name:', error.name);
