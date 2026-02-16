@@ -11,12 +11,15 @@ import {
   Share,
   BackHandler,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
+import ViewShot from 'react-native-view-shot';
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
@@ -24,8 +27,10 @@ import ScoreDisplay from '../src/components/ScoreDisplay';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
+import ShareableScoreCard from '../src/components/ShareableScoreCard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic } from '../src/hooks/useApi';
+import { useAuthStore } from '../src/stores/authStore';
 
 export default function FeedbackScreen() {
   const router = useRouter();
@@ -36,6 +41,8 @@ export default function FeedbackScreen() {
   const { limits } = useSubscriptionStore();
   const togglePublicMutation = useTogglePublic();
 
+  const user = useAuthStore((s) => s.user);
+
   const [outfit, setOutfit] = useState<OutfitCheck | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -43,9 +50,11 @@ export default function FeedbackScreen() {
   const [showHelpful, setShowHelpful] = useState(false);
   const [helpfulResponse, setHelpfulResponse] = useState<boolean | null>(null);
   const [showFollowUp, setShowFollowUp] = useState(false);
+  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
+  const viewShotRef = useRef<ViewShot>(null);
 
   // Handle hardware back button
   useEffect(() => {
@@ -162,6 +171,47 @@ export default function FeedbackScreen() {
     }
   };
 
+  const handleShareScore = async () => {
+    if (!outfit || !viewShotRef.current) return;
+
+    try {
+      setIsGeneratingShare(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Capture the shareable card as an image
+      const uri = await viewShotRef.current.capture?.();
+
+      if (!uri) {
+        throw new Error('Failed to generate share image');
+      }
+
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+
+      if (isAvailable) {
+        // Share the image
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share Your Outfit Score',
+        });
+      } else {
+        // Fallback to text sharing on platforms that don't support image sharing
+        const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
+        await Share.share({
+          message: `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`,
+          title: `My Or This? Score: ${score}/10`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to share score:', error);
+      if (error.message !== 'User cancelled') {
+        Alert.alert('Error', 'Failed to generate share image. Please try again.');
+      }
+    } finally {
+      setIsGeneratingShare(false);
+    }
+  };
+
   const handleFollowUp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowFollowUp(true);
@@ -206,15 +256,14 @@ export default function FeedbackScreen() {
           <Text style={styles.headerTitle}>Your Feedback</Text>
           <TouchableOpacity
             style={styles.shareButton}
-            onPress={() => {
-              const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
-              Share.share({
-                message: `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis!`,
-                title: `My Or This? Score: ${score}/10`,
-              });
-            }}
+            onPress={handleShareScore}
+            disabled={isGeneratingShare}
           >
-            <Ionicons name="share-outline" size={24} color={Colors.text} />
+            {isGeneratingShare ? (
+              <ActivityIndicator size="small" color={Colors.text} />
+            ) : (
+              <Ionicons name="share-outline" size={24} color={Colors.text} />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -404,6 +453,19 @@ export default function FeedbackScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {/* Off-screen shareable card for image generation */}
+      <View style={styles.offscreenContainer}>
+        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
+          <ShareableScoreCard
+            score={score}
+            imageUri={imageUri}
+            summary={feedback.summary}
+            occasion={outfit.occasions?.[0]}
+            username={user?.username || user?.email?.split('@')[0]}
+          />
+        </ViewShot>
+      </View>
 
       {/* Follow-up modal */}
       <FollowUpModal
@@ -717,5 +779,11 @@ const styles = StyleSheet.create({
   },
   shareSecondaryThumbActive: {
     alignSelf: 'flex-end',
+  },
+  offscreenContainer: {
+    position: 'absolute',
+    left: -9999,
+    top: -9999,
+    opacity: 0,
   },
 });
