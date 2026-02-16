@@ -18,7 +18,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import ViewShot from 'react-native-view-shot';
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
@@ -172,43 +172,43 @@ export default function FeedbackScreen() {
   };
 
   const handleShareScore = async () => {
-    if (!outfit || !viewShotRef.current) return;
+    if (!outfit) return;
 
     try {
       setIsGeneratingShare(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Small delay to ensure image is loaded
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
+      const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`;
 
-      // Capture the shareable card as an image
-      const uri = await viewShotRef.current.capture?.();
+      // For now, use text-only sharing
+      // Image sharing requires rebuilding the app with EAS
+      await Share.share({
+        message: shareMessage,
+        title: `My Or This? Score: ${score}/10`,
+      });
 
-      if (!uri) {
-        throw new Error('Failed to generate share image');
+      // TODO: Enable image sharing after EAS build
+      // Uncomment this code after running: npx expo prebuild && npx expo run:ios/android
+      /*
+      if (viewShotRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const uri = await viewShotRef.current.capture?.();
+
+        if (uri && Platform.OS === 'ios') {
+          await Share.share({ url: uri, message: shareMessage });
+        } else if (uri) {
+          // Android: Save to file system and share
+          const fileUri = `${FileSystem.cacheDirectory}outfit-score.png`;
+          await FileSystem.copyAsync({ from: uri, to: fileUri });
+          await Share.share({ message: shareMessage });
+        }
       }
-
-      // Check if sharing is available
-      const isAvailable = await Sharing.isAvailableAsync();
-
-      if (isAvailable) {
-        // Share the image to social media (Instagram, TikTok, etc.)
-        await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          dialogTitle: 'Share to Social Media',
-        });
-      } else {
-        // Fallback to text sharing on platforms that don't support image sharing
-        const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
-        await Share.share({
-          message: `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`,
-          title: `My Or This? Score: ${score}/10`,
-        });
-      }
+      */
     } catch (error: any) {
       console.error('Failed to share score:', error);
-      if (error.message !== 'User cancelled') {
-        Alert.alert('Error', 'Failed to generate share image. Please try again.');
+      if (error.message !== 'User cancelled' && !error.message?.includes('cancelled')) {
+        Alert.alert('Error', 'Failed to share. Please try again.');
       }
     } finally {
       setIsGeneratingShare(false);
