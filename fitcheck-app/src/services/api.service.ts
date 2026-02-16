@@ -7,6 +7,12 @@ export interface StylePreferences {
   bodyConcerns?: string[];
 }
 
+export interface PrivacySettings {
+  blurFaceDefault: boolean;
+  visibility: 'all' | 'followers' | 'trusted';
+  autoDelete: 'never' | '24h' | '7d' | '30d';
+}
+
 export interface User {
   id: string;
   email: string;
@@ -16,6 +22,7 @@ export interface User {
   isPublic?: boolean;
   profileImageUrl?: string;
   stylePreferences?: StylePreferences;
+  privacySettings?: PrivacySettings;
   bodyType?: string;
   colorSeason?: string;
   tier: 'free' | 'plus' | 'pro';
@@ -84,6 +91,9 @@ export interface OutfitCheck {
   isFavorite: boolean;
   isPublic: boolean;
   isDeleted: boolean;
+  blurFace?: boolean;
+  visibility?: string;
+  expiresAt?: string;
   createdAt: string;
   followUps?: FollowUp[];
 }
