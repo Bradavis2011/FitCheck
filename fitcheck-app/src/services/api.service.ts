@@ -79,6 +79,8 @@ export interface OutfitCheck {
   aiProcessedAt?: string;
   feedbackHelpful?: boolean;
   feedbackRating?: number;
+  communityAvgScore?: number;
+  communityScoreCount?: number;
   isFavorite: boolean;
   isPublic: boolean;
   isDeleted: boolean;
