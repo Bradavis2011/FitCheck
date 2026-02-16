@@ -338,6 +338,15 @@ export default function FeedbackScreen() {
             <StyleDNACard styleDNA={feedback.styleDNA} delay={600} />
           )}
 
+          {/* Follow-up Questions */}
+          <View style={styles.followUpSection}>
+            <TouchableOpacity style={styles.followUpButton} onPress={handleFollowUp}>
+              <Ionicons name="chatbubble-outline" size={20} color={Colors.primary} />
+              <Text style={styles.followUpButtonText}>Ask a Follow-up Question</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
           {/* Helpful prompt */}
           {showHelpful && helpfulResponse === null && (
             <Animated.View style={[styles.helpfulSection, { opacity: fadeAnim }]}>
@@ -581,6 +590,28 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+  followUpSection: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  followUpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  followUpButtonText: {
+    flex: 1,
+    marginLeft: Spacing.sm,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
   },
   helpfulSection: {
     alignItems: 'center',
