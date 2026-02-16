@@ -9,6 +9,6 @@ export const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  // Validate trust proxy configuration (Railway uses proxies, we've verified this is secure)
-  validate: { trustProxy: false },
+  // Trust proxy is enabled in server.ts for Railway deployment
+  // Remove validate config to use default behavior (respects Express trust proxy setting)
 });
