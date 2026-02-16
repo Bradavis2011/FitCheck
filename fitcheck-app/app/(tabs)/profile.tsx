@@ -257,7 +257,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Wardrobe */}
+        {/* Wardrobe - HIDDEN FOR MVP (Phase 2 feature)
         <View style={styles.editProfileCard}>
           <TouchableOpacity
             style={styles.editProfileButton}
@@ -276,6 +276,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
+        */}
 
         {/* Stats */}
         <View style={styles.statsCard}>
