@@ -83,7 +83,7 @@ export default function CommunityScreen() {
   // Transform API data to match component props
   const transformedOutfits = outfits.map((outfit) => ({
     id: outfit.id,
-    imageUrl: '',
+    imageUrl: outfit.thumbnailUrl || outfit.imageUrl || '',
     thumbnailData: outfit.thumbnailData,
     score: outfit.aiScore,
     occasions: outfit.occasions,

@@ -10,7 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals } from '../../src/hooks/useApi';
+import { useUserStats, useUser, useUpdateProfile } from '../../src/hooks/useApi';
 import PillButton from '../../src/components/PillButton';
 import { styles as styleOptions } from '../../src/lib/mockData';
 
@@ -23,8 +23,8 @@ export default function ProfileScreen() {
   const { tier } = useSubscriptionStore();
   const { data: stats } = useUserStats();
   const { data: userProfile } = useUser();
-  const { data: badgesData } = useBadges();
-  const { data: dailyGoals } = useDailyGoals();
+  // const { data: badgesData } = useBadges(); // Disabled - endpoint not implemented
+  // const { data: dailyGoals } = useDailyGoals(); // Disabled - endpoint not implemented
   const updateProfile = useUpdateProfile();
 
   // Style preferences accordion

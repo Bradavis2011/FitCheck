@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.sm,
   },
   saveBadgeText: {
     fontSize: 10,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs / 2,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.sm,
   },
   popularBadgeText: {
     fontSize: 10,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs / 2,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.sm,
   },
   proBadgeText: {
     fontSize: 10,

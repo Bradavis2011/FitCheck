@@ -228,25 +228,26 @@ export function useLeaderboard(type: string, limit?: number) {
   });
 }
 
-export function useBadges() {
-  return useQuery({
-    queryKey: ['badges'] as const,
-    queryFn: async () => {
-      const response = await api.get('/api/user/badges');
-      return response.data;
-    },
-  });
-}
+// Temporarily disabled - endpoints not implemented yet
+// export function useBadges() {
+//   return useQuery({
+//     queryKey: ['badges'] as const,
+//     queryFn: async () => {
+//       const response = await api.get('/api/user/badges');
+//       return response.data;
+//     },
+//   });
+// }
 
-export function useDailyGoals() {
-  return useQuery({
-    queryKey: ['dailyGoals'] as const,
-    queryFn: async () => {
-      const response = await api.get('/api/user/daily-goals');
-      return response.data;
-    },
-  });
-}
+// export function useDailyGoals() {
+//   return useQuery({
+//     queryKey: ['dailyGoals'] as const,
+//     queryFn: async () => {
+//       const response = await api.get('/api/user/daily-goals');
+//       return response.data;
+//     },
+//   });
+// }
 
 // Notification hooks
 export function useNotifications(unreadOnly: boolean = false) {

@@ -294,6 +294,7 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
       select: {
         id: true,
         imageUrl: true,
+        imageData: true,
         thumbnailUrl: true,
         thumbnailData: true,
         occasions: true,
@@ -304,6 +305,17 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
     });
 
     const total = await prisma.outfitCheck.count({ where });
+
+    // Debug logging
+    if (outfits.length > 0) {
+      console.log('[listOutfitChecks] First outfit:', {
+        id: outfits[0].id,
+        hasImageData: !!outfits[0].imageData,
+        hasThumbData: !!outfits[0].thumbnailData,
+        imageDataLength: outfits[0].imageData?.length || 0,
+        thumbDataLength: outfits[0].thumbnailData?.length || 0,
+      });
+    }
 
     res.json({
       outfits,
