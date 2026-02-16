@@ -85,6 +85,7 @@ export async function authenticateToken(
           update: { email, name },
         });
 
+        // Create user stats if they don't exist
         await prisma.userStats.upsert({
           where: { userId: newUser.id },
           update: {},
