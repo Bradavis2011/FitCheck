@@ -387,7 +387,7 @@ export default function FeedbackScreen() {
                 <View style={styles.shareProminentContent}>
                   <Text style={styles.shareProminentTitle}>🔥 Great score!</Text>
                   <Text style={styles.shareProminentDesc}>
-                    Add to Community Feed and get feedback from others
+                    Share with the community for feedback
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -401,7 +401,7 @@ export default function FeedbackScreen() {
                     color={isPublic ? Colors.white : Colors.primary}
                   />
                   <Text style={[styles.shareToggleText, isPublic && styles.shareToggleTextActive]}>
-                    {isPublic ? 'In Community' : 'Add to Community'}
+                    {isPublic ? 'Shared' : 'Share'}
                   </Text>
                 </TouchableOpacity>
               </LinearGradient>
@@ -410,10 +410,10 @@ export default function FeedbackScreen() {
             // Lower score: Secondary option
             <View style={styles.shareSecondaryContainer}>
               <View style={styles.shareSecondaryRow}>
-                <View>
-                  <Text style={styles.shareSecondaryTitle}>Add to Community Feed</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.shareSecondaryTitle}>Community Feed</Text>
                   <Text style={styles.shareSecondaryDesc}>
-                    Let others see and comment on your outfit
+                    Get feedback from others
                   </Text>
                 </View>
                 <TouchableOpacity
