@@ -130,7 +130,17 @@ export default function HomeScreen() {
               contentContainerStyle={styles.recentScroll}
             >
               {outfits.map((outfit) => {
-                const imageUri = outfit.thumbnailData || outfit.imageData || outfit.imageUrl || '';
+                // Format image URI properly - add base64 prefix if needed
+                let imageUri = '';
+                if (outfit.thumbnailData || outfit.imageData) {
+                  const base64Data = outfit.thumbnailData || outfit.imageData;
+                  imageUri = base64Data?.startsWith('data:')
+                    ? base64Data
+                    : `data:image/jpeg;base64,${base64Data}`;
+                } else if (outfit.imageUrl) {
+                  imageUri = outfit.imageUrl;
+                }
+
                 return (
                   <View key={outfit.id} style={styles.recentCard}>
                     <OutfitCard
