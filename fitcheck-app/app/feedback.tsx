@@ -253,16 +253,8 @@ export default function FeedbackScreen() {
             <Ionicons name="arrow-back" size={24} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Your Feedback</Text>
-          <TouchableOpacity
-            style={styles.shareButton}
-            onPress={handleShareScore}
-            disabled={isGeneratingShare}
-          >
-            {isGeneratingShare ? (
-              <ActivityIndicator size="small" color={Colors.text} />
-            ) : (
-              <Ionicons name="share-outline" size={24} color={Colors.text} />
-            )}
+          <TouchableOpacity style={styles.followUpHeaderButton} onPress={handleFollowUp}>
+            <Ionicons name="chatbubble-outline" size={20} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -432,23 +424,32 @@ export default function FeedbackScreen() {
 
         {/* Action bar */}
         <View style={styles.actionBar}>
-          <TouchableOpacity style={styles.actionButtonSecondary} onPress={handleFollowUp}>
-            <Ionicons name="chatbubble-outline" size={20} color={Colors.primary} />
-            <Text style={styles.actionButtonSecondaryText}>Follow-up</Text>
-          </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.favoriteCircle, isFavorite && styles.favoriteCircleActive]}
+            style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
             onPress={handleToggleFavorite}
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
+              size={20}
               color={isFavorite ? Colors.white : Colors.text}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButtonPrimary} onPress={handleNewCheck}>
-            <Ionicons name="camera" size={20} color={Colors.white} />
-            <Text style={styles.actionButtonPrimaryText}>New Check</Text>
+          <TouchableOpacity
+            style={styles.shareButtonLarge}
+            onPress={handleShareScore}
+            disabled={isGeneratingShare}
+          >
+            {isGeneratingShare ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <>
+                <Ionicons name="share-social" size={20} color={Colors.white} />
+                <Text style={styles.shareButtonText}>Share Score</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.newCheckButton} onPress={handleNewCheck}>
+            <Ionicons name="camera" size={20} color={Colors.text} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -511,7 +512,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 9999,
   },
-  shareButton: {
+  followUpHeaderButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -634,47 +635,49 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  actionButtonSecondary: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  actionButtonSecondaryText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  favoriteCircle: {
-    width: 56,
-    height: 56,
+  favoriteButton: {
+    width: 48,
+    height: 48,
     borderRadius: 9999,
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  favoriteCircleActive: {
+  favoriteButtonActive: {
     backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
   },
-  actionButtonPrimary: {
+  shareButtonLarge: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: Spacing.md,
+    paddingVertical: 14,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  actionButtonPrimaryText: {
+  shareButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.white,
+  },
+  newCheckButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 9999,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   // Share to Community - Prominent (high scores)
   shareProminentContainer: {

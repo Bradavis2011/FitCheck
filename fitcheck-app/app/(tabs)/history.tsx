@@ -71,7 +71,17 @@ export default function HistoryScreen() {
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.gridRow}
           renderItem={({ item }) => {
-            const imageUri = item.thumbnailUrl || item.thumbnailData || item.imageUrl || item.imageData || '';
+            // Format image URI properly - add base64 prefix if needed
+            let imageUri = '';
+            if (item.thumbnailData || item.imageData) {
+              const base64Data = item.thumbnailData || item.imageData;
+              imageUri = base64Data?.startsWith('data:')
+                ? base64Data
+                : `data:image/jpeg;base64,${base64Data}`;
+            } else if (item.thumbnailUrl || item.imageUrl) {
+              imageUri = item.thumbnailUrl || item.imageUrl || '';
+            }
+
             return (
               <View style={styles.gridItem}>
                 <OutfitCard
