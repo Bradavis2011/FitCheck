@@ -161,7 +161,14 @@ export default function CommunityScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Buttons */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabSecondary]}
+        onPress={() => router.push('/give-feedback' as any)}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="heart-outline" size={24} color={Colors.white} />
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/create-comparison' as any)}
@@ -290,5 +297,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  fabSecondary: {
+    bottom: 148, // 80 + 56 + 12 (spacing)
+    backgroundColor: Colors.secondary,
   },
 });

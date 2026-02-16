@@ -26,7 +26,7 @@ import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-import { useTogglePublic } from '../src/hooks/useApi';
+import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 
 export default function FeedbackScreen() {
@@ -48,9 +48,13 @@ export default function FeedbackScreen() {
   const [helpfulResponse, setHelpfulResponse] = useState<boolean | null>(null);
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
+  const [showCommunityFeedback, setShowCommunityFeedback] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch community feedback if outfit is public
+  const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
 
   // Handle hardware back button
   useEffect(() => {
@@ -230,6 +234,12 @@ export default function FeedbackScreen() {
     router.replace('/(tabs)/camera' as any);
   };
 
+  const getScoreColor = (value: number) => {
+    if (value >= 8) return Colors.success;
+    if (value >= 6) return Colors.warning;
+    return Colors.error;
+  };
+
   if (isLoading || !outfit?.aiFeedback) {
     return (
       <View style={styles.loadingContainer}>
@@ -372,6 +382,78 @@ export default function FeedbackScreen() {
             <View style={styles.thankYouSection}>
               <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
               <Text style={styles.thankYouText}>Thanks for your feedback!</Text>
+            </View>
+          )}
+
+          {/* Community Feedback Section */}
+          {isPublic && communityFeedbackData?.feedback && communityFeedbackData.feedback.length > 0 && (
+            <View style={styles.communityFeedbackSection}>
+              <View style={styles.communityFeedbackHeader}>
+                <Text style={styles.communityFeedbackTitle}>Community Feedback</Text>
+                <View style={styles.communityScoreBadge}>
+                  <Ionicons name="people" size={16} color={Colors.primary} />
+                  <Text style={styles.communityScoreText}>
+                    {(outfit.communityAvgScore || 0).toFixed(1)}/10
+                  </Text>
+                  <Text style={styles.communityCountText}>
+                    ({communityFeedbackData.feedback.length})
+                  </Text>
+                </View>
+              </View>
+
+              {showCommunityFeedback ? (
+                <>
+                  {communityFeedbackData.feedback.map((feedback) => (
+                    <View key={feedback.id} style={styles.communityFeedbackItem}>
+                      <View style={styles.communityFeedbackItemHeader}>
+                        <View style={styles.communityFeedbackUser}>
+                          {feedback.user.profileImageUrl ? (
+                            <Image
+                              source={{ uri: feedback.user.profileImageUrl }}
+                              style={styles.communityFeedbackUserAvatar}
+                            />
+                          ) : (
+                            <View style={[styles.communityFeedbackUserAvatar, styles.communityFeedbackUserAvatarPlaceholder]}>
+                              <Text style={styles.communityFeedbackUserAvatarText}>
+                                {(feedback.user.username || feedback.user.name || 'A')[0].toUpperCase()}
+                              </Text>
+                            </View>
+                          )}
+                          <Text style={styles.communityFeedbackUsername}>
+                            {feedback.user.username || feedback.user.name || 'Anonymous'}
+                          </Text>
+                        </View>
+                        <View style={styles.communityFeedbackScore}>
+                          <Text style={[styles.communityFeedbackScoreText, { color: getScoreColor(feedback.score) }]}>
+                            {feedback.score}/10
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.communityFeedbackComment}>{feedback.comment}</Text>
+                      <Text style={styles.communityFeedbackTime}>
+                        {new Date(feedback.createdAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.showLessButton}
+                    onPress={() => setShowCommunityFeedback(false)}
+                  >
+                    <Text style={styles.showLessButtonText}>Show Less</Text>
+                    <Ionicons name="chevron-up" size={16} color={Colors.primary} />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.showMoreButton}
+                  onPress={() => setShowCommunityFeedback(true)}
+                >
+                  <Text style={styles.showMoreButtonText}>
+                    View {communityFeedbackData.feedback.length} feedback{communityFeedbackData.feedback.length !== 1 ? 's' : ''}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -799,5 +881,126 @@ const styles = StyleSheet.create({
   },
   shareSecondaryThumbActive: {
     alignSelf: 'flex-end',
+  },
+  // Community Feedback Section
+  communityFeedbackSection: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  communityFeedbackHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  communityFeedbackTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  communityScoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.full,
+  },
+  communityScoreText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  communityCountText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    fontWeight: '600',
+  },
+  communityFeedbackItem: {
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  communityFeedbackItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  communityFeedbackUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  communityFeedbackUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.full,
+  },
+  communityFeedbackUserAvatarPlaceholder: {
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  communityFeedbackUserAvatarText: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  communityFeedbackUsername: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  communityFeedbackScore: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+  },
+  communityFeedbackScoreText: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  communityFeedbackComment: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 20,
+    marginBottom: Spacing.xs,
+  },
+  communityFeedbackTime: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+  },
+  showMoreButtonText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  showLessButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  showLessButtonText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 });
