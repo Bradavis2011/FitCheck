@@ -269,11 +269,11 @@ export default function UpgradeScreen() {
 
         {/* Footer Links */}
         <View style={styles.footer}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://fitcheck.app/terms')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://orthis.app/terms')}>
             <Text style={styles.footerLink}>Terms of Service</Text>
           </TouchableOpacity>
           <Text style={styles.footerDivider}>•</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://fitcheck.app/privacy')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://orthis.app/privacy')}>
             <Text style={styles.footerLink}>Privacy Policy</Text>
           </TouchableOpacity>
         </View>

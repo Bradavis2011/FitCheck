@@ -24,31 +24,11 @@ export default function HistoryScreen() {
     filters.occasion = activeFilter;
   }
 
-  console.log('[History] Calling useOutfits with filters:', filters);
   const { data, isLoading, isError, error, refetch } = useOutfits(filters);
-  console.log('[History] useOutfits result:', {
-    hasData: !!data,
-    isLoading,
-    isError,
-    errorMessage: error?.message,
-    outfitCount: data?.outfits?.length || 0
-  });
   const toggleFavoriteMutation = useToggleFavorite();
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = data?.outfits || [];
-
-  // Debug logging
-  if (outfits.length > 0) {
-    console.log('[History] First outfit data:', {
-      id: outfits[0].id,
-      hasThumbnailUrl: !!outfits[0].thumbnailUrl,
-      hasThumbnailData: !!outfits[0].thumbnailData,
-      hasImageUrl: !!outfits[0].imageUrl,
-      hasImageData: !!outfits[0].imageData,
-      thumbnailDataLength: outfits[0].thumbnailData?.length || 0,
-    });
-  }
 
   const handleRefresh = async () => {
     setRefreshing(true);
