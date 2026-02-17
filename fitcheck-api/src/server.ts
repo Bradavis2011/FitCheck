@@ -1,9 +1,23 @@
+import dotenv from 'dotenv';
+// Load environment variables early so Sentry DSN is available
+dotenv.config();
+
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
+
+// Initialize Sentry before other imports that might throw
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.2,
+    sendDefaultPii: false,
+  });
+}
 import { limiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import outfitRoutes from './routes/outfit.routes.js';
@@ -16,9 +30,6 @@ import subscriptionRoutes from './routes/subscription.routes.js';
 import { handleWebhook } from './controllers/subscription.controller.js';
 import { asyncHandler } from './middleware/asyncHandler.js';
 import { isConfigured as isS3Configured } from './services/s3.service.js';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
@@ -73,6 +84,11 @@ app.use('/api', subscriptionRoutes);
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// Sentry error handler (must be before custom error handler)
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // Error handler (must be last)
 app.use(errorHandler);

@@ -73,6 +73,8 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.avatar}
             onPress={() => router.push('/(tabs)/profile')}
+            accessibilityLabel="Go to profile"
+            accessibilityRole="button"
           >
             <Text style={styles.avatarText}>{getInitials()}</Text>
           </TouchableOpacity>
@@ -83,6 +85,8 @@ export default function HomeScreen() {
           style={styles.ctaCard}
           activeOpacity={0.95}
           onPress={() => router.push('/(tabs)/camera')}
+          accessibilityLabel="Check your outfit. Take a photo and get instant AI feedback"
+          accessibilityRole="button"
         >
           <LinearGradient
             colors={[Colors.primary, Colors.secondary]}
@@ -121,6 +125,8 @@ export default function HomeScreen() {
             style={styles.quickAction}
             activeOpacity={0.95}
             onPress={() => router.push('/(tabs)/history')}
+            accessibilityLabel="View outfit history"
+            accessibilityRole="button"
           >
             <View style={[styles.quickActionIcon, { backgroundColor: Colors.primaryAlpha10 }]}>
               <Ionicons name="grid" size={20} color={Colors.primary} />
@@ -131,6 +137,8 @@ export default function HomeScreen() {
             style={styles.quickAction}
             activeOpacity={0.95}
             onPress={() => router.push('/(tabs)/history?filter=favorites')}
+            accessibilityLabel="View favorite outfits"
+            accessibilityRole="button"
           >
             <View style={[styles.quickActionIcon, { backgroundColor: Colors.secondaryAlpha10 }]}>
               <Ionicons name="heart" size={20} color={Colors.secondary} />
@@ -147,6 +155,8 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.seeAllButton}
                 onPress={() => router.push('/(tabs)/history')}
+                accessibilityLabel="See all outfit checks"
+                accessibilityRole="button"
               >
                 <Text style={styles.seeAllText}>See all</Text>
                 <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
@@ -188,7 +198,7 @@ export default function HomeScreen() {
 
         {/* Upgrade Card (only for free tier) */}
         {tier === 'free' && (
-          <TouchableOpacity onPress={() => router.push('/upgrade' as any)}>
+          <TouchableOpacity onPress={() => router.push('/upgrade' as any)} accessibilityLabel="Upgrade to Plus for unlimited checks" accessibilityRole="button">
             <LinearGradient
               colors={[Colors.primary, Colors.secondary]}
               start={{ x: 0, y: 0 }}

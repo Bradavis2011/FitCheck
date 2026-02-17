@@ -75,13 +75,12 @@ export default function OutfitBuilderScreen() {
       return;
     }
 
-    // TODO: Generate composite image and navigate to context screen
-    Alert.alert('Feature Coming Soon', 'Outfit checking from wardrobe is coming in the next update!');
+    Alert.alert('Coming Soon', 'Outfit checking from your wardrobe is coming in the next update!');
   };
 
   const handleShuffle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    // TODO: AI-powered smart shuffle based on style preferences
+    // Random shuffle for now — AI-powered smart shuffle will use style preferences in a future update
     const newSlots = slots.map(slot => {
       const items = WARDROBE_ITEMS[slot.category];
       if (items && items.length > 0) {

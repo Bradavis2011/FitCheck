@@ -22,11 +22,6 @@ export function usePushNotifications() {
   const { token: authToken, user } = useAuthStore();
 
   useEffect(() => {
-    // DISABLED: Push notifications don't work properly in Expo Go
-    // Enable this when building standalone app
-    return;
-
-    // eslint-disable-next-line no-unreachable
     if (!authToken || !user) {
       return;
     }

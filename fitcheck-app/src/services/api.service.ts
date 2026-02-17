@@ -244,6 +244,16 @@ export const userService = {
     const response = await api.get<UserStats>('/api/user/stats');
     return response.data;
   },
+
+  async deleteAccount() {
+    const response = await api.delete<{ success: boolean; message: string }>('/api/user/account');
+    return response.data;
+  },
+
+  async clearHistory() {
+    const response = await api.delete<{ success: boolean; deletedCount: number }>('/api/user/history');
+    return response.data;
+  },
 };
 
 // Social/Community Service

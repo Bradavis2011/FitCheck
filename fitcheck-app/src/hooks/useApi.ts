@@ -44,6 +44,29 @@ export function useUpdateProfile() {
   });
 }
 
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => userService.deleteAccount(),
+    onSuccess: () => {
+      queryClient.clear();
+    },
+  });
+}
+
+export function useClearHistory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => userService.clearHistory(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfits() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.userStats });
+    },
+  });
+}
+
 // Outfit hooks
 export function useOutfit(id: string) {
   return useQuery({

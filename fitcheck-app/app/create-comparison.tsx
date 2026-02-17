@@ -94,27 +94,11 @@ export default function CreateComparisonScreen() {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      // TODO: Upload images and create comparison post via API
-      console.log('Creating comparison:', {
-        imageA,
-        imageB,
-        question: question || 'Which outfit works better?',
-        occasions: selectedOccasions,
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-
-      Alert.alert('Posted!', 'Your comparison has been shared with the community.', [
-        { text: 'OK', onPress: () => router.push('/(tabs)/community') },
-      ]);
-    } catch (error) {
-      console.error('Failed to create comparison:', error);
-      Alert.alert('Error', 'Failed to post comparison. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    Alert.alert(
+      'Coming Soon',
+      'Community comparison posts are coming in the next update! You\'ll be able to let the community vote on your outfit choices.',
+      [{ text: 'OK' }]
+    );
   };
 
   const canSubmit = imageA && imageB && selectedOccasions.length > 0;

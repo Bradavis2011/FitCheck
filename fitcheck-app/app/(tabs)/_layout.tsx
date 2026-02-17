@@ -39,6 +39,7 @@ export default function TabsLayout() {
         name="camera"
         options={{
           title: '',
+          tabBarAccessibilityLabel: 'Take photo',
           tabBarIcon: () => (
             <View style={styles.cameraButton}>
               <Ionicons name="camera" size={24} color={Colors.white} />

@@ -14,6 +14,10 @@ router.get('/stats', asyncHandler(userController.getUserStats));
 router.get('/style-profile', asyncHandler(userController.getStyleProfile));
 router.get('/style-evolution', asyncHandler(userController.getStyleEvolution));
 
+// Account management
+router.delete('/account', asyncHandler(userController.deleteAccount));
+router.delete('/history', asyncHandler(userController.clearHistory));
+
 // Gamification endpoints
 router.get('/leaderboard/:type', asyncHandler(userController.getLeaderboard));
 router.get('/daily-goals', asyncHandler(userController.getDailyGoals));

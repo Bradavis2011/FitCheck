@@ -13,8 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@clerk/clerk-expo';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
-import { useUpdateProfile, useUser } from '../src/hooks/useApi';
+import { useUpdateProfile, useUser, useDeleteAccount, useClearHistory } from '../src/hooks/useApi';
+import { useAuthStore } from '../src/stores/authStore';
 
 type VisibilityOption = 'all' | 'followers' | 'trusted';
 type AutoDeleteOption = 'never' | '24h' | '7d' | '30d';
@@ -27,8 +29,12 @@ interface PrivacySettings {
 
 export default function PrivacySettingsScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const { data: user, isLoading } = useUser();
   const updateProfileMutation = useUpdateProfile();
+  const deleteAccountMutation = useDeleteAccount();
+  const clearHistoryMutation = useClearHistory();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
 
   const currentSettings: PrivacySettings = user?.privacySettings || {
     blurFaceDefault: true,
@@ -67,9 +73,15 @@ export default function PrivacySettingsScreen() {
         {
           text: 'Clear All',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement clear history API call
-            Alert.alert('Coming Soon', 'This feature will be available soon.');
+          onPress: async () => {
+            try {
+              const result = await clearHistoryMutation.mutateAsync();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('History Cleared', `${result.deletedCount} outfit check${result.deletedCount === 1 ? '' : 's'} deleted.`);
+            } catch (error) {
+              console.error('Failed to clear history:', error);
+              Alert.alert('Error', 'Failed to clear history. Please try again.');
+            }
           },
         },
       ]
@@ -94,9 +106,18 @@ export default function PrivacySettingsScreen() {
                 {
                   text: 'I Understand',
                   style: 'destructive',
-                  onPress: () => {
-                    // TODO: Implement delete account API call
-                    Alert.alert('Coming Soon', 'This feature will be available soon.');
+                  onPress: async () => {
+                    try {
+                      await deleteAccountMutation.mutateAsync();
+                      // Sign out of Clerk and clear local auth state
+                      await signOut();
+                      await clearAuth();
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      router.replace('/');
+                    } catch (error) {
+                      console.error('Failed to delete account:', error);
+                      Alert.alert('Error', 'Failed to delete account. Please try again.');
+                    }
                   },
                 },
               ]
@@ -318,12 +339,12 @@ export default function PrivacySettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data Management</Text>
 
-            <TouchableOpacity style={styles.dangerButton} onPress={handleClearHistory}>
+            <TouchableOpacity style={styles.dangerButton} onPress={handleClearHistory} accessibilityLabel="Clear all outfit history" accessibilityRole="button">
               <Ionicons name="trash-outline" size={20} color={Colors.error} />
               <Text style={styles.dangerButtonText}>Clear Outfit History</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAccount}>
+            <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAccount} accessibilityLabel="Permanently delete your account" accessibilityRole="button">
               <Ionicons name="warning-outline" size={20} color={Colors.error} />
               <Text style={styles.dangerButtonText}>Delete Account</Text>
             </TouchableOpacity>
