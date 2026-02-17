@@ -649,7 +649,7 @@ export async function analyzeOutfit(
         systemInstruction: SYSTEM_PROMPT,
         generationConfig: {
           temperature: 0.5,
-          maxOutputTokens: 2048, // Prevent truncation
+          maxOutputTokens: 4096, // Prevent truncation on verbose responses
           responseMimeType: 'application/json', // Force JSON format
           responseSchema: RESPONSE_SCHEMA as any
         },
@@ -669,9 +669,20 @@ export async function analyzeOutfit(
           },
         };
       } else if (input.imageUrl) {
-        // For URL-based images, we'd need to fetch and convert to base64
-        // For now, throw error if imageBase64 is not provided
-        throw new Error('Image must be provided as base64 data');
+        // Fetch image from S3/URL and convert to base64 for Gemini inline data
+        const fetchResponse = await fetch(input.imageUrl);
+        if (!fetchResponse.ok) {
+          throw new Error(`Failed to fetch image from URL: ${fetchResponse.status}`);
+        }
+        const arrayBuffer = await fetchResponse.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = fetchResponse.headers.get('content-type') || 'image/jpeg';
+        imagePart = {
+          inlineData: {
+            mimeType: (contentType.startsWith('image/') ? contentType : 'image/jpeg') as any,
+            data: base64,
+          },
+        };
       } else {
         throw new Error('No image data provided');
       }
