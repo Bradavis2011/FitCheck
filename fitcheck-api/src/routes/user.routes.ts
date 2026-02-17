@@ -19,4 +19,8 @@ router.get('/leaderboard/:type', asyncHandler(userController.getLeaderboard));
 router.get('/daily-goals', asyncHandler(userController.getDailyGoals));
 router.get('/badges', asyncHandler(userController.getBadges));
 
+// Account management
+router.delete('/history', asyncHandler(userController.clearHistory));
+router.delete('/account', asyncHandler(userController.deleteAccount));
+
 export default router;

@@ -18,6 +18,8 @@ const OutfitCheckSchema = z.object({
   weather: z.string().optional(),
   vibe: z.string().optional(),
   specificConcerns: z.string().optional(),
+  // Sharing: 'private' (just me), 'inner_circle', 'public'
+  shareWith: z.enum(['private', 'inner_circle', 'public']).optional(),
 }).refine(data => data.imageUrl || data.imageBase64, {
   message: 'Either imageUrl or imageBase64 must be provided',
 });
@@ -204,6 +206,11 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       }
     }
 
+    // Determine sharing visibility
+    const shareWith = data.shareWith || 'private';
+    const isPublic = shareWith === 'public' || shareWith === 'inner_circle';
+    const outfitVisibility = shareWith === 'inner_circle' ? 'inner_circle' : 'all';
+
     // Create outfit check record
     // If S3 upload succeeded, use S3 URLs (imageData/thumbnailData will be null)
     // If S3 failed, fall back to base64 storage so images still display
@@ -220,8 +227,45 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         weather: data.weather,
         vibe: data.vibe,
         specificConcerns: data.specificConcerns,
+        isPublic,
+        visibility: outfitVisibility,
       },
     });
+
+    // Notify inner circle members when sharing to inner circle
+    if (shareWith === 'inner_circle') {
+      try {
+        const { createNotification } = await import('./notification.controller.js');
+        const { pushService } = await import('../services/push.service.js');
+        const poster = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { username: true, name: true },
+        });
+        const posterName = poster?.username || poster?.name || 'Someone';
+        const circleMembers = await prisma.innerCircleMember.findMany({
+          where: { userId },
+          select: { memberId: true },
+        });
+        for (const { memberId } of circleMembers) {
+          await createNotification({
+            userId: memberId,
+            type: 'inner_circle',
+            title: 'New outfit from your circle',
+            body: `${posterName} shared a new outfit just for their inner circle`,
+            linkType: 'outfit',
+            linkId: outfitId,
+          });
+          await pushService.sendPushNotification(memberId, {
+            title: 'New outfit from your circle',
+            body: `${posterName} shared a new outfit just for their inner circle`,
+            data: { type: 'inner_circle', outfitId },
+          });
+        }
+      } catch (err) {
+        // Non-fatal — outfit was created, notification is best-effort
+        console.error('Inner circle notifications failed:', err);
+      }
+    }
 
     // Increment daily checks
     await prisma.user.update({

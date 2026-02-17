@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { OutfitFeedback, OutfitCheckInput } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
+import { createNotification } from '../controllers/notification.controller.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -305,6 +306,7 @@ export const RESPONSE_SCHEMA = {
 } as const;
 
 interface UserContext {
+  id?: string;
   stylePreferences?: any;
   bodyType?: string | null;
   colorSeason?: string | null;
@@ -717,6 +719,22 @@ export async function analyzeOutfit(
         },
       });
 
+      // Notify user that analysis is complete
+      if (user?.id) {
+        const score = feedback.overallScore;
+        const emoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
+        createNotification({
+          userId: user.id,
+          type: 'analysis_complete',
+          title: `${emoji} Your outfit scored ${score}/10`,
+          body: feedback.summary.length > 80
+            ? feedback.summary.slice(0, 77) + '...'
+            : feedback.summary,
+          linkType: 'outfit',
+          linkId: outfitCheckId,
+        }).catch((err) => console.error('Failed to send analysis notification:', err));
+      }
+
       // Save Style DNA to separate table for querying
       if (feedback.styleDNA) {
         try {
@@ -813,6 +831,18 @@ export async function analyzeOutfit(
       aiProcessedAt: new Date(),
     },
   });
+
+  // Notify user even for fallback (analysis did complete)
+  if (user?.id) {
+    createNotification({
+      userId: user.id,
+      type: 'analysis_complete',
+      title: `✨ Your outfit scored ${fallbackFeedback.overallScore}/10`,
+      body: 'Your outfit has been scored! Tap to view your results.',
+      linkType: 'outfit',
+      linkId: outfitCheckId,
+    }).catch((err) => console.error('Failed to send fallback analysis notification:', err));
+  }
 
   return fallbackFeedback;
 }

@@ -18,6 +18,10 @@ import {
   unfollowUser,
   getFollowers,
   getFollowing,
+  getInnerCircle,
+  addToInnerCircle,
+  removeFromInnerCircle,
+  getInnerCircleStatus,
 } from '../controllers/social.controller.js';
 
 const router = Router();
@@ -54,5 +58,11 @@ router.post('/users/:username/follow', asyncHandler(followUser));
 router.delete('/users/:username/follow', asyncHandler(unfollowUser));
 router.get('/users/:username/followers', asyncHandler(getFollowers));
 router.get('/users/:username/following', asyncHandler(getFollowing));
+
+// Inner Circle
+router.get('/inner-circle', asyncHandler(getInnerCircle));
+router.post('/users/:username/inner-circle', asyncHandler(addToInnerCircle));
+router.delete('/users/:username/inner-circle', asyncHandler(removeFromInnerCircle));
+router.get('/users/:username/inner-circle/status', asyncHandler(getInnerCircleStatus));
 
 export default router;
