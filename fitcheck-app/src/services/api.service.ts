@@ -221,6 +221,11 @@ export const outfitService = {
     const response = await api.delete<{ success: boolean }>(`/api/outfits/${outfitId}`);
     return response.data;
   },
+
+  async reanalyzeOutfit(outfitId: string) {
+    const response = await api.post<{ message: string }>(`/api/outfits/${outfitId}/reanalyze`);
+    return response.data;
+  },
 };
 
 // User Service

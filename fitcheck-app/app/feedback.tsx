@@ -49,6 +49,7 @@ export default function FeedbackScreen() {
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const [showCommunityFeedback, setShowCommunityFeedback] = useState(false);
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
@@ -234,6 +235,35 @@ export default function FeedbackScreen() {
     router.replace('/(tabs)/camera' as any);
   };
 
+  const handleReanalyze = async () => {
+    if (!outfit || isReanalyzing) return;
+    try {
+      setIsReanalyzing(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await outfitService.reanalyzeOutfit(outfit.id);
+      // Reset local state so polling loop restarts
+      setOutfit((prev) => prev ? { ...prev, aiFeedback: undefined, aiScore: undefined, aiProcessedAt: undefined } : prev);
+      setIsLoading(true);
+      // Re-start polling
+      pollInterval.current = setInterval(async () => {
+        try {
+          const data = await outfitService.getOutfit(outfit.id);
+          setOutfit(data);
+          if (data.aiProcessedAt) {
+            setIsLoading(false);
+            if (pollInterval.current) clearInterval(pollInterval.current);
+          }
+        } catch (e) {
+          console.error('Poll error during reanalyze:', e);
+        }
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to reanalyze:', error);
+      Alert.alert('Error', 'Failed to start re-analysis. Please try again.');
+      setIsReanalyzing(false);
+    }
+  };
+
   const getScoreColor = (value: number) => {
     if (value >= 8) return Colors.success;
     if (value >= 6) return Colors.warning;
@@ -253,6 +283,7 @@ export default function FeedbackScreen() {
   const feedback = outfit.aiFeedback;
   const score = outfit.aiScore || 7;
   const imageUri = outfit.imageData ? `data:image/jpeg;base64,${outfit.imageData}` : outfit.imageUrl;
+  const isFallbackResponse = feedback?.summary?.includes("trouble analyzing");
 
   return (
     <View style={styles.container}>
@@ -291,6 +322,25 @@ export default function FeedbackScreen() {
               </View>
             )}
           </View>
+
+          {/* Retry Analysis Banner */}
+          {isFallbackResponse && (
+            <View style={styles.retryBanner}>
+              <Ionicons name="alert-circle-outline" size={20} color={Colors.warning} />
+              <Text style={styles.retryBannerText}>Analysis didn't complete fully</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleReanalyze}
+                disabled={isReanalyzing}
+              >
+                {isReanalyzing ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* What's Working */}
           {feedback.whatsWorking && feedback.whatsWorking.length > 0 && (
@@ -672,6 +722,37 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+  retryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    gap: Spacing.sm,
+  },
+  retryBannerText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.warning,
+    fontWeight: '500',
+  },
+  retryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: Colors.warning,
+    borderRadius: BorderRadius.full,
+    minWidth: 56,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.white,
   },
   followUpSection: {
     marginHorizontal: Spacing.lg,

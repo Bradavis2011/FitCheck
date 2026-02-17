@@ -32,6 +32,9 @@ router.put('/:id/favorite', asyncHandler(outfitController.toggleFavorite));
 // Toggle public visibility
 router.put('/:id/public', asyncHandler(outfitController.togglePublic));
 
+// Re-analyze outfit (retry failed/fallback analysis)
+router.post('/:id/reanalyze', asyncHandler(outfitController.reanalyzeOutfit));
+
 // Delete outfit check
 router.delete('/:id', asyncHandler(outfitController.deleteOutfitCheck));
 
