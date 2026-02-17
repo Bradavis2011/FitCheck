@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
@@ -40,6 +40,7 @@ function AuthGate() {
   const { initialize: initSubscription } = useSubscriptionStore();
   const segments = useSegments();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   // Initialize push notifications
   usePushNotifications();
@@ -65,6 +66,7 @@ function AuthGate() {
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (!navigationState?.key) return; // Navigator not mounted yet
 
     const inAuthGroup = segments[0] === 'login';
     const inOnboardingScreen = segments[0] === 'onboarding';
@@ -76,7 +78,7 @@ function AuthGate() {
     } else if (isSignedIn && hasCompletedOnboarding && (inAuthGroup || inOnboardingScreen)) {
       router.replace('/(tabs)');
     }
-  }, [isSignedIn, isLoaded, hasCompletedOnboarding, segments]);
+  }, [isSignedIn, isLoaded, hasCompletedOnboarding, segments, navigationState?.key]);
 
   if (!isLoaded) {
     return (
