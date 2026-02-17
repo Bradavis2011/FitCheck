@@ -16,10 +16,18 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "22.12.0",
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "node": "22.12.0",
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
+      }
     }
   },
   "submit": {
