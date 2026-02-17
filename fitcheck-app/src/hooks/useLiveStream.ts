@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Room, RoomEvent, Track } from '@livekit/react-native';
+import { Room, RoomEvent } from 'livekit-client';
 import { liveService } from '../services/live.service';
 
 export function useLiveStream(sessionId: string) {
@@ -18,10 +18,7 @@ export function useLiveStream(sessionId: string) {
       const { token, livekitUrl } = await liveService.getSessionToken(sessionId);
 
       // Connect to LiveKit room
-      await room.connect(livekitUrl, token, {
-        audio: true,
-        video: true,
-      });
+      await room.connect(livekitUrl, token);
 
       setIsConnected(true);
       console.log('✅ Connected to LiveKit room');

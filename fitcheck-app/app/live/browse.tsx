@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl * 2,
+    paddingVertical: 80,
     paddingHorizontal: Spacing.lg,
   },
   emptyTitle: {

@@ -26,6 +26,11 @@ export async function createSession(req: AuthenticatedRequest, res: Response) {
     const userId = req.userId!;
     const data = CreateSessionSchema.parse(req.body);
 
+    // Only Plus/Pro users can host live sessions
+    if (!req.user || req.user.tier === 'free') {
+      throw new AppError(403, 'Hosting live sessions requires a Plus or Pro subscription.');
+    }
+
     // Check if user already has an active session
     const existingSession = await prisma.liveSession.findFirst({
       where: {

@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL } from '../lib/api';
 
 class SocketService {
   private socket: Socket | null = null;
