@@ -251,6 +251,7 @@ export default function FeedbackScreen() {
           setOutfit(data);
           if (data.aiProcessedAt) {
             setIsLoading(false);
+            setIsReanalyzing(false);
             if (pollInterval.current) clearInterval(pollInterval.current);
           }
         } catch (e) {
