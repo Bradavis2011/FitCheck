@@ -25,8 +25,8 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy - required for rate limiting with reverse proxies (ngrok, Cloudflare Tunnel, etc.)
-app.set('trust proxy', true);
+// Trust proxy - 1 hop (Railway's load balancer). Using true is too permissive for rate limiting.
+app.set('trust proxy', 1);
 
 // Security headers
 app.use(helmet());
