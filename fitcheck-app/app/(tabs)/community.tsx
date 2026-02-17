@@ -16,7 +16,7 @@ import OutfitFeedCard from '../../src/components/OutfitFeedCard';
 import ComparisonCard from '../../src/components/ComparisonCard';
 import { useCommunityFeed, useComparisonFeed, useVoteOnComparison } from '../../src/hooks/useApi';
 
-type FeedFilter = 'recent' | 'popular' | 'top-rated';
+type FeedFilter = 'recent' | 'popular' | 'top-rated' | 'inner_circle';
 
 export default function CommunityScreen() {
   const router = useRouter();
@@ -167,7 +167,19 @@ export default function CommunityScreen() {
         {renderFilterButton('Recent', 'recent')}
         {renderFilterButton('Popular', 'popular')}
         {renderFilterButton('Top Rated', 'top-rated')}
+        {renderFilterButton('Inner Circle', 'inner_circle')}
       </View>
+
+      {/* Inner Circle empty state hint */}
+      {filter === 'inner_circle' && outfits.length === 0 && !isLoading && (
+        <View style={styles.innerCircleHint}>
+          <Ionicons name="people-outline" size={32} color={Colors.textMuted} />
+          <Text style={styles.innerCircleHintTitle}>Your inner circle is quiet</Text>
+          <Text style={styles.innerCircleHintText}>
+            Add people to your inner circle from their profiles, then share outfits with them.
+          </Text>
+        </View>
+      )}
 
       {/* Feed */}
       <FlatList
@@ -290,6 +302,24 @@ const styles = StyleSheet.create({
   loadingFooter: {
     paddingVertical: Spacing.lg,
     alignItems: 'center',
+  },
+  innerCircleHint: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl * 2,
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  innerCircleHintTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  innerCircleHintText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   emptyState: {
     alignItems: 'center',
