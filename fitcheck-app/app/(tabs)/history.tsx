@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
+import AdBanner from '../../src/components/AdBanner';
 import PillButton from '../../src/components/PillButton';
 import { HistoryGridSkeleton } from '../../src/components/SkeletonLoader';
 import ErrorState from '../../src/components/ErrorState';
@@ -89,6 +90,7 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.gridRow}
+          ListFooterComponent={<AdBanner />}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

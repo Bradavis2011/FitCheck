@@ -121,8 +121,8 @@ export default function UpgradeScreen() {
             </Text>
             <Text style={styles.currentPlanSubtitle}>
               {tier === 'plus'
-                ? 'Unlimited checks and full history'
-                : 'Unlimited checks, 10 follow-ups, full history'}
+                ? 'Unlimited checks, ad-free, and full history'
+                : 'Unlimited checks, 10 follow-ups, ad-free, full history'}
             </Text>
 
             <TouchableOpacity onPress={handleManageSubscription} style={styles.manageButton}>
@@ -201,6 +201,7 @@ export default function UpgradeScreen() {
             <Feature icon="checkmark" text="Unlimited AI checks" primary />
             <Feature icon="checkmark" text="5 follow-ups per check" primary />
             <Feature icon="checkmark" text="Unlimited history" primary />
+            <Feature icon="checkmark" text="Ad-free experience" primary />
           </View>
 
           {isPurchasing ? (
@@ -233,6 +234,7 @@ export default function UpgradeScreen() {
           <View style={styles.featureList}>
             <Feature icon="checkmark" text="Everything in Plus" />
             <Feature icon="checkmark" text="10 follow-ups per check" />
+            <Feature icon="checkmark" text="Style DNA analytics" />
           </View>
 
           {isPurchasing ? (

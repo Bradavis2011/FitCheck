@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
+import AdBanner from '../../src/components/AdBanner';
 import { getTimeGreeting } from '../../src/lib/mockData';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
@@ -207,13 +208,16 @@ export default function HomeScreen() {
               style={styles.upgradeCard}
             >
               <Text style={styles.upgradeTitle}>Upgrade to Plus</Text>
-              <Text style={styles.upgradeDesc}>Unlimited checks, community feedback, and ad-free experience</Text>
+              <Text style={styles.upgradeDesc}>Unlimited checks, ad-free experience, and more</Text>
               <View style={styles.upgradeButton}>
                 <Text style={styles.upgradeButtonText}>See Plans</Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>
         )}
+
+        {/* Ad banner for free users */}
+        <AdBanner />
 
         {/* Invite Friends */}
         <TouchableOpacity style={styles.inviteCard} onPress={handleInvite} activeOpacity={0.85}>
