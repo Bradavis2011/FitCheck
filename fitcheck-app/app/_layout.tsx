@@ -4,6 +4,7 @@ import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import { tokenCache } from '../src/lib/clerk';
 import { setClerkTokenGetter } from '../src/lib/api';
 import { Colors } from '../src/constants/theme';
@@ -11,6 +12,15 @@ import { useAuthStore } from '../src/stores/authStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+
+// Initialize Sentry for error tracking
+if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+    tracesSampleRate: 0.2,
+    environment: process.env.NODE_ENV || 'development',
+  });
+}
 // import OfflineIndicator from '../src/components/OfflineIndicator'; // Temporarily disabled
 
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
