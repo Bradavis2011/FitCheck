@@ -1,100 +1,113 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { useWardrobeItems } from '../src/hooks/useApi';
+import type { WardrobeItem, WardrobeCategory } from '../src/services/api.service';
 
-// Mock wardrobe items
-const WARDROBE_ITEMS = {
-  tops: [
-    { id: 't1', name: 'White T-Shirt', color: 'White', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 't2', name: 'Blue Button-Down', color: 'Blue', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 't3', name: 'Black Sweater', color: 'Black', imageUrl: 'https://via.placeholder.com/400x400' },
-  ],
-  bottoms: [
-    { id: 'b1', name: 'Blue Jeans', color: 'Blue', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 'b2', name: 'Black Slacks', color: 'Black', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 'b3', name: 'Khaki Chinos', color: 'Khaki', imageUrl: 'https://via.placeholder.com/400x400' },
-  ],
-  shoes: [
-    { id: 's1', name: 'White Sneakers', color: 'White', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 's2', name: 'Brown Loafers', color: 'Brown', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 's3', name: 'Black Boots', color: 'Black', imageUrl: 'https://via.placeholder.com/400x400' },
-  ],
-  outerwear: [
-    { id: 'o1', name: 'Leather Jacket', color: 'Black', imageUrl: 'https://via.placeholder.com/400x400' },
-    { id: 'o2', name: 'Denim Jacket', color: 'Blue', imageUrl: 'https://via.placeholder.com/400x400' },
-  ],
-};
+type SlotCategory = WardrobeCategory;
 
 type OutfitSlot = {
-  category: keyof typeof WARDROBE_ITEMS;
+  category: SlotCategory;
   label: string;
   icon: string;
-  selected: any | null;
+  selected: WardrobeItem | null;
 };
+
+const SLOT_DEFINITIONS: { category: SlotCategory; label: string; icon: string }[] = [
+  { category: 'tops', label: 'Top', icon: 'shirt-outline' },
+  { category: 'bottoms', label: 'Bottom', icon: 'body-outline' },
+  { category: 'shoes', label: 'Shoes', icon: 'footsteps-outline' },
+  { category: 'outerwear', label: 'Layer', icon: 'layers-outline' },
+];
 
 export default function OutfitBuilderScreen() {
   const router = useRouter();
-  const [slots, setSlots] = useState<OutfitSlot[]>([
-    { category: 'tops', label: 'Top', icon: 'shirt-outline', selected: null },
-    { category: 'bottoms', label: 'Bottom', icon: 'body-outline', selected: null },
-    { category: 'shoes', label: 'Shoes', icon: 'footsteps-outline', selected: null },
-    { category: 'outerwear', label: 'Layer', icon: 'layers-outline', selected: null },
-  ]);
+  const [slots, setSlots] = useState<OutfitSlot[]>(
+    SLOT_DEFINITIONS.map((s) => ({ ...s, selected: null }))
+  );
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
 
-  const handleSlotPress = (index: number) => {
+  // Load all wardrobe items at once — group by category in-component
+  const { data, isLoading } = useWardrobeItems();
+  const allItems: WardrobeItem[] = data?.items ?? [];
+
+  const itemsByCategory = useMemo(() => {
+    const map: Record<SlotCategory, WardrobeItem[]> = {
+      tops: [],
+      bottoms: [],
+      shoes: [],
+      accessories: [],
+      outerwear: [],
+    };
+    for (const item of allItems) {
+      if (map[item.category]) map[item.category].push(item);
+    }
+    return map;
+  }, [allItems]);
+
+  const availableItems: WardrobeItem[] =
+    activeSlot !== null ? itemsByCategory[slots[activeSlot].category] ?? [] : [];
+
+  function handleSlotPress(index: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveSlot(index);
-  };
+    setActiveSlot(activeSlot === index ? null : index);
+  }
 
-  const handleItemSelect = (item: any) => {
+  function handleItemSelect(item: WardrobeItem) {
     if (activeSlot === null) return;
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const newSlots = [...slots];
-    newSlots[activeSlot] = { ...newSlots[activeSlot], selected: item };
-    setSlots(newSlots);
+    setSlots((prev) => {
+      const next = [...prev];
+      next[activeSlot] = { ...next[activeSlot], selected: item };
+      return next;
+    });
     setActiveSlot(null);
-  };
+  }
 
-  const handleClearSlot = (index: number) => {
-    const newSlots = [...slots];
-    newSlots[index] = { ...newSlots[index], selected: null };
-    setSlots(newSlots);
-  };
+  function handleClearSlot(index: number) {
+    setSlots((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], selected: null };
+      return next;
+    });
+  }
 
-  const handleCheckOutfit = () => {
-    const filledSlots = slots.filter(s => s.selected !== null);
-    if (filledSlots.length < 2) {
-      Alert.alert('Add More Items', 'Please select at least 2 items to check your outfit.');
+  function handleShuffle() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setSlots((prev) =>
+      prev.map((slot) => {
+        const items = itemsByCategory[slot.category];
+        if (!items || items.length === 0) return slot;
+        const random = items[Math.floor(Math.random() * items.length)];
+        return { ...slot, selected: random };
+      })
+    );
+  }
+
+  function handleCheckOutfit() {
+    const filled = slots.filter((s) => s.selected !== null);
+    if (filled.length < 2) {
+      Alert.alert('Add More Items', 'Select at least 2 items to check your outfit.');
       return;
     }
+    // Navigate to camera/context with wardrobe mode
+    // For now, navigate to the main camera tab and let them know
+    Alert.alert(
+      'Outfit Ready',
+      'Take a photo wearing these pieces, then use the camera to get AI feedback!',
+      [
+        { text: 'Go to Camera', onPress: () => router.push('/(tabs)' as any) },
+        { text: 'OK', style: 'cancel' },
+      ]
+    );
+  }
 
-    // TODO: Generate composite image and navigate to context screen
-    Alert.alert('Feature Coming Soon', 'Outfit checking from wardrobe is coming in the next update!');
-  };
-
-  const handleShuffle = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    // TODO: AI-powered smart shuffle based on style preferences
-    const newSlots = slots.map(slot => {
-      const items = WARDROBE_ITEMS[slot.category];
-      if (items && items.length > 0) {
-        const randomItem = items[Math.floor(Math.random() * items.length)];
-        return { ...slot, selected: randomItem };
-      }
-      return slot;
-    });
-    setSlots(newSlots);
-  };
-
-  const currentCategory = activeSlot !== null ? slots[activeSlot].category : null;
-  const availableItems = currentCategory ? WARDROBE_ITEMS[currentCategory] : [];
+  const filledCount = slots.filter((s) => s.selected !== null).length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -104,114 +117,169 @@ export default function OutfitBuilderScreen() {
           <Ionicons name="close" size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Build an Outfit</Text>
-        <TouchableOpacity style={styles.headerButton} onPress={handleShuffle}>
-          <Ionicons name="shuffle" size={24} color={Colors.primary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={handleShuffle}
+          disabled={allItems.length === 0}
+        >
+          <Ionicons
+            name="shuffle"
+            size={24}
+            color={allItems.length === 0 ? Colors.textMuted : Colors.primary}
+          />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Outfit Preview */}
-        <View style={styles.previewSection}>
-          <Text style={styles.sectionTitle}>Your Outfit</Text>
-          <View style={styles.outfitSlots}>
-            {slots.map((slot, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.outfitSlot,
-                  activeSlot === index && styles.outfitSlotActive,
-                  slot.selected && styles.outfitSlotFilled,
-                ]}
-                onPress={() => handleSlotPress(index)}
-                activeOpacity={0.7}
-              >
-                {slot.selected ? (
-                  <>
-                    <Image
-                      source={{ uri: slot.selected.imageUrl }}
-                      style={styles.slotImage}
-                    />
-                    <TouchableOpacity
-                      style={styles.clearButton}
-                      onPress={() => handleClearSlot(index)}
-                    >
-                      <Ionicons name="close-circle" size={20} color={Colors.white} />
-                    </TouchableOpacity>
-                    <View style={styles.slotLabel}>
-                      <Text style={styles.slotLabelText}>{slot.label}</Text>
-                    </View>
-                  </>
-                ) : (
-                  <View style={styles.slotPlaceholder}>
-                    <Ionicons name={slot.icon as any} size={32} color={Colors.textMuted} />
-                    <Text style={styles.slotPlaceholderText}>{slot.label}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+        {/* Loading state */}
+        {isLoading && (
+          <View style={styles.loadingBanner}>
+            <ActivityIndicator color={Colors.primary} size="small" />
+            <Text style={styles.loadingText}>Loading your wardrobe…</Text>
           </View>
-        </View>
+        )}
 
-        {/* Item Selector */}
-        {activeSlot !== null && (
-          <View style={styles.selectorSection}>
-            <Text style={styles.sectionTitle}>
-              Choose {slots[activeSlot].label}
+        {/* Empty wardrobe state */}
+        {!isLoading && allItems.length === 0 && (
+          <View style={styles.emptyWardrobe}>
+            <Ionicons name="shirt-outline" size={48} color={Colors.textMuted} />
+            <Text style={styles.emptyTitle}>Your wardrobe is empty</Text>
+            <Text style={styles.emptyText}>
+              Add items in My Wardrobe first, then come back to build outfits.
             </Text>
-            <View style={styles.itemGrid}>
-              {availableItems.map((item) => (
+            <TouchableOpacity style={styles.goToWardrobeButton} onPress={() => router.push('/wardrobe' as any)}>
+              <Text style={styles.goToWardrobeText}>Go to My Wardrobe</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Outfit Preview Slots */}
+        {!isLoading && allItems.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={styles.sectionTitle}>Your Outfit</Text>
+            <View style={styles.outfitSlots}>
+              {slots.map((slot, index) => (
                 <TouchableOpacity
-                  key={item.id}
-                  style={styles.itemCard}
-                  onPress={() => handleItemSelect(item)}
-                  activeOpacity={0.8}
+                  key={index}
+                  style={[
+                    styles.outfitSlot,
+                    activeSlot === index && styles.outfitSlotActive,
+                    slot.selected && styles.outfitSlotFilled,
+                  ]}
+                  onPress={() => handleSlotPress(index)}
+                  activeOpacity={0.7}
                 >
-                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <Text style={styles.itemColor}>{item.color}</Text>
-                  </View>
+                  {slot.selected ? (
+                    <>
+                      {slot.selected.imageUrl ? (
+                        <Image source={{ uri: slot.selected.imageUrl }} style={styles.slotImage} />
+                      ) : (
+                        <View style={styles.slotColorBlock}>
+                          <Ionicons name={slot.icon as any} size={36} color={Colors.textMuted} />
+                          <Text style={styles.slotColorName} numberOfLines={2}>
+                            {slot.selected.name}
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={() => handleClearSlot(index)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="close-circle" size={20} color={Colors.white} />
+                      </TouchableOpacity>
+                      <View style={styles.slotLabel}>
+                        <Text style={styles.slotLabelText} numberOfLines={1}>
+                          {slot.selected.name}
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.slotPlaceholder}>
+                      <Ionicons name={slot.icon as any} size={32} color={Colors.textMuted} />
+                      <Text style={styles.slotPlaceholderText}>{slot.label}</Text>
+                      {itemsByCategory[slot.category].length === 0 && (
+                        <Text style={styles.slotEmptyHint}>No items</Text>
+                      )}
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         )}
 
-        {/* Empty State */}
-        {activeSlot === null && slots.every(s => s.selected === null) && (
+        {/* Item Selector for active slot */}
+        {activeSlot !== null && (
+          <View style={styles.selectorSection}>
+            <Text style={styles.sectionTitle}>Choose {slots[activeSlot].label}</Text>
+            {availableItems.length === 0 ? (
+              <View style={styles.selectorEmpty}>
+                <Text style={styles.selectorEmptyText}>
+                  No {slots[activeSlot].label.toLowerCase()} items in your wardrobe.
+                </Text>
+                <TouchableOpacity onPress={() => router.push('/wardrobe' as any)}>
+                  <Text style={styles.selectorAddLink}>Add items in My Wardrobe →</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.itemGrid}>
+                {availableItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.itemCard,
+                      slots[activeSlot].selected?.id === item.id && styles.itemCardSelected,
+                    ]}
+                    onPress={() => handleItemSelect(item)}
+                    activeOpacity={0.8}
+                  >
+                    {item.imageUrl ? (
+                      <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+                    ) : (
+                      <View style={styles.itemPlaceholder}>
+                        <Ionicons name={slots[activeSlot].icon as any} size={28} color={Colors.textMuted} />
+                      </View>
+                    )}
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      {item.color ? (
+                        <Text style={styles.itemColor}>{item.color}</Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Empty tap-to-start state */}
+        {!isLoading && allItems.length > 0 && activeSlot === null && slots.every((s) => s.selected === null) && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
               <Ionicons name="layers-outline" size={48} color={Colors.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>Start Building</Text>
-            <Text style={styles.emptyText}>
-              Tap a slot above to select items from your wardrobe
-            </Text>
+            <Text style={styles.emptyText}>Tap a slot above to choose items</Text>
           </View>
         )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Action Buttons */}
+      {/* Check Outfit Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.checkButton,
-            slots.filter(s => s.selected).length < 2 && styles.checkButtonDisabled,
-          ]}
+          style={[styles.checkButton, filledCount < 2 && styles.checkButtonDisabled]}
           onPress={handleCheckOutfit}
-          disabled={slots.filter(s => s.selected).length < 2}
+          disabled={filledCount < 2}
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={
-              slots.filter(s => s.selected).length >= 2
-                ? [Colors.primary, Colors.secondary]
-                : [Colors.surface, Colors.surface]
-            }
+            colors={filledCount >= 2 ? [Colors.primary, Colors.secondary] : [Colors.surface, Colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.checkButtonGradient}
@@ -219,15 +287,10 @@ export default function OutfitBuilderScreen() {
             <Ionicons
               name="sparkles"
               size={20}
-              color={slots.filter(s => s.selected).length >= 2 ? Colors.white : Colors.textMuted}
+              color={filledCount >= 2 ? Colors.white : Colors.textMuted}
             />
-            <Text
-              style={[
-                styles.checkButtonText,
-                slots.filter(s => s.selected).length < 2 && styles.checkButtonTextDisabled,
-              ]}
-            >
-              Check This Outfit
+            <Text style={[styles.checkButtonText, filledCount < 2 && styles.checkButtonTextDisabled]}>
+              {filledCount >= 2 ? `Check Outfit (${filledCount} pieces)` : 'Select at least 2 items'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -264,6 +327,47 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  loadingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  emptyWardrobe: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl * 3,
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.md,
+  },
+  emptyTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  goToWardrobeButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.sm,
+  },
+  goToWardrobeText: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: FontSize.md,
+  },
   previewSection: {
     padding: Spacing.lg,
   },
@@ -294,10 +398,25 @@ const styles = StyleSheet.create({
   },
   outfitSlotFilled: {
     borderStyle: 'solid',
+    borderColor: Colors.border,
   },
   slotImage: {
     width: '100%',
     height: '100%',
+  },
+  slotColorBlock: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    backgroundColor: Colors.surfaceLight,
+  },
+  slotColorName: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
   },
   slotPlaceholder: {
     flex: 1,
@@ -309,6 +428,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: '600',
     color: Colors.textMuted,
+  },
+  slotEmptyHint: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
   },
   slotLabel: {
     position: 'absolute',
@@ -336,6 +460,21 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingTop: 0,
   },
+  selectorEmpty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  selectorEmptyText: {
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  selectorAddLink: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
   itemGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -349,10 +488,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  itemCardSelected: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+  },
   itemImage: {
     width: '100%',
     aspectRatio: 1,
     backgroundColor: Colors.surfaceLight,
+  },
+  itemPlaceholder: {
+    width: '100%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
   },
   itemInfo: {
     padding: Spacing.xs,
@@ -381,17 +531,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.lg,
   },
-  emptyTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  emptyText: {
-    fontSize: FontSize.md,
-    color: Colors.textMuted,
-    textAlign: 'center',
-  },
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,
@@ -403,7 +542,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   checkButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   checkButtonGradient: {
     flexDirection: 'row',

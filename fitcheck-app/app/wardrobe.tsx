@@ -1,61 +1,120 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+} from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
-import { useState } from 'react';
+import { useWardrobeItems, useAddWardrobeItem, useDeleteWardrobeItem, useLogWear } from '../src/hooks/useApi';
+import type { WardrobeCategory, WardrobeItem } from '../src/services/api.service';
 
-type WardrobeItem = {
-  id: string;
-  name: string;
-  category: 'tops' | 'bottoms' | 'shoes' | 'accessories' | 'outerwear';
-  imageUrl?: string;
-  color: string;
-  timesWorn: number;
-  lastWorn?: string;
-};
+type Category = WardrobeCategory | 'all';
 
-const MOCK_ITEMS: WardrobeItem[] = [
-  {
-    id: '1',
-    name: 'White Oxford Shirt',
-    category: 'tops',
-    color: 'White',
-    timesWorn: 12,
-    lastWorn: '2 days ago',
-  },
-  {
-    id: '2',
-    name: 'Navy Blazer',
-    category: 'outerwear',
-    color: 'Navy',
-    timesWorn: 8,
-    lastWorn: '1 week ago',
-  },
-  {
-    id: '3',
-    name: 'Brown Leather Shoes',
-    category: 'shoes',
-    color: 'Brown',
-    timesWorn: 15,
-    lastWorn: '3 days ago',
-  },
+const CATEGORIES: { id: Category; label: string; icon: string }[] = [
+  { id: 'all', label: 'All', icon: 'grid' },
+  { id: 'tops', label: 'Tops', icon: 'shirt' },
+  { id: 'bottoms', label: 'Bottoms', icon: 'body' },
+  { id: 'shoes', label: 'Shoes', icon: 'footsteps' },
+  { id: 'accessories', label: 'Accessories', icon: 'bag-handle' },
+  { id: 'outerwear', label: 'Outerwear', icon: 'layers' },
 ];
 
+const WARDROBE_CATEGORIES: WardrobeCategory[] = ['tops', 'bottoms', 'shoes', 'accessories', 'outerwear'];
+
+function categoryIcon(category: WardrobeCategory): string {
+  return CATEGORIES.find((c) => c.id === category)?.icon ?? 'shirt';
+}
+
+function formatLastWorn(lastWorn: string | null): string {
+  if (!lastWorn) return 'Never worn';
+  const diff = Date.now() - new Date(lastWorn).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
+  return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`;
+}
+
 export default function WardrobeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<Category>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addCategory, setAddCategory] = useState<WardrobeCategory>('tops');
+  const [addColor, setAddColor] = useState('');
 
-  const categories = [
-    { id: 'all', label: 'All', icon: 'grid' },
-    { id: 'tops', label: 'Tops', icon: 'shirt' },
-    { id: 'bottoms', label: 'Bottoms', icon: 'body' },
-    { id: 'shoes', label: 'Shoes', icon: 'footsteps' },
-    { id: 'accessories', label: 'Accessories', icon: 'bag-handle' },
-    { id: 'outerwear', label: 'Outerwear', icon: 'layers' },
-  ];
+  const apiCategory = selectedCategory === 'all' ? undefined : selectedCategory;
+  const { data, isLoading, isError } = useWardrobeItems(apiCategory);
+  const items: WardrobeItem[] = data?.items ?? [];
 
-  const filteredItems = selectedCategory === 'all'
-    ? MOCK_ITEMS
-    : MOCK_ITEMS.filter(item => item.category === selectedCategory);
+  const addItem = useAddWardrobeItem();
+  const deleteItem = useDeleteWardrobeItem();
+  const logWear = useLogWear();
+
+  function handleAdd() {
+    const name = addName.trim();
+    if (!name) {
+      Alert.alert('Name required', 'Please enter a name for this item.');
+      return;
+    }
+    addItem.mutate(
+      { name, category: addCategory, color: addColor.trim() || undefined },
+      {
+        onSuccess: () => {
+          setAddName('');
+          setAddColor('');
+          setAddCategory('tops');
+          setShowAddModal(false);
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? 'Could not add item. Try again.';
+          Alert.alert('Error', msg);
+        },
+      }
+    );
+  }
+
+  function handleDelete(item: WardrobeItem) {
+    Alert.alert(
+      'Remove Item',
+      `Remove "${item.name}" from your wardrobe?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () =>
+            deleteItem.mutate(item.id, {
+              onError: () => Alert.alert('Error', 'Could not remove item. Try again.'),
+            }),
+        },
+      ]
+    );
+  }
+
+  function handleLogWear(item: WardrobeItem) {
+    logWear.mutate(item.id, {
+      onError: () => Alert.alert('Error', 'Could not log wear. Try again.'),
+    });
+  }
+
+  function handleItemPress(item: WardrobeItem) {
+    Alert.alert(item.name, `Category: ${item.category}\nColor: ${item.color ?? '—'}\nWorn ${item.timesWorn}x\nLast worn: ${formatLastWorn(item.lastWorn)}`, [
+      { text: 'Log Wear', onPress: () => handleLogWear(item) },
+      { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
+      { text: 'Close', style: 'cancel' },
+    ]);
+  }
 
   return (
     <View style={styles.container}>
@@ -68,8 +127,8 @@ export default function WardrobeScreen() {
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <TouchableOpacity onPress={() => Alert.alert('Coming Soon', 'Add items from outfit photos')}>
-              <Ionicons name="add-circle" size={24} color={Colors.primary} />
+            <TouchableOpacity onPress={() => setShowAddModal(true)}>
+              <Ionicons name="add-circle" size={28} color={Colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -82,13 +141,10 @@ export default function WardrobeScreen() {
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categories}
       >
-        {categories.map(cat => (
+        {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.id}
-            style={[
-              styles.categoryChip,
-              selectedCategory === cat.id && styles.categoryChipActive
-            ]}
+            style={[styles.categoryChip, selectedCategory === cat.id && styles.categoryChipActive]}
             onPress={() => setSelectedCategory(cat.id)}
           >
             <Ionicons
@@ -96,10 +152,7 @@ export default function WardrobeScreen() {
               size={18}
               color={selectedCategory === cat.id ? Colors.white : Colors.text}
             />
-            <Text style={[
-              styles.categoryText,
-              selectedCategory === cat.id && styles.categoryTextActive
-            ]}>
+            <Text style={[styles.categoryText, selectedCategory === cat.id && styles.categoryTextActive]}>
               {cat.label}
             </Text>
           </TouchableOpacity>
@@ -108,50 +161,141 @@ export default function WardrobeScreen() {
 
       {/* Items Grid */}
       <ScrollView style={styles.content}>
-        {filteredItems.length === 0 ? (
+        {isLoading ? (
+          <ActivityIndicator style={styles.loader} color={Colors.primary} />
+        ) : isError ? (
+          <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={48} color={Colors.textMuted} />
+            <Text style={styles.emptyText}>Could not load wardrobe</Text>
+            <Text style={styles.emptySubtext}>Check your connection and try again</Text>
+          </View>
+        ) : items.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="shirt-outline" size={64} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>No items in this category</Text>
-            <Text style={styles.emptySubtext}>
-              Upload outfit photos to start building your wardrobe
+            <Text style={styles.emptyText}>
+              {selectedCategory === 'all' ? 'Your wardrobe is empty' : 'No items in this category'}
             </Text>
+            <Text style={styles.emptySubtext}>
+              Tap the + button to add your first item
+            </Text>
+            <TouchableOpacity style={styles.emptyAddButton} onPress={() => setShowAddModal(true)}>
+              <Text style={styles.emptyAddButtonText}>Add Item</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.grid}>
-            {filteredItems.map(item => (
+            {items.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.itemCard}
-                onPress={() => Alert.alert(item.name, `Worn ${item.timesWorn} times\nLast worn: ${item.lastWorn}`)}
+                onPress={() => handleItemPress(item)}
+                activeOpacity={0.8}
               >
-                <View style={styles.itemPlaceholder}>
-                  <Ionicons
-                    name={categories.find(c => c.id === item.category)?.icon as any || 'shirt'}
-                    size={32}
-                    color={Colors.textMuted}
-                  />
-                </View>
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+                ) : (
+                  <View style={styles.itemPlaceholder}>
+                    <Ionicons
+                      name={categoryIcon(item.category) as any}
+                      size={32}
+                      color={Colors.textMuted}
+                    />
+                  </View>
+                )}
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.itemMeta}>{item.color}</Text>
+                  <Text style={styles.itemName} numberOfLines={2}>
+                    {item.name}
+                  </Text>
+                  {item.color ? (
+                    <Text style={styles.itemMeta}>{item.color}</Text>
+                  ) : null}
                   <Text style={styles.itemMeta}>Worn {item.timesWorn}x</Text>
+                  <Text style={styles.itemLastWorn}>{formatLastWorn(item.lastWorn)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        {/* Feature Placeholder */}
-        <View style={styles.featureBanner}>
-          <Ionicons name="sparkles" size={24} color={Colors.primary} />
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Coming Soon</Text>
-            <Text style={styles.featureDesc}>
-              Automatically tag items from your outfit photos
-            </Text>
-          </View>
-        </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Add Item Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <Ionicons name="close" size={24} color={Colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Add Item</Text>
+            <TouchableOpacity onPress={handleAdd} disabled={addItem.isPending}>
+              {addItem.isPending ? (
+                <ActivityIndicator color={Colors.primary} />
+              ) : (
+                <Text style={styles.modalSave}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
+            {/* Name */}
+            <Text style={styles.fieldLabel}>Name *</Text>
+            <TextInput
+              style={styles.textInput}
+              value={addName}
+              onChangeText={setAddName}
+              placeholder="e.g. White Oxford Shirt"
+              placeholderTextColor={Colors.textMuted}
+              returnKeyType="done"
+            />
+
+            {/* Color */}
+            <Text style={styles.fieldLabel}>Color</Text>
+            <TextInput
+              style={styles.textInput}
+              value={addColor}
+              onChangeText={setAddColor}
+              placeholder="e.g. Navy Blue"
+              placeholderTextColor={Colors.textMuted}
+              returnKeyType="done"
+            />
+
+            {/* Category */}
+            <Text style={styles.fieldLabel}>Category</Text>
+            <View style={styles.categoryPicker}>
+              {WARDROBE_CATEGORIES.map((cat) => {
+                const meta = CATEGORIES.find((c) => c.id === cat)!;
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryOption, addCategory === cat && styles.categoryOptionActive]}
+                    onPress={() => setAddCategory(cat)}
+                  >
+                    <Ionicons
+                      name={meta.icon as any}
+                      size={20}
+                      color={addCategory === cat ? Colors.white : Colors.text}
+                    />
+                    <Text
+                      style={[
+                        styles.categoryOptionText,
+                        addCategory === cat && styles.categoryOptionTextActive,
+                      ]}
+                    >
+                      {meta.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -196,6 +340,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  loader: {
+    marginTop: Spacing.xl * 2,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -210,6 +357,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  itemImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: Colors.surface,
+  },
   itemPlaceholder: {
     aspectRatio: 1,
     backgroundColor: Colors.surface,
@@ -223,54 +375,119 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   itemMeta: {
     fontSize: FontSize.xs,
     color: Colors.textMuted,
+  },
+  itemLastWorn: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 64,
     paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
   },
   emptyText: {
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
-    marginTop: Spacing.md,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
-    marginTop: Spacing.xs,
     textAlign: 'center',
   },
-  featureBanner: {
+  emptyAddButton: {
+    marginTop: Spacing.md,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  emptyAddButtonText: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: FontSize.md,
+  },
+  // Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    margin: Spacing.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.primaryAlpha10,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  featureText: {
-    flex: 1,
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: Colors.text,
   },
-  featureTitle: {
+  modalSave: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.primary,
   },
-  featureDesc: {
+  modalBody: {
+    flex: 1,
+    padding: Spacing.md,
+  },
+  fieldLabel: {
     fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  textInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  categoryPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  categoryOptionActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  categoryOptionText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  categoryOptionTextActive: {
+    color: Colors.white,
   },
 });

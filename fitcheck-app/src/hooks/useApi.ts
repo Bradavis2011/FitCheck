@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, OutfitCheckInput } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -229,26 +229,34 @@ export function useLeaderboard(type: string, limit?: number) {
   });
 }
 
-// Temporarily disabled - endpoints not implemented yet
-// export function useBadges() {
-//   return useQuery({
-//     queryKey: ['badges'] as const,
-//     queryFn: async () => {
-//       const response = await api.get('/api/user/badges');
-//       return response.data;
-//     },
-//   });
-// }
+export function useBadges() {
+  return useQuery({
+    queryKey: ['badges'] as const,
+    queryFn: async () => {
+      const response = await api.get('/api/user/badges');
+      return response.data as { badges: Array<{ id: string; name: string; description: string; icon: string }>; totalBadges: number };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
-// export function useDailyGoals() {
-//   return useQuery({
-//     queryKey: ['dailyGoals'] as const,
-//     queryFn: async () => {
-//       const response = await api.get('/api/user/daily-goals');
-//       return response.data;
-//     },
-//   });
-// }
+export function useDailyGoals() {
+  return useQuery({
+    queryKey: ['dailyGoals'] as const,
+    queryFn: async () => {
+      const response = await api.get('/api/user/daily-goals');
+      return response.data as {
+        feedbacksGiven: number;
+        feedbacksGoal: number;
+        helpfulVotes: number;
+        helpfulGoal: number;
+        streakMaintained: boolean;
+        currentStreak: number;
+      };
+    },
+    staleTime: 60 * 1000,
+  });
+}
 
 // Notification hooks
 export function useNotifications(unreadOnly: boolean = false) {
@@ -426,6 +434,144 @@ export function useVoteForSubmission() {
       challengeService.voteForSubmission(challengeId, submissionId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['challenge', 'leaderboard', variables.challengeId] });
+    },
+  });
+}
+
+// Wardrobe hooks
+export function useWardrobeItems(category?: WardrobeCategory) {
+  return useQuery({
+    queryKey: ['wardrobe', category ?? 'all'],
+    queryFn: () => wardrobeService.listItems(category),
+  });
+}
+
+export function useAddWardrobeItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; category: WardrobeCategory; color?: string; imageUrl?: string }) =>
+      wardrobeService.createItem(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wardrobe'] });
+    },
+  });
+}
+
+export function useUpdateWardrobeItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name?: string; category?: WardrobeCategory; color?: string; imageUrl?: string | null };
+    }) => wardrobeService.updateItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wardrobe'] });
+    },
+  });
+}
+
+export function useDeleteWardrobeItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => wardrobeService.deleteItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wardrobe'] });
+    },
+  });
+}
+
+export function useLogWear() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => wardrobeService.logWear(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wardrobe'] });
+    },
+  });
+}
+
+// Event Planning hooks
+export function useEvents(status?: 'upcoming' | 'past') {
+  return useQuery({
+    queryKey: ['events', status ?? 'all'],
+    queryFn: () => eventService.listEvents(status),
+  });
+}
+
+export function useEvent(id: string | undefined) {
+  return useQuery({
+    queryKey: ['event', id],
+    queryFn: () => eventService.getEvent(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreateEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; date: string; dressCode?: EventDressCode; type?: EventType; notes?: string }) =>
+      eventService.createEvent(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useUpdateEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof eventService.updateEvent>[1] }) =>
+      eventService.updateEvent(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['event', variables.id] });
+    },
+  });
+}
+
+export function useDeleteEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => eventService.deleteEvent(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useAddEventOutfit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, outfitCheckId }: { eventId: string; outfitCheckId: string }) =>
+      eventService.addOutfit(eventId, outfitCheckId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['event', variables.eventId] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useRemoveEventOutfit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, outfitCheckId }: { eventId: string; outfitCheckId: string }) =>
+      eventService.removeOutfit(eventId, outfitCheckId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['event', variables.eventId] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useCompareEventOutfits() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (eventId: string) => eventService.compareOutfits(eventId),
+    onSuccess: (_data, eventId) => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
     },
   });
 }

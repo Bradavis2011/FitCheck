@@ -9,6 +9,7 @@ import { analyzeOutfit, handleFollowUpQuestion } from '../services/ai-feedback.s
 import { uploadBuffer } from '../services/s3.service.js';
 import { getTierLimits } from '../constants/tiers.js';
 import { getRecommendations as getOutfitRecommendations } from '../services/recommendation.service.js';
+import * as gamificationService from '../services/gamification.service.js';
 
 const OutfitCheckSchema = z.object({
   imageUrl: z.string().url().optional(),
@@ -131,6 +132,22 @@ async function updateUserStreakAndPoints(userId: string): Promise<void> {
   }
 }
 
+// Soft-delete outfit checks whose expiresAt has passed (auto-delete feature)
+async function purgeExpiredOutfits(userId: string): Promise<void> {
+  try {
+    await prisma.outfitCheck.updateMany({
+      where: {
+        userId,
+        isDeleted: false,
+        expiresAt: { lte: new Date() },
+      },
+      data: { isDeleted: true },
+    });
+  } catch (err) {
+    console.error('Failed to purge expired outfits:', err);
+  }
+}
+
 export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
@@ -161,10 +178,26 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       });
     }
 
-    // Check daily limit based on tier
+    // Check daily limit based on tier, with give-to-get bonus
     const limits = getTierLimits(user.tier);
-    if (limits.dailyChecks !== Infinity && user.dailyChecksUsed >= limits.dailyChecks) {
-      throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
+    let effectiveDailyLimit = limits.dailyChecks;
+    if (effectiveDailyLimit !== Infinity) {
+      // Give-to-get: +1 bonus check for every 3 community feedbacks given today
+      const userStats = await prisma.userStats.findUnique({
+        where: { userId },
+        select: { dailyFeedbackCount: true, dailyGoalsResetAt: true },
+      });
+      if (userStats) {
+        const todayStr = new Date().toDateString();
+        const statsDay = userStats.dailyGoalsResetAt?.toDateString();
+        if (todayStr === statsDay) {
+          const bonusChecks = Math.floor((userStats.dailyFeedbackCount || 0) / 3);
+          effectiveDailyLimit = limits.dailyChecks + bonusChecks;
+        }
+      }
+    }
+    if (effectiveDailyLimit !== Infinity && user.dailyChecksUsed >= effectiveDailyLimit) {
+      throw new AppError(429, 'Daily limit reached. Give community feedback to earn bonus checks, or upgrade to Plus!');
     }
 
     // Generate UUID for the outfit (needed for S3 key)
@@ -208,10 +241,33 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       }
     }
 
-    // Determine sharing visibility
+    // Determine sharing visibility and apply user's privacy settings
     const shareWith = data.shareWith || 'private';
     const isPublic = shareWith === 'public' || shareWith === 'inner_circle';
-    const outfitVisibility = shareWith === 'inner_circle' ? 'inner_circle' : 'all';
+
+    // Read user's privacy settings
+    const privacySettings = (user.privacySettings as any) || {};
+    const blurFaceDefault = privacySettings.blurFaceDefault ?? true;
+    const autoDeleteSetting = privacySettings.autoDelete || 'never';
+    const userVisibility = privacySettings.visibility || 'all';
+
+    // Compute expiresAt from autoDelete setting
+    let expiresAt: Date | null = null;
+    if (autoDeleteSetting !== 'never') {
+      const now = new Date();
+      if (autoDeleteSetting === '24h') {
+        expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      } else if (autoDeleteSetting === '7d') {
+        expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      } else if (autoDeleteSetting === '30d') {
+        expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      }
+    }
+
+    // Outfit visibility: inner_circle shares use 'inner_circle',
+    // public shares inherit the user's privacy visibility setting,
+    // private shares default to 'all' (not public anyway)
+    const outfitVisibility = shareWith === 'inner_circle' ? 'inner_circle' : (shareWith === 'public' ? userVisibility : 'all');
 
     // Create outfit check record
     // If S3 upload succeeded, use S3 URLs (imageData/thumbnailData will be null)
@@ -231,6 +287,8 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         specificConcerns: data.specificConcerns,
         isPublic,
         visibility: outfitVisibility,
+        blurFace: blurFaceDefault,
+        expiresAt,
       },
     });
 
@@ -279,6 +337,13 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
 
     // Update user streak and points
     await updateUserStreakAndPoints(userId);
+
+    // Check for outfit-submission badges (non-blocking)
+    prisma.outfitCheck.count({ where: { userId, isDeleted: false } }).then((outfitCount) => {
+      gamificationService.checkOutfitBadges(userId, outfitCount).catch((err) => {
+        console.error('Outfit badge check failed:', err);
+      });
+    }).catch(() => {});
 
     // Resize image for AI analysis (reduces payload from ~5MB to ~200KB)
     let aiData = data;
@@ -341,6 +406,9 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
   try {
     const userId = req.userId!;
     const { occasion, isFavorite, limit = '20', offset = '0' } = req.query;
+
+    // Purge any expired outfits for this user before listing
+    await purgeExpiredOutfits(userId);
 
     // Get user tier for history gating
     const user = await prisma.user.findUnique({
