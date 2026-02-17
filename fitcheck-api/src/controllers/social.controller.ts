@@ -1,14 +1,20 @@
 // @ts-nocheck
 import { Response } from 'express';
 import { z } from 'zod';
-import Filter from 'bad-words';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from './notification.controller.js';
 import * as gamificationService from '../services/gamification.service.js';
 
-const profanityFilter = new Filter();
+// Minimal profanity check — avoids bad-words CJS/ESM incompatibility
+const BLOCKED_WORDS = ['fuck', 'shit', 'cunt', 'nigger', 'faggot', 'bitch', 'asshole', 'dick', 'pussy', 'cock'];
+const profanityFilter = {
+  isProfane: (text: string) => {
+    const lower = text.toLowerCase();
+    return BLOCKED_WORDS.some((w) => lower.includes(w));
+  },
+};
 
 // Validation schemas
 const ReportSchema = z.object({
