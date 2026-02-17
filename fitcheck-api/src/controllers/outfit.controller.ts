@@ -485,6 +485,55 @@ export async function rateFeedback(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function reanalyzeOutfit(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const userId = req.userId!;
+
+    const outfitCheck = await prisma.outfitCheck.findFirst({
+      where: { id, userId, isDeleted: false },
+    });
+
+    if (!outfitCheck) {
+      throw new AppError(404, 'Outfit check not found');
+    }
+
+    if (!outfitCheck.imageData && !outfitCheck.imageUrl) {
+      throw new AppError(400, 'No image data available for re-analysis');
+    }
+
+    // Reset the AI fields so the feedback screen polls again
+    await prisma.outfitCheck.update({
+      where: { id },
+      data: {
+        aiFeedback: undefined,
+        aiScore: null,
+        aiProcessedAt: null,
+      },
+    });
+
+    // Re-trigger async analysis
+    const analysisInput = {
+      imageBase64: outfitCheck.imageData || undefined,
+      imageUrl: outfitCheck.imageUrl || undefined,
+      occasions: outfitCheck.occasions,
+      setting: outfitCheck.setting || undefined,
+      weather: outfitCheck.weather || undefined,
+      vibe: outfitCheck.vibe || undefined,
+      specificConcerns: outfitCheck.specificConcerns || undefined,
+    };
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    analyzeOutfit(id, analysisInput, user!).catch((error) => {
+      console.error('Background re-analysis failed:', error);
+    });
+
+    res.json({ message: 'Re-analysis started' });
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function deleteOutfitCheck(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
