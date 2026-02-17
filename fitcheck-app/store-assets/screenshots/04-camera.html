@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1290px; height: 2796px; background: #000; font-family: -apple-system, 'Helvetica Neue', sans-serif; overflow: hidden; }
+
+  /* Camera viewfinder fills screen */
+  .viewfinder {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2200px;
+    background: linear-gradient(180deg, #1A1008 0%, #2A1F14 40%, #1A1210 100%);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .subject-outline {
+    width: 600px; height: 1400px;
+    border: 3px solid rgba(232,93,76,0.6);
+    border-radius: 32px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  /* Corner brackets */
+  .corner { position: absolute; width: 60px; height: 60px; border-color: #E85D4C; border-style: solid; }
+  .corner.tl { top: -3px; left: -3px; border-width: 4px 0 0 4px; border-radius: 8px 0 0 0; }
+  .corner.tr { top: -3px; right: -3px; border-width: 4px 4px 0 0; border-radius: 0 8px 0 0; }
+  .corner.bl { bottom: -3px; left: -3px; border-width: 0 0 4px 4px; border-radius: 0 0 0 8px; }
+  .corner.br { bottom: -3px; right: -3px; border-width: 0 4px 4px 0; border-radius: 0 0 8px 0; }
+  .person-silhouette { font-size: 400px; opacity: 0.15; filter: brightness(0) invert(1); }
+
+  /* Status bar with transparent bg */
+  .status-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 60px;
+    font-size: 32px; font-weight: 600; color: white;
+  }
+
+  /* Top controls */
+  .top-bar {
+    position: absolute;
+    top: 60px; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 60px;
+  }
+  .close-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; }
+  .flash-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  .flip-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+
+  /* Tip overlay */
+  .tip-pill {
+    position: absolute;
+    top: 200px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    border-radius: 40px;
+    padding: 20px 40px;
+    display: flex; align-items: center; gap: 16px;
+    white-space: nowrap;
+  }
+  .tip-text { font-size: 28px; color: white; }
+  .tip-icon { font-size: 32px; }
+
+  /* Bottom camera controls */
+  .bottom-controls {
+    position: absolute;
+    bottom: 160px; left: 0; right: 0;
+    height: 460px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.95) 70%, transparent);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    padding-bottom: 48px; gap: 40px;
+  }
+
+  /* Context pills row */
+  .context-row { display: flex; gap: 16px; padding: 0 40px; }
+  .context-pill {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 32px;
+    padding: 14px 28px;
+    font-size: 26px; color: white;
+  }
+  .context-pill.active {
+    background: rgba(232,93,76,0.8);
+    border-color: #E85D4C;
+  }
+
+  /* Main shutter row */
+  .shutter-row { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 80px; }
+  .gallery-btn {
+    width: 120px; height: 120px;
+    border-radius: 20px;
+    background: linear-gradient(160deg, #F5EDE7, #DDD0C8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 60px;
+    border: 3px solid rgba(255,255,255,0.3);
+  }
+  .shutter-btn {
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: white;
+    border: 6px solid rgba(255,255,255,0.5);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 8px rgba(255,255,255,0.2);
+  }
+  .shutter-inner { width: 140px; height: 140px; border-radius: 50%; background: white; }
+  .flip-btn-bottom { width: 120px; height: 120px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 160px;
+    background: rgba(0,0,0,0.95);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 0 40px 30px;
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .tab-icon { font-size: 52px; filter: brightness(0.6); }
+  .tab-label { font-size: 22px; color: rgba(255,255,255,0.4); }
+  .tab-camera {
+    width: 120px; height: 120px;
+    background: linear-gradient(135deg, #E85D4C, #FF7A6B);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px;
+    margin-bottom: 40px;
+    box-shadow: 0 8px 24px rgba(232,93,76,0.6);
+  }
+
+  /* Caption bar - above tab bar */
+  .caption-bar {
+    position: absolute;
+    bottom: 160px; left: 0; right: 0;
+    /* Overlaid on bottom controls — not used here, caption is inside controls */
+  }
+</style>
+</head>
+<body>
+  <!-- Camera viewfinder -->
+  <div class="viewfinder">
+    <div class="subject-outline">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="person-silhouette">🧍</div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+
+  <!-- Top controls -->
+  <div class="top-bar">
+    <div class="close-btn">✕</div>
+    <div style="color: white; font-size: 36px; font-weight: 700; letter-spacing: 1px;">PHOTO</div>
+    <div class="flash-btn">⚡</div>
+  </div>
+
+  <!-- Tip pill -->
+  <div class="tip-pill">
+    <span class="tip-icon">👀</span>
+    <span class="tip-text">Step back so your full outfit is visible</span>
+  </div>
+
+  <!-- Bottom controls -->
+  <div class="bottom-controls">
+    <!-- Context pills -->
+    <div class="context-row">
+      <div class="context-pill active">Work</div>
+      <div class="context-pill">Casual</div>
+      <div class="context-pill">Date Night</div>
+      <div class="context-pill">+ More</div>
+    </div>
+
+    <!-- Caption inline -->
+    <div style="text-align: center;">
+      <div style="font-size: 40px; font-weight: 700; color: white;">Snap Your Outfit</div>
+      <div style="font-size: 28px; color: rgba(255,255,255,0.7); margin-top: 8px;">AI scores it in seconds</div>
+    </div>
+
+    <!-- Shutter -->
+    <div class="shutter-row">
+      <div class="gallery-btn">🖼️</div>
+      <div class="shutter-btn">
+        <div class="shutter-inner"></div>
+      </div>
+      <div class="flip-btn-bottom">🔄</div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+    <div class="tab"><div class="tab-icon">🌍</div><div class="tab-label">Community</div></div>
+    <div class="tab-camera">📷</div>
+    <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">History</div></div>
+    <div class="tab"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1290px; height: 2796px; background: #FBF7F4; font-family: -apple-system, 'Helvetica Neue', sans-serif; overflow: hidden; }
+  .status-bar { height: 60px; background: #FBF7F4; display: flex; align-items: center; justify-content: space-between; padding: 0 60px; font-size: 32px; font-weight: 600; color: #1A1A1A; }
+  .header { padding: 20px 60px 30px; display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-size: 56px; font-weight: 700; color: #1A1A1A; }
+  .new-btn {
+    height: 72px; padding: 0 40px;
+    background: linear-gradient(135deg, #E85D4C, #FF7A6B);
+    border-radius: 36px;
+    display: flex; align-items: center; gap: 16px;
+    font-size: 30px; font-weight: 700; color: white;
+  }
+
+  .comparison-card {
+    margin: 0 60px 40px;
+    background: white;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .card-header { padding: 32px 36px 24px; display: flex; align-items: center; gap: 24px; }
+  .avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #E85D4C, #FF7A6B); display: flex; align-items: center; justify-content: center; font-size: 36px; color: white; font-weight: 700; flex-shrink: 0; }
+  .user-info h4 { font-size: 32px; font-weight: 700; color: #1A1A1A; }
+  .user-info p { font-size: 26px; color: #888; margin-top: 4px; }
+  .time-ago { margin-left: auto; font-size: 24px; color: #aaa; }
+
+  .comparison-images { display: flex; gap: 0; position: relative; }
+  .outfit-side {
+    flex: 1;
+    height: 520px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .outfit-side.a { background: linear-gradient(160deg, #F5EDE7 0%, #E0D0C8 100%); }
+  .outfit-side.b { background: linear-gradient(160deg, #EDE7F5 0%, #D0C0DC 100%); }
+  .outfit-emoji { font-size: 160px; opacity: 0.5; }
+  .outfit-label {
+    position: absolute;
+    top: 20px; left: 20px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    padding: 8px 20px;
+    font-size: 26px; font-weight: 700; color: #1A1A1A;
+  }
+  .or-divider {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px; height: 80px;
+    background: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; color: #E85D4C; font-style: italic;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+  .vote-bar { padding: 28px 36px; }
+  .question { font-size: 32px; color: #2D2D2D; line-height: 1.4; margin-bottom: 20px; font-style: italic; }
+  .vote-buttons { display: flex; gap: 16px; margin-bottom: 16px; }
+  .vote-btn-a {
+    flex: 1; height: 80px; background: #FBF7F4;
+    border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: #E85D4C;
+    border: 2px solid #E85D4C;
+  }
+  .vote-btn-b {
+    flex: 1; height: 80px; background: #FBF7F4;
+    border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: #7C3AED;
+    border: 2px solid #7C3AED;
+  }
+  .vote-stats { display: flex; gap: 16px; font-size: 24px; color: #888; }
+
+  /* Second card with voted state */
+  .voted-bar { display: flex; gap: 0; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+  .voted-a { background: #E85D4C; }
+  .voted-b { background: #7C3AED; }
+  .vote-result-row { display: flex; justify-content: space-between; font-size: 26px; color: #666; margin-bottom: 6px; }
+  .vote-result-a { color: #E85D4C; font-weight: 700; }
+  .vote-result-b { color: #7C3AED; font-weight: 700; }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 160px;
+    background: white;
+    border-top: 1px solid #E8E0DC;
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 0 40px 30px;
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .tab-icon { font-size: 52px; }
+  .tab-label { font-size: 22px; color: #888; }
+  .tab.active .tab-label { color: #E85D4C; }
+  .tab-camera {
+    width: 120px; height: 120px;
+    background: linear-gradient(135deg, #E85D4C, #FF7A6B);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px;
+    margin-bottom: 40px;
+    box-shadow: 0 8px 24px rgba(232,93,76,0.4);
+  }
+
+  .caption-bar {
+    position: absolute;
+    bottom: 160px; left: 0; right: 0;
+    background: linear-gradient(135deg, #E85D4C, #FF7A6B);
+    padding: 36px 60px; text-align: center;
+  }
+  .caption-text { font-size: 44px; font-weight: 700; color: white; }
+  .caption-sub { font-size: 30px; color: rgba(255,255,255,0.85); margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+  <div class="header">
+    <div class="header-title">Community</div>
+    <div class="new-btn">+ Post</div>
+  </div>
+
+  <!-- Card 1: Active voting -->
+  <div class="comparison-card">
+    <div class="card-header">
+      <div class="avatar">S</div>
+      <div class="user-info">
+        <h4>Sarah M.</h4>
+        <p>Work meeting tomorrow</p>
+      </div>
+      <div class="time-ago">2h ago</div>
+    </div>
+    <div class="comparison-images">
+      <div class="outfit-side a">
+        <div class="outfit-label">A</div>
+        <div class="outfit-emoji">👔</div>
+      </div>
+      <div class="or-divider">or</div>
+      <div class="outfit-side b">
+        <div class="outfit-label">B</div>
+        <div class="outfit-emoji">👗</div>
+      </div>
+    </div>
+    <div class="vote-bar">
+      <div class="question">"Which is more professional for a client pitch?"</div>
+      <div class="vote-buttons">
+        <div class="vote-btn-a">Vote A</div>
+        <div class="vote-btn-b">Vote B</div>
+      </div>
+      <div class="vote-stats">
+        <span>👥 42 votes</span>
+        <span>💬 8 comments</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Already voted (showing results) -->
+  <div class="comparison-card">
+    <div class="card-header">
+      <div class="avatar" style="background: linear-gradient(135deg, #A8B5A0, #7A9E7E);">J</div>
+      <div class="user-info">
+        <h4>Jordan K.</h4>
+        <p>First date outfit help!</p>
+      </div>
+      <div class="time-ago">5h ago</div>
+    </div>
+    <div class="comparison-images">
+      <div class="outfit-side a" style="background: linear-gradient(160deg, #F0F5F0 0%, #C8D8C8 100%);">
+        <div class="outfit-label">A</div>
+        <div class="outfit-emoji">🧥</div>
+      </div>
+      <div class="or-divider">or</div>
+      <div class="outfit-side b" style="background: linear-gradient(160deg, #F5F0ED 0%, #D8C8BC 100%);">
+        <div class="outfit-label">B</div>
+        <div class="outfit-emoji">👕</div>
+      </div>
+    </div>
+    <div class="vote-bar">
+      <div class="question">"Casual dinner, trying to look effortlessly put-together"</div>
+      <div class="voted-bar">
+        <div class="voted-a" style="width: 68%;"></div>
+        <div class="voted-b" style="width: 32%;"></div>
+      </div>
+      <div class="vote-result-row">
+        <span class="vote-result-a">A — 68%</span>
+        <span class="vote-result-b">B — 32%</span>
+      </div>
+      <div class="vote-stats">
+        <span>👥 89 votes</span>
+        <span>💬 14 comments</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption-bar">
+    <div class="caption-text">Community Votes</div>
+    <div class="caption-sub">Get real opinions, instantly</div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+    <div class="tab active"><div class="tab-icon">🌍</div><div class="tab-label" style="color:#E85D4C">Community</div></div>
+    <div class="tab-camera">📷</div>
+    <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">History</div></div>
+    <div class="tab"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+  </div>
+</body>
+</html>

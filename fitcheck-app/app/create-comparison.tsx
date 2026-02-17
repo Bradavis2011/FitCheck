@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import PillButton from '../src/components/PillButton';
 import OrThisLogo from '../src/components/OrThisLogo';
+import { comparisonService } from '../src/services/api.service';
+import { imageToBase64 } from '../src/services/image-upload.service';
 
 const OCCASIONS = ['Work', 'Casual', 'Date Night', 'Event', 'Interview', 'Party'];
 
@@ -97,15 +99,18 @@ export default function CreateComparisonScreen() {
 
     setIsSubmitting(true);
     try {
-      // TODO: Upload images and create comparison post via API
-      console.log('Creating comparison:', {
-        imageA,
-        imageB,
-        question: question || 'Which outfit works better?',
+      // Convert images to base64 for upload
+      const [imageAData, imageBData] = await Promise.all([
+        imageToBase64(imageA),
+        imageToBase64(imageB),
+      ]);
+
+      await comparisonService.createPost({
+        imageAData,
+        imageBData,
+        question: question.trim() || undefined,
         occasions: selectedOccasions,
       });
-
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
 
       Alert.alert('Posted!', 'Your comparison has been shared with the community.', [
         { text: 'OK', onPress: () => router.push('/(tabs)/community') },

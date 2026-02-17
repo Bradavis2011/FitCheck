@@ -13,8 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@clerk/clerk-expo';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import { useUpdateProfile, useUser } from '../src/hooks/useApi';
+import { userService } from '../src/services/api.service';
 
 type VisibilityOption = 'all' | 'followers' | 'trusted';
 type AutoDeleteOption = 'never' | '24h' | '7d' | '30d';
@@ -27,6 +29,7 @@ interface PrivacySettings {
 
 export default function PrivacySettingsScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const { data: user, isLoading } = useUser();
   const updateProfileMutation = useUpdateProfile();
 
@@ -67,9 +70,14 @@ export default function PrivacySettingsScreen() {
         {
           text: 'Clear All',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement clear history API call
-            Alert.alert('Coming Soon', 'This feature will be available soon.');
+          onPress: async () => {
+            try {
+              const result = await userService.clearHistory();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('Done', `Cleared ${result.deletedCount} outfit ${result.deletedCount === 1 ? 'check' : 'checks'}.`);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear history. Please try again.');
+            }
           },
         },
       ]
@@ -88,15 +96,19 @@ export default function PrivacySettingsScreen() {
           onPress: () => {
             Alert.alert(
               'Final Confirmation',
-              'This is your last chance. Type DELETE to confirm account deletion.',
+              'This action is permanent and cannot be undone.',
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                  text: 'I Understand',
+                  text: 'Delete Forever',
                   style: 'destructive',
-                  onPress: () => {
-                    // TODO: Implement delete account API call
-                    Alert.alert('Coming Soon', 'This feature will be available soon.');
+                  onPress: async () => {
+                    try {
+                      await userService.deleteAccount();
+                      await signOut();
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to delete account. Please try again.');
+                    }
                   },
                 },
               ]

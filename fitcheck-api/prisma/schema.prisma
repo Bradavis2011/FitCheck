@@ -59,6 +59,10 @@ model User {
   liveChatMessages LiveChatMessage[]   @relation("UserLiveChatMessages")
   liveSessionViews LiveSessionViewer[] @relation("UserLiveSessionViews")
   subscriptionEvents SubscriptionEvent[]
+  comparisonPosts    ComparisonPost[]   @relation("UserComparisonPosts")
+  comparisonVotes    ComparisonVote[]   @relation("UserComparisonVotes")
+  innerCircle         InnerCircleMember[] @relation("UserInnerCircle")
+  innerCircleMemberOf InnerCircleMember[] @relation("InnerCircleMemberOf")
 
   @@map("users")
 }
@@ -345,6 +349,63 @@ model CalibrationSnapshot {
 
   @@unique([period])
   @@map("calibration_snapshots")
+}
+
+model ComparisonPost {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  user       User     @relation("UserComparisonPosts", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Both outfit images
+  imageAUrl  String?  @db.Text @map("image_a_url")
+  imageAData String?  @db.Text @map("image_a_data")
+  imageBUrl  String?  @db.Text @map("image_b_url")
+  imageBData String?  @db.Text @map("image_b_data")
+
+  question   String?
+  occasions  String[]
+
+  // Cached vote counts
+  votesA     Int      @default(0) @map("votes_a")
+  votesB     Int      @default(0) @map("votes_b")
+
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  votes      ComparisonVote[]
+
+  @@map("comparison_posts")
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model ComparisonVote {
+  id        String         @id @default(uuid())
+  postId    String         @map("post_id")
+  post      ComparisonPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String         @map("user_id")
+  user      User           @relation("UserComparisonVotes", fields: [userId], references: [id], onDelete: Cascade)
+  choice    String         // "A" or "B"
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  @@unique([postId, userId])
+  @@map("comparison_votes")
+  @@index([postId])
+  @@index([userId])
+}
+
+model InnerCircleMember {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation("UserInnerCircle", fields: [userId], references: [id], onDelete: Cascade)
+  memberId  String   @map("member_id")
+  member    User     @relation("InnerCircleMemberOf", fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, memberId])
+  @@map("inner_circle_members")
+  @@index([userId])
+  @@index([memberId])
 }
 
 model SubscriptionEvent {

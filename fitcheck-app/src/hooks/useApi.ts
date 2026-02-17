@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, OutfitCheckInput } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, OutfitCheckInput } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -15,6 +15,7 @@ export const queryKeys = {
   leaderboard: (type: string) => ['community', 'leaderboard', type],
   notifications: (unreadOnly?: boolean) => ['notifications', unreadOnly],
   subscriptionStatus: ['subscription', 'status'],
+  comparisonFeed: (params?: any) => ['comparisons', 'feed', params],
 };
 
 // User hooks
@@ -276,6 +277,38 @@ export function useMarkAllNotificationsRead() {
     mutationFn: () => notificationService.markAllAsRead(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+// Comparison hooks
+export function useComparisonFeed(params: { limit?: number; offset?: number } = {}) {
+  return useQuery({
+    queryKey: queryKeys.comparisonFeed(params),
+    queryFn: () => comparisonService.getFeed(params),
+  });
+}
+
+export function useCreateComparison() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Parameters<typeof comparisonService.createPost>[0]) =>
+      comparisonService.createPost(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comparisons'] });
+    },
+  });
+}
+
+export function useVoteOnComparison() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ postId, choice }: { postId: string; choice: 'A' | 'B' }) =>
+      comparisonService.vote(postId, choice),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comparisons'] });
     },
   });
 }

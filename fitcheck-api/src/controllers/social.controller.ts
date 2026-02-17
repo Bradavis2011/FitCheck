@@ -1,11 +1,14 @@
 // @ts-nocheck
 import { Response } from 'express';
 import { z } from 'zod';
+import Filter from 'bad-words';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from './notification.controller.js';
 import * as gamificationService from '../services/gamification.service.js';
+
+const profanityFilter = new Filter();
 
 // Validation schemas
 const ReportSchema = z.object({
@@ -199,6 +202,40 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
     });
     const blockedUserIds = blockedUsers.map((b) => b.blockedId);
 
+    // Inner circle feed: outfits shared specifically to the user's circle
+    if (filter === 'inner_circle') {
+      // Find users whose inner circle includes the current user
+      const circleOwners = await prisma.innerCircleMember.findMany({
+        where: { memberId: userId },
+        select: { userId: true },
+      });
+      const ownerIds = circleOwners.map((c) => c.userId).filter((id) => !blockedUserIds.includes(id));
+
+      const outfits = await prisma.outfitCheck.findMany({
+        where: {
+          isPublic: true,
+          isDeleted: false,
+          visibility: 'inner_circle',
+          userId: { in: ownerIds },
+        },
+        select: {
+          id: true, thumbnailUrl: true, thumbnailData: true, imageUrl: true,
+          occasions: true, aiScore: true, createdAt: true,
+          user: { select: { id: true, username: true, name: true, profileImageUrl: true } },
+          _count: { select: { communityFeedback: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit as string),
+        skip: parseInt(offset as string),
+      });
+
+      const total = await prisma.outfitCheck.count({
+        where: { isPublic: true, isDeleted: false, visibility: 'inner_circle', userId: { in: ownerIds } },
+      });
+
+      return res.json({ outfits, total, hasMore: total > parseInt(offset as string) + outfits.length });
+    }
+
     // Determine sort order based on filter
     let orderBy: any = { createdAt: 'desc' }; // Default: recent
 
@@ -210,10 +247,12 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
       orderBy = { aiScore: 'desc' };
     }
 
+    // Exclude inner_circle outfits from the public feed
     const outfits = await prisma.outfitCheck.findMany({
       where: {
         isPublic: true,
         isDeleted: false,
+        visibility: { not: 'inner_circle' },
         user: { isPublic: true },
         NOT: { userId: { in: blockedUserIds } },
       },
@@ -248,6 +287,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
       where: {
         isPublic: true,
         isDeleted: false,
+        visibility: { not: 'inner_circle' },
         user: { isPublic: true },
         NOT: { userId: { in: blockedUserIds } },
       },
@@ -275,6 +315,11 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
     const userId = req.userId!;
     const data = FeedbackSchema.parse(req.body);
 
+    // Moderate comment text
+    if (profanityFilter.isProfane(data.comment)) {
+      throw new AppError(400, 'Your comment contains prohibited content. Please revise and resubmit.');
+    }
+
     // Verify outfit is public
     const outfit = await prisma.outfitCheck.findFirst({
       where: {
@@ -289,6 +334,16 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
 
     if (!outfit) {
       throw new AppError(404, 'Outfit not found or not public');
+    }
+
+    // If inner_circle outfit, verify the feedback author is in the owner's inner circle
+    if (outfit.visibility === 'inner_circle') {
+      const isMember = await prisma.innerCircleMember.findUnique({
+        where: { userId_memberId: { userId: outfit.userId, memberId: userId } },
+      });
+      if (!isMember) {
+        throw new AppError(403, 'This outfit is only visible to inner circle members');
+      }
     }
 
     // Prevent feedback on own outfits
@@ -965,6 +1020,100 @@ export async function getFollowing(req: AuthenticatedRequest, res: Response) {
         followedAt: f.createdAt,
       })),
     });
+  } catch (error) {
+    throw error;
+  }
+}
+
+// ============================================================
+// INNER CIRCLE
+// ============================================================
+
+// GET /api/social/inner-circle — list members of MY inner circle
+export async function getInnerCircle(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const members = await prisma.innerCircleMember.findMany({
+      where: { userId },
+      include: {
+        member: {
+          select: { id: true, username: true, name: true, profileImageUrl: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    res.json({ members: members.map((m) => ({ ...m.member, addedAt: m.createdAt })) });
+  } catch (error) {
+    throw error;
+  }
+}
+
+// POST /api/social/users/:username/inner-circle — add user to MY inner circle
+export async function addToInnerCircle(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const { username } = req.params;
+
+    const target = await prisma.user.findFirst({ where: { username } });
+    if (!target) throw new AppError(404, 'User not found');
+    if (target.id === userId) throw new AppError(400, 'Cannot add yourself to your inner circle');
+
+    const existing = await prisma.innerCircleMember.findUnique({
+      where: { userId_memberId: { userId, memberId: target.id } },
+    });
+    if (existing) throw new AppError(400, 'User is already in your inner circle');
+
+    await prisma.innerCircleMember.create({ data: { userId, memberId: target.id } });
+
+    // Notify the person they were added
+    await createNotification({
+      userId: target.id,
+      type: 'inner_circle',
+      title: 'You\'ve been added to an inner circle',
+      body: 'Someone added you to their inner circle. You\'ll now see their private outfit posts.',
+      linkType: 'user',
+      linkId: userId,
+    });
+
+    res.json({ success: true, added: target.username });
+  } catch (error) {
+    throw error;
+  }
+}
+
+// DELETE /api/social/users/:username/inner-circle — remove user from MY inner circle
+export async function removeFromInnerCircle(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const { username } = req.params;
+
+    const target = await prisma.user.findFirst({ where: { username } });
+    if (!target) throw new AppError(404, 'User not found');
+
+    await prisma.innerCircleMember.deleteMany({
+      where: { userId, memberId: target.id },
+    });
+
+    res.json({ success: true, removed: target.username });
+  } catch (error) {
+    throw error;
+  }
+}
+
+// GET /api/social/users/:username/inner-circle/status — check if a user is in my inner circle
+export async function getInnerCircleStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const { username } = req.params;
+
+    const target = await prisma.user.findFirst({ where: { username } });
+    if (!target) throw new AppError(404, 'User not found');
+
+    const member = await prisma.innerCircleMember.findUnique({
+      where: { userId_memberId: { userId, memberId: target.id } },
+    });
+
+    res.json({ isInCircle: !!member });
   } catch (error) {
     throw error;
   }

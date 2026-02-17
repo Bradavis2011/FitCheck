@@ -13,7 +13,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import OutfitFeedCard from '../../src/components/OutfitFeedCard';
-import { useCommunityFeed } from '../../src/hooks/useApi';
+import ComparisonCard from '../../src/components/ComparisonCard';
+import { useCommunityFeed, useComparisonFeed, useVoteOnComparison } from '../../src/hooks/useApi';
 
 type FeedFilter = 'recent' | 'popular' | 'top-rated';
 
@@ -28,12 +29,17 @@ export default function CommunityScreen() {
     offset,
   });
 
+  const { data: comparisonData, refetch: refetchComparisons } = useComparisonFeed({ limit: 10 });
+  const voteMutation = useVoteOnComparison();
+
   const outfits = data?.outfits || [];
   const hasMore = data?.hasMore || false;
+  const comparisonPosts = comparisonData?.posts || [];
 
   const handleRefresh = () => {
     setOffset(0);
     refetch();
+    refetchComparisons();
   };
 
   const handleLoadMore = () => {
@@ -92,6 +98,44 @@ export default function CommunityScreen() {
     createdAt: outfit.createdAt,
   }));
 
+  const renderComparisonSection = () => {
+    if (comparisonPosts.length === 0) return null;
+
+    return (
+      <View style={styles.comparisonSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionOr}>Or </Text>
+            <Text style={styles.sectionThis}>This?</Text>
+          </Text>
+          <Text style={styles.sectionSubtitle}>Help others decide</Text>
+        </View>
+        {comparisonPosts.slice(0, 3).map((post) => {
+          const imageA = post.imageAUrl || (post.imageAData ? `data:image/jpeg;base64,${post.imageAData}` : '');
+          const imageB = post.imageBUrl || (post.imageBData ? `data:image/jpeg;base64,${post.imageBData}` : '');
+          return (
+            <ComparisonCard
+              key={post.id}
+              id={post.id}
+              username={post.user.username || post.user.name || 'Anonymous'}
+              imageA={imageA}
+              imageB={imageB}
+              question={post.question}
+              occasions={post.occasions}
+              votesA={post.votesA}
+              votesB={post.votesB}
+              totalVotes={post.votesA + post.votesB}
+              userVote={post.myVote}
+              createdAt={post.createdAt}
+              onVote={(choice) => voteMutation.mutate({ postId: post.id, choice })}
+              onUserPress={() => {}}
+            />
+          );
+        })}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -137,6 +181,7 @@ export default function CommunityScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.feedContent}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderComparisonSection()}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && offset === 0}
@@ -301,5 +346,33 @@ const styles = StyleSheet.create({
   fabSecondary: {
     bottom: 148, // 80 + 56 + 12 (spacing)
     backgroundColor: Colors.secondary,
+  },
+  comparisonSection: {
+    marginBottom: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+  },
+  sectionOr: {
+    color: Colors.text,
+    fontWeight: '700',
+  },
+  sectionThis: {
+    color: Colors.primary,
+    fontStyle: 'italic',
+    fontWeight: '700',
+  },
+  sectionSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
   },
 });

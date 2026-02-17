@@ -109,6 +109,8 @@ export interface FollowUp {
   createdAt: string;
 }
 
+export type ShareWith = 'private' | 'inner_circle' | 'public';
+
 export interface OutfitCheckInput {
   imageUrl?: string;
   imageBase64?: string;
@@ -117,6 +119,7 @@ export interface OutfitCheckInput {
   weather?: string;
   vibe?: string;
   specificConcerns?: string;
+  shareWith?: ShareWith;
 }
 
 export interface UserStats {
@@ -242,6 +245,16 @@ export const userService = {
 
   async getStats() {
     const response = await api.get<UserStats>('/api/user/stats');
+    return response.data;
+  },
+
+  async clearHistory() {
+    const response = await api.delete<{ success: boolean; deletedCount: number }>('/api/user/history');
+    return response.data;
+  },
+
+  async deleteAccount() {
+    const response = await api.delete<{ success: boolean }>('/api/user/account');
     return response.data;
   },
 };
@@ -439,6 +452,26 @@ export const socialService = {
     }>(`/api/social/leaderboard?type=${type}&limit=${limit}`);
     return response.data;
   },
+
+  // Inner Circle
+  async getInnerCircle() {
+    const response = await api.get<{
+      members: Array<{ id: string; username: string | null; name: string | null; profileImageUrl: string | null; addedAt: string }>;
+    }>('/api/social/inner-circle');
+    return response.data;
+  },
+  async addToInnerCircle(username: string) {
+    const response = await api.post<{ success: boolean; added: string }>(`/api/social/users/${username}/inner-circle`);
+    return response.data;
+  },
+  async removeFromInnerCircle(username: string) {
+    const response = await api.delete<{ success: boolean; removed: string }>(`/api/social/users/${username}/inner-circle`);
+    return response.data;
+  },
+  async getInnerCircleStatus(username: string) {
+    const response = await api.get<{ isInCircle: boolean }>(`/api/social/users/${username}/inner-circle/status`);
+    return response.data;
+  },
 };
 
 // Notification service
@@ -498,6 +531,59 @@ export const subscriptionService = {
         hasPriorityProcessing: boolean;
       };
     }>('/api/subscription/status');
+    return response.data;
+  },
+};
+
+// Comparison Service
+export interface ComparisonPost {
+  id: string;
+  imageAUrl?: string;
+  imageAData?: string;
+  imageBUrl?: string;
+  imageBData?: string;
+  question?: string;
+  occasions: string[];
+  votesA: number;
+  votesB: number;
+  myVote: 'A' | 'B' | null;
+  createdAt: string;
+  user: { id: string; username: string | null; name: string | null; profileImageUrl?: string };
+}
+
+export const comparisonService = {
+  async createPost(data: {
+    imageAData?: string;
+    imageAUrl?: string;
+    imageBData?: string;
+    imageBUrl?: string;
+    question?: string;
+    occasions: string[];
+  }) {
+    const response = await api.post<ComparisonPost>('/api/comparisons', data);
+    return response.data;
+  },
+
+  async getFeed(params: { limit?: number; offset?: number } = {}) {
+    const query = new URLSearchParams();
+    if (params.limit) query.set('limit', String(params.limit));
+    if (params.offset) query.set('offset', String(params.offset));
+    const response = await api.get<{ posts: ComparisonPost[]; hasMore: boolean }>(
+      `/api/comparisons/feed?${query}`
+    );
+    return response.data;
+  },
+
+  async vote(postId: string, choice: 'A' | 'B') {
+    const response = await api.post<{ success: boolean; votesA: number; votesB: number; myVote: string }>(
+      `/api/comparisons/${postId}/vote`,
+      { choice }
+    );
+    return response.data;
+  },
+
+  async deletePost(postId: string) {
+    const response = await api.delete<{ success: boolean }>(`/api/comparisons/${postId}`);
     return response.data;
   },
 };

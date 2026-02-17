@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
 import { pushNotificationService } from '../services/push.service';
 import { useAuthStore } from '../stores/authStore';
 
@@ -11,22 +12,20 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<any>(null);
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
   const { token: authToken, user } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
-    // DISABLED: Push notifications don't work properly in Expo Go
-    // Enable this when building standalone app
-    return;
-
-    // eslint-disable-next-line no-unreachable
     if (!authToken || !user) {
       return;
     }
@@ -35,7 +34,6 @@ export function usePushNotifications() {
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
-        // Send token to backend
         const platform = Platform.OS === 'ios' ? 'ios' : 'android';
         pushNotificationService.registerToken(token, platform).catch((error) => {
           console.error('Failed to register push token:', error);
@@ -43,18 +41,26 @@ export function usePushNotifications() {
       }
     });
 
-    // Listen for incoming notifications
+    // Listen for incoming notifications (while app is foregrounded)
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       setNotification(notification);
     });
 
-    // Listen for notification interactions
+    // Handle notification taps — deep link to the relevant screen
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      console.log('Notification tapped:', data);
+      const data = response.notification.request.content.data as {
+        type?: string;
+        linkType?: string;
+        linkId?: string;
+      };
 
-      // Handle deep linking based on notification data
-      // This will be expanded when we add navigation handling
+      if (data.linkType === 'outfit' && data.linkId) {
+        router.push(`/outfit/${data.linkId}` as any);
+      } else if (data.type === 'follow') {
+        router.push('/(tabs)/community' as any);
+      } else if (data.type === 'live') {
+        router.push('/(tabs)/community' as any);
+      }
     });
 
     return () => {

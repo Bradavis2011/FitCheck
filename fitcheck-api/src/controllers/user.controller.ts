@@ -368,3 +368,33 @@ export async function getBadges(req: AuthenticatedRequest, res: Response) {
     throw error;
   }
 }
+
+export async function clearHistory(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const result = await prisma.outfitCheck.updateMany({
+      where: { userId, isDeleted: false },
+      data: { isDeleted: true },
+    });
+
+    res.json({ success: true, deletedCount: result.count });
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function deleteAccount(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    // Delete user — cascade handles related records via schema onDelete: Cascade
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    throw error;
+  }
+}
