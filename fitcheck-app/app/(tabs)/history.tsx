@@ -193,12 +193,15 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   filtersContainer: {
-    paddingTop: Spacing.xs,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   filters: {
     paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
+    alignItems: 'center',
   },
   grid: {
     paddingHorizontal: Spacing.md,
