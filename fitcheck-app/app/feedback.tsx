@@ -189,8 +189,8 @@ export default function FeedbackScreen() {
         title: `My Or This? Score: ${score}/10`,
       });
 
-      // TODO: Enable image sharing after EAS build
-      // Uncomment this code after running: npx expo prebuild && npx expo run:ios/android
+      // Image sharing (enable after EAS production build):
+      // Run: npx expo prebuild && npx expo run:ios/android
       /*
       if (viewShotRef.current) {
         await new Promise(resolve => setTimeout(resolve, 100));

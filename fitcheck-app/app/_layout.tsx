@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,6 +13,13 @@ import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 // import OfflineIndicator from '../src/components/OfflineIndicator'; // Temporarily disabled
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: process.env.NODE_ENV === 'production',
+  tracesSampleRate: 0.2,
+  sendDefaultPii: false,
+});
 
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -79,7 +87,7 @@ function AuthGate() {
   return <Slot />;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   if (!CLERK_PUBLISHABLE_KEY) {
     throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in .env');
   }
@@ -101,6 +109,8 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);
 
 const styles = StyleSheet.create({
   loading: {

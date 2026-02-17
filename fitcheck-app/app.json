@@ -44,7 +44,14 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "orthis",
+          "project": "orthis-mobile"
+        }
+      ]
     ],
     "extra": {
       "router": {},

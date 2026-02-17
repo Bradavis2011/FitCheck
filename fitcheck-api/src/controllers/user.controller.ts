@@ -301,6 +301,85 @@ function getWeekNumber(date: Date): number {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
+// ========== ACCOUNT MANAGEMENT ENDPOINTS ==========
+
+// DELETE /api/user/account - Permanently delete user account and all data
+export async function deleteAccount(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    // Verify the user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'User not found');
+    }
+
+    // Delete reports filed by this user (no cascade set on reporter relation)
+    await prisma.report.deleteMany({
+      where: { reporterId: userId },
+    });
+
+    // Delete the user — most related data cascades automatically via schema
+    // (outfitChecks, followUps, styleDNA, userStats, communityFeedback,
+    //  blockedUsers, follows, notifications, pushTokens, liveSessions,
+    //  liveSessionViewers, subscriptionEvents all cascade)
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    // Attempt to delete the user from Clerk (best-effort, don't fail the request)
+    try {
+      const { clerkClient } = await import('@clerk/clerk-sdk-node');
+      await clerkClient.users.deleteUser(userId);
+    } catch (clerkError) {
+      console.error('Failed to delete Clerk user (non-fatal):', clerkError);
+    }
+
+    res.json({ success: true, message: 'Account permanently deleted' });
+  } catch (error) {
+    throw error;
+  }
+}
+
+// DELETE /api/user/history - Clear all outfit check history
+export async function clearHistory(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    // Hard-delete all outfit checks for this user
+    // Related followUps, communityFeedback, and styleDNA cascade automatically
+    const result = await prisma.outfitCheck.deleteMany({
+      where: { userId },
+    });
+
+    // Reset user stats related to outfits
+    await prisma.userStats.update({
+      where: { userId },
+      data: {
+        currentStreak: 0,
+        weeklyPoints: 0,
+        monthlyPoints: 0,
+        dailyFeedbackCount: 0,
+      },
+    }).catch(() => {
+      // UserStats may not exist yet, that's fine
+    });
+
+    // Reset daily checks counter
+    await prisma.user.update({
+      where: { id: userId },
+      data: { dailyChecksUsed: 0 },
+    });
+
+    res.json({ success: true, deletedCount: result.count });
+  } catch (error) {
+    throw error;
+  }
+}
+
 // ========== GAMIFICATION ENDPOINTS ==========
 
 // Import gamification service

@@ -126,10 +126,10 @@ export default function CameraScreen() {
             <Text style={styles.permissionText}>
               Or This? needs camera access to capture your outfit photos.
             </Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={handleOpenSettings}>
+            <TouchableOpacity style={styles.settingsButton} onPress={handleOpenSettings} accessibilityLabel="Open device settings to grant camera permission" accessibilityRole="button">
               <Text style={styles.settingsButtonText}>Open Settings</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.galleryFallback} onPress={handleGalleryPick}>
+            <TouchableOpacity style={styles.galleryFallback} onPress={handleGalleryPick} accessibilityLabel="Choose a photo from gallery instead" accessibilityRole="button">
               <Text style={styles.galleryFallbackText}>Or choose from gallery</Text>
             </TouchableOpacity>
           </View>
@@ -148,15 +148,18 @@ export default function CameraScreen() {
               source={{ uri: capturedUri }}
               style={styles.previewImage}
               resizeMode="cover"
+              accessibilityLabel="Captured outfit photo preview"
             />
           </View>
           <View style={styles.previewActions}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleRetake}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleRetake} accessibilityLabel="Retake photo" accessibilityRole="button">
               <Text style={styles.actionButtonText}>Retake</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.actionButtonPrimary]}
               onPress={handleUsePhoto}
+              accessibilityLabel="Use this photo for outfit check"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonTextPrimary}>Use This Photo</Text>
             </TouchableOpacity>
@@ -187,10 +190,10 @@ export default function CameraScreen() {
             <Text style={styles.permissionText}>
               We need your permission to use the camera.
             </Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={requestPermission}>
+            <TouchableOpacity style={styles.settingsButton} onPress={requestPermission} accessibilityLabel="Grant camera permission" accessibilityRole="button">
               <Text style={styles.settingsButtonText}>Grant Permission</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.galleryFallback} onPress={handleGalleryPick}>
+            <TouchableOpacity style={styles.galleryFallback} onPress={handleGalleryPick} accessibilityLabel="Choose a photo from gallery instead" accessibilityRole="button">
               <Text style={styles.galleryFallbackText}>Or choose from gallery</Text>
             </TouchableOpacity>
           </View>
@@ -205,11 +208,11 @@ export default function CameraScreen() {
         <SafeAreaView style={styles.safeArea}>
           {/* Top bar */}
           <View style={styles.topBar}>
-            <TouchableOpacity style={styles.topButton} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.topButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
               <Ionicons name="arrow-back" size={20} color={Colors.white} />
             </TouchableOpacity>
             <Text style={styles.topTitle}>Take Photo</Text>
-            <TouchableOpacity style={styles.topButton} onPress={toggleFlash}>
+            <TouchableOpacity style={styles.topButton} onPress={toggleFlash} accessibilityLabel={flash === 'on' ? 'Turn flash off' : 'Turn flash on'} accessibilityRole="button">
               <Ionicons
                 name={flash === 'on' ? 'flash' : 'flash-off'}
                 size={20}
@@ -229,17 +232,19 @@ export default function CameraScreen() {
 
           {/* Bottom controls */}
           <View style={styles.controls}>
-            <TouchableOpacity style={styles.sideButton} onPress={handleGalleryPick}>
+            <TouchableOpacity style={styles.sideButton} onPress={handleGalleryPick} accessibilityLabel="Choose from photo gallery" accessibilityRole="button">
               <Ionicons name="image" size={24} color={Colors.white} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.captureOuter}
               activeOpacity={0.8}
               onPress={handleCapture}
+              accessibilityLabel="Take photo"
+              accessibilityRole="button"
             >
               <View style={styles.captureInner} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sideButton} onPress={handleFlipCamera}>
+            <TouchableOpacity style={styles.sideButton} onPress={handleFlipCamera} accessibilityLabel="Switch between front and back camera" accessibilityRole="button">
               <Ionicons name="camera-reverse" size={24} color={Colors.white} />
             </TouchableOpacity>
           </View>

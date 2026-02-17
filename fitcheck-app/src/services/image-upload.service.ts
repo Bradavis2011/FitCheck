@@ -1,15 +1,8 @@
 /**
  * Image Upload Service
  *
- * Handles uploading images to cloud storage (S3, Cloudflare R2, etc.)
- *
- * TODO for Production:
- * 1. Set up S3 bucket or Cloudflare R2
- * 2. Get presigned URL from backend: POST /api/upload/presigned
- * 3. Upload image directly to S3 using presigned URL
- * 4. Return the public URL
- *
- * For now, this service returns the local URI for testing with mock data.
+ * Handles image compression and conversion for the outfit check flow.
+ * Images are sent as base64 to the backend, which stores them in S3.
  */
 
 import { File } from 'expo-file-system';
@@ -73,21 +66,7 @@ export async function uploadImage(localUri: string): Promise<ImageUploadResult> 
 }
 
 /**
- * Get a presigned URL from the backend for uploading to S3
- * TODO: Implement this when backend is ready
- */
-async function getPresignedUrl(): Promise<{ uploadUrl: string; publicUrl: string }> {
-  // const response = await api.post('/api/upload/presigned', {
-  //   contentType: 'image/jpeg',
-  //   fileName: `outfit-${Date.now()}.jpg`,
-  // });
-  // return response.data;
-
-  throw new Error('Not implemented');
-}
-
-/**
- * Convert image to base64 (fallback for testing)
+ * Convert image to base64
  */
 export async function imageToBase64(uri: string): Promise<string> {
   try {
