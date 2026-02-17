@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import PillButton from '../src/components/PillButton';
+import OrThisLogo from '../src/components/OrThisLogo';
 
 const OCCASIONS = ['Work', 'Casual', 'Date Night', 'Event', 'Interview', 'Party'];
 
@@ -126,7 +127,7 @@ export default function CreateComparisonScreen() {
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={Colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Or This?</Text>
+        <OrThisLogo size={22} />
         <View style={styles.closeButton} />
       </View>
 
