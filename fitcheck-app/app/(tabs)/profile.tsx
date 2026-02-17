@@ -341,7 +341,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Style Profile - Analytics */}
-        {stats?.totalOutfits && stats.totalOutfits >= 3 && (
+        {(stats?.totalOutfits ?? 0) >= 3 && (
           <View style={styles.editProfileCard}>
             <TouchableOpacity
               style={styles.editProfileButton}
