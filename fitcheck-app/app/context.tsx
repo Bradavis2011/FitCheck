@@ -18,8 +18,14 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme'
 import LoadingOverlay from '../src/components/LoadingOverlay';
 import PillButton from '../src/components/PillButton';
 import { uploadImage } from '../src/services/image-upload.service';
-import { outfitService } from '../src/services/api.service';
+import { outfitService, ShareWith } from '../src/services/api.service';
 import { useUserStats } from '../src/hooks/useApi';
+
+const SHARE_OPTIONS: { value: ShareWith; label: string; icon: string; description: string }[] = [
+  { value: 'private', label: 'Just Me', icon: 'lock-closed-outline', description: 'Only you can see this' },
+  { value: 'inner_circle', label: 'Inner Circle', icon: 'people-outline', description: 'Only your trusted circle' },
+  { value: 'public', label: 'Community', icon: 'globe-outline', description: 'Everyone can see & feedback' },
+];
 
 export default function ContextScreen() {
   const router = useRouter();
@@ -39,6 +45,7 @@ export default function ContextScreen() {
   } = useAppStore();
 
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [shareWith, setShareWith] = useState<ShareWith>('private');
 
   // Fetch user stats to check daily limit
   const { data: stats } = useUserStats();
@@ -85,6 +92,7 @@ export default function ContextScreen() {
         weather: selectedWeather || undefined,
         vibe: selectedVibes.join(', ') || undefined,
         specificConcerns: concerns || undefined,
+        shareWith,
       });
       console.log('[Context] API response received:', response.id);
 
@@ -279,6 +287,31 @@ export default function ContextScreen() {
             </View>
           )}
 
+          {/* Who sees this? */}
+          <View style={styles.shareSection}>
+            <Text style={styles.sectionTitle}>Who sees this?</Text>
+            <View style={styles.shareOptions}>
+              {SHARE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.shareOption, shareWith === opt.value && styles.shareOptionActive]}
+                  onPress={() => setShareWith(opt.value)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={opt.icon as any}
+                    size={22}
+                    color={shareWith === opt.value ? Colors.primary : Colors.textMuted}
+                  />
+                  <Text style={[styles.shareOptionLabel, shareWith === opt.value && styles.shareOptionLabelActive]}>
+                    {opt.label}
+                  </Text>
+                  <Text style={styles.shareOptionDesc}>{opt.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <View style={{ height: 100 }} />
         </ScrollView>
 
@@ -458,6 +491,45 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
     minHeight: 80,
+  },
+  shareSection: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  shareOptions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  shareOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    gap: 4,
+  },
+  shareOptionActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#FDF0EE',
+  },
+  shareOptionLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  shareOptionLabelActive: {
+    color: Colors.primary,
+  },
+  shareOptionDesc: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 13,
   },
   footer: {
     padding: Spacing.lg,

@@ -28,6 +28,7 @@ export default function PublicUserProfileScreen() {
 
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [isBlocked, setIsBlocked] = useState(false);
+  const [isInCircle, setIsInCircle] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -84,6 +85,34 @@ export default function PublicUserProfileScreen() {
       Alert.alert('User Unblocked', `You've unblocked @${profile.username}`);
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.error || 'Failed to unblock user');
+    }
+  };
+
+  // Load inner circle status when profile loads
+  useEffect(() => {
+    if (profile?.username && !isOwnProfile) {
+      socialService.getInnerCircleStatus(profile.username)
+        .then((data) => setIsInCircle(data.isInCircle))
+        .catch(() => {}); // non-fatal
+    }
+  }, [profile?.username, isOwnProfile]);
+
+  const handleInnerCircleToggle = async () => {
+    if (!profile?.username) return;
+    try {
+      if (isInCircle) {
+        await socialService.removeFromInnerCircle(profile.username);
+        setIsInCircle(false);
+        setShowMenu(false);
+        Alert.alert('Removed', `@${profile.username} removed from your inner circle`);
+      } else {
+        await socialService.addToInnerCircle(profile.username);
+        setIsInCircle(true);
+        setShowMenu(false);
+        Alert.alert('Added to Inner Circle', `@${profile.username} will now see your inner circle outfits`);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.error || 'Failed to update inner circle');
     }
   };
 
@@ -164,6 +193,17 @@ export default function PublicUserProfileScreen() {
         {/* Menu dropdown */}
         {showMenu && !isOwnProfile && (
           <View style={styles.menuDropdown}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleInnerCircleToggle}>
+              <Ionicons
+                name={isInCircle ? 'people' : 'people-outline'}
+                size={20}
+                color={isInCircle ? Colors.primary : Colors.text}
+              />
+              <Text style={[styles.menuText, isInCircle && { color: Colors.primary }]}>
+                {isInCircle ? 'Remove from Inner Circle' : 'Add to Inner Circle'}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
