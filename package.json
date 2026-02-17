@@ -12,6 +12,7 @@
     "clean": "cd fitcheck-app && rm -rf node_modules && cd ../fitcheck-api && rm -rf node_modules"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "puppeteer": "^24.37.3"
   }
 }

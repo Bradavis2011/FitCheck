@@ -688,3 +688,87 @@ export const expertReviewService = {
     return response.data;
   },
 };
+
+// Challenges Service
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  theme: string;
+  prize: string | null;
+  status: 'upcoming' | 'active' | 'ended';
+  startsAt: string;
+  endsAt: string;
+  submissionCount: number;
+  createdAt: string;
+}
+
+export interface ChallengeSubmission {
+  id: string;
+  challengeId: string;
+  outfitCheckId: string;
+  userId: string;
+  votes: number;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string | null;
+    name: string | null;
+    profileImageUrl: string | null;
+  };
+  outfitCheck: {
+    id: string;
+    thumbnailUrl: string | null;
+    thumbnailData: string | null;
+    aiScore: number | null;
+  };
+}
+
+export const challengeService = {
+  async listChallenges(status: 'active' | 'upcoming' | 'ended' = 'active') {
+    const response = await api.get<{ challenges: Challenge[] }>('/api/challenges', {
+      params: { status },
+    });
+    return response.data;
+  },
+
+  async getActiveChallenge() {
+    const response = await api.get<{ challenge: Challenge | null }>('/api/challenges/active');
+    return response.data;
+  },
+
+  async getChallenge(id: string) {
+    const response = await api.get<{ challenge: Challenge }>(`/api/challenges/${id}`);
+    return response.data;
+  },
+
+  async getLeaderboard(challengeId: string, params?: { limit?: number; offset?: number }) {
+    const response = await api.get<{
+      submissions: ChallengeSubmission[];
+      total: number;
+    }>(`/api/challenges/${challengeId}/leaderboard`, { params });
+    return response.data;
+  },
+
+  async getMySubmission(challengeId: string) {
+    const response = await api.get<{ submission: ChallengeSubmission | null }>(
+      `/api/challenges/${challengeId}/my-submission`
+    );
+    return response.data;
+  },
+
+  async submitEntry(challengeId: string, outfitCheckId: string) {
+    const response = await api.post<{ submission: ChallengeSubmission }>(
+      `/api/challenges/${challengeId}/submit`,
+      { outfitCheckId }
+    );
+    return response.data;
+  },
+
+  async voteForSubmission(challengeId: string, submissionId: string) {
+    const response = await api.post<{ votes: number }>(
+      `/api/challenges/${challengeId}/submissions/${submissionId}/vote`
+    );
+    return response.data;
+  },
+};

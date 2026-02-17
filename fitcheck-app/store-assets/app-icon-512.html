@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Or This? App Icon — 512×512</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: sans-serif;
+    }
+    .icon {
+      width: 512px;
+      height: 512px;
+      background: #FBF7F4;
+      border-radius: 96px; /* ~19% corner radius — Google Play standard */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0px;
+      overflow: hidden;
+    }
+    .or {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 168px;
+      color: #1A1A1A;
+      line-height: 1;
+      letter-spacing: -4px;
+    }
+    .this {
+      font-family: 'DM Sans', sans-serif;
+      font-style: italic;
+      font-weight: 700;
+      font-size: 112px;
+      color: #E85D4C;
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="icon">
+    <span class="or">Or</span>
+    <span class="this">This?</span>
+  </div>
+
+  <p style="margin-top:16px; color:#555; font-size:13px;">
+    Screenshot the white square at exactly 512×512px for Google Play
+  </p>
+</body>
+</html>

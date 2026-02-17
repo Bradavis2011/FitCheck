@@ -27,7 +27,7 @@ export default function CommunityScreen() {
   const [offset, setOffset] = useState(0);
 
   const { data, isLoading, refetch, isFetching } = useCommunityFeed({
-    filter,
+    filter: (filter === 'inner_circle' ? 'recent' : filter) as 'recent' | 'popular' | 'top-rated',
     limit: 20,
     offset,
   });
