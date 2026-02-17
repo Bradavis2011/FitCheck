@@ -122,7 +122,7 @@ export default function UpgradeScreen() {
             <Text style={styles.currentPlanSubtitle}>
               {tier === 'plus'
                 ? 'Unlimited checks, ad-free, and full history'
-                : 'Unlimited checks, 10 follow-ups, ad-free, full history'}
+                : 'Unlimited checks, 10 follow-ups, 5 expert reviews/month, ad-free'}
             </Text>
 
             <TouchableOpacity onPress={handleManageSubscription} style={styles.manageButton}>
@@ -234,6 +234,7 @@ export default function UpgradeScreen() {
           <View style={styles.featureList}>
             <Feature icon="checkmark" text="Everything in Plus" />
             <Feature icon="checkmark" text="10 follow-ups per check" />
+            <Feature icon="checkmark" text="5 expert stylist reviews/month" />
             <Feature icon="checkmark" text="Style DNA analytics" />
           </View>
 

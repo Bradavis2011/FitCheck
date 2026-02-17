@@ -19,7 +19,7 @@ export const TIER_LIMITS = {
     dailyChecks: Infinity,
     followUpsPerCheck: 10,
     historyDays: Infinity,
-    expertReviewsPerMonth: 0, // expert system not yet built
+    expertReviewsPerMonth: 5,
     hasAds: false,
     hasPriorityProcessing: true,
   },

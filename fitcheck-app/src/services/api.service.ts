@@ -587,3 +587,104 @@ export const comparisonService = {
     return response.data;
   },
 };
+
+// Expert Review Service
+export interface StylistProfile {
+  id: string;
+  userId: string;
+  bio: string | null;
+  specialties: string[];
+  instagramUrl: string | null;
+  verified: boolean;
+  rating: number;
+  reviewCount: number;
+  createdAt: string;
+  user: { id: string; username: string | null; name: string | null; profileImageUrl: string | null };
+}
+
+export interface ExpertReview {
+  id: string;
+  outfitCheckId: string;
+  userId: string;
+  stylistId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  score: number | null;
+  feedback: string | null;
+  completedAt: string | null;
+  requestedAt: string;
+  stylist: StylistProfile;
+  outfitCheck?: {
+    id: string;
+    thumbnailUrl: string | null;
+    thumbnailData: string | null;
+    occasions: string[];
+  };
+}
+
+export const expertReviewService = {
+  async requestReview(outfitCheckId: string, stylistId?: string) {
+    const response = await api.post<{ review: ExpertReview; reviewsUsedThisMonth: number }>(
+      '/api/expert-reviews',
+      { outfitCheckId, stylistId }
+    );
+    return response.data;
+  },
+
+  async getMyReviews() {
+    const response = await api.get<{
+      reviews: ExpertReview[];
+      usedThisMonth: number;
+      monthlyLimit: number;
+    }>('/api/expert-reviews/my-requests');
+    return response.data;
+  },
+
+  async getOutfitReview(outfitId: string) {
+    const response = await api.get<{ review: ExpertReview | null }>(
+      `/api/expert-reviews/outfit/${outfitId}`
+    );
+    return response.data;
+  },
+
+  async cancelReview(reviewId: string) {
+    const response = await api.delete<{ message: string }>(`/api/expert-reviews/${reviewId}`);
+    return response.data;
+  },
+
+  async getStylists(params?: { specialty?: string; limit?: number; offset?: number }) {
+    const response = await api.get<{ stylists: StylistProfile[] }>('/api/stylists', { params });
+    return response.data;
+  },
+
+  async applyStylist(data: { bio: string; specialties: string[]; instagramUrl?: string }) {
+    const response = await api.post<{ stylist: StylistProfile }>('/api/stylists/apply', data);
+    return response.data;
+  },
+
+  async getMyStylistProfile() {
+    const response = await api.get<{ stylist: StylistProfile }>('/api/stylists/me');
+    return response.data;
+  },
+
+  async updateMyStylistProfile(data: {
+    bio?: string;
+    specialties?: string[];
+    instagramUrl?: string;
+  }) {
+    const response = await api.put<{ stylist: StylistProfile }>('/api/stylists/me', data);
+    return response.data;
+  },
+
+  async getStylistQueue() {
+    const response = await api.get<{ reviews: ExpertReview[] }>('/api/expert-reviews/my-queue');
+    return response.data;
+  },
+
+  async submitReview(reviewId: string, data: { score: number; feedback: string }) {
+    const response = await api.post<{ review: ExpertReview }>(
+      `/api/expert-reviews/${reviewId}/submit`,
+      data
+    );
+    return response.data;
+  },
+};
