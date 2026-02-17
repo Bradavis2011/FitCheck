@@ -558,7 +558,8 @@ async function getStyleInsights(userId: string): Promise<string[]> {
 export async function analyzeOutfit(
   outfitCheckId: string,
   input: OutfitCheckInput,
-  user?: UserContext
+  user?: UserContext,
+  hasPriorityProcessing?: boolean
 ): Promise<OutfitFeedback> {
   // Mock mode for testing (bypasses Gemini API quota limits)
   if (process.env.USE_MOCK_AI === 'true') {
@@ -648,9 +649,10 @@ export async function analyzeOutfit(
         model: 'gemini-2.5-flash',
         systemInstruction: SYSTEM_PROMPT,
         generationConfig: {
-          temperature: 0.5,
-          maxOutputTokens: 4096, // Prevent truncation on verbose responses
-          responseMimeType: 'application/json', // Force JSON format
+          // Priority processing (Plus/Pro): lower temperature for precision, higher token budget
+          temperature: hasPriorityProcessing ? 0.3 : 0.5,
+          maxOutputTokens: hasPriorityProcessing ? 8192 : 4096,
+          responseMimeType: 'application/json',
           responseSchema: RESPONSE_SCHEMA as any
         },
       });

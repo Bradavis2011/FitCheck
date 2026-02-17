@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getStyleEvolution, StyleEvolutionResponse } from '../src/services/style-intelligence.service';
 import SimpleLineChart from '../src/components/SimpleLineChart';
 import { Colors } from '../src/constants/theme';
+import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 type MetricKey = 'avgOverallScore' | 'avgColorScore' | 'avgFitScore' | 'avgProportionScore' | 'avgCoherenceScore';
 
@@ -17,6 +18,7 @@ const METRICS: Array<{ key: MetricKey; label: string; color: string }> = [
 ];
 
 export default function StyleEvolutionScreen() {
+  const { tier } = useSubscriptionStore();
   const [loading, setLoading] = useState(true);
   const [evolution, setEvolution] = useState<StyleEvolutionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +26,10 @@ export default function StyleEvolutionScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    loadEvolution();
-  }, []);
+    if (tier === 'pro') {
+      loadEvolution();
+    }
+  }, [tier]);
 
   useEffect(() => {
     if (!loading && evolution) {
@@ -49,6 +53,27 @@ export default function StyleEvolutionScreen() {
       setLoading(false);
     }
   };
+
+  if (tier !== 'pro') {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: 'Style Evolution' }} />
+        <View style={styles.errorContainer}>
+          <Ionicons name="diamond-outline" size={64} color={Colors.primary} />
+          <Text style={styles.errorText}>Pro Feature</Text>
+          <Text style={styles.errorSubtext}>
+            Style Evolution tracking requires a Pro subscription. Upgrade to see how your style improves over time.
+          </Text>
+          <TouchableOpacity
+            style={evolUpgradeButtonStyle}
+            onPress={() => router.push('/upgrade' as any)}
+          >
+            <Text style={evolUpgradeButtonTextStyle}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -211,6 +236,20 @@ export default function StyleEvolutionScreen() {
     </ScrollView>
   );
 }
+
+const evolUpgradeButtonStyle = {
+  marginTop: 24,
+  backgroundColor: Colors.primary,
+  paddingHorizontal: 32,
+  paddingVertical: 14,
+  borderRadius: 12,
+};
+
+const evolUpgradeButtonTextStyle = {
+  color: '#FFF',
+  fontSize: 16,
+  fontWeight: '700' as const,
+};
 
 const styles = StyleSheet.create({
   container: {

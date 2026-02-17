@@ -319,6 +319,12 @@ const FeedbackSchema = z.object({
 export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
+
+    // Tier check: Only Plus/Pro users can submit community feedback
+    if (!req.user || req.user.tier === 'free') {
+      throw new AppError(403, 'Community feedback requires a Plus or Pro subscription.');
+    }
+
     const data = FeedbackSchema.parse(req.body);
 
     // Moderate comment text

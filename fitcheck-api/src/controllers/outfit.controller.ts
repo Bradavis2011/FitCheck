@@ -291,8 +291,9 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       }
     }
 
-    // Trigger AI analysis asynchronously (pass user for personalization)
-    analyzeOutfit(outfitCheck.id, aiData, user).catch((error) => {
+    // Trigger AI analysis asynchronously (pass user for personalization + priority tier)
+    const tierLimits = getTierLimits(user.tier);
+    analyzeOutfit(outfitCheck.id, aiData, user, tierLimits.hasPriorityProcessing).catch((error) => {
       console.error('Background AI analysis failed:', error);
     });
 
