@@ -43,15 +43,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      [
-        "@sentry/react-native",
-        {
-          "uploadNativeSymbols": false,
-          "autoUploadNativeSymbols": false,
-          "autoUpload": false
-        }
-      ]
+      "expo-font"
     ],
     "extra": {
       "router": {},
