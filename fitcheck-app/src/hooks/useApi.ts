@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, OutfitCheckInput } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, OutfitCheckInput } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -367,6 +367,65 @@ export function useSyncSubscription() {
       queryClient.invalidateQueries({ queryKey: queryKeys.subscriptionStatus });
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
       queryClient.invalidateQueries({ queryKey: queryKeys.userStats });
+    },
+  });
+}
+
+// Challenge hooks
+export function useActiveChallenge() {
+  return useQuery({
+    queryKey: ['challenge', 'active'],
+    queryFn: () => challengeService.getActiveChallenge(),
+    staleTime: 60_000, // 1 min — challenge status changes slowly
+  });
+}
+
+export function useChallenges(status: 'active' | 'upcoming' | 'ended') {
+  return useQuery({
+    queryKey: ['challenges', status],
+    queryFn: () => challengeService.listChallenges(status),
+    staleTime: 60_000,
+  });
+}
+
+export function useChallengeLeaderboard(challengeId: string | undefined) {
+  return useQuery({
+    queryKey: ['challenge', 'leaderboard', challengeId],
+    queryFn: () => challengeService.getLeaderboard(challengeId!, { limit: 10 }),
+    enabled: !!challengeId,
+    staleTime: 30_000,
+  });
+}
+
+export function useMySubmission(challengeId: string | undefined) {
+  return useQuery({
+    queryKey: ['challenge', 'my-submission', challengeId],
+    queryFn: () => challengeService.getMySubmission(challengeId!),
+    enabled: !!challengeId,
+  });
+}
+
+export function useSubmitChallengeEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ challengeId, outfitCheckId }: { challengeId: string; outfitCheckId: string }) =>
+      challengeService.submitEntry(challengeId, outfitCheckId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['challenge', 'my-submission', variables.challengeId] });
+      queryClient.invalidateQueries({ queryKey: ['challenge', 'leaderboard', variables.challengeId] });
+      queryClient.invalidateQueries({ queryKey: ['challenge', 'active'] });
+      queryClient.invalidateQueries({ queryKey: ['challenges'] });
+    },
+  });
+}
+
+export function useVoteForSubmission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ challengeId, submissionId }: { challengeId: string; submissionId: string }) =>
+      challengeService.voteForSubmission(challengeId, submissionId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['challenge', 'leaderboard', variables.challengeId] });
     },
   });
 }
