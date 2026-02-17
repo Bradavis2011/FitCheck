@@ -50,8 +50,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c98d9cbc-caf8-4853-9bc9-c9485ad17f36"
+        "projectId": "bd6e74d0-ce99-492d-aad3-ada5bad060d4"
       }
-    }
+    },
+    "owner": "outfitcheck"
   }
 }
