@@ -3,15 +3,19 @@ import { useState, useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getStyleProfile, StyleProfileResponse } from '../src/services/style-intelligence.service';
+import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 export default function StyleProfileScreen() {
+  const { tier } = useSubscriptionStore();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<StyleProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadStyleProfile();
-  }, []);
+    if (tier === 'pro') {
+      loadStyleProfile();
+    }
+  }, [tier]);
 
   const loadStyleProfile = async () => {
     try {
@@ -31,6 +35,27 @@ export default function StyleProfileScreen() {
     if (score >= 6) return '#F59E0B';  // Amber
     return '#EF4444';                   // Red
   };
+
+  if (tier !== 'pro') {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: 'Style Profile' }} />
+        <View style={styles.errorContainer}>
+          <Ionicons name="diamond-outline" size={64} color="#E85D4C" />
+          <Text style={styles.errorText}>Pro Feature</Text>
+          <Text style={styles.errorSubtext}>
+            Style Analytics requires a Pro subscription. Upgrade to unlock your Style DNA, color analysis, and more.
+          </Text>
+          <TouchableOpacity
+            style={upgradeButtonStyle}
+            onPress={() => router.push('/upgrade' as any)}
+          >
+            <Text style={upgradeButtonTextStyle}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -180,6 +205,20 @@ export default function StyleProfileScreen() {
     </ScrollView>
   );
 }
+
+const upgradeButtonStyle = {
+  marginTop: 24,
+  backgroundColor: '#E85D4C',
+  paddingHorizontal: 32,
+  paddingVertical: 14,
+  borderRadius: 12,
+};
+
+const upgradeButtonTextStyle = {
+  color: '#FFF',
+  fontSize: 16,
+  fontWeight: '700' as const,
+};
 
 const styles = StyleSheet.create({
   container: {

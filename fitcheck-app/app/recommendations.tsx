@@ -1,9 +1,10 @@
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getRecommendations, OutfitRecommendation } from '../src/services/style-intelligence.service';
 import { Colors } from '../src/constants/theme';
+import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 // Skeleton loader component
 function SkeletonCard() {
@@ -47,6 +48,7 @@ function SkeletonCard() {
 }
 
 export default function RecommendationsScreen() {
+  const { tier } = useSubscriptionStore();
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState<OutfitRecommendation[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +56,10 @@ export default function RecommendationsScreen() {
   const slideAnims = useRef<Animated.Value[]>([]).current;
 
   useEffect(() => {
-    loadRecommendations();
-  }, []);
+    if (tier === 'pro') {
+      loadRecommendations();
+    }
+  }, [tier]);
 
   useEffect(() => {
     // Animate cards in when recommendations load
@@ -110,6 +114,27 @@ export default function RecommendationsScreen() {
     if (confidence >= 0.6) return Colors.warning; // Amber
     return Colors.primary; // Coral
   };
+
+  if (tier !== 'pro') {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: 'Recommendations' }} />
+        <View style={styles.errorContainer}>
+          <Ionicons name="diamond-outline" size={64} color={Colors.primary} />
+          <Text style={styles.errorText}>Pro Feature</Text>
+          <Text style={styles.errorSubtext}>
+            AI outfit recommendations require a Pro subscription. Upgrade to get personalized looks based on your Style DNA.
+          </Text>
+          <TouchableOpacity
+            style={recUpgradeButtonStyle}
+            onPress={() => router.push('/upgrade' as any)}
+          >
+            <Text style={recUpgradeButtonTextStyle}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -263,6 +288,20 @@ export default function RecommendationsScreen() {
     </ScrollView>
   );
 }
+
+const recUpgradeButtonStyle = {
+  marginTop: 24,
+  backgroundColor: Colors.primary,
+  paddingHorizontal: 32,
+  paddingVertical: 14,
+  borderRadius: 12,
+};
+
+const recUpgradeButtonTextStyle = {
+  color: '#FFF',
+  fontSize: 16,
+  fontWeight: '700' as const,
+};
 
 const styles = StyleSheet.create({
   container: {

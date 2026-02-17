@@ -149,6 +149,11 @@ export async function getStyleProfile(req: AuthenticatedRequest, res: Response) 
   try {
     const userId = req.userId!;
 
+    // Pro only: advanced analytics
+    if (!req.user || req.user.tier !== 'pro') {
+      throw new AppError(403, 'Style analytics requires a Pro subscription.');
+    }
+
     const styleDNAs = await prisma.styleDNA.findMany({
       where: { userId },
       include: { outfitCheck: { select: { aiScore: true } } },
@@ -231,6 +236,11 @@ export async function getStyleProfile(req: AuthenticatedRequest, res: Response) 
 export async function getStyleEvolution(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
+
+    // Pro only: advanced analytics
+    if (!req.user || req.user.tier !== 'pro') {
+      throw new AppError(403, 'Style analytics requires a Pro subscription.');
+    }
 
     const styleDNAs = await prisma.styleDNA.findMany({
       where: { userId },

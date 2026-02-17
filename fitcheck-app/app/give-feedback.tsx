@@ -18,9 +18,11 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme'
 import { useCommunityFeed, useSubmitCommunityFeedback } from '../src/hooks/useApi';
 import Slider from '@react-native-community/slider';
 import CelebrationModal from '../src/components/CelebrationModal';
+import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 export default function GiveFeedbackScreen() {
   const router = useRouter();
+  const { tier } = useSubscriptionStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(7);
   const [comment, setComment] = useState('');
@@ -172,6 +174,35 @@ export default function GiveFeedbackScreen() {
     if (value >= 5) return '💭 Okay';
     return '🤔 Needs Work';
   };
+
+  // Upgrade gate: free users cannot give community feedback
+  if (tier === 'free') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Give Feedback</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>✨</Text>
+          <Text style={styles.emptyTitle}>Plus Feature</Text>
+          <Text style={styles.emptyText}>
+            Giving community feedback is available to Plus and Pro subscribers.
+            Upgrade to help others and earn style points!
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => router.push('/upgrade' as any)}
+          >
+            <Text style={styles.emptyButtonText}>Upgrade to Plus</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (isLoading) {
     return (

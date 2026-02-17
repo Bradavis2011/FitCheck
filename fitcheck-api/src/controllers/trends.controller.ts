@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { z } from 'zod';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 const TrendQuerySchema = z.object({
   period: z.enum(['week', 'month']).optional().default('week'),
@@ -10,10 +11,13 @@ const TrendQuerySchema = z.object({
 
 /**
  * GET /api/trends/colors
- * Get trending colors across all users
+ * Get trending colors across all users (Pro only)
  */
-export async function getTrendingColors(req: Request, res: Response) {
+export async function getTrendingColors(req: AuthenticatedRequest, res: Response) {
   try {
+    if (!req.user || req.user.tier !== 'pro') {
+      throw new AppError(403, 'Trend analytics requires a Pro subscription.');
+    }
     const { period, limit } = TrendQuerySchema.parse(req.query);
 
     // Get StyleDNA records grouped by time period
@@ -100,10 +104,13 @@ export async function getTrendingColors(req: Request, res: Response) {
 
 /**
  * GET /api/trends/archetypes
- * Get trending style archetypes across all users
+ * Get trending style archetypes across all users (Pro only)
  */
-export async function getTrendingArchetypes(req: Request, res: Response) {
+export async function getTrendingArchetypes(req: AuthenticatedRequest, res: Response) {
   try {
+    if (!req.user || req.user.tier !== 'pro') {
+      throw new AppError(403, 'Trend analytics requires a Pro subscription.');
+    }
     const { period, limit } = TrendQuerySchema.parse(req.query);
 
     const styleDNAs = await prisma.styleDNA.findMany({
@@ -205,10 +212,13 @@ export async function getTrendingArchetypes(req: Request, res: Response) {
 
 /**
  * GET /api/trends/summary
- * Get overall trend summary across all dimensions
+ * Get overall trend summary across all dimensions (Pro only)
  */
-export async function getTrendSummary(req: Request, res: Response) {
+export async function getTrendSummary(req: AuthenticatedRequest, res: Response) {
   try {
+    if (!req.user || req.user.tier !== 'pro') {
+      throw new AppError(403, 'Trend analytics requires a Pro subscription.');
+    }
     // Get last 30 days of data
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
