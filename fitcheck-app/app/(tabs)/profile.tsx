@@ -263,51 +263,7 @@ export default function ProfileScreen() {
             </View>
           </LinearGradient>
 
-          {/* Daily Goals Preview */}
-          {dailyGoals && (
-            <View style={styles.dailyGoalsPreview}>
-              <Text style={styles.dailyGoalsTitle}>Today's Progress</Text>
-              <View style={styles.goalsRow}>
-                <View style={styles.goalItem}>
-                  <Ionicons name="heart" size={16} color={Colors.primary} />
-                  <Text style={styles.goalText}>
-                    {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal} feedback
-                  </Text>
-                </View>
-                <View style={styles.goalItem}>
-                  <Ionicons name="thumbs-up" size={16} color={Colors.success} />
-                  <Text style={styles.goalText}>
-                    {dailyGoals.helpfulVotes}/{dailyGoals.helpfulGoal} helpful
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Badges Preview */}
-          {badgesData && badgesData.badges && badgesData.badges.length > 0 && (
-            <View style={styles.badgesSection}>
-              <View style={styles.badgesHeader}>
-                <Text style={styles.badgesTitle}>Badges Earned</Text>
-                <Text style={styles.badgesCount}>{badgesData.totalBadges}</Text>
-              </View>
-              <View style={styles.badgesGrid}>
-                {badgesData.badges.slice(0, 6).map((badge: any) => (
-                  <View key={badge.id} style={styles.badgeItem}>
-                    <Text style={styles.badgeIcon}>{badge.icon}</Text>
-                    <Text style={styles.badgeName} numberOfLines={1}>
-                      {badge.name}
-                    </Text>
-                  </View>
-                ))}
-                {badgesData.totalBadges > 6 && (
-                  <View style={[styles.badgeItem, styles.badgeMore]}>
-                    <Text style={styles.badgeMoreText}>+{badgesData.totalBadges - 6}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
+          {/* Daily Goals and Badges removed - endpoints not yet implemented */}
 
           {/* Leaderboard Link */}
           <TouchableOpacity
