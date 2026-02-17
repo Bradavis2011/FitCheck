@@ -1,3 +1,13 @@
+// Catch startup crashes before any module loads
+process.on('uncaughtException', (err) => {
+  console.error('[startup] Uncaught exception:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[startup] Unhandled rejection:', reason);
+  process.exit(1);
+});
+
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { Response } from 'express';
 import { z } from 'zod';
-import sharp from 'sharp';
+// sharp is lazy-loaded inside functions to prevent startup crash if native binary is incompatible
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
@@ -25,6 +25,7 @@ const OutfitCheckSchema = z.object({
 });
 
 async function generateThumbnail(base64Image: string): Promise<Buffer> {
+  const sharp = (await import('sharp')).default;
   // Remove data:image prefix if present
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(base64Data, 'base64');
@@ -39,6 +40,7 @@ async function generateThumbnail(base64Image: string): Promise<Buffer> {
 }
 
 async function resizeForAI(base64Image: string): Promise<string> {
+  const sharp = (await import('sharp')).default;
   // Remove data:image prefix if present
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(base64Data, 'base64');
