@@ -221,6 +221,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         id: true,
         thumbnailUrl: true,
         thumbnailData: true,
+        imageUrl: true,
         occasions: true,
         aiScore: true,
         createdAt: true,

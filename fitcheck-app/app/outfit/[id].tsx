@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -105,6 +106,22 @@ export default function PublicOutfitScreen() {
     await socialService.reportContent('outfit', outfitId, reason as any, details);
   };
 
+  const handleShare = async () => {
+    try {
+      const score = outfit.aiScore || 0;
+      const username = outfit.user?.username || 'someone';
+      const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
+      await Share.share({
+        message: `Check out ${username}'s outfit on Or This? ${scoreEmoji} ${score}/10\n\nGet your own outfit scored at OrThis.app!`,
+        title: `Or This? — ${score}/10`,
+      });
+    } catch (error: any) {
+      if (!error.message?.includes('cancelled')) {
+        Alert.alert('Error', 'Failed to share. Please try again.');
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -133,15 +150,19 @@ export default function PublicOutfitScreen() {
             <Ionicons name="arrow-back" size={24} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Outfit Details</Text>
-          {!isOwnOutfit && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => setShowReportModal(true)}
-            >
-              <Ionicons name="ellipsis-horizontal" size={24} color={Colors.text} />
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.backButton} onPress={handleShare}>
+              <Ionicons name="share-social-outline" size={22} color={Colors.text} />
             </TouchableOpacity>
-          )}
-          {isOwnOutfit && <View style={{ width: 40 }} />}
+            {!isOwnOutfit && (
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => setShowReportModal(true)}
+              >
+                <Ionicons name="ellipsis-horizontal" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -360,6 +381,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
   },
   backButton: {
     width: 40,

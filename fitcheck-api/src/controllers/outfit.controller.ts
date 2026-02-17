@@ -170,8 +170,17 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     // Upload images to S3 if base64 provided
     let s3ImageUrl: string | null = null;
     let s3ThumbnailUrl: string | null = null;
+    let thumbnailBase64Fallback: string | null = null;
 
     if (data.imageBase64) {
+      // Always generate thumbnail buffer (used for S3 upload or DB fallback)
+      let thumbnailBuffer: Buffer | null = null;
+      try {
+        thumbnailBuffer = await generateThumbnail(data.imageBase64);
+      } catch (err) {
+        console.error('Thumbnail generation failed:', err);
+      }
+
       try {
         // Decode base64 to buffer for original image
         const base64Data = data.imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -181,20 +190,23 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         const originalKey = `outfits/${userId}/${outfitId}/original.jpg`;
         s3ImageUrl = await uploadBuffer(imageBuffer, originalKey, 'image/jpeg');
 
-        // Generate and upload thumbnail
-        const thumbnailBuffer = await generateThumbnail(data.imageBase64);
-        const thumbnailKey = `outfits/${userId}/${outfitId}/thumbnail.jpg`;
-        s3ThumbnailUrl = await uploadBuffer(thumbnailBuffer, thumbnailKey, 'image/jpeg');
+        // Upload thumbnail to S3
+        if (thumbnailBuffer) {
+          const thumbnailKey = `outfits/${userId}/${outfitId}/thumbnail.jpg`;
+          s3ThumbnailUrl = await uploadBuffer(thumbnailBuffer, thumbnailKey, 'image/jpeg');
+        }
       } catch (error) {
-        console.error('S3 upload failed:', error);
-        // Fall back to storing in database if S3 fails
-        // This ensures the app doesn't break if S3 is misconfigured
+        console.error('S3 upload failed, falling back to DB storage:', error);
+        // Store thumbnail as base64 in DB so images still display
+        if (thumbnailBuffer) {
+          thumbnailBase64Fallback = thumbnailBuffer.toString('base64');
+        }
       }
     }
 
     // Create outfit check record
     // If S3 upload succeeded, use S3 URLs (imageData/thumbnailData will be null)
-    // If S3 failed, fall back to base64 storage
+    // If S3 failed, fall back to base64 storage so images still display
     const outfitCheck = await prisma.outfitCheck.create({
       data: {
         id: outfitId,
@@ -202,7 +214,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         imageUrl: s3ImageUrl || data.imageUrl || null,
         imageData: s3ImageUrl ? null : (data.imageBase64 || null),
         thumbnailUrl: s3ThumbnailUrl,
-        thumbnailData: null,
+        thumbnailData: thumbnailBase64Fallback,
         occasions: data.occasions,
         setting: data.setting,
         weather: data.weather,
@@ -420,7 +432,7 @@ export async function togglePublic(req: AuthenticatedRequest, res: Response) {
       throw new AppError(404, 'Outfit check not found');
     }
 
-    // If making public, ensure user has set up their public profile
+    // If making public, ensure user has a username and make their profile public too
     if (!outfitCheck.isPublic) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -429,6 +441,14 @@ export async function togglePublic(req: AuthenticatedRequest, res: Response) {
 
       if (!user?.username) {
         throw new AppError(400, 'You must set a username before sharing outfits publicly. Go to Profile > Edit Profile to set one.');
+      }
+
+      // Auto-make user profile public so outfits appear in the community feed
+      if (!user.isPublic) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { isPublic: true },
+        });
       }
     }
 
