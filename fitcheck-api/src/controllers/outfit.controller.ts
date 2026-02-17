@@ -581,7 +581,7 @@ export async function reanalyzeOutfit(req: AuthenticatedRequest, res: Response) 
     await prisma.outfitCheck.update({
       where: { id },
       data: {
-        aiFeedback: undefined,
+        aiFeedback: null,
         aiScore: null,
         aiProcessedAt: null,
       },
