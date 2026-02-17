@@ -20,7 +20,8 @@
         "NSCameraUsageDescription": "Or This? uses your camera to analyze your outfit and provide AI-powered style feedback.",
         "NSPhotoLibraryUsageDescription": "Or This? accesses your photo library so you can select outfit photos for analysis.",
         "NSPhotoLibraryAddUsageDescription": "Or This? saves outfit score cards to your photo library.",
-        "NSMicrophoneUsageDescription": "Or This? may use the microphone when recording video outfits."
+        "NSMicrophoneUsageDescription": "Or This? may use the microphone when recording video outfits.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -43,7 +44,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "extra": {
       "router": {},

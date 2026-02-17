@@ -18,9 +18,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import AdBanner from '../src/components/AdBanner';
+import { recordOutfitCheck } from '../src/lib/adManager';
 import ScoreDisplay from '../src/components/ScoreDisplay';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
@@ -28,6 +31,15 @@ import StyleDNACard from '../src/components/StyleDNACard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
+
+// TODO: Replace placeholder unit ID with real one from AdMob dashboard before release.
+const INTERSTITIAL_UNIT_ID = __DEV__
+  ? TestIds.INTERSTITIAL
+  : Platform.select({
+      ios: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+      android: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+      default: TestIds.INTERSTITIAL,
+    })!;
 
 export default function FeedbackScreen() {
   const router = useRouter();
@@ -53,6 +65,8 @@ export default function FeedbackScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
+  const wasAnalyzingRef = useRef(false);
+  const interstitialRef = useRef<InterstitialAd | null>(null);
 
   // Fetch community feedback if outfit is public
   const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
@@ -65,6 +79,23 @@ export default function FeedbackScreen() {
     });
 
     return () => backHandler.remove();
+  }, []);
+
+  // Load interstitial ad for free-tier users
+  useEffect(() => {
+    if (!limits?.hasAds) return;
+    try {
+      const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
+        requestNonPersonalizedAdsOnly: true,
+      });
+      ad.load();
+      interstitialRef.current = ad;
+    } catch {
+      // Native ads module not available in this environment (e.g. Expo Go)
+    }
+    return () => {
+      interstitialRef.current = null;
+    };
   }, []);
 
   // Poll for feedback
@@ -83,6 +114,20 @@ export default function FeedbackScreen() {
 
         // Stop polling if feedback is ready
         if (data.aiProcessedAt) {
+          // Show interstitial for new analysis completions (free users, every 2nd check)
+          if (wasAnalyzingRef.current && limits?.hasAds && recordOutfitCheck()) {
+            setTimeout(() => {
+              try {
+                if (interstitialRef.current?.loaded) {
+                  interstitialRef.current.show();
+                }
+              } catch {
+                // Ignore if ad cannot be shown
+              }
+            }, 1500);
+          }
+          wasAnalyzingRef.current = false;
+
           setIsLoading(false);
           if (pollInterval.current) {
             clearInterval(pollInterval.current);
@@ -98,6 +143,9 @@ export default function FeedbackScreen() {
               useNativeDriver: true,
             }).start();
           }, 3000);
+        } else {
+          // outfit is still being analyzed
+          wasAnalyzingRef.current = true;
         }
       } catch (error) {
         console.error('Failed to fetch outfit:', error);
@@ -560,6 +608,9 @@ export default function FeedbackScreen() {
               </View>
             </View>
           )}
+
+          {/* Ad banner for free users */}
+          <AdBanner />
 
           <View style={{ height: 120 }} />
         </ScrollView>
