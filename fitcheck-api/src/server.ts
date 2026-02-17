@@ -15,6 +15,8 @@ import pushRoutes from './routes/push.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
 import comparisonRoutes from './routes/comparison.routes.js';
 import liveRoutes from './routes/live.routes.js';
+import stylistRoutes from './routes/stylist.routes.js';
+import expertReviewRoutes from './routes/expert-review.routes.js';
 import { handleWebhook } from './controllers/subscription.controller.js';
 import { asyncHandler } from './middleware/asyncHandler.js';
 import { isConfigured as isS3Configured } from './services/s3.service.js';
@@ -72,6 +74,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/comparisons', comparisonRoutes);
 app.use('/api/live', liveRoutes);
+app.use('/api/stylists', stylistRoutes);
+app.use('/api/expert-reviews', expertReviewRoutes);
 app.use('/api', subscriptionRoutes);
 
 // 404 handler

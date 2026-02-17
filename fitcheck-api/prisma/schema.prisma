@@ -63,6 +63,8 @@ model User {
   comparisonVotes    ComparisonVote[]   @relation("UserComparisonVotes")
   innerCircle         InnerCircleMember[] @relation("UserInnerCircle")
   innerCircleMemberOf InnerCircleMember[] @relation("InnerCircleMemberOf")
+  stylistProfile     Stylist?
+  expertReviewsRequested ExpertReview[] @relation("UserExpertReviews")
 
   @@map("users")
 }
@@ -112,6 +114,7 @@ model OutfitCheck {
   followUps FollowUp[]
   communityFeedback CommunityFeedback[]
   styleDNA StyleDNA?
+  expertReviews ExpertReview[]
 
   @@map("outfit_checks")
 }
@@ -406,6 +409,45 @@ model InnerCircleMember {
   @@map("inner_circle_members")
   @@index([userId])
   @@index([memberId])
+}
+
+model Stylist {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?
+  specialties  String[] @default([]) // ["streetwear", "formal", "casual", "minimalist"]
+  instagramUrl String?  @map("instagram_url")
+  verified     Boolean  @default(false)
+  rating       Float    @default(0)
+  reviewCount  Int      @default(0) @map("review_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  reviews      ExpertReview[]
+
+  @@map("stylists")
+}
+
+model ExpertReview {
+  id            String      @id @default(uuid())
+  outfitCheckId String      @map("outfit_check_id")
+  outfitCheck   OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  userId        String      @map("user_id")
+  user          User        @relation("UserExpertReviews", fields: [userId], references: [id], onDelete: Cascade)
+  stylistId     String      @map("stylist_id")
+  stylist       Stylist     @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+
+  status        String    @default("pending") // "pending", "in_progress", "completed", "cancelled"
+  score         Int?
+  feedback      String?   @db.Text
+  completedAt   DateTime? @map("completed_at")
+  requestedAt   DateTime  @default(now()) @map("requested_at")
+
+  @@index([userId, requestedAt])
+  @@index([stylistId, status])
+  @@index([outfitCheckId])
+  @@map("expert_reviews")
 }
 
 model SubscriptionEvent {

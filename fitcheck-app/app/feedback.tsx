@@ -29,7 +29,7 @@ import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
+import { useTogglePublic, useCommunityFeedback, useOutfitExpertReview } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 
 // TODO: Replace placeholder unit ID with real one from AdMob dashboard before release.
@@ -47,7 +47,7 @@ export default function FeedbackScreen() {
   const outfitId = params.outfitId as string;
 
   const { resetCheckFlow } = useAppStore();
-  const { limits } = useSubscriptionStore();
+  const { limits, tier } = useSubscriptionStore();
   const togglePublicMutation = useTogglePublic();
 
   const user = useAuthStore((s) => s.user);
@@ -70,6 +70,8 @@ export default function FeedbackScreen() {
 
   // Fetch community feedback if outfit is public
   const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
+  // Fetch expert review if outfit is loaded
+  const { data: expertReviewData } = useOutfitExpertReview(outfitId);
 
   // Handle hardware back button
   useEffect(() => {
@@ -555,6 +557,51 @@ export default function FeedbackScreen() {
               )}
             </View>
           )}
+
+          {/* Expert Review Section */}
+          {expertReviewData?.review ? (
+            // Completed review
+            <View style={styles.expertReviewSection}>
+              <View style={styles.expertReviewHeader}>
+                <Ionicons name="ribbon" size={20} color={Colors.primary} />
+                <Text style={styles.expertReviewTitle}>Expert Review</Text>
+                <View style={styles.expertScoreBadge}>
+                  <Text style={[styles.expertScoreText, { color: expertReviewData.review.score !== null && expertReviewData.review.score >= 8 ? Colors.success : expertReviewData.review.score !== null && expertReviewData.review.score >= 6 ? Colors.warning : Colors.error }]}>
+                    {expertReviewData.review.score}/10
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.expertReviewerName}>
+                by @{expertReviewData.review.stylist.user.username || expertReviewData.review.stylist.user.name || 'Stylist'}
+                {' '}· {expertReviewData.review.stylist.rating.toFixed(1)} ⭐
+              </Text>
+              <Text style={styles.expertReviewText}>{expertReviewData.review.feedback}</Text>
+            </View>
+          ) : tier === 'pro' ? (
+            // Pro user — show request button
+            <TouchableOpacity
+              style={styles.expertReviewCTA}
+              onPress={() =>
+                router.push({
+                  pathname: '/request-expert-review' as any,
+                  params: {
+                    outfitId: outfit.id,
+                    thumbnailUrl: outfit.thumbnailUrl || '',
+                  },
+                })
+              }
+              activeOpacity={0.8}
+            >
+              <Ionicons name="ribbon-outline" size={20} color={Colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.expertReviewCTATitle}>Get an Expert Review</Text>
+                <Text style={styles.expertReviewCTASubtitle}>
+                  A verified stylist will give you professional feedback
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+            </TouchableOpacity>
+          ) : null}
 
           {/* Share to Community */}
           {score >= 7 ? (
@@ -1135,5 +1182,69 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  // Expert Review Section
+  expertReviewSection: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  expertReviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: 4,
+  },
+  expertReviewTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.text,
+    flex: 1,
+  },
+  expertScoreBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+  },
+  expertScoreText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  expertReviewerName: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  expertReviewText: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  expertReviewCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary + '40',
+  },
+  expertReviewCTATitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  expertReviewCTASubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
 });

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, OutfitCheckInput } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, OutfitCheckInput } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -310,6 +310,42 @@ export function useVoteOnComparison() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comparisons'] });
     },
+  });
+}
+
+// Expert Review hooks
+export function useOutfitExpertReview(outfitId: string) {
+  return useQuery({
+    queryKey: ['expertReview', 'outfit', outfitId],
+    queryFn: () => expertReviewService.getOutfitReview(outfitId),
+    enabled: !!outfitId,
+  });
+}
+
+export function useMyExpertReviews() {
+  return useQuery({
+    queryKey: ['expertReviews', 'myRequests'],
+    queryFn: () => expertReviewService.getMyReviews(),
+  });
+}
+
+export function useRequestExpertReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ outfitCheckId, stylistId }: { outfitCheckId: string; stylistId?: string }) =>
+      expertReviewService.requestReview(outfitCheckId, stylistId),
+    onSuccess: (_, { outfitCheckId }) => {
+      queryClient.invalidateQueries({ queryKey: ['expertReview', 'outfit', outfitCheckId] });
+      queryClient.invalidateQueries({ queryKey: ['expertReviews'] });
+    },
+  });
+}
+
+export function useStylists(params?: { specialty?: string }) {
+  return useQuery({
+    queryKey: ['stylists', params],
+    queryFn: () => expertReviewService.getStylists(params),
   });
 }
 
