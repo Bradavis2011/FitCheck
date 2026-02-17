@@ -36,6 +36,20 @@ async function generateThumbnail(base64Image: string): Promise<Buffer> {
   return thumbnail;
 }
 
+async function resizeForAI(base64Image: string): Promise<string> {
+  // Remove data:image prefix if present
+  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  // Resize to max 1024px on either dimension — Gemini doesn't need full resolution
+  const resized = await sharp(buffer)
+    .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+
+  return resized.toString('base64');
+}
+
 async function updateUserStreakAndPoints(userId: string): Promise<void> {
   try {
     // Get all outfit checks for this user, ordered by creation date
@@ -208,8 +222,19 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     // Update user streak and points
     await updateUserStreakAndPoints(userId);
 
+    // Resize image for AI analysis (reduces payload from ~5MB to ~200KB)
+    let aiData = data;
+    if (data.imageBase64) {
+      try {
+        const resizedBase64 = await resizeForAI(data.imageBase64);
+        aiData = { ...data, imageBase64: resizedBase64 };
+      } catch (err) {
+        console.error('Image resize failed, using original:', err);
+      }
+    }
+
     // Trigger AI analysis asynchronously (pass user for personalization)
-    analyzeOutfit(outfitCheck.id, data, user).catch((error) => {
+    analyzeOutfit(outfitCheck.id, aiData, user).catch((error) => {
       console.error('Background AI analysis failed:', error);
     });
 
