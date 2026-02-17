@@ -121,8 +121,8 @@ export default function UpgradeScreen() {
             </Text>
             <Text style={styles.currentPlanSubtitle}>
               {tier === 'plus'
-                ? 'Unlimited checks, community feedback, ad-free'
-                : 'Everything in Plus + expert reviews, advanced analytics'}
+                ? 'Unlimited checks and full history'
+                : 'Unlimited checks, 10 follow-ups, full history'}
             </Text>
 
             <TouchableOpacity onPress={handleManageSubscription} style={styles.manageButton}>
@@ -179,7 +179,6 @@ export default function UpgradeScreen() {
             <Feature icon="checkmark" text="3 AI checks per day" />
             <Feature icon="checkmark" text="3 follow-up questions per check" />
             <Feature icon="checkmark" text="7-day history" />
-            <Feature icon="close" text="With ads" muted />
           </View>
 
           <View style={styles.planButton}>
@@ -202,9 +201,6 @@ export default function UpgradeScreen() {
             <Feature icon="checkmark" text="Unlimited AI checks" primary />
             <Feature icon="checkmark" text="5 follow-ups per check" primary />
             <Feature icon="checkmark" text="Unlimited history" primary />
-            <Feature icon="checkmark" text="Ad-free" primary />
-            <Feature icon="checkmark" text="Community feedback" primary />
-            <Feature icon="checkmark" text="Priority processing" primary />
           </View>
 
           {isPurchasing ? (
@@ -237,9 +233,6 @@ export default function UpgradeScreen() {
           <View style={styles.featureList}>
             <Feature icon="checkmark" text="Everything in Plus" />
             <Feature icon="checkmark" text="10 follow-ups per check" />
-            <Feature icon="checkmark" text="5 expert reviews/month" />
-            <Feature icon="checkmark" text="Advanced analytics" />
-            <Feature icon="checkmark" text="Event planning mode" />
           </View>
 
           {isPurchasing ? (
