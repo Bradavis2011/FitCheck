@@ -7,6 +7,12 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     tier: string;
   };
+  // Explicit declarations ensure these are always recognized even if
+  // @types/express is not installed (e.g. when NODE_ENV=production skips devDeps)
+  body: any;
+  query: any;
+  params: any;
+  headers: any;
 }
 
 export interface StyleDNAExtraction {
