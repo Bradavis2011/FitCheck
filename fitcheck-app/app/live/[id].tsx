@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { VideoView, useParticipant } from '@livekit/react-native';
+import type { VideoTrack } from 'livekit-client';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize } from '../../src/constants/theme';
 import { useLiveStream } from '../../src/hooks/useLiveStream';
@@ -101,9 +102,9 @@ export default function LiveStreamScreen() {
     return null;
   }
 
-  const videoTrack = isHost
-    ? localParticipant?.videoTrackPublications?.[0]?.track
-    : hostParticipant?.videoTrackPublications?.[0]?.track;
+  const videoTrack = (isHost
+    ? localParticipant?.cameraPublication?.track
+    : hostParticipant?.cameraPublication?.track) as VideoTrack | undefined;
 
   return (
     <View style={styles.container}>

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -14,13 +14,52 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { liveService } from '../../src/services/live.service';
+import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 
 export default function GoLiveScreen() {
   const router = useRouter();
+  const { tier } = useSubscriptionStore();
   const [title, setTitle] = useState('');
   const [facing, setFacing] = useState<CameraType>('front');
   const [permission, requestPermission] = useCameraPermissions();
   const [isCreating, setIsCreating] = useState(false);
+
+  // Free users cannot host — show upgrade gate
+  if (tier === 'free') {
+    return (
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Ionicons name="close" size={28} color={Colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Go Live</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.upgradeContainer}>
+            <Ionicons name="videocam-outline" size={64} color={Colors.primary} />
+            <Text style={styles.upgradeTitle}>Plus Feature</Text>
+            <Text style={styles.upgradeText}>
+              Live streaming is available to Plus and Pro subscribers. Upgrade to go live and get
+              real-time AI outfit feedback from your community.
+            </Text>
+            <TouchableOpacity
+              style={styles.upgradeButton}
+              onPress={() => router.push('/upgrade' as any)}
+            >
+              <Text style={styles.upgradeButtonText}>Upgrade to Plus</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.browseButton}
+              onPress={() => router.push('/live/browse' as any)}
+            >
+              <Text style={styles.browseButtonText}>Browse Live Streams</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   if (!permission) {
     return (
@@ -38,7 +77,7 @@ export default function GoLiveScreen() {
             <Ionicons name="camera-outline" size={64} color={Colors.textMuted} />
             <Text style={styles.permissionTitle}>Camera Permission Required</Text>
             <Text style={styles.permissionText}>
-              FitCheck needs camera access to start live streaming
+              Or This? needs camera access to start live streaming
             </Text>
             <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
               <Text style={styles.permissionButtonText}>Grant Permission</Text>
@@ -169,6 +208,47 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
   },
+  upgradeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  upgradeTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: Colors.text,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  upgradeText: {
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
+  upgradeButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+  },
+  upgradeButtonText: {
+    color: Colors.white,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  browseButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+  },
+  browseButtonText: {
+    color: Colors.primary,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
   cameraContainer: {
     flex: 1,
     backgroundColor: Colors.black,
@@ -193,13 +273,13 @@ const styles = StyleSheet.create({
   inputSection: {
     padding: Spacing.lg,
     backgroundColor: Colors.surface,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   label: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     marginBottom: Spacing.xs,
   },
   input: {
@@ -228,7 +308,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
   },
   goLiveButton: {
     flexDirection: 'row',
@@ -262,7 +342,7 @@ const styles = StyleSheet.create({
   },
   permissionText: {
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
