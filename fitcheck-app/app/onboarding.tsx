@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { useAuthStore } from '../src/stores/authStore';
+import OrThisLogo from '../src/components/OrThisLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -85,7 +86,14 @@ export default function OnboardingScreen() {
         <Ionicons name={item.icon} size={80} color={Colors.white} />
       </LinearGradient>
 
-      <Text style={styles.title}>{item.title}</Text>
+      {item.id === 1 ? (
+        <View style={styles.titleLogoRow}>
+          <Text style={styles.title}>Welcome to </Text>
+          <OrThisLogo size={28} />
+        </View>
+      ) : (
+        <Text style={styles.title}>{item.title}</Text>
+      )}
       <Text style={styles.subtitle}>{item.subtitle}</Text>
     </View>
   );
@@ -192,6 +200,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xl,
+  },
+  titleLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 32,

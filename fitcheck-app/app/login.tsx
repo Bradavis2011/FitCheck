@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSignIn, useSignUp } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
+import OrThisLogo from '../src/components/OrThisLogo';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 
 export default function LoginScreen() {
@@ -197,7 +198,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Or This?</Text>
+          <OrThisLogo size={42} />
           <Text style={styles.subtitle}>
             {isRegister ? 'Create your account' : 'Welcome back'}
           </Text>
