@@ -21,7 +21,9 @@ type Props = {
 
 export default function OutfitFeedCard({ outfit, onPress }: Props) {
   const scoreColor = getScoreColor(outfit.score);
-  const imageUri = outfit.thumbnailUrl || outfit.thumbnailData || outfit.imageUrl;
+  const imageUri = outfit.thumbnailUrl
+    || (outfit.thumbnailData ? `data:image/jpeg;base64,${outfit.thumbnailData}` : null)
+    || outfit.imageUrl;
   // Ensure imageUri is valid (not empty string or just whitespace)
   const hasValidImage = imageUri && imageUri.trim().length > 0;
 

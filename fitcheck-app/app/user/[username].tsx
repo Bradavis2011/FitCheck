@@ -306,7 +306,9 @@ export default function PublicUserProfileScreen() {
           {outfits.length > 0 ? (
             <View style={styles.outfitsGrid}>
               {sortedOutfits.map((outfit) => {
-                const imageUri = outfit.thumbnailData || outfit.imageUrl;
+                const imageUri = outfit.thumbnailData
+                  ? `data:image/jpeg;base64,${outfit.thumbnailData}`
+                  : outfit.imageUrl;
                 const score = outfit.aiScore || 0;
                 const scoreColor = getScoreColor(score);
 
