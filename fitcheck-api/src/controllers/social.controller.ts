@@ -253,15 +253,39 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
       orderBy = { aiScore: 'desc' };
     }
 
-    // Exclude inner_circle outfits from the public feed
+    // Resolve visibility: get users the current user follows (for 'followers' posts)
+    // and trusted reviewers (for 'trusted' posts — users with >= 5 helpful votes)
+    const [followingRows, trustedRows] = await Promise.all([
+      prisma.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      }),
+      prisma.userStats.findMany({
+        where: { totalHelpfulVotes: { gte: 5 } },
+        select: { userId: true },
+      }),
+    ]);
+    const followingIds = followingRows.map((f: any) => f.followingId);
+    const trustedIds = trustedRows.map((r: any) => r.userId);
+
+    // Build visibility OR clause: 'all' is visible to everyone;
+    // 'followers' only to followers; 'trusted' only to active reviewers
+    const visibilityFilter: any[] = [
+      { visibility: 'all' },
+      ...(followingIds.length > 0 ? [{ visibility: 'followers', userId: { in: followingIds } }] : []),
+      ...(trustedIds.length > 0 ? [{ visibility: 'trusted', userId: { in: trustedIds } }] : []),
+    ];
+
+    const feedWhere: any = {
+      isPublic: true,
+      isDeleted: false,
+      OR: visibilityFilter,
+      user: { isPublic: true },
+      NOT: { userId: { in: blockedUserIds } },
+    };
+
     const outfits = await prisma.outfitCheck.findMany({
-      where: {
-        isPublic: true,
-        isDeleted: false,
-        visibility: { not: 'inner_circle' },
-        user: { isPublic: true },
-        NOT: { userId: { in: blockedUserIds } },
-      },
+      where: feedWhere,
       select: {
         id: true,
         thumbnailUrl: true,
@@ -289,15 +313,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
       skip: parseInt(offset as string),
     });
 
-    const total = await prisma.outfitCheck.count({
-      where: {
-        isPublic: true,
-        isDeleted: false,
-        visibility: { not: 'inner_circle' },
-        user: { isPublic: true },
-        NOT: { userId: { in: blockedUserIds } },
-      },
-    });
+    const total = await prisma.outfitCheck.count({ where: feedWhere });
 
     res.json({
       outfits,

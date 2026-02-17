@@ -10,7 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useUserStats, useUser, useUpdateProfile } from '../../src/hooks/useApi';
+import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals } from '../../src/hooks/useApi';
 import PillButton from '../../src/components/PillButton';
 import { styles as styleOptions } from '../../src/lib/mockData';
 
@@ -23,8 +23,8 @@ export default function ProfileScreen() {
   const { tier } = useSubscriptionStore();
   const { data: stats } = useUserStats();
   const { data: userProfile } = useUser();
-  // const { data: badgesData } = useBadges(); // Disabled - endpoint not implemented
-  // const { data: dailyGoals } = useDailyGoals(); // Disabled - endpoint not implemented
+  const { data: badgesData } = useBadges();
+  const { data: dailyGoals } = useDailyGoals();
   const updateProfile = useUpdateProfile();
 
   // Style preferences accordion
@@ -263,7 +263,49 @@ export default function ProfileScreen() {
             </View>
           </LinearGradient>
 
-          {/* Daily Goals and Badges removed - endpoints not yet implemented */}
+          {/* Daily Goals */}
+          {dailyGoals && (
+            <View style={styles.dailyGoalsSection}>
+              <Text style={styles.dailyGoalsTitle}>Today's Goals</Text>
+              <View style={styles.dailyGoalRow}>
+                <View style={styles.dailyGoalInfo}>
+                  <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.dailyGoalText}>
+                    Feedbacks: {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal}
+                  </Text>
+                </View>
+                <View style={styles.dailyGoalBarBg}>
+                  <View style={[styles.dailyGoalBarFill, {
+                    width: `${Math.min(100, (dailyGoals.feedbacksGiven / dailyGoals.feedbacksGoal) * 100)}%`,
+                  }]} />
+                </View>
+              </View>
+              <View style={styles.dailyGoalRow}>
+                <View style={styles.dailyGoalInfo}>
+                  <Ionicons name="flame-outline" size={16} color={Colors.warning} />
+                  <Text style={styles.dailyGoalText}>
+                    Streak: {dailyGoals.currentStreak} day{dailyGoals.currentStreak !== 1 ? 's' : ''}
+                    {dailyGoals.streakMaintained ? ' ✓' : ''}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Badges */}
+          {badgesData && badgesData.totalBadges > 0 && (
+            <View style={styles.badgesSection}>
+              <Text style={styles.badgesSectionTitle}>Badges ({badgesData.totalBadges})</Text>
+              <View style={styles.badgesRow}>
+                {badgesData.badges.slice(0, 6).map((badge) => (
+                  <View key={badge.id} style={styles.badgeItem}>
+                    <Text style={styles.badgeIcon}>{badge.icon}</Text>
+                    <Text style={styles.badgeName}>{badge.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Leaderboard Link */}
           <TouchableOpacity
@@ -376,6 +418,26 @@ export default function ProfileScreen() {
               <Text style={styles.editProfileTitle}>My Wardrobe</Text>
               <Text style={styles.editProfileDesc}>
                 Build outfits from your closet
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Event Planner */}
+        <View style={styles.editProfileCard}>
+          <TouchableOpacity
+            style={styles.editProfileButton}
+            onPress={() => router.push('/event-planner' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.editProfileIcon, { backgroundColor: 'rgba(232, 93, 76, 0.1)' }]}>
+              <Ionicons name="calendar" size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.editProfileText}>
+              <Text style={styles.editProfileTitle}>Event Planner</Text>
+              <Text style={styles.editProfileDesc}>
+                Plan outfits for upcoming events • Pro
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
@@ -1149,5 +1211,50 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.text,
+  },
+  dailyGoalsSection: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  dailyGoalRow: {
+    marginBottom: Spacing.sm,
+  },
+  dailyGoalInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: 4,
+  },
+  dailyGoalText: {
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  dailyGoalBarBg: {
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  dailyGoalBarFill: {
+    height: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
+  badgesSectionTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
   },
 });

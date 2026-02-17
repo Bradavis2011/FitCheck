@@ -18,6 +18,8 @@ import liveRoutes from './routes/live.routes.js';
 import stylistRoutes from './routes/stylist.routes.js';
 import expertReviewRoutes from './routes/expert-review.routes.js';
 import challengeRoutes from './routes/challenge.routes.js';
+import wardrobeRoutes from './routes/wardrobe.routes.js';
+import eventRoutes from './routes/event.routes.js';
 import { handleWebhook } from './controllers/subscription.controller.js';
 import { asyncHandler } from './middleware/asyncHandler.js';
 import { isConfigured as isS3Configured } from './services/s3.service.js';
@@ -78,6 +80,8 @@ app.use('/api/live', liveRoutes);
 app.use('/api/stylists', stylistRoutes);
 app.use('/api/expert-reviews', expertReviewRoutes);
 app.use('/api/challenges', challengeRoutes);
+app.use('/api/wardrobe', wardrobeRoutes);
+app.use('/api/events', eventRoutes);
 app.use('/api', subscriptionRoutes);
 
 // 404 handler

@@ -18,6 +18,11 @@ const UpdateProfileSchema = z.object({
   stylePreferences: z.record(z.any()).optional(),
   bodyType: z.string().optional(),
   colorSeason: z.string().optional(),
+  privacySettings: z.object({
+    blurFaceDefault: z.boolean().optional(),
+    visibility: z.enum(['all', 'followers', 'trusted']).optional(),
+    autoDelete: z.enum(['never', '24h', '7d', '30d']).optional(),
+  }).optional(),
 });
 
 export async function getProfile(req: AuthenticatedRequest, res: Response) {
@@ -37,6 +42,7 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
         stylePreferences: true,
         bodyType: true,
         colorSeason: true,
+        privacySettings: true,
         tier: true,
         subscriptionExpiresAt: true,
         dailyChecksUsed: true,
@@ -87,6 +93,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
         stylePreferences: true,
         bodyType: true,
         colorSeason: true,
+        privacySettings: true,
         tier: true,
       },
     });

@@ -243,37 +243,26 @@ async function checkAndAwardBadges(userId: string, stats: any) {
     {
       id: 'helpful_hero',
       condition: stats.totalHelpfulVotes >= 50,
-      name: 'Helpful Hero',
-      description: 'Received 50 helpful votes',
-      icon: '⭐',
     },
     {
       id: 'streak_master',
       condition: stats.longestStreak >= 30,
-      name: 'Streak Master',
-      description: '30-day streak achieved',
-      icon: '🔥',
     },
     {
       id: 'century_club',
       condition: stats.totalFeedbackGiven >= 100,
-      name: 'Century Club',
-      description: 'Gave 100 feedbacks',
-      icon: '💯',
     },
     {
       id: 'trusted_reviewer',
       condition: stats.level >= 5 && stats.totalFeedbackGiven >= 20,
-      name: 'Trusted Reviewer',
-      description: 'Reached Level 5 with quality feedback',
-      icon: '✅',
     },
     {
       id: 'dedicated',
       condition: stats.longestStreak >= 7,
-      name: 'Dedicated',
-      description: '7-day streak achieved',
-      icon: '🎯',
+    },
+    {
+      id: 'first_feedback',
+      condition: stats.totalFeedbackGiven >= 1,
     },
   ];
 
@@ -451,6 +440,37 @@ export async function getDailyGoalsProgress(userId: string) {
   };
 }
 
+// Check and award outfit-submission badges (called after outfit check is created)
+export async function checkOutfitBadges(userId: string, outfitCount: number): Promise<string[]> {
+  const stats = await prisma.userStats.findUnique({ where: { userId } });
+  if (!stats) return [];
+
+  const currentBadges: string[] = stats.badges || [];
+  const newBadges: string[] = [];
+
+  if (outfitCount >= 1 && !currentBadges.includes('first_outfit')) {
+    currentBadges.push('first_outfit');
+    newBadges.push('first_outfit');
+  }
+  if (outfitCount >= 10 && !currentBadges.includes('ten_outfits')) {
+    currentBadges.push('ten_outfits');
+    newBadges.push('ten_outfits');
+  }
+  if (outfitCount >= 50 && !currentBadges.includes('fifty_outfits')) {
+    currentBadges.push('fifty_outfits');
+    newBadges.push('fifty_outfits');
+  }
+
+  if (newBadges.length > 0) {
+    await prisma.userStats.update({
+      where: { userId },
+      data: { badges: currentBadges },
+    });
+  }
+
+  return newBadges;
+}
+
 // Badge metadata (for display)
 export const BADGE_METADATA: Record<string, { name: string; description: string; icon: string }> = {
   helpful_hero: {
@@ -477,6 +497,26 @@ export const BADGE_METADATA: Record<string, { name: string; description: string;
     name: 'Dedicated',
     description: '7-day streak achieved',
     icon: '🎯',
+  },
+  first_outfit: {
+    name: 'First Step',
+    description: 'Submitted your first outfit check',
+    icon: '👕',
+  },
+  ten_outfits: {
+    name: 'Style Explorer',
+    description: 'Submitted 10 outfit checks',
+    icon: '🔟',
+  },
+  fifty_outfits: {
+    name: 'Dedicated Dresser',
+    description: 'Submitted 50 outfit checks',
+    icon: '👗',
+  },
+  first_feedback: {
+    name: 'Community Helper',
+    description: 'Gave your first community feedback',
+    icon: '💬',
   },
   early_bird: {
     name: 'Early Bird',

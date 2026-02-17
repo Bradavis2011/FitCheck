@@ -1,5 +1,5 @@
 # Or This? — Build Plan Status
-> Last updated: 2026-02-17 (by Claude, end of Phase 4)
+> Last updated: 2026-02-17 (by Claude, end of Phase 9)
 
 ## Overview
 This file tracks the implementation plan for "Or This?" (AI-powered outfit feedback app). The plan was created to fix legal risk from the upgrade screen promising undeliverable features, and to build out the full feature set.
@@ -83,75 +83,99 @@ This file tracks the implementation plan for "Or This?" (AI-powered outfit feedb
 
 ## ❌ REMAINING PHASES
 
-### Phase 5 — Challenges System (Week 4-6)
-**Status**: Frontend `challenges.tsx` exists with hardcoded mock data. No backend at all.
+### Phase 5 — Challenges System ✅
+**Status**: Complete.
 
-**Backend to build**:
-- Prisma models: `Challenge` (title, description, theme, startsAt, endsAt, prize, status), `ChallengeSubmission` (challengeId, outfitCheckId, userId, votes)
-- `fitcheck-api/src/controllers/challenge.controller.ts` — list challenges, get challenge, submit entry, vote, get leaderboard, admin create/end
-- `fitcheck-api/src/routes/challenge.routes.ts` — mount at `/api/challenges`
-- Mount in `server.ts`
-
-**Frontend to build**:
-- Replace mock data in `fitcheck-app/app/challenges.tsx` with API calls using React Query
-- Wire submit button → POST to `/api/challenges/:id/submit`
-- Wire vote buttons → POST to `/api/challenges/:id/submissions/:subId/vote`
-- Wire leaderboard to `/api/challenges/:id/leaderboard`
-
----
-
-### Phase 6 — Wardrobe & Outfit Builder (Week 6-8)
-**Status**: Frontend `wardrobe.tsx` and `outfit-builder.tsx` exist with mock data. No backend.
-
-**Backend to build**:
-- Prisma model: `WardrobeItem` (userId, name, category, color, imageUrl, timesWorn, lastWorn, createdAt)
-- `fitcheck-api/src/controllers/wardrobe.controller.ts` — CRUD wardrobe items
-- `fitcheck-api/src/routes/wardrobe.routes.ts` — mount at `/api/wardrobe`
-
-**Frontend to build**:
-- Replace mock data in `fitcheck-app/app/wardrobe.tsx` with real API calls
-- Replace mock data in `fitcheck-app/app/outfit-builder.tsx` with real wardrobe items
-- Un-hide wardrobe link on profile screen (currently commented out or hidden)
+- **Prisma**: `Challenge`, `ChallengeSubmission`, `ChallengeVote` models added. Run `npx prisma migrate dev --name add_challenges` to apply.
+- **Backend**: `challenge.controller.ts` + `challenge.routes.ts`, mounted at `/api/challenges` in `server.ts`
+  - `GET /api/challenges?status=active|upcoming|ended`
+  - `GET /api/challenges/active` — convenience for current tab
+  - `GET /api/challenges/:id/leaderboard`
+  - `GET /api/challenges/:id/my-submission`
+  - `POST /api/challenges/:id/submit` — body: `{ outfitCheckId }`
+  - `POST /api/challenges/:id/submissions/:subId/vote`
+  - `POST /api/challenges` (admin) — create challenge
+  - `POST /api/challenges/:id/end` (admin) — end challenge early
+- **Frontend**: `challengeService` + TypeScript types in `api.service.ts`; `useActiveChallenge`, `useChallenges`, `useChallengeLeaderboard`, `useMySubmission`, `useSubmitChallengeEntry`, `useVoteForSubmission` in `useApi.ts`
+- **challenges.tsx**: Fully wired to API — live leaderboard, outfit picker modal for submissions, vote buttons, empty states, loading states.
 
 ---
 
-### Phase 7 — Event Planning Mode — Pro Feature (Week 8-9)
-**Status**: No code exists at all. Promised in upgrade screen only after this is built.
+### Phase 6 — Wardrobe & Outfit Builder ✅
+**Status**: Complete.
 
-**To build**:
-- Prisma model: `Event` (userId, title, date, dressCode, type, status)
-- Backend: `event.controller.ts`, `event.routes.ts`, mount at `/api/events`
-- Frontend: `fitcheck-app/app/event-planner.tsx` — create event, attach outfit checks, get AI comparison
-- Gate to Pro users only
-- Add "Event planning mode" back to upgrade screen Pro features once built
-
----
-
-### Phase 8 — Privacy Controls (Week 3-4)
-**Status**: `isPublic` toggle exists. `privacySettings` JSON field exists in DB. Frontend `privacy-settings.tsx` exists.
-
-**To build**:
-- **Face blur**: Use `expo-face-detector` or `react-native-vision-camera` to auto-blur faces before uploading community posts. Toggle: "Blur my face in community posts"
-- **Who-can-see settings**: Fully wire the "Inner Circle only", "Followers only", "Everyone" radio buttons in `privacy-settings.tsx` to the `privacySettings.visibility` field
-- **Auto-delete**: Wire `privacySettings.autoDelete` setting to a backend cron that deletes/marks expired outfit checks
-- **Status**: `fitcheck-api/src/controllers/user.controller.ts` already has `updatePrivacySettings()` — frontend just needs to call it properly
+- **Prisma**: `WardrobeItem` model added. Run `npx prisma migrate dev --name add_wardrobe` then `npx prisma generate`.
+- **Backend**: `wardrobe.controller.ts` + `wardrobe.routes.ts`, mounted at `/api/wardrobe`
+  - `GET /api/wardrobe?category=tops` — list items (optional category filter)
+  - `GET /api/wardrobe/:id` — get single item
+  - `POST /api/wardrobe` — create item (name, category, color, imageUrl)
+  - `PUT /api/wardrobe/:id` — update item
+  - `DELETE /api/wardrobe/:id` — remove item
+  - `POST /api/wardrobe/:id/wear` — log a wear (increments timesWorn, sets lastWorn)
+- **Frontend**: `WardrobeItem` type, `wardrobeService`, `WardrobeCategory` in `api.service.ts`; `useWardrobeItems`, `useAddWardrobeItem`, `useUpdateWardrobeItem`, `useDeleteWardrobeItem`, `useLogWear` in `useApi.ts`
+- **wardrobe.tsx**: Fully wired — real item list, category filter, Add Item modal (name/color/category), item detail Alert (log wear + delete), loading/empty states
+- **outfit-builder.tsx**: Loads all wardrobe items, groups by category client-side, shows real items in slots, handles empty wardrobe state, shuffle works with real data, selected item highlights
+- **Profile**: Wardrobe link was already live (`router.push('/wardrobe')`)
 
 ---
 
-### Phase 9 — Full Gamification (Week 4-6)
-**Status**: Backend has points/levels/leaderboard/streaks in `UserStats`. Missing pieces:
+### Phase 7 — Event Planning Mode ✅
+**Status**: Complete. Pro-gated end to end.
 
-**To build**:
-- **Give-to-get**: Award +1 daily check for every X community feedbacks given. Track in `UserStats.dailyFeedbackCount`, enforce in outfit check limit logic
-- **Badges**:
-  - Backend: Define badge criteria, award on qualifying action (first check, 10 checks, first feedback, streak milestones)
-  - Frontend: Badge display on profile screen (`app/(tabs)/profile.tsx`), notifications when earned
-- **Streaks**:
-  - Backend: Already has `currentStreak`, `lastActiveDate` in UserStats — just needs daily update logic
-  - Frontend: Streak counter on home screen (`app/(tabs)/index.tsx`)
-- **Daily/Weekly goals**:
-  - Backend: `dailyFeedbackCount`, `dailyHelpfulVotes` exist — needs goal thresholds and reset logic
-  - Frontend: Goal progress widget on home screen
+- **Prisma**: `Event` + `EventOutfit` models added. Run `npx prisma migrate dev --name add_events` then `npx prisma generate`.
+- **Backend**: `event.controller.ts` + `event.routes.ts`, mounted at `/api/events`. All endpoints Pro-gated.
+  - `GET /api/events?status=upcoming|past` — list user's events (auto-transitions past events)
+  - `GET /api/events/:id` — event detail with all attached outfits
+  - `POST /api/events` — create event (title, date, dressCode, type, notes)
+  - `PUT /api/events/:id` — update event
+  - `DELETE /api/events/:id` — delete event
+  - `POST /api/events/:id/outfits` — attach outfit check to event
+  - `DELETE /api/events/:id/outfits/:outfitCheckId` — remove outfit from event
+  - `POST /api/events/:id/compare` — Gemini AI compares all attached outfits vs event context; result cached 24h
+- **Frontend**: `Event`, `EventOutfitOption`, `CompareResult` types + `eventService` in `api.service.ts`; 8 hooks in `useApi.ts`
+- **`event-planner.tsx`**: Pro gate with upgrade CTA, event list (upcoming/past tabs), create modal (type picker, dress code picker, date input), long-press to delete
+- **`event/[id].tsx`**: Event detail with outfit grid, add outfit modal (from history), long-press to remove, "Compare with AI" button, full results display (winner, rankings, styling tip), cached result reuse
+- **`upgrade.tsx`**: "Event planning mode" added to Pro feature list + subscribed subtitle
+- **`profile.tsx`**: Event Planner card added after Wardrobe (→ `/event-planner`)
+
+---
+
+### Phase 8 — Privacy Controls ✅
+**Status**: Complete.
+
+- **`user.controller.ts`**: Added `privacySettings` to `UpdateProfileSchema` (blurFaceDefault/visibility/autoDelete fields). Returns `privacySettings` in both `getProfile` and `updateProfile` responses.
+- **Outfit creation (`outfit.controller.ts`)**:
+  - Reads `user.privacySettings` at creation time
+  - Sets `blurFace` from `privacySettings.blurFaceDefault` (default: true)
+  - Sets `expiresAt` from `privacySettings.autoDelete` (24h/7d/30d mapped to future timestamps; never → null)
+  - Sets outfit `visibility` from `privacySettings.visibility` when sharing publicly ('all'/'followers'/'trusted')
+- **Auto-delete**: `purgeExpiredOutfits(userId)` helper soft-deletes outfit checks where `expiresAt <= now`. Called at the start of every `listOutfitChecks` request (lazy purge pattern — no cron needed).
+- **Feed visibility filtering (`social.controller.ts`)**: Community feed now:
+  - Shows `visibility='all'` outfits to everyone
+  - Shows `visibility='followers'` outfits only to users who follow the poster
+  - Shows `visibility='trusted'` outfits only to users with `totalHelpfulVotes >= 5` (active community reviewers)
+- **Frontend** (`privacy-settings.tsx`): Already complete — face blur toggle, visibility radio buttons, auto-delete radio buttons, save button all wired to `updateProfileMutation`.
+
+---
+
+### Phase 9 — Full Gamification ✅
+**Status**: Complete.
+
+- **Give-to-get** (`outfit.controller.ts`): Before enforcing daily check limit, reads user's `UserStats.dailyFeedbackCount` (for today). Awards +1 bonus check per 3 feedbacks given that day (`Math.floor(count / 3)`). Error message updated to tell users they can earn bonus checks via feedback.
+- **Outfit badges** (`gamification.service.ts`):
+  - New exported `checkOutfitBadges(userId, outfitCount)` — awards `first_outfit`, `ten_outfits`, `fifty_outfits` based on submission count
+  - Called non-blocking after every outfit submission in `outfit.controller.ts`
+  - Added `first_feedback` badge to `checkAndAwardBadges` (triggered from `awardFeedbackPoints` path)
+  - New badges in `BADGE_METADATA`: `first_outfit` (👕), `ten_outfits` (🔟), `fifty_outfits` (👗), `first_feedback` (💬)
+- **Frontend hooks** (`useApi.ts`): Uncommented and typed `useBadges` and `useDailyGoals` hooks — both live-wired to `/api/user/badges` and `/api/user/daily-goals`
+- **Profile badges + daily goals** (`app/(tabs)/profile.tsx`):
+  - `useBadges` and `useDailyGoals` now enabled
+  - Daily goals section: feedback count with progress bar + streak counter
+  - Badges grid: shows earned badges with emoji icon + name (max 6 shown)
+- **Home screen streak + goals widget** (`app/(tabs)/index.tsx`):
+  - Chip row below daily checks counter: flame chip showing streak days, chat chip showing feedbacks given today
+  - Only renders when streak > 0 or feedbacks given > 0
+  - Refreshes on pull-to-refresh alongside other data
 
 ---
 
@@ -159,6 +183,10 @@ This file tracks the implementation plan for "Or This?" (AI-powered outfit feedb
 
 ### Backend (Railway)
 - [ ] Run `npx prisma migrate deploy` for Phase 4 Stylist/ExpertReview tables (or run migration in Railway console)
+- [ ] Run `npx prisma migrate deploy` for Phase 5 Challenge/ChallengeSubmission/ChallengeVote tables
+- [ ] Run `npx prisma migrate deploy` for Phase 6 WardrobeItem table
+- [ ] Run `npx prisma migrate deploy` for Phase 7 Event + EventOutfit tables
+- [ ] **After each schema change**: run `npx prisma generate` locally so TypeScript picks up new models
 - [ ] Set `ADMIN_USER_IDS` env var (comma-separated user IDs allowed to verify stylists)
 - [ ] Set `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL` env vars for live streaming
 - [ ] Replace placeholder AdMob IDs in `app.json` with real App IDs from AdMob dashboard

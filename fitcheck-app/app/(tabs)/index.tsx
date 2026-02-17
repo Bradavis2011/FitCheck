@@ -10,7 +10,7 @@ import AdBanner from '../../src/components/AdBanner';
 import { getTimeGreeting } from '../../src/lib/mockData';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useDailyGoals } from '../../src/hooks/useApi';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export default function HomeScreen() {
   const { tier } = useSubscriptionStore();
   const { data: outfitsData, isError: outfitsError, refetch: refetchOutfits } = useOutfits({ limit: 5 });
   const { data: stats, isError: statsError, refetch: refetchStats } = useUserStats();
+  const { data: dailyGoals, refetch: refetchGoals } = useDailyGoals();
   const toggleFavoriteMutation = useToggleFavorite();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -28,7 +29,7 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchOutfits(), refetchStats()]);
+      await Promise.all([refetchOutfits(), refetchStats(), refetchGoals()]);
     } finally {
       setRefreshing(false);
     }
@@ -126,6 +127,29 @@ export default function HomeScreen() {
             </Text>
           )}
         </View>
+
+        {/* Streak & Daily Goals widget */}
+        {dailyGoals && (dailyGoals.currentStreak > 0 || dailyGoals.feedbacksGiven > 0) && (
+          <View style={styles.goalsRow}>
+            {dailyGoals.currentStreak > 0 && (
+              <View style={styles.goalChip}>
+                <Ionicons name="flame" size={14} color={Colors.warning} />
+                <Text style={styles.goalChipText}>
+                  {dailyGoals.currentStreak}-day streak
+                </Text>
+              </View>
+            )}
+            {dailyGoals.feedbacksGiven > 0 && (
+              <View style={styles.goalChip}>
+                <Ionicons name="chatbubble" size={14} color={Colors.primary} />
+                <Text style={styles.goalChipText}>
+                  {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal} feedbacks today
+                  {dailyGoals.feedbacksGiven >= dailyGoals.feedbacksGoal ? ' ✓' : ''}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
@@ -324,6 +348,29 @@ const styles = StyleSheet.create({
   dailyChecksText: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
+  },
+  goalsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  goalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  goalChipText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    color: Colors.text,
   },
   quickActions: {
     flexDirection: 'row',

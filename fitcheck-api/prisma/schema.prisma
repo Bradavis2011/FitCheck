@@ -67,6 +67,9 @@ model User {
   expertReviewsRequested ExpertReview[] @relation("UserExpertReviews")
   challengeSubmissions   ChallengeSubmission[]
   challengeVotes         ChallengeVote[]
+  wardrobeItems          WardrobeItem[]
+  events                 Event[]
+  eventOutfits           EventOutfit[]
 
   @@map("users")
 }
@@ -118,6 +121,7 @@ model OutfitCheck {
   styleDNA StyleDNA?
   expertReviews ExpertReview[]
   challengeSubmissions ChallengeSubmission[]
+  eventOutfits         EventOutfit[]
 
   @@map("outfit_checks")
 }
@@ -451,6 +455,63 @@ model ExpertReview {
   @@index([stylistId, status])
   @@index([outfitCheckId])
   @@map("expert_reviews")
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  date      DateTime
+  dressCode String?  @map("dress_code") // "casual", "smart_casual", "business_casual", "formal", "black_tie"
+  type      String?  // "wedding", "job_interview", "date_night", "conference", "party", "vacation", "other"
+  notes     String?  @db.Text
+  status    String   @default("upcoming") // "upcoming", "past"
+  // Cached AI comparison result
+  compareResult Json? @map("compare_result")
+  compareRunAt  DateTime? @map("compare_run_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  outfitOptions EventOutfit[]
+
+  @@map("events")
+  @@index([userId, date])
+  @@index([userId, status])
+}
+
+model EventOutfit {
+  id            String      @id @default(uuid())
+  eventId       String      @map("event_id")
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  outfitCheckId String      @map("outfit_check_id")
+  outfitCheck   OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedAt       DateTime    @default(now()) @map("added_at")
+
+  @@unique([eventId, outfitCheckId])
+  @@map("event_outfits")
+  @@index([eventId])
+  @@index([userId])
+}
+
+model WardrobeItem {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  category  String    // "tops" | "bottoms" | "shoes" | "accessories" | "outerwear"
+  color     String?
+  imageUrl  String?   @db.Text @map("image_url")
+  timesWorn Int       @default(0) @map("times_worn")
+  lastWorn  DateTime? @map("last_worn")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("wardrobe_items")
+  @@index([userId, category])
+  @@index([userId, timesWorn(sort: Desc)])
 }
 
 model Challenge {

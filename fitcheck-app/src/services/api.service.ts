@@ -772,3 +772,174 @@ export const challengeService = {
     return response.data;
   },
 };
+
+// Wardrobe Service
+export type WardrobeCategory = 'tops' | 'bottoms' | 'shoes' | 'accessories' | 'outerwear';
+
+export interface WardrobeItem {
+  id: string;
+  userId: string;
+  name: string;
+  category: WardrobeCategory;
+  color: string | null;
+  imageUrl: string | null;
+  timesWorn: number;
+  lastWorn: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const wardrobeService = {
+  async listItems(category?: WardrobeCategory) {
+    const response = await api.get<{ items: WardrobeItem[] }>('/api/wardrobe', {
+      params: category ? { category } : undefined,
+    });
+    return response.data;
+  },
+
+  async createItem(data: { name: string; category: WardrobeCategory; color?: string; imageUrl?: string }) {
+    const response = await api.post<{ item: WardrobeItem }>('/api/wardrobe', data);
+    return response.data;
+  },
+
+  async updateItem(
+    id: string,
+    data: { name?: string; category?: WardrobeCategory; color?: string; imageUrl?: string | null }
+  ) {
+    const response = await api.put<{ item: WardrobeItem }>(`/api/wardrobe/${id}`, data);
+    return response.data;
+  },
+
+  async deleteItem(id: string) {
+    const response = await api.delete<{ success: boolean }>(`/api/wardrobe/${id}`);
+    return response.data;
+  },
+
+  async logWear(id: string) {
+    const response = await api.post<{ item: WardrobeItem }>(`/api/wardrobe/${id}/wear`);
+    return response.data;
+  },
+};
+
+// Event Planning Service
+export type EventDressCode = 'casual' | 'smart_casual' | 'business_casual' | 'formal' | 'black_tie';
+export type EventType = 'wedding' | 'job_interview' | 'date_night' | 'conference' | 'party' | 'vacation' | 'other';
+
+export interface EventOutfitOption {
+  id: string;
+  eventId: string;
+  outfitCheckId: string;
+  userId: string;
+  addedAt: string;
+  outfitCheck: {
+    id: string;
+    thumbnailUrl: string | null;
+    thumbnailData: string | null;
+    aiScore: number | null;
+    aiFeedback: any;
+    occasions: string[];
+    setting: string | null;
+    weather: string | null;
+    vibe: string | null;
+    createdAt: string;
+  };
+}
+
+export interface Event {
+  id: string;
+  userId: string;
+  title: string;
+  date: string;
+  dressCode: EventDressCode | null;
+  type: EventType | null;
+  notes: string | null;
+  status: 'upcoming' | 'past';
+  compareResult: CompareResult | null;
+  compareRunAt: string | null;
+  outfitCount?: number;
+  outfitOptions?: EventOutfitOption[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompareRanking {
+  outfitId: string;
+  rank: number;
+  score: number;
+  notes: string;
+}
+
+export interface CompareResult {
+  winnerId: string;
+  winnerReason: string;
+  rankings: CompareRanking[];
+  stylingTip: string;
+  summary: string;
+}
+
+export const eventService = {
+  async listEvents(status?: 'upcoming' | 'past') {
+    const response = await api.get<{ events: Event[] }>('/api/events', {
+      params: status ? { status } : undefined,
+    });
+    return response.data;
+  },
+
+  async getEvent(id: string) {
+    const response = await api.get<{ event: Event }>(`/api/events/${id}`);
+    return response.data;
+  },
+
+  async createEvent(data: {
+    title: string;
+    date: string;
+    dressCode?: EventDressCode;
+    type?: EventType;
+    notes?: string;
+  }) {
+    const response = await api.post<{ event: Event }>('/api/events', data);
+    return response.data;
+  },
+
+  async updateEvent(
+    id: string,
+    data: {
+      title?: string;
+      date?: string;
+      dressCode?: EventDressCode | null;
+      type?: EventType | null;
+      notes?: string | null;
+      status?: 'upcoming' | 'past';
+    }
+  ) {
+    const response = await api.put<{ event: Event }>(`/api/events/${id}`, data);
+    return response.data;
+  },
+
+  async deleteEvent(id: string) {
+    const response = await api.delete<{ success: boolean }>(`/api/events/${id}`);
+    return response.data;
+  },
+
+  async addOutfit(eventId: string, outfitCheckId: string) {
+    const response = await api.post<{ eventOutfit: EventOutfitOption }>(
+      `/api/events/${eventId}/outfits`,
+      { outfitCheckId }
+    );
+    return response.data;
+  },
+
+  async removeOutfit(eventId: string, outfitCheckId: string) {
+    const response = await api.delete<{ success: boolean }>(
+      `/api/events/${eventId}/outfits/${outfitCheckId}`
+    );
+    return response.data;
+  },
+
+  async compareOutfits(eventId: string) {
+    const response = await api.post<{ result: CompareResult; cached: boolean }>(
+      `/api/events/${eventId}/compare`
+    );
+    return response.data;
+  },
+};
