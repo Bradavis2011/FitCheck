@@ -24,7 +24,15 @@ export default function HistoryScreen() {
     filters.occasion = activeFilter;
   }
 
+  console.log('[History] Calling useOutfits with filters:', filters);
   const { data, isLoading, isError, error, refetch } = useOutfits(filters);
+  console.log('[History] useOutfits result:', {
+    hasData: !!data,
+    isLoading,
+    isError,
+    errorMessage: error?.message,
+    outfitCount: data?.outfits?.length || 0
+  });
   const toggleFavoriteMutation = useToggleFavorite();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -71,6 +79,7 @@ export default function HistoryScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filters}
+        style={styles.filtersContainer}
       >
         {FILTERS.map((f) => (
           <PillButton
@@ -182,6 +191,9 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xl,
     fontWeight: '700',
     color: Colors.text,
+  },
+  filtersContainer: {
+    paddingTop: Spacing.xs,
   },
   filters: {
     paddingHorizontal: Spacing.md,

@@ -306,14 +306,17 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
 
     const total = await prisma.outfitCheck.count({ where });
 
-    // Debug logging
+    // Debug logging - log BEFORE sending
+    console.log('[listOutfitChecks] Returning', outfits.length, 'outfits');
     if (outfits.length > 0) {
-      console.log('[listOutfitChecks] First outfit:', {
+      console.log('[listOutfitChecks] First outfit BEFORE JSON:', {
         id: outfits[0].id,
         hasImageData: !!outfits[0].imageData,
         hasThumbData: !!outfits[0].thumbnailData,
+        hasImageUrl: !!outfits[0].imageUrl,
+        hasThumbnailUrl: !!outfits[0].thumbnailUrl,
         imageDataLength: outfits[0].imageData?.length || 0,
-        thumbDataLength: outfits[0].thumbnailData?.length || 0,
+        thumbnailDataLength: outfits[0].thumbnailData?.length || 0,
       });
     }
 
