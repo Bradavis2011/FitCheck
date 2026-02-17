@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,6 +40,17 @@ export default function HomeScreen() {
       return parts[0][0] + parts[1][0];
     }
     return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleInvite = async () => {
+    try {
+      await Share.share({
+        message: "Check out Or This? — the AI-powered outfit feedback app that tells you exactly what works and what doesn't. Try it free: https://orthis.app",
+        url: 'https://orthis.app',
+      });
+    } catch {
+      // user dismissed share sheet — no action needed
+    }
   };
 
   const handleToggleFavorite = async (outfitId: string) => {
@@ -203,6 +214,18 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
         )}
+
+        {/* Invite Friends */}
+        <TouchableOpacity style={styles.inviteCard} onPress={handleInvite} activeOpacity={0.85}>
+          <View style={styles.inviteIcon}>
+            <Ionicons name="person-add" size={22} color={Colors.sage} />
+          </View>
+          <View style={styles.inviteText}>
+            <Text style={styles.inviteTitle}>Invite your friends</Text>
+            <Text style={styles.inviteSubtitle}>Share Or This? and help them dress with confidence</Text>
+          </View>
+          <Ionicons name="share-outline" size={20} color={Colors.sage} />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -385,5 +408,38 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '600',
     fontSize: FontSize.sm,
+  },
+  inviteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.sageLight,
+    gap: Spacing.md,
+  },
+  inviteIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.sageAlpha10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inviteText: {
+    flex: 1,
+  },
+  inviteTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  inviteSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
 });
