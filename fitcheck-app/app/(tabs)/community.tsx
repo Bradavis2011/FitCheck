@@ -148,13 +148,7 @@ export default function CommunityScreen() {
           <Text style={styles.headerSubtitle}>Discover style inspiration</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/challenges' as any)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trophy" size={20} color={Colors.primary} />
-          </TouchableOpacity>
+          {/* LAUNCH: Challenges trophy button hidden — re-enable when challenges go live */}
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => router.push('/notifications' as any)}

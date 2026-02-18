@@ -1,24 +1,32 @@
 import { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useSubscriptionStore } from '../stores/subscriptionStore';
 
+// react-native-google-mobile-ads calls TurboModuleRegistry.getEnforcing() at module
+// level — it will hard-crash if the native binary doesn't include the module.
+// Use a guarded require so the app loads safely without a rebuilt dev binary.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+let _ads: any = null;
+try { _ads = require('react-native-google-mobile-ads'); } catch { /* native module unavailable */ }
+const BannerAd = _ads?.BannerAd;
+const BannerAdSize = _ads?.BannerAdSize;
+const _TestIds = _ads?.TestIds;
+
 // TODO: Replace placeholder unit IDs with real ones from AdMob dashboard before release.
-// These test IDs are safe to use in development and will always return test ads.
 const BANNER_AD_UNIT_ID = __DEV__
-  ? TestIds.BANNER
+  ? (_TestIds?.BANNER ?? '')
   : Platform.select({
       ios: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
       android: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      default: TestIds.BANNER,
+      default: _TestIds?.BANNER ?? '',
     })!;
 
 export default function AdBanner() {
   const { limits } = useSubscriptionStore();
   const [adLoaded, setAdLoaded] = useState(false);
 
-  // Only show ads to free-tier users
-  if (!limits?.hasAds) return null;
+  // Only show ads to free-tier users when native module is available
+  if (!limits?.hasAds || !BannerAd) return null;
 
   return (
     <View style={[styles.container, !adLoaded && styles.hidden]}>

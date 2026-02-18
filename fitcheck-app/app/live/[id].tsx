@@ -9,8 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { VideoView, useParticipant } from '@livekit/react-native';
-import type { VideoTrack } from 'livekit-client';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize } from '../../src/constants/theme';
 import { useLiveStream } from '../../src/hooks/useLiveStream';
@@ -30,11 +28,6 @@ export default function LiveStreamScreen() {
   const { room, isConnecting, isConnected, error, connect, disconnect } =
     useLiveStream(sessionId);
   const { messages, viewerCount, sendMessage, setTypingStatus } = useLiveChat(sessionId);
-
-  // Get local participant (for host) or remote participant (for viewer)
-  const localParticipant = useParticipant(room.localParticipant);
-  const remoteParticipants = Array.from(room.remoteParticipants.values());
-  const hostParticipant = useParticipant(remoteParticipants[0]);
 
   useEffect(() => {
     loadSession();
@@ -102,23 +95,15 @@ export default function LiveStreamScreen() {
     return null;
   }
 
-  const videoTrack = (isHost
-    ? localParticipant?.cameraPublication?.track
-    : hostParticipant?.cameraPublication?.track) as VideoTrack | undefined;
-
   return (
     <View style={styles.container}>
-      {/* Video Stream */}
-      {isConnected && videoTrack ? (
-        <VideoView style={styles.video} videoTrack={videoTrack} />
-      ) : (
-        <View style={styles.videoPlaceholder}>
-          <ActivityIndicator size="large" color={Colors.white} />
-          <Text style={styles.placeholderText}>
-            {isConnecting ? 'Connecting...' : 'Waiting for stream...'}
-          </Text>
-        </View>
-      )}
+      {/* Video Stream — placeholder until native WebRTC binary is rebuilt */}
+      <View style={styles.videoPlaceholder}>
+        <ActivityIndicator size="large" color={Colors.white} />
+        <Text style={styles.placeholderText}>
+          {isConnecting ? 'Connecting...' : 'Waiting for stream...'}
+        </Text>
+      </View>
 
       <SafeAreaView style={styles.overlay} edges={['top']}>
         {/* Header */}

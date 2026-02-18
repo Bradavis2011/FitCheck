@@ -36,14 +36,14 @@ export default function UpgradeScreen() {
     try {
       const success = await purchase(pkg);
       if (success) {
-        const newTier = pkg.product.identifier.includes('plus') ? 'plus' : 'pro';
+        const newTier = 'plus';
         track('upgrade_completed', {
           new_tier: newTier,
           product_id: pkg.product.identifier,
           billing: isAnnual ? 'annual' : 'monthly',
         });
         Alert.alert(
-          'Welcome to ' + (pkg.product.identifier.includes('plus') ? 'Plus' : 'Pro') + '!',
+          'Welcome to Plus!',
           'Your subscription is now active.',
           [{ text: 'Great!', onPress: () => router.back() }]
         );
@@ -86,23 +86,24 @@ export default function UpgradeScreen() {
   const plusAnnual = currentOffering?.availablePackages.find(
     (p) => p.product.identifier === 'fitcheck_plus_annual'
   );
-  const proMonthly = currentOffering?.availablePackages.find(
-    (p) => p.product.identifier === 'fitcheck_pro_monthly'
-  );
-  const proAnnual = currentOffering?.availablePackages.find(
-    (p) => p.product.identifier === 'fitcheck_pro_annual'
-  );
+  // LAUNCH: Pro tier hidden — re-enable when expert reviews, event planning, style DNA go live
+  // const proMonthly = currentOffering?.availablePackages.find(
+  //   (p) => p.product.identifier === 'fitcheck_pro_monthly'
+  // );
+  // const proAnnual = currentOffering?.availablePackages.find(
+  //   (p) => p.product.identifier === 'fitcheck_pro_annual'
+  // );
 
   // Fallback prices if offerings haven't loaded
   const plusPrice = isAnnual
     ? plusAnnual?.product.priceString || '$49.99/yr'
     : plusMonthly?.product.priceString || '$5.99/mo';
-  const proPrice = isAnnual
-    ? proAnnual?.product.priceString || '$119.99/yr'
-    : proMonthly?.product.priceString || '$14.99/mo';
+  // const proPrice = isAnnual
+  //   ? proAnnual?.product.priceString || '$119.99/yr'
+  //   : proMonthly?.product.priceString || '$14.99/mo';
 
   const plusPackage = isAnnual ? plusAnnual : plusMonthly;
-  const proPackage = isAnnual ? proAnnual : proMonthly;
+  // const proPackage = isAnnual ? proAnnual : proMonthly;
 
   // If already subscribed, show current plan
   if (tier !== 'free') {
@@ -128,9 +129,7 @@ export default function UpgradeScreen() {
               You're on {tier.charAt(0).toUpperCase() + tier.slice(1)}
             </Text>
             <Text style={styles.currentPlanSubtitle}>
-              {tier === 'plus'
-                ? 'Unlimited checks, ad-free, and full history'
-                : 'Unlimited checks, 10 follow-ups, 5 expert reviews/month, event planning, ad-free'}
+              Unlimited checks, ad-free, and full history
             </Text>
 
             <TouchableOpacity onPress={handleManageSubscription} style={styles.manageButton}>
@@ -210,6 +209,7 @@ export default function UpgradeScreen() {
             <Feature icon="checkmark" text="5 follow-ups per check" primary />
             <Feature icon="checkmark" text="Unlimited history" primary />
             <Feature icon="checkmark" text="Ad-free experience" primary />
+            <Feature icon="checkmark" text="Give community feedback" primary />
           </View>
 
           {isPurchasing ? (
@@ -228,40 +228,7 @@ export default function UpgradeScreen() {
           <Text style={styles.trialNote}>7 days free, then {plusPrice}</Text>
         </View>
 
-        {/* Pro Tier */}
-        <View style={styles.planCard}>
-          <View style={styles.proBadge}>
-            <Text style={styles.proBadgeText}>BEST VALUE</Text>
-          </View>
-          <Text style={styles.planName}>Pro</Text>
-          <Text style={styles.planPrice}>{proPrice}</Text>
-          <Text style={styles.planPeriod}>
-            {isAnnual ? '$119.99 billed annually' : 'Billed monthly'}
-          </Text>
-
-          <View style={styles.featureList}>
-            <Feature icon="checkmark" text="Everything in Plus" />
-            <Feature icon="checkmark" text="10 follow-ups per check" />
-            <Feature icon="checkmark" text="5 expert stylist reviews/month" />
-            <Feature icon="checkmark" text="Style DNA analytics" />
-            <Feature icon="checkmark" text="Event planning mode" />
-          </View>
-
-          {isPurchasing ? (
-            <View style={styles.loadingButton}>
-              <ActivityIndicator color={Colors.white} />
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.purchaseButton}
-              onPress={() => proPackage && handlePurchase(proPackage)}
-              disabled={!proPackage}
-            >
-              <Text style={styles.purchaseButtonText}>Start Free Trial</Text>
-            </TouchableOpacity>
-          )}
-          <Text style={styles.trialNote}>7 days free, then {proPrice}</Text>
-        </View>
+        {/* LAUNCH: Pro tier hidden — re-enable when expert reviews, event planning, style DNA go live */}
 
         {/* Restore Purchases */}
         <TouchableOpacity onPress={handleRestore} disabled={isRestoring} style={styles.restoreLink}>
