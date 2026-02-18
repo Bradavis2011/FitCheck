@@ -40,6 +40,14 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: 0.1,
+    beforeSend(event, hint) {
+      const err = hint?.originalException;
+      if (err && typeof err === 'object' && 'status' in err) {
+        const status = (err as any).status;
+        if (typeof status === 'number' && status < 500) return null;
+      }
+      return event;
+    },
   });
   console.log('🔍 Sentry initialized');
 }
