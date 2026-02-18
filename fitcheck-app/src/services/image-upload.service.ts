@@ -1,15 +1,8 @@
 /**
  * Image Upload Service
  *
- * Handles uploading images to cloud storage (S3, Cloudflare R2, etc.)
- *
- * TODO for Production:
- * 1. Set up S3 bucket or Cloudflare R2
- * 2. Get presigned URL from backend: POST /api/upload/presigned
- * 3. Upload image directly to S3 using presigned URL
- * 4. Return the public URL
- *
- * For now, this service returns the local URI for testing with mock data.
+ * Compresses and converts images to base64 for submission to the API.
+ * The backend receives base64 and handles the Cloudflare R2 upload server-side.
  */
 
 import { File } from 'expo-file-system';
@@ -54,7 +47,6 @@ export async function uploadImage(localUri: string): Promise<ImageUploadResult> 
     const base64 = await file.base64();
     console.log('[ImageUpload] Base64 conversion complete, size:', base64.length, 'chars');
 
-    // Return both local URI (for display) and base64 (for API)
     return {
       url: optimized.uri,
       base64: base64,
@@ -73,7 +65,7 @@ export async function uploadImage(localUri: string): Promise<ImageUploadResult> 
 }
 
 /**
- * Convert image to base64 (fallback for testing)
+ * Convert image to base64 data URI
  */
 export async function imageToBase64(uri: string): Promise<string> {
   try {

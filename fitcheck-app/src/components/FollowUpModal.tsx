@@ -32,7 +32,7 @@ interface FollowUpModalProps {
   visible: boolean;
   onClose: () => void;
   feedbackSummary: string;
-  outfitId?: string;
+  outfitId: string;
   maxFollowUps?: number;
   // NEW: Structured feedback data for dynamic question generation
   feedback?: OutfitFeedback;
@@ -257,17 +257,8 @@ export default function FollowUpModal({
     setQuestion('');
 
     try {
-      let answer: string;
-
-      if (outfitId) {
-        // Use real API
-        const response = await followUpMutation.mutateAsync(userQuestion);
-        answer = response.answer;
-      } else {
-        // Use mock data when no outfitId (for testing)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        answer = getMockAnswer(userQuestion);
-      }
+      const response = await followUpMutation.mutateAsync(userQuestion);
+      const answer = response.answer;
 
       setFollowUps(prev => [...prev, { question: userQuestion, answer }]);
 
@@ -477,22 +468,6 @@ export default function FollowUpModal({
   );
 }
 
-// Mock answer generator (replace with real API)
-function getMockAnswer(question: string): string {
-  const q = question.toLowerCase();
-
-  if (q.includes('shoe')) {
-    return "For this look, I'd suggest ankle boots in cognac or black leather. They'd add sophistication while keeping the vibe casual enough for your occasion.";
-  } else if (q.includes('dress') && q.includes('up')) {
-    return "To dress this up, try adding a structured blazer and swap to pointed-toe heels. A statement necklace or bold earrings would also elevate the look instantly.";
-  } else if (q.includes('accessor')) {
-    return "Consider a delicate gold necklace and small hoop earrings. A leather crossbody bag in a neutral tone would complement without overwhelming the outfit.";
-  } else if (q.includes('evening')) {
-    return "This could definitely work for evening! I'd suggest swapping to darker shoes, adding some jewelry, and maybe carrying a clutch instead of a day bag.";
-  }
-
-  return "That's a great question! Based on your outfit, I'd suggest focusing on accessories that complement your color palette while keeping the overall vibe cohesive.";
-}
 
 const styles = StyleSheet.create({
   container: {
