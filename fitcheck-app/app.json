@@ -4,6 +4,12 @@
     "slug": "orthis",
     "scheme": "orthis",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/bd6e74d0-ce99-492d-aad3-ada5bad060d4"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
