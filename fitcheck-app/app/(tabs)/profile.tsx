@@ -307,16 +307,7 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* Leaderboard Link */}
-          <TouchableOpacity
-            style={styles.leaderboardLink}
-            onPress={() => router.push('/leaderboard' as any)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trophy" size={20} color={Colors.warning} />
-            <Text style={styles.leaderboardLinkText}>View Leaderboard</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
+          {/* LAUNCH: Leaderboard hidden until user base grows */}
         </View>
 
         {/* Edit Profile */}
@@ -382,27 +373,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Style Profile - Analytics */}
-        {(stats?.totalOutfits ?? 0) >= 3 && (
-          <View style={styles.editProfileCard}>
-            <TouchableOpacity
-              style={styles.editProfileButton}
-              onPress={() => router.push('/style-profile' as any)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.editProfileIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-                <Ionicons name="sparkles" size={20} color="#8B5CF6" />
-              </View>
-              <View style={styles.editProfileText}>
-                <Text style={styles.editProfileTitle}>Your Style DNA</Text>
-                <Text style={styles.editProfileDesc}>
-                  View your personalized style insights
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* LAUNCH: Style DNA hidden until post-launch */}
 
         {/* Wardrobe */}
         <View style={styles.editProfileCard}>
@@ -424,25 +395,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Event Planner */}
-        <View style={styles.editProfileCard}>
-          <TouchableOpacity
-            style={styles.editProfileButton}
-            onPress={() => router.push('/event-planner' as any)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.editProfileIcon, { backgroundColor: 'rgba(232, 93, 76, 0.1)' }]}>
-              <Ionicons name="calendar" size={20} color={Colors.primary} />
-            </View>
-            <View style={styles.editProfileText}>
-              <Text style={styles.editProfileTitle}>Event Planner</Text>
-              <Text style={styles.editProfileDesc}>
-                Plan outfits for upcoming events • Pro
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
+        {/* LAUNCH: Event Planner hidden until post-launch */}
 
         {/* Stats */}
         <View style={styles.statsCard}>

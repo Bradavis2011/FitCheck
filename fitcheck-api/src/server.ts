@@ -14,16 +14,18 @@ import notificationRoutes from './routes/notification.routes.js';
 import pushRoutes from './routes/push.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
 import comparisonRoutes from './routes/comparison.routes.js';
-import liveRoutes from './routes/live.routes.js';
-import stylistRoutes from './routes/stylist.routes.js';
-import expertReviewRoutes from './routes/expert-review.routes.js';
-import challengeRoutes from './routes/challenge.routes.js';
+// LAUNCH: hidden until user base grows
+// import liveRoutes from './routes/live.routes.js';
+// import stylistRoutes from './routes/stylist.routes.js';
+// import expertReviewRoutes from './routes/expert-review.routes.js';
+// import challengeRoutes from './routes/challenge.routes.js';
 import wardrobeRoutes from './routes/wardrobe.routes.js';
-import eventRoutes from './routes/event.routes.js';
+// import eventRoutes from './routes/event.routes.js';
 import { handleWebhook } from './controllers/subscription.controller.js';
 import { asyncHandler } from './middleware/asyncHandler.js';
 import { isConfigured as isS3Configured } from './services/s3.service.js';
-import { initializeSocketService } from './services/socket.service.js';
+// LAUNCH: Socket.io disabled until live streaming is re-enabled
+// import { initializeSocketService } from './services/socket.service.js';
 import { initializeScheduler } from './services/scheduler.service.js';
 import { shutdownPostHog } from './lib/posthog.js';
 import adminRoutes from './routes/admin.routes.js';
@@ -79,12 +81,13 @@ app.use('/api/social', socialRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/comparisons', comparisonRoutes);
-app.use('/api/live', liveRoutes);
-app.use('/api/stylists', stylistRoutes);
-app.use('/api/expert-reviews', expertReviewRoutes);
-app.use('/api/challenges', challengeRoutes);
+// LAUNCH: disabled routes — re-enable as user base grows
+// app.use('/api/live', liveRoutes);
+// app.use('/api/stylists', stylistRoutes);
+// app.use('/api/expert-reviews', expertReviewRoutes);
+// app.use('/api/challenges', challengeRoutes);
 app.use('/api/wardrobe', wardrobeRoutes);
-app.use('/api/events', eventRoutes);
+// app.use('/api/events', eventRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 
@@ -96,8 +99,8 @@ app.use((req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Initialize Socket.io for live streaming
-initializeSocketService(httpServer);
+// LAUNCH: Socket.io disabled until live streaming is re-enabled
+// initializeSocketService(httpServer);
 
 // Initialize cron scheduler (gated by ENABLE_CRON=true)
 initializeScheduler();

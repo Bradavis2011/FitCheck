@@ -18,7 +18,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
@@ -29,17 +28,26 @@ import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-import { useTogglePublic, useCommunityFeedback, useOutfitExpertReview } from '../src/hooks/useApi';
+// LAUNCH: useOutfitExpertReview removed — expert reviews disabled at launch
+import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
 
+// react-native-google-mobile-ads calls TurboModuleRegistry.getEnforcing() at module
+// level — guard with require() so the app loads safely without a rebuilt dev binary.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+let _ads: any = null;
+try { _ads = require('react-native-google-mobile-ads'); } catch { /* native module unavailable */ }
+const InterstitialAd = _ads?.InterstitialAd;
+const _TestIds = _ads?.TestIds;
+
 // TODO: Replace placeholder unit ID with real one from AdMob dashboard before release.
 const INTERSTITIAL_UNIT_ID = __DEV__
-  ? TestIds.INTERSTITIAL
+  ? (_TestIds?.INTERSTITIAL ?? '')
   : Platform.select({
       ios: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
       android: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      default: TestIds.INTERSTITIAL,
+      default: _TestIds?.INTERSTITIAL ?? '',
     })!;
 
 export default function FeedbackScreen() {
@@ -67,12 +75,12 @@ export default function FeedbackScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const wasAnalyzingRef = useRef(false);
-  const interstitialRef = useRef<InterstitialAd | null>(null);
+  const interstitialRef = useRef<any>(null);
 
   // Fetch community feedback if outfit is public
   const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
-  // Fetch expert review if outfit is loaded
-  const { data: expertReviewData } = useOutfitExpertReview(outfitId);
+  // LAUNCH: expert reviews disabled — re-enable when stylist marketplace is live
+  // const { data: expertReviewData } = useOutfitExpertReview(outfitId);
 
   // Handle hardware back button
   useEffect(() => {
@@ -86,7 +94,7 @@ export default function FeedbackScreen() {
 
   // Load interstitial ad for free-tier users
   useEffect(() => {
-    if (!limits?.hasAds) return;
+    if (!limits?.hasAds || !InterstitialAd) return;
     try {
       const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
         requestNonPersonalizedAdsOnly: true,
@@ -567,50 +575,7 @@ export default function FeedbackScreen() {
             </View>
           )}
 
-          {/* Expert Review Section */}
-          {expertReviewData?.review ? (
-            // Completed review
-            <View style={styles.expertReviewSection}>
-              <View style={styles.expertReviewHeader}>
-                <Ionicons name="ribbon" size={20} color={Colors.primary} />
-                <Text style={styles.expertReviewTitle}>Expert Review</Text>
-                <View style={styles.expertScoreBadge}>
-                  <Text style={[styles.expertScoreText, { color: expertReviewData.review.score !== null && expertReviewData.review.score >= 8 ? Colors.success : expertReviewData.review.score !== null && expertReviewData.review.score >= 6 ? Colors.warning : Colors.error }]}>
-                    {expertReviewData.review.score}/10
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.expertReviewerName}>
-                by @{expertReviewData.review.stylist.user.username || expertReviewData.review.stylist.user.name || 'Stylist'}
-                {' '}· {expertReviewData.review.stylist.rating.toFixed(1)} ⭐
-              </Text>
-              <Text style={styles.expertReviewText}>{expertReviewData.review.feedback}</Text>
-            </View>
-          ) : tier === 'pro' ? (
-            // Pro user — show request button
-            <TouchableOpacity
-              style={styles.expertReviewCTA}
-              onPress={() =>
-                router.push({
-                  pathname: '/request-expert-review' as any,
-                  params: {
-                    outfitId: outfit.id,
-                    thumbnailUrl: outfit.thumbnailUrl || '',
-                  },
-                })
-              }
-              activeOpacity={0.8}
-            >
-              <Ionicons name="ribbon-outline" size={20} color={Colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.expertReviewCTATitle}>Get an Expert Review</Text>
-                <Text style={styles.expertReviewCTASubtitle}>
-                  A verified stylist will give you professional feedback
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-            </TouchableOpacity>
-          ) : null}
+          {/* LAUNCH: Expert review section disabled — re-enable when stylist marketplace is live */}
 
           {/* Share to Community */}
           {score >= 7 ? (
