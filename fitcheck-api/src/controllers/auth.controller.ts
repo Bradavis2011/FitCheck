@@ -58,14 +58,20 @@ export async function handleClerkWebhook(req: Request, res: Response) {
       : first_name || null;
 
     if (eventType === 'user.created') {
-      // Upsert user — idempotent against retries and auth middleware pre-sync
+      // If a different DB record already holds this email (e.g. user deleted Clerk
+      // account and re-registered), delete it so cascade removes orphaned rows.
+      const stale = await prisma.user.findUnique({ where: { email } });
+      if (stale && stale.id !== id) {
+        await prisma.user.delete({ where: { id: stale.id } });
+        console.log(`✓ Deleted stale user ${stale.id} (${email}) before re-register`);
+      }
+
       const user = await prisma.user.upsert({
         where: { id },
         create: { id, email, name: fullName },
         update: { email, name: fullName },
       });
 
-      // Upsert user stats — safe against duplicate webhook delivery
       await prisma.userStats.upsert({
         where: { userId: user.id },
         create: { userId: user.id },
