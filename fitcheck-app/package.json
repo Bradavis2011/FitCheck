@@ -14,6 +14,7 @@
     "@clerk/clerk-expo": "^2.19.22",
     "@expo/vector-icons": "^15.0.3",
     "@livekit/react-native": "^2.9.6",
+    "@livekit/react-native-webrtc": "^137.0.2",
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-community/slider": "5.0.1",
     "@sentry/react-native": "~7.2.0",
