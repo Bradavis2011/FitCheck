@@ -223,10 +223,9 @@ In addition to your feedback, extract structured attributes from the outfit:
 - Sub-scores: Rate each dimension independently (a well-fitted but poorly-colored outfit should show high fit, low color)
 
 IMPORTANT:
-- Keep details concise (under 15 words each)
 - Give exactly 2-3 items for whatsWorking and consider each
 - Reference specific principles when relevant ("rule of thirds", "complementary colors", etc.)
-- Be specific but brief
+- Each detail should be 1-2 sentences — specific and actionable, not just a label
 
 SCORING GUIDE (use the full 1-10 range naturally):
 - 1-3: Major issues with fit, color, or appropriateness that need immediate fixing
