@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import { useWardrobeItems, useAddWardrobeItem, useDeleteWardrobeItem, useLogWear } from '../src/hooks/useApi';
 import type { WardrobeCategory, WardrobeItem } from '../src/services/api.service';
+import { track } from '../src/lib/analytics';
 
 type Category = WardrobeCategory | 'all';
 
@@ -47,6 +48,7 @@ function formatLastWorn(lastWorn: string | null): string {
 }
 
 export default function WardrobeScreen() {
+  useEffect(() => { track('feature_used', { feature: 'wardrobe' }); }, []);
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addName, setAddName] = useState('');

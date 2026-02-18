@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../../src/stores/auth';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { useUserStats } from '../../src/hooks/useApi';
+import { track } from '../../src/lib/analytics';
 
 type CameraMode = 'camera' | 'preview' | 'permission-denied';
 
@@ -71,6 +72,7 @@ export default function CameraScreen() {
       });
 
       if (!result.canceled && result.assets[0]?.uri) {
+        track('outfit_check_started', { source: 'gallery' });
         setCapturedUri(result.assets[0].uri);
         setMode('preview');
       }
@@ -106,6 +108,7 @@ export default function CameraScreen() {
       return;
     }
 
+    track('outfit_check_started', { source: 'camera' });
     setCapturedImage(capturedUri);
     // Navigate to context screen
     router.push('/context' as any);

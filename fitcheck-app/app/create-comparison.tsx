@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,10 +10,12 @@ import PillButton from '../src/components/PillButton';
 import OrThisLogo from '../src/components/OrThisLogo';
 import { comparisonService } from '../src/services/api.service';
 import { imageToBase64 } from '../src/services/image-upload.service';
+import { track } from '../src/lib/analytics';
 
 const OCCASIONS = ['Work', 'Casual', 'Date Night', 'Event', 'Interview', 'Party'];
 
 export default function CreateComparisonScreen() {
+  useEffect(() => { track('feature_used', { feature: 'create_comparison' }); }, []);
   const router = useRouter();
   const [imageA, setImageA] = useState<string | null>(null);
   const [imageB, setImageB] = useState<string | null>(null);

@@ -31,6 +31,7 @@ import StyleDNACard from '../src/components/StyleDNACard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic, useCommunityFeedback, useOutfitExpertReview } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
+import { track } from '../src/lib/analytics';
 
 // TODO: Replace placeholder unit ID with real one from AdMob dashboard before release.
 const INTERSTITIAL_UNIT_ID = __DEV__
@@ -129,6 +130,12 @@ export default function FeedbackScreen() {
             }, 1500);
           }
           wasAnalyzingRef.current = false;
+          if (data.aiScore != null) {
+            track('outfit_check_completed', {
+              score: data.aiScore,
+              occasion: data.occasions?.[0],
+            });
+          }
 
           setIsLoading(false);
           if (pollInterval.current) {
@@ -228,6 +235,7 @@ export default function FeedbackScreen() {
     try {
       setIsGeneratingShare(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      track('share_tapped', { score: outfit.aiScore ?? 0, method: 'native_share' });
 
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
       const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`;
@@ -268,6 +276,7 @@ export default function FeedbackScreen() {
 
   const handleFollowUp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    track('follow_up_asked', { outfit_id: outfitId, question_number: 1 });
     setShowFollowUp(true);
   };
 

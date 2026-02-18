@@ -18,6 +18,7 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme'
 import { useCommunityFeed, useSubmitCommunityFeedback } from '../src/hooks/useApi';
 import Slider from '@react-native-community/slider';
 import CelebrationModal from '../src/components/CelebrationModal';
+import { track } from '../src/lib/analytics';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 export default function GiveFeedbackScreen() {
@@ -56,6 +57,7 @@ export default function GiveFeedbackScreen() {
         score,
         comment: comment.trim(),
       });
+      track('feedback_given', { outfit_id: currentOutfit.id, score });
 
       // Reset for next outfit
       setComment('');

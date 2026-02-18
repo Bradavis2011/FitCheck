@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getRecommendations, OutfitRecommendation } from '../src/services/style-intelligence.service';
 import { Colors } from '../src/constants/theme';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
+import { track } from '../src/lib/analytics';
 
 // Skeleton loader component
 function SkeletonCard() {
@@ -54,6 +55,8 @@ export default function RecommendationsScreen() {
   const [error, setError] = useState<string | null>(null);
   const fadeAnims = useRef<Animated.Value[]>([]).current;
   const slideAnims = useRef<Animated.Value[]>([]).current;
+
+  useEffect(() => { track('feature_used', { feature: 'recommendations' }); }, []);
 
   useEffect(() => {
     if (tier === 'pro') {

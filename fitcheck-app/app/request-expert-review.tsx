@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme'
 import { useRequestExpertReview, useStylists } from '../src/hooks/useApi';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { StylistProfile } from '../src/services/api.service';
+import { track } from '../src/lib/analytics';
 
 export default function RequestExpertReviewScreen() {
+  useEffect(() => { track('feature_used', { feature: 'expert_review' }); }, []);
   const router = useRouter();
   const params = useLocalSearchParams();
   const outfitId = params.outfitId as string;

@@ -567,6 +567,42 @@ model ChallengeVote {
   @@index([userId])
 }
 
+model DailyMetricsSnapshot {
+  id             String   @id @default(uuid())
+  date           DateTime @unique @db.Date // The date this snapshot covers (UTC midnight)
+
+  // Users
+  totalUsers     Int      @map("total_users")
+  newUsersToday  Int      @map("new_users_today")
+  freeUsers      Int      @map("free_users")
+  plusUsers      Int      @map("plus_users")
+  proUsers       Int      @map("pro_users")
+
+  // Engagement
+  dau            Int      // Daily Active Users (checked outfit or gave feedback)
+  wau            Int      // Weekly Active Users
+  checksToday    Int      @map("checks_today")
+  feedbacksToday Int      @map("feedbacks_today")
+  avgAiScore     Float?   @map("avg_ai_score")
+
+  // Streaks
+  usersWithStreak Int     @map("users_with_streak")
+  avgStreak       Float?  @map("avg_streak")
+
+  // Revenue events (counts from subscription_events today)
+  newSubscriptions   Int  @default(0) @map("new_subscriptions")
+  cancellations      Int  @default(0)
+  renewals           Int  @default(0)
+
+  // Community
+  comparisonPosts    Int  @default(0) @map("comparison_posts")
+  liveSessions       Int  @default(0) @map("live_sessions")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("daily_metrics_snapshots")
+}
+
 model SubscriptionEvent {
   id             String   @id @default(uuid())
   userId         String   @map("user_id")
