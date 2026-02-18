@@ -58,30 +58,28 @@ export async function handleClerkWebhook(req: Request, res: Response) {
       : first_name || null;
 
     if (eventType === 'user.created') {
-      // Create user in our database
-      const user = await prisma.user.create({
-        data: {
-          id,
-          email,
-          name: fullName,
-        },
+      // Upsert user — idempotent against retries and auth middleware pre-sync
+      const user = await prisma.user.upsert({
+        where: { id },
+        create: { id, email, name: fullName },
+        update: { email, name: fullName },
       });
 
-      // Create user stats
-      await prisma.userStats.create({
-        data: { userId: user.id },
+      // Upsert user stats — safe against duplicate webhook delivery
+      await prisma.userStats.upsert({
+        where: { userId: user.id },
+        create: { userId: user.id },
+        update: {},
       });
 
       trackServerEvent(user.id, 'user_registered', { source: 'clerk_webhook' });
-      console.log(`✓ Created user ${user.id} (${email})`);
+      console.log(`✓ Upserted user ${user.id} (${email})`);
     } else if (eventType === 'user.updated') {
-      // Update user in our database
-      await prisma.user.update({
+      // Upsert — handles case where user.created webhook was lost
+      await prisma.user.upsert({
         where: { id },
-        data: {
-          email,
-          name: fullName,
-        },
+        create: { id, email, name: fullName },
+        update: { email, name: fullName },
       });
 
       console.log(`✓ Updated user ${id} (${email})`);
