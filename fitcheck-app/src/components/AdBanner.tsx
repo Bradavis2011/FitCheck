@@ -12,12 +12,11 @@ const BannerAd = _ads?.BannerAd;
 const BannerAdSize = _ads?.BannerAdSize;
 const _TestIds = _ads?.TestIds;
 
-// TODO: Replace placeholder unit IDs with real ones from AdMob dashboard before release.
 const BANNER_AD_UNIT_ID = __DEV__
   ? (_TestIds?.BANNER ?? '')
   : Platform.select({
       ios: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      android: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+      android: 'ca-app-pub-1244039707249288/6576661680',
       default: _TestIds?.BANNER ?? '',
     })!;
 
