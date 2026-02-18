@@ -53,7 +53,7 @@ jobs:
       - name: Deploy
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service orthis-api --detach
+        run: railway up --service FitCheck --detach
       - name: Notify success
         if: success()
         env:
