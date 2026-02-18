@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { PurchasesPackage } from 'react-native-purchases';
+import { track } from '../src/lib/analytics';
 
 export default function UpgradeScreen() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function UpgradeScreen() {
 
   useEffect(() => {
     loadOfferings();
+    track('upgrade_screen_viewed', { current_tier: tier });
   }, []);
 
   const handlePurchase = async (pkg: PurchasesPackage) => {
@@ -34,6 +36,12 @@ export default function UpgradeScreen() {
     try {
       const success = await purchase(pkg);
       if (success) {
+        const newTier = pkg.product.identifier.includes('plus') ? 'plus' : 'pro';
+        track('upgrade_completed', {
+          new_tier: newTier,
+          product_id: pkg.product.identifier,
+          billing: isAnnual ? 'annual' : 'monthly',
+        });
         Alert.alert(
           'Welcome to ' + (pkg.product.identifier.includes('plus') ? 'Plus' : 'Pro') + '!',
           'Your subscription is now active.',

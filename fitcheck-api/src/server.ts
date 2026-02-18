@@ -24,6 +24,9 @@ import { handleWebhook } from './controllers/subscription.controller.js';
 import { asyncHandler } from './middleware/asyncHandler.js';
 import { isConfigured as isS3Configured } from './services/s3.service.js';
 import { initializeSocketService } from './services/socket.service.js';
+import { initializeScheduler } from './services/scheduler.service.js';
+import { shutdownPostHog } from './lib/posthog.js';
+import adminRoutes from './routes/admin.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -83,6 +86,7 @@ app.use('/api/challenges', challengeRoutes);
 app.use('/api/wardrobe', wardrobeRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', subscriptionRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -94,6 +98,9 @@ app.use(errorHandler);
 
 // Initialize Socket.io for live streaming
 initializeSocketService(httpServer);
+
+// Initialize cron scheduler (gated by ENABLE_CRON=true)
+initializeScheduler();
 
 // Start server
 httpServer.listen(PORT, () => {
@@ -108,6 +115,13 @@ httpServer.listen(PORT, () => {
     console.log(`⚠️  S3 not configured - using base64 fallback (not recommended for production)`);
     console.log(`   Set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET to enable cloud storage`);
   }
+});
+
+// Graceful shutdown — flush PostHog before exit
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received — flushing analytics...');
+  await shutdownPostHog();
+  process.exit(0);
 });
 
 export default app;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme'
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { useEvents, useCreateEvent, useDeleteEvent } from '../src/hooks/useApi';
 import type { Event, EventDressCode, EventType } from '../src/services/api.service';
+import { track } from '../src/lib/analytics';
 
 const DRESS_CODES: { value: EventDressCode; label: string }[] = [
   { value: 'casual', label: 'Casual' },
@@ -57,6 +58,7 @@ function eventTypeIcon(type: EventType | null): string {
 }
 
 export default function EventPlannerScreen() {
+  useEffect(() => { track('feature_used', { feature: 'event_planner' }); }, []);
   const router = useRouter();
   const { tier } = useSubscriptionStore();
 

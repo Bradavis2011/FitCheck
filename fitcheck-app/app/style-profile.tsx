@@ -4,12 +4,15 @@ import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getStyleProfile, StyleProfileResponse } from '../src/services/style-intelligence.service';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
+import { track } from '../src/lib/analytics';
 
 export default function StyleProfileScreen() {
   const { tier } = useSubscriptionStore();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<StyleProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { track('feature_used', { feature: 'style_profile' }); }, []);
 
   useEffect(() => {
     if (tier === 'pro') {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import {
   useOutfits,
 } from '../src/hooks/useApi';
 import type { OutfitCheck } from '../src/services/api.service';
+import { track } from '../src/lib/analytics';
 
 type Tab = 'current' | 'upcoming' | 'past';
 
@@ -56,6 +57,7 @@ function getStartsIn(startsAt: string) {
 }
 
 export default function ChallengesScreen() {
+  useEffect(() => { track('feature_used', { feature: 'challenges' }); }, []);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('current');
   const [showOutfitPicker, setShowOutfitPicker] = useState(false);

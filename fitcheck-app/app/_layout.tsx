@@ -6,12 +6,16 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { tokenCache } from '../src/lib/clerk';
+import { initAnalytics, identify, track, reset } from '../src/lib/analytics';
 import { setClerkTokenGetter } from '../src/lib/api';
 import { Colors } from '../src/constants/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+
+// Initialize PostHog analytics
+initAnalytics();
 
 // Initialize Sentry for error tracking
 if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
@@ -63,6 +67,16 @@ function AuthGate() {
       });
     }
   }, [isSignedIn, userId]);
+
+  // Analytics: identify user and track app_opened
+  useEffect(() => {
+    if (isSignedIn && userId) {
+      identify(userId);
+      track('app_opened', {});
+    } else if (!isSignedIn && isLoaded) {
+      reset();
+    }
+  }, [isSignedIn, userId, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;

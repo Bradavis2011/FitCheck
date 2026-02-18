@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { liveService } from '../../src/services/live.service';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
+import { track } from '../../src/lib/analytics';
 
 export default function GoLiveScreen() {
+  useEffect(() => { track('feature_used', { feature: 'live' }); }, []);
   const router = useRouter();
   const { tier } = useSubscriptionStore();
   const [title, setTitle] = useState('');
