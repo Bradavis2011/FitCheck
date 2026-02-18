@@ -3,3 +3,5 @@ dist
 .env
 *.log
 .DS_Store
+tsc_*.txt
+.claude/settings.local.json
