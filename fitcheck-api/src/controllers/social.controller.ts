@@ -6,6 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from './notification.controller.js';
 import * as gamificationService from '../services/gamification.service.js';
+import { trackServerEvent } from '../lib/posthog.js';
 
 // Minimal profanity check — avoids bad-words CJS/ESM incompatibility
 const BLOCKED_WORDS = ['fuck', 'shit', 'cunt', 'nigger', 'faggot', 'bitch', 'asshole', 'dick', 'pussy', 'cock'];
@@ -441,6 +442,8 @@ export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Re
       linkId: data.outfitId,
     });
 
+    trackServerEvent(userId, 'community_feedback_given', { outfitId: data.outfitId });
+
     // Award points for giving feedback (gamification)
     const isFirstResponder = agg._count.score === 1; // This is the first feedback
     const pointsResult = await gamificationService.awardFeedbackPoints(userId, isFirstResponder);
@@ -762,6 +765,11 @@ export async function reportContent(req: AuthenticatedRequest, res: Response) {
         reason: data.reason,
         details: data.details,
       },
+    });
+
+    trackServerEvent(userId, 'report_created', {
+      targetType: data.targetType,
+      reason: data.reason,
     });
 
     res.json({ success: true, reportId: report.id });

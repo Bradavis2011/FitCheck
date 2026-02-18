@@ -10,6 +10,7 @@ import { uploadBuffer } from '../services/s3.service.js';
 import { getTierLimits } from '../constants/tiers.js';
 import { getRecommendations as getOutfitRecommendations } from '../services/recommendation.service.js';
 import * as gamificationService from '../services/gamification.service.js';
+import { trackServerEvent } from '../lib/posthog.js';
 
 const OutfitCheckSchema = z.object({
   imageUrl: z.string().url().optional(),
@@ -290,6 +291,11 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         blurFace: blurFaceDefault,
         expiresAt,
       },
+    });
+
+    trackServerEvent(userId, 'outfit_check_created', {
+      occasion: data.occasions[0],
+      shareWith: shareWith,
     });
 
     // Notify inner circle members when sharing to inner circle

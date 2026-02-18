@@ -2,6 +2,13 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { OutfitFeedback, OutfitCheckInput } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
+import { trackServerEvent } from '../lib/posthog.js';
+
+// In-memory AI counters (reset on server restart; used by metrics.service for digest)
+let _aiSuccessCount = 0;
+let _aiFallbackCount = 0;
+export function getAiCounters() { return { success: _aiSuccessCount, fallback: _aiFallbackCount }; }
+export function resetAiCounters() { _aiSuccessCount = 0; _aiFallbackCount = 0; }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -641,6 +648,7 @@ export async function analyzeOutfit(
   }
 
   const maxRetries = 3;
+  const aiStartTime = Date.now();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -785,6 +793,14 @@ export async function analyzeOutfit(
         }
       }
 
+      _aiSuccessCount++;
+      trackServerEvent(user?.id || outfitCheckId, 'ai_feedback_generated', {
+        score: feedback.overallScore,
+        fallback: false,
+        latency_ms: Date.now() - aiStartTime,
+        model: 'gemini-2.5-flash',
+      });
+
       return feedback;
     } catch (error) {
       console.error(`AI feedback attempt ${attempt} failed:`, error);
@@ -855,6 +871,14 @@ export async function analyzeOutfit(
       linkId: outfitCheckId,
     }).catch((err) => console.error('Failed to send fallback analysis notification:', err));
   }
+
+  _aiFallbackCount++;
+  trackServerEvent(user?.id || outfitCheckId, 'ai_feedback_generated', {
+    score: fallbackFeedback.overallScore,
+    fallback: true,
+    latency_ms: Date.now() - aiStartTime,
+    model: 'gemini-2.5-flash',
+  });
 
   return fallbackFeedback;
 }

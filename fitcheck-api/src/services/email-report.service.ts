@@ -107,6 +107,30 @@ function buildDailyHtml(metrics: MetricsSnapshot): string {
 
         </td></tr>
 
+        ${buildAlertBanners(metrics)}
+
+        <!-- Operational Health -->
+        <tr><td style="padding:0 40px 32px;">
+          <div style="font-size:13px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Operational Health</div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FBF7F4;border-radius:10px;overflow:hidden;">
+            ${healthIndicator(
+              '5xx Errors (since restart)',
+              metrics.errorCount5xx === 0 ? '0 ✓' : String(metrics.errorCount5xx),
+              metrics.errorCount5xx === 0 ? 'green' : metrics.errorCount5xx <= 10 ? 'amber' : 'red'
+            )}
+            ${healthIndicator(
+              'AI Fallback Rate',
+              metrics.aiFallbackRate === null ? 'No data' : `${metrics.aiFallbackRate}%`,
+              metrics.aiFallbackRate === null ? 'green' : metrics.aiFallbackRate < 5 ? 'green' : metrics.aiFallbackRate < 10 ? 'amber' : 'red'
+            )}
+            ${healthIndicator(
+              'Reports Pending 24h+',
+              metrics.pendingReportsOlderThan24h === 0 ? '0 ✓' : String(metrics.pendingReportsOlderThan24h),
+              metrics.pendingReportsOlderThan24h === 0 ? 'green' : 'red'
+            )}
+          </table>
+        </td></tr>
+
         <!-- Footer -->
         <tr>
           <td style="background:#F5EDE7;padding:20px 40px;text-align:center;">
@@ -128,6 +152,43 @@ function metricCard(label: string, value: string, valueColor?: string): string {
       <div style="font-size:11px;color:#6B7280;margin-top:4px;">${label}</div>
     </div>
   </td>`;
+}
+
+function healthIndicator(label: string, value: string, status: 'green' | 'amber' | 'red'): string {
+  const colors = { green: '#10B981', amber: '#F59E0B', red: '#EF4444' };
+  const bg = { green: '#ECFDF5', amber: '#FFFBEB', red: '#FEF2F2' };
+  return `<tr>
+    <td style="padding:6px 12px;font-size:13px;color:#2D2D2D;">${label}</td>
+    <td style="padding:6px 12px;text-align:right;">
+      <span style="background:${bg[status]};color:${colors[status]};font-size:12px;font-weight:600;padding:2px 8px;border-radius:12px;">${value}</span>
+    </td>
+  </tr>`;
+}
+
+function buildAlertBanners(metrics: MetricsSnapshot): string {
+  const alerts: string[] = [];
+
+  if (metrics.errorCount5xx > 10) {
+    alerts.push(`⚠️ <strong>${metrics.errorCount5xx} server errors</strong> recorded since last restart — check Sentry`);
+  }
+  if (metrics.aiFallbackRate !== null && metrics.aiFallbackRate > 10) {
+    alerts.push(`⚠️ <strong>AI fallback rate at ${metrics.aiFallbackRate}%</strong> — Gemini may be degraded`);
+  }
+  if (metrics.pendingReportsOlderThan24h > 0) {
+    alerts.push(`⚠️ <strong>${metrics.pendingReportsOlderThan24h} report(s)</strong> pending review for 24+ hours`);
+  }
+  if (metrics.dau === 0 && metrics.checksToday === 0) {
+    alerts.push(`⚠️ <strong>Zero outfit checks today</strong> — verify API is reachable`);
+  }
+
+  if (alerts.length === 0) return '';
+
+  return `<tr><td style="padding:0 40px 16px;">
+    <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:16px 20px;">
+      <div style="font-size:13px;font-weight:600;color:#EF4444;margin-bottom:8px;">🚨 Action Required</div>
+      ${alerts.map(a => `<div style="font-size:13px;color:#1A1A1A;margin-bottom:4px;">• ${a}</div>`).join('')}
+    </div>
+  </td></tr>`;
 }
 
 function buildWeeklyHtml(metrics: MetricsSnapshot, prev: MetricsSnapshot | null): string {
@@ -300,6 +361,9 @@ export async function sendWeeklyDigest(): Promise<void> {
       retention7d: null,
       expertReviewsPending: 0,
       avgCommunityScore: null,
+      errorCount5xx: 0,
+      aiFallbackRate: null,
+      pendingReportsOlderThan24h: 0,
     };
   }
 

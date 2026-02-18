@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { processWebhookEvent, syncSubscriptionFromClient } from '../services/subscription.service.js';
 import { getTierLimits } from '../constants/tiers.js';
+import { trackServerEvent } from '../lib/posthog.js';
 
 const REVENUECAT_WEBHOOK_AUTH = process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN;
 
@@ -21,6 +22,17 @@ export async function handleWebhook(req: Request, res: Response) {
 
   try {
     await processWebhookEvent(req.body);
+    // Track subscription events in PostHog
+    const evt = req.body?.event || req.body;
+    const eventType = evt?.type || 'unknown';
+    const appUserId = evt?.app_user_id;
+    if (appUserId) {
+      trackServerEvent(appUserId, 'subscription_event', {
+        type: eventType,
+        tier: Array.isArray(evt?.entitlement_ids) ? evt.entitlement_ids[0] : null,
+        productId: evt?.product_id || null,
+      });
+    }
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('[Webhook] Processing error:', error);
