@@ -397,6 +397,8 @@ export default function ProfileScreen() {
 
         {/* LAUNCH: Event Planner hidden until post-launch */}
 
+        {/* LAUNCH: Stylist Dashboard hidden until expert reviews go live */}
+
         {/* Stats */}
         <View style={styles.statsCard}>
           <Text style={styles.statsHeader}>Your Stats</Text>

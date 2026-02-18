@@ -357,6 +357,34 @@ export function useStylists(params?: { specialty?: string }) {
   });
 }
 
+// Stylist dashboard hooks
+export function useMyStylistProfile() {
+  return useQuery({
+    queryKey: ['stylist', 'me'],
+    queryFn: () => expertReviewService.getMyStylistProfile(),
+    retry: false, // 403 means not a stylist — don't retry
+  });
+}
+
+export function useStylistQueue() {
+  return useQuery({
+    queryKey: ['stylist', 'queue'],
+    queryFn: () => expertReviewService.getStylistQueue(),
+  });
+}
+
+export function useSubmitExpertReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ reviewId, score, feedback }: { reviewId: string; score: number; feedback: string }) =>
+      expertReviewService.submitReview(reviewId, { score, feedback }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stylist', 'queue'] });
+    },
+  });
+}
+
 // Subscription hooks
 export function useSubscriptionStatus() {
   return useQuery({

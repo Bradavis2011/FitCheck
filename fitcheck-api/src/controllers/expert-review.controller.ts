@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { getTierLimits } from '../constants/tiers.js';
+import { createNotification } from './notification.controller.js';
 
 const RequestReviewSchema = z.object({
   outfitCheckId: z.string().uuid(),
@@ -97,11 +98,21 @@ export async function requestReview(req: AuthenticatedRequest, res: Response) {
     },
     include: {
       stylist: {
-        include: {
-          user: { select: { id: true, username: true, name: true, profileImageUrl: true } },
-        },
+        select: { userId: true, user: { select: { id: true, username: true, name: true, profileImageUrl: true } } },
       },
     },
+  });
+
+  // Notify the assigned stylist
+  createNotification({
+    userId: review.stylist.userId,
+    type: 'expert_review',
+    title: 'New Review Request',
+    body: 'Someone wants your expert opinion!',
+    linkType: 'expert_review',
+    linkId: review.id,
+  }).catch((err) => {
+    console.error('[ExpertReview] Failed to notify stylist:', err);
   });
 
   res.status(201).json({ review, reviewsUsedThisMonth: usedThisMonth + 1 });

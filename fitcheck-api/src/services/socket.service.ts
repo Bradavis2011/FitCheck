@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../utils/prisma.js';
 
 interface SocketUser {
   userId: string;
@@ -71,6 +72,14 @@ export class SocketService {
         const viewerCount = this.sessionViewers.get(sessionId)?.size || 0;
         this.io.to(`session:${sessionId}`).emit('viewer_count', { count: viewerCount });
 
+        // Update peakViewers if current count exceeds stored peak
+        prisma.liveSession.updateMany({
+          where: { id: sessionId, peakViewers: { lt: viewerCount } },
+          data: { peakViewers: viewerCount },
+        }).catch((err) => {
+          console.error('[Socket] Failed to update peakViewers:', err);
+        });
+
         console.log(`User ${userId} joined session ${sessionId}`);
       });
 
@@ -89,15 +98,29 @@ export class SocketService {
         console.log(`User ${userId} left session ${sessionId}`);
       });
 
-      // Send chat message
-      socket.on('send_message', (data: { sessionId: string; message: string }) => {
+      // Send chat message — broadcast and persist to DB
+      socket.on('send_message', async (data: { sessionId: string; message: string }) => {
         const { sessionId, message } = data;
+        const timestamp = new Date().toISOString();
 
-        // Broadcast message to all users in the session
+        // Broadcast immediately so senders see no delay
         this.io.to(`session:${sessionId}`).emit('new_message', {
           userId,
           message,
-          timestamp: new Date().toISOString(),
+          timestamp,
+        });
+
+        // Persist to DB (fire-and-forget; don't block the socket handler)
+        prisma.liveChatMessage.create({
+          data: {
+            sessionId,
+            userId,
+            content: message,
+            messageType: 'text',
+            isAi: false,
+          },
+        }).catch((err) => {
+          console.error('[Socket] Failed to persist chat message:', err);
         });
       });
 

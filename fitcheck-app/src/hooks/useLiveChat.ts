@@ -7,6 +7,7 @@ export function useLiveChat(sessionId: string) {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [viewerCount, setViewerCount] = useState(0);
   const [isTyping, setIsTyping] = useState<{ [userId: string]: boolean }>({});
+  const [isEnded, setIsEnded] = useState(false);
   const { token } = useAuthStore();
 
   useEffect(() => {
@@ -64,16 +65,23 @@ export function useLiveChat(sessionId: string) {
       }));
     };
 
+    // Listen for session end (host ended stream)
+    const handleSessionEnded = () => {
+      setIsEnded(true);
+    };
+
     socketService.onNewMessage(handleNewMessage);
     socketService.onViewerCount(handleViewerCount);
     socketService.onAIFeedback(handleAIFeedback);
     socketService.onTyping(handleTyping);
+    socketService.onSessionEnded(handleSessionEnded);
 
     return () => {
       socketService.off('new_message', handleNewMessage);
       socketService.off('viewer_count', handleViewerCount);
       socketService.off('ai_feedback', handleAIFeedback);
       socketService.off('typing', handleTyping);
+      socketService.off('session_ended', handleSessionEnded);
       socketService.leaveSession(sessionId);
     };
   }, [sessionId, token]);
@@ -90,6 +98,7 @@ export function useLiveChat(sessionId: string) {
     messages,
     viewerCount,
     isTyping,
+    isEnded,
     sendMessage,
     setTypingStatus,
   };

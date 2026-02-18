@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,10 +24,21 @@ export default function LiveStreamScreen() {
   const [session, setSession] = useState<LiveSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isHost, setIsHost] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const isHostRef = useRef(false);
 
-  const { room, isConnecting, isConnected, error, connect, disconnect } =
+  const { room, isConnecting, isConnected, connect, disconnect } =
     useLiveStream(sessionId);
-  const { messages, viewerCount, sendMessage, setTypingStatus } = useLiveChat(sessionId);
+  const { messages, viewerCount, isEnded, sendMessage, setTypingStatus } = useLiveChat(sessionId);
+
+  // Navigate back when host ends the session
+  useEffect(() => {
+    if (isEnded && !isHostRef.current) {
+      Alert.alert('Stream Ended', 'The host has ended this live stream.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    }
+  }, [isEnded]);
 
   useEffect(() => {
     loadSession();
@@ -35,7 +46,7 @@ export default function LiveStreamScreen() {
 
   useEffect(() => {
     if (session && session.status === 'live') {
-      connect();
+      connect(isHostRef.current);
     }
 
     return () => {
@@ -49,8 +60,8 @@ export default function LiveStreamScreen() {
       const data = await liveService.getSession(sessionId);
       setSession(data);
 
-      // Check if current user is host
       const tokenData = await liveService.getSessionToken(sessionId);
+      isHostRef.current = tokenData.isHost;
       setIsHost(tokenData.isHost);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to load live session');
@@ -80,6 +91,16 @@ export default function LiveStreamScreen() {
           },
         },
       ]
+    );
+  };
+
+  const handleAnalyzeOutfit = async () => {
+    if (isAnalyzing) return;
+    // Without native WebRTC there's no captured frame yet.
+    // Placeholder: alert the host; replace with actual frame capture after binary rebuild.
+    Alert.alert(
+      'Analyze Outfit',
+      'AI outfit analysis will be available after the app is built with native camera support.',
     );
   };
 
@@ -136,6 +157,26 @@ export default function LiveStreamScreen() {
           <Text style={styles.hostName}>@{session.host.username || session.host.name}</Text>
           <Text style={styles.streamTitle}>{session.title}</Text>
         </View>
+
+        {/* Analyze Outfit button — host only, shown when connected */}
+        {isHost && isConnected && (
+          <View style={styles.analyzeContainer}>
+            <TouchableOpacity
+              style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonDisabled]}
+              onPress={handleAnalyzeOutfit}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={16} color={Colors.white} />
+                  <Text style={styles.analyzeButtonText}>Analyze Outfit</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </SafeAreaView>
 
       {/* Chat Overlay */}
@@ -158,9 +199,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.black,
-  },
-  video: {
-    ...StyleSheet.absoluteFillObject,
   },
   videoPlaceholder: {
     flex: 1,
@@ -264,5 +302,27 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
     marginTop: 2,
+  },
+  analyzeContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  analyzeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 999,
+  },
+  analyzeButtonDisabled: {
+    opacity: 0.6,
+  },
+  analyzeButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.white,
   },
 });
