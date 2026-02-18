@@ -26,6 +26,11 @@ export function errorHandler(
 ) {
   console.error('Error:', err);
 
+  // Express body-parser sends SyntaxError for malformed JSON
+  if (err instanceof SyntaxError && 'status' in err && (err as any).status === 400) {
+    return res.status(400).json({ error: 'Invalid JSON in request body', status: 400 });
+  }
+
   if (err instanceof AppError) {
     if (err.statusCode >= 500) {
       _errorCount5xx++;
