@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
 import { useSignIn, useSignUp } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
@@ -27,6 +28,17 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState('');
+
+  // Intercept Android hardware back during email verification to return to sign-up form
+  useEffect(() => {
+    if (!pendingVerification) return;
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      setPendingVerification(false);
+      setCode('');
+      return true; // Prevent default (app close)
+    });
+    return () => handler.remove();
+  }, [pendingVerification]);
 
   const handleSignIn = async () => {
     if (!signInLoaded) return;
