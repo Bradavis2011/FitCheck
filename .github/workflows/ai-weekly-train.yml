@@ -1,0 +1,124 @@
+name: AI Weekly Training Pipeline
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Sunday midnight UTC
+  workflow_dispatch:
+    inputs:
+      skip_to_stage:
+        description: 'Skip to stage (1-7, default 1)'
+        required: false
+        default: '1'
+
+jobs:
+  train:
+    name: Run 7-Stage Training Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: fitcheck-api
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-api/package-lock.json
+      - run: npm ci
+
+      - name: Run training pipeline
+        id: train
+        run: |
+          set +e
+          npx tsx scripts/train/index.ts 2>&1 | tee /tmp/train-output.txt
+          TRAIN_EXIT=${PIPESTATUS[0]}
+          echo "exit_code=$TRAIN_EXIT" >> $GITHUB_OUTPUT
+          # Capture last 50 lines as the report summary
+          REPORT=$(tail -50 /tmp/train-output.txt)
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo "$REPORT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check for optimized prompt
+        id: prompt_check
+        run: |
+          # The training pipeline writes an optimized prompt to a known location if stage 6 succeeds
+          if [ -f /tmp/optimized_prompt.txt ] || grep -q "OPTIMIZED_PROMPT_AVAILABLE" /tmp/train-output.txt 2>/dev/null; then
+            echo "prompt_improved=true" >> $GITHUB_OUTPUT
+          else
+            echo "prompt_improved=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PR with optimized prompt
+        if: steps.prompt_check.outputs.prompt_improved == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "or-this-ai-agent"
+          git config user.email "ai-agent@orthis.app"
+          BRANCH="ai/prompt-optimization-$(date +'%Y-%m-%d')"
+          git checkout -b "$BRANCH"
+          # Stage any modified prompt files
+          git add fitcheck-api/src/services/ai-feedback.service.ts 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No prompt file changes to commit"
+          else
+            git commit -m "AI: Optimized prompt from weekly training pipeline $(date +'%Y-%m-%d')"
+            git push origin "$BRANCH"
+            gh pr create \
+              --title "AI Prompt Optimization — $(date +'%B %d, %Y')" \
+              --body "$(cat <<'EOF'
+          ## Automated Prompt Optimization
+
+          The weekly AI training pipeline (Stage 6: Self-Optimize) detected an improved prompt.
+
+          **Review before merging:**
+          - Check the diff against the current prompt in \`ai-feedback.service.ts\`
+          - Run \`npm run test:model\` locally to verify improvements
+          - Review a few live outfit checks after deployment
+
+          This PR was created automatically. Do not merge without review.
+          EOF
+          )" \
+              --base main \
+              --head "$BRANCH"
+          fi
+
+      - name: Email training report
+        if: always()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          TRAIN_EXIT="${{ steps.train.outputs.exit_code }}"
+          REPORT="${{ steps.train.outputs.report }}"
+          PROMPT_IMPROVED="${{ steps.prompt_check.outputs.prompt_improved }}"
+
+          if [ "$TRAIN_EXIT" = "0" ]; then
+            STATUS="✅ Complete"
+          else
+            STATUS="⚠️ Issues detected"
+          fi
+
+          PROMPT_NOTE=""
+          if [ "$PROMPT_IMPROVED" = "true" ]; then
+            PROMPT_NOTE="<p><strong>🎯 An improved prompt was found and submitted as a PR for your review.</strong></p>"
+          fi
+
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"ai-watchdog@orthis.app\",
+              \"to\": \"$ALERT_EMAIL\",
+              \"subject\": \"[Or This?] Weekly AI Training — $STATUS\",
+              \"html\": \"<h2>Weekly AI Training Pipeline</h2><p>$(date -u +'%B %d, %Y') — $STATUS</p>$PROMPT_NOTE<pre style='background:#f5f5f5;padding:12px;border-radius:4px;font-size:13px;white-space:pre-wrap'>$REPORT</pre>\"
+            }"

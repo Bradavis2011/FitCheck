@@ -16,7 +16,8 @@
     "test:full": "tsx scripts/test-model-quality.ts",
     "generate:training-data": "tsx scripts/generate-training-data.ts",
     "test:brand-voice": "tsx -e \"import { brandVoiceValidator } from './src/validators/brand-voice-validator.js'; const result = brandVoiceValidator.validate('You\\'ve got this! The dress is stunning.'); console.log(result);\"",
-    "train:ai": "tsx scripts/train/index.ts"
+    "train:ai": "tsx scripts/train/index.ts",
+    "launch:check": "tsx scripts/pre-launch-check.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.989.0",

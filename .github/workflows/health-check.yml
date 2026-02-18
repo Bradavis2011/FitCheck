@@ -1,0 +1,54 @@
+name: Health Sentinel
+
+on:
+  schedule:
+    # Every 5 minutes (GitHub has ~15 min jitter, effective frequency 5-20 min)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  ping:
+    name: Ping API Health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check health endpoint
+        id: health
+        run: |
+          RESPONSE=$(curl -s -o /tmp/health_body.txt -w "%{http_code}|%{time_total}" \
+            --max-time 15 \
+            --retry 1 \
+            --retry-delay 5 \
+            https://fitcheck-production-0f92.up.railway.app/health 2>/dev/null || echo "000|0")
+          HTTP_CODE=$(echo "$RESPONSE" | cut -d'|' -f1)
+          RESPONSE_TIME=$(echo "$RESPONSE" | cut -d'|' -f2)
+          BODY=$(cat /tmp/health_body.txt 2>/dev/null || echo "no response")
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          echo "response_time=$RESPONSE_TIME" >> $GITHUB_OUTPUT
+          echo "body=$BODY" >> $GITHUB_OUTPUT
+          echo "Health check: HTTP $HTTP_CODE in ${RESPONSE_TIME}s"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "HEALTH_FAILED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Alert on failure
+        if: env.HEALTH_FAILED == 'true'
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          HTTP_CODE="${{ steps.health.outputs.http_code }}"
+          RESPONSE_TIME="${{ steps.health.outputs.response_time }}"
+          BODY="${{ steps.health.outputs.body }}"
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"alerts@orthis.app\",
+              \"to\": \"$ALERT_EMAIL\",
+              \"subject\": \"[ALERT] Or This? API is DOWN\",
+              \"html\": \"<h2 style='color:red'>API Health Check Failed</h2><p><strong>Time:</strong> $(date -u)</p><p><strong>HTTP Status:</strong> $HTTP_CODE</p><p><strong>Response Time:</strong> ${RESPONSE_TIME}s</p><p><strong>Response Body:</strong> <code>$BODY</code></p><p>Check <a href='https://railway.app'>Railway dashboard</a> for logs.</p>\"
+            }"
+
+      - name: Fail job on unhealthy
+        if: env.HEALTH_FAILED == 'true'
+        run: exit 1

@@ -1,0 +1,77 @@
+name: AI Quality Daily Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 6am UTC daily
+  workflow_dispatch:
+
+jobs:
+  quality-check:
+    name: Run AI Quality Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitcheck-api
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-api/package-lock.json
+      - run: npm ci
+
+      - name: Quick brand voice test
+        id: quick
+        run: |
+          set +e
+          npx tsx scripts/quick-test.ts 2>&1 | tee /tmp/quick-output.txt
+          QUICK_EXIT=${PIPESTATUS[0]}
+          echo "exit_code=$QUICK_EXIT" >> $GITHUB_OUTPUT
+          QUICK_RESULT=$(cat /tmp/quick-output.txt | tail -20)
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$QUICK_RESULT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Full quality evaluation
+        id: full
+        run: |
+          set +e
+          npx tsx scripts/test-model-quality.ts 2>&1 | tee /tmp/full-output.txt
+          FULL_EXIT=${PIPESTATUS[0]}
+          echo "exit_code=$FULL_EXIT" >> $GITHUB_OUTPUT
+          FULL_RESULT=$(cat /tmp/full-output.txt | tail -30)
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$FULL_RESULT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Email quality report
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          QUICK_STATUS="${{ steps.quick.outputs.exit_code }}"
+          FULL_STATUS="${{ steps.full.outputs.exit_code }}"
+          QUICK_RESULT="${{ steps.quick.outputs.result }}"
+          FULL_RESULT="${{ steps.full.outputs.result }}"
+
+          if [ "$QUICK_STATUS" = "0" ] && [ "$FULL_STATUS" = "0" ]; then
+            OVERALL="✅ PASSED"
+            SUBJECT="[Or This?] AI Quality ✅ $(date +'%b %d')"
+          else
+            OVERALL="⚠️ ISSUES DETECTED"
+            SUBJECT="[Or This?] AI Quality ⚠️ $(date +'%b %d') — Action needed"
+          fi
+
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"ai-watchdog@orthis.app\",
+              \"to\": \"$ALERT_EMAIL\",
+              \"subject\": \"$SUBJECT\",
+              \"html\": \"<h2>AI Quality Report — $(date -u +'%B %d, %Y')</h2><h3>Overall: $OVERALL</h3><h4>Brand Voice Quick Check (exit: $QUICK_STATUS)</h4><pre style='background:#f5f5f5;padding:12px;border-radius:4px;font-size:13px'>$QUICK_RESULT</pre><h4>Full Quality Evaluation (exit: $FULL_STATUS)</h4><pre style='background:#f5f5f5;padding:12px;border-radius:4px;font-size:13px'>$FULL_RESULT</pre>\"
+            }"

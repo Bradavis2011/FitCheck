@@ -1,0 +1,76 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fitcheck-api/**'
+      - '!fitcheck-api/scripts/**'
+
+jobs:
+  validate-migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: orthis_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    defaults:
+      run:
+        working-directory: fitcheck-api
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/orthis_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Run migrations against test DB
+        run: npx prisma migrate deploy
+
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: validate-migrations
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service orthis-api --detach
+      - name: Notify success
+        if: success()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] API deployed ✓\",\"html\":\"<p>API deployed successfully at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>${{ github.event.head_commit.message }}</p>\"}"
+      - name: Notify failure
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] ⚠️ API deploy FAILED\",\"html\":\"<p>API deployment failed at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>Check GitHub Actions for details.</p>\"}"
