@@ -1,0 +1,49 @@
+name: Build App (EAS)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: EAS Production Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitcheck-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-app/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build iOS + Android
+        run: eas build --platform all --profile production --non-interactive
+      - name: Notify success
+        if: success()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] App build started ✓\",\"html\":\"<p>EAS production build submitted for tag <strong>${{ github.ref_name }}</strong>.</p><p>Check the EAS dashboard for build status.</p>\"}"
+      - name: Notify failure
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] ⚠️ App build FAILED\",\"html\":\"<p>EAS build failed for tag <strong>${{ github.ref_name }}</strong>.</p><p>Check GitHub Actions for details.</p>\"}"

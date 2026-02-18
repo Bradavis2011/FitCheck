@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck-api:
+    name: Typecheck API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitcheck-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npx prisma validate
+
+  typecheck-app:
+    name: Typecheck App
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitcheck-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-app/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - run: npx tsc --noEmit
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit API dependencies
+        working-directory: fitcheck-api
+        run: npm audit --audit-level=high || true
+      - name: Audit App dependencies
+        working-directory: fitcheck-app
+        run: npm audit --audit-level=high --legacy-peer-deps || true
