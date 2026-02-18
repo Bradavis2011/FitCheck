@@ -73,20 +73,6 @@ export async function uploadImage(localUri: string): Promise<ImageUploadResult> 
 }
 
 /**
- * Get a presigned URL from the backend for uploading to S3
- * TODO: Implement this when backend is ready
- */
-async function getPresignedUrl(): Promise<{ uploadUrl: string; publicUrl: string }> {
-  // const response = await api.post('/api/upload/presigned', {
-  //   contentType: 'image/jpeg',
-  //   fileName: `outfit-${Date.now()}.jpg`,
-  // });
-  // return response.data;
-
-  throw new Error('Not implemented');
-}
-
-/**
  * Convert image to base64 (fallback for testing)
  */
 export async function imageToBase64(uri: string): Promise<string> {
