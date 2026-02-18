@@ -30,8 +30,8 @@ export async function searchUsers(req: AuthenticatedRequest, res: Response) {
   try {
     const { q } = req.query;
 
-    if (!q || typeof q !== 'string' || q.trim().length < 2) {
-      throw new AppError(400, 'Search query must be at least 2 characters');
+    if (!q || typeof q !== 'string' || q.trim().length < 2 || q.trim().length > 100) {
+      throw new AppError(400, 'Search query must be between 2 and 100 characters');
     }
 
     const users = await prisma.user.findMany({
@@ -200,7 +200,8 @@ export async function getPublicOutfit(req: AuthenticatedRequest, res: Response) 
 export async function getCommunityFeed(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
-    const { limit = '20', offset = '0', filter = 'recent' } = req.query;
+    const { limit: limitParam = '20', offset = '0', filter = 'recent' } = req.query;
+    const limit = String(Math.min(parseInt(limitParam as string) || 20, 100));
 
     // Get blocked user IDs
     const blockedUsers = await prisma.blockedUser.findMany({
@@ -530,62 +531,44 @@ export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response
 export async function getLeaderboard(req: AuthenticatedRequest, res: Response) {
   try {
     const { type = 'top-rated', limit = '50' } = req.query;
-    const limitNum = parseInt(limit as string);
+    const limitNum = Math.min(parseInt(limit as string) || 50, 100);
 
     let leaderboard: any[] = [];
 
     switch (type) {
       case 'top-rated': {
-        // Users with highest avg outfit scores (min 5 public outfits)
-        const users = await prisma.user.findMany({
-          where: {
-            isPublic: true,
-            outfitChecks: {
-              some: {
-                isPublic: true,
-                isDeleted: false,
-              },
-            },
-          },
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            profileImageUrl: true,
-            outfitChecks: {
-              where: {
-                isPublic: true,
-                isDeleted: false,
-                aiScore: { not: null },
-              },
-              select: {
-                aiScore: true,
-              },
-            },
-          },
+        // Aggregate avg score at DB level (min 5 public outfits)
+        const grouped = await prisma.outfitCheck.groupBy({
+          by: ['userId'],
+          where: { isPublic: true, isDeleted: false, aiScore: { not: null } },
+          _avg: { aiScore: true },
+          _count: { _all: true },
+          having: { aiScore: { _count: { gte: 5 } } },
+          orderBy: { _avg: { aiScore: 'desc' } },
+          take: limitNum,
         });
 
-        leaderboard = users
-          .map((user) => {
-            const scores = user.outfitChecks.map((o) => o.aiScore || 0);
-            const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-            return {
-              userId: user.id,
-              username: user.username,
-              name: user.name,
-              score: avgScore,
-              outfitCount: scores.length,
-            };
-          })
-          .filter((user) => user.outfitCount >= 5)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, limitNum)
-          .map((user, index) => ({ ...user, rank: index + 1 }));
+        const userIds = grouped.map((g: any) => g.userId);
+        const users = await prisma.user.findMany({
+          where: { id: { in: userIds }, isPublic: true },
+          select: { id: true, username: true, name: true, profileImageUrl: true },
+        });
+        const userMap = new Map(users.map((u: any) => [u.id, u]));
+
+        leaderboard = grouped
+          .filter((g: any) => userMap.has(g.userId))
+          .map((g: any, index: number) => ({
+            userId: g.userId,
+            ...userMap.get(g.userId),
+            score: g._avg.aiScore || 0,
+            outfitCount: g._count._all,
+            rank: index + 1,
+          }));
         break;
       }
 
       case 'most-helpful': {
-        // Users who give most feedback
+        // Already efficient — DB-level count
         const users = await prisma.user.findMany({
           where: { isPublic: true },
           select: {
@@ -607,7 +590,7 @@ export async function getLeaderboard(req: AuthenticatedRequest, res: Response) {
           take: limitNum,
         });
 
-        leaderboard = users.map((user, index) => ({
+        leaderboard = users.map((user: any, index: number) => ({
           userId: user.id,
           username: user.username,
           name: user.name,
@@ -618,108 +601,65 @@ export async function getLeaderboard(req: AuthenticatedRequest, res: Response) {
       }
 
       case 'most-popular': {
-        // Users with most community feedback received
-        const users = await prisma.user.findMany({
-          where: {
-            isPublic: true,
-            outfitChecks: {
-              some: {
-                isPublic: true,
-                isDeleted: false,
-              },
-            },
-          },
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            profileImageUrl: true,
-            outfitChecks: {
-              where: {
-                isPublic: true,
-                isDeleted: false,
-              },
-              select: {
-                _count: {
-                  select: {
-                    communityFeedback: true,
-                  },
-                },
-              },
-            },
-          },
-        });
+        // Aggregate feedback received at DB level via raw query
+        const results = await prisma.$queryRaw<Array<{
+          userId: string;
+          username: string | null;
+          name: string | null;
+          profileImageUrl: string | null;
+          total_feedback: bigint;
+        }>>`
+          SELECT u.id as "userId", u.username, u.name, u."profileImageUrl",
+                 COUNT(cf.id) as total_feedback
+          FROM "User" u
+          JOIN "OutfitCheck" oc ON oc."userId" = u.id AND oc."isPublic" = true AND oc."isDeleted" = false
+          JOIN "CommunityFeedback" cf ON cf."outfitId" = oc.id
+          WHERE u."isPublic" = true
+          GROUP BY u.id, u.username, u.name, u."profileImageUrl"
+          ORDER BY total_feedback DESC
+          LIMIT ${limitNum}
+        `;
 
-        leaderboard = users
-          .map((user) => {
-            const totalFeedback = user.outfitChecks.reduce(
-              (sum, outfit) => sum + outfit._count.communityFeedback,
-              0
-            );
-            return {
-              userId: user.id,
-              username: user.username,
-              name: user.name,
-              score: totalFeedback,
-            };
-          })
-          .sort((a, b) => b.score - a.score)
-          .slice(0, limitNum)
-          .map((user, index) => ({ ...user, rank: index + 1 }));
+        leaderboard = results.map((r: any, index: number) => ({
+          userId: r.userId,
+          username: r.username,
+          name: r.name,
+          score: Number(r.total_feedback),
+          rank: index + 1,
+        }));
         break;
       }
 
       case 'weekly': {
-        // Users with best performance this week
+        // Aggregate avg score this week at DB level
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
 
-        const users = await prisma.user.findMany({
-          where: {
-            isPublic: true,
-            outfitChecks: {
-              some: {
-                isPublic: true,
-                isDeleted: false,
-                createdAt: { gte: weekAgo },
-              },
-            },
-          },
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            profileImageUrl: true,
-            outfitChecks: {
-              where: {
-                isPublic: true,
-                isDeleted: false,
-                createdAt: { gte: weekAgo },
-                aiScore: { not: null },
-              },
-              select: {
-                aiScore: true,
-              },
-            },
-          },
+        const grouped = await prisma.outfitCheck.groupBy({
+          by: ['userId'],
+          where: { isPublic: true, isDeleted: false, aiScore: { not: null }, createdAt: { gte: weekAgo } },
+          _avg: { aiScore: true },
+          _count: { _all: true },
+          orderBy: { _avg: { aiScore: 'desc' } },
+          take: limitNum,
         });
 
-        leaderboard = users
-          .map((user) => {
-            const scores = user.outfitChecks.map((o) => o.aiScore || 0);
-            const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-            return {
-              userId: user.id,
-              username: user.username,
-              name: user.name,
-              score: avgScore,
-              weeklyOutfits: scores.length,
-            };
-          })
-          .filter((user) => user.weeklyOutfits > 0)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, limitNum)
-          .map((user, index) => ({ ...user, rank: index + 1 }));
+        const userIds = grouped.map((g: any) => g.userId);
+        const users = await prisma.user.findMany({
+          where: { id: { in: userIds }, isPublic: true },
+          select: { id: true, username: true, name: true, profileImageUrl: true },
+        });
+        const userMap = new Map(users.map((u: any) => [u.id, u]));
+
+        leaderboard = grouped
+          .filter((g: any) => userMap.has(g.userId))
+          .map((g: any, index: number) => ({
+            userId: g.userId,
+            ...userMap.get(g.userId),
+            score: g._avg.aiScore || 0,
+            weeklyOutfits: g._count._all,
+            rank: index + 1,
+          }));
         break;
       }
 

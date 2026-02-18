@@ -75,7 +75,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
 
       if (token && userJson) {
-        const user = JSON.parse(userJson);
+        let user: User;
+        try {
+          user = JSON.parse(userJson);
+        } catch {
+          // Corrupt SecureStore data — clear it and start fresh
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+          await SecureStore.deleteItemAsync(USER_KEY);
+          set({ isLoading: false, hasCompletedOnboarding: onboardingCompleted === 'true' });
+          return;
+        }
         setAuthToken(token);
         set({
           token,

@@ -349,7 +349,9 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       gamificationService.checkOutfitBadges(userId, outfitCount).catch((err) => {
         console.error('Outfit badge check failed:', err);
       });
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('Outfit count for badge check failed:', err);
+    });
 
     // Resize image for AI analysis (reduces payload from ~5MB to ~200KB)
     let aiData = data;

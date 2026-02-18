@@ -79,8 +79,8 @@ api.interceptors.response.use(
 
       switch (status) {
         case 401:
-          console.warn('[API] Unauthorized - token may be expired');
-          // Could trigger re-authentication here
+          console.warn('[API] Unauthorized - clearing stale token');
+          delete api.defaults.headers.common['Authorization'];
           break;
         case 403:
           console.warn('[API] Forbidden - insufficient permissions');
