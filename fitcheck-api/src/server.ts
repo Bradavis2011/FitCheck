@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
@@ -32,6 +33,16 @@ import adminRoutes from './routes/admin.routes.js';
 
 // Load environment variables
 dotenv.config();
+
+// Initialize Sentry before any middleware (only if DSN configured)
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.1,
+  });
+  console.log('🔍 Sentry initialized');
+}
 
 const app = express();
 const httpServer = createServer(app);

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Webhook } from 'svix';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
+import { trackServerEvent } from '../lib/posthog.js';
 
 /**
  * Clerk Webhook Handler
@@ -71,6 +72,7 @@ export async function handleClerkWebhook(req: Request, res: Response) {
         data: { userId: user.id },
       });
 
+      trackServerEvent(user.id, 'user_registered', { source: 'clerk_webhook' });
       console.log(`✓ Created user ${user.id} (${email})`);
     } else if (eventType === 'user.updated') {
       // Update user in our database

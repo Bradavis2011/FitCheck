@@ -1,4 +1,6 @@
 import { prisma } from '../utils/prisma.js';
+import { get5xxCount } from '../middleware/errorHandler.js';
+import { getAiCounters } from './ai-feedback.service.js';
 
 export interface MetricsSnapshot {
   generatedAt: Date;
@@ -34,6 +36,11 @@ export interface MetricsSnapshot {
   retention7d: number | null; // % of users who were active 7 days ago and again today
   expertReviewsPending: number;
   avgCommunityScore: number | null;
+
+  // Operational health
+  errorCount5xx: number;       // 5xx errors since last server restart
+  aiFallbackRate: number | null; // % of AI analyses that used the fallback response
+  pendingReportsOlderThan24h: number; // content moderation queue depth
 }
 
 function startOfDay(date: Date = new Date()): Date {
@@ -73,6 +80,7 @@ export async function getMetricsSnapshot(): Promise<MetricsSnapshot> {
     liveSessions,
     expertReviewsPending,
     communityScoreAgg,
+    pendingReportsOlderThan24h,
   ] = await Promise.all([
     // total users
     prisma.user.count(),
@@ -157,6 +165,14 @@ export async function getMetricsSnapshot(): Promise<MetricsSnapshot> {
 
     // avg community score (all time, non-null)
     prisma.communityFeedback.aggregate({ _avg: { score: true } }),
+
+    // pending reports older than 24h (moderation queue)
+    prisma.report.count({
+      where: {
+        status: 'pending',
+        createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    }),
   ]);
 
   // Compute DAU — union of outfit check users + feedback users today
@@ -208,6 +224,14 @@ export async function getMetricsSnapshot(): Promise<MetricsSnapshot> {
     // non-fatal
   }
 
+  // Operational health from in-memory counters
+  const errorCount5xx = get5xxCount();
+  const aiCounters = getAiCounters();
+  const aiTotal = aiCounters.success + aiCounters.fallback;
+  const aiFallbackRate = aiTotal > 0
+    ? Math.round((aiCounters.fallback / aiTotal) * 100)
+    : null;
+
   return {
     generatedAt: new Date(),
     totalUsers,
@@ -230,6 +254,9 @@ export async function getMetricsSnapshot(): Promise<MetricsSnapshot> {
     retention7d,
     expertReviewsPending,
     avgCommunityScore: communityScoreAgg._avg.score ?? null,
+    errorCount5xx,
+    aiFallbackRate,
+    pendingReportsOlderThan24h,
   };
 }
 
