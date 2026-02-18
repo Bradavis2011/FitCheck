@@ -40,9 +40,13 @@ api.interceptors.request.use(
         const token = await clerkTokenGetter();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          // getToken() returned null — don't fall through to stale default headers
+          delete config.headers.Authorization;
         }
       } catch (error) {
         console.error('[API] Failed to get Clerk token:', error);
+        delete config.headers.Authorization;
       }
     }
 
