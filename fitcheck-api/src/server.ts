@@ -30,6 +30,7 @@ import { isConfigured as isS3Configured } from './services/s3.service.js';
 import { initializeScheduler } from './services/scheduler.service.js';
 import { shutdownPostHog } from './lib/posthog.js';
 import adminRoutes from './routes/admin.routes.js';
+import { sendDailyDigest } from './services/email-report.service.js';
 
 // Load environment variables
 dotenv.config();
@@ -101,6 +102,18 @@ app.use('/api/wardrobe', wardrobeRoutes);
 // app.use('/api/events', eventRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Temporary test routes — enabled only when ENABLE_TEST_ROUTES=true
+if (process.env.ENABLE_TEST_ROUTES === 'true') {
+  app.get('/test/sentry-error', (_req, _res) => {
+    throw new Error('Sentry test error — intentional 500');
+  });
+  app.post('/test/trigger-digest', asyncHandler(async (_req, res) => {
+    await sendDailyDigest();
+    res.json({ ok: true, message: 'Daily digest triggered' });
+  }));
+  console.log('⚠️  Test routes enabled: GET /test/sentry-error, POST /test/trigger-digest');
+}
 
 // 404 handler
 app.use((req, res) => {
