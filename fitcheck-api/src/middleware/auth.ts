@@ -55,21 +55,19 @@ export async function authenticateToken(
           ? `${clerkUser.firstName} ${clerkUser.lastName}`
           : clerkUser.firstName || null;
 
-        // Upsert user - if email exists, update the Clerk ID; if not, create new
+        // If a stale record holds this email (re-registration with new Clerk ID),
+        // delete it so cascade removes orphaned rows, then create fresh.
+        const stale = await prisma.user.findUnique({ where: { email } });
+        if (stale && stale.id !== clerkUserId) {
+          await prisma.user.delete({ where: { id: stale.id } });
+        }
+
         const newUser = await prisma.user.upsert({
-          where: { email },
-          update: {
-            id: clerkUserId, // Update Clerk ID for existing user
-            name,
-          },
-          create: {
-            id: clerkUserId,
-            email,
-            name,
-          },
+          where: { id: clerkUserId },
+          create: { id: clerkUserId, email, name },
+          update: { email, name },
         });
 
-        // Create user stats if they don't exist
         await prisma.userStats.upsert({
           where: { userId: newUser.id },
           update: {},
