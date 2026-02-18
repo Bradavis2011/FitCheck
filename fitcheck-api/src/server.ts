@@ -108,10 +108,14 @@ if (process.env.ENABLE_TEST_ROUTES === 'true') {
   app.get('/test/sentry-error', (_req, _res) => {
     throw new Error('Sentry test error — intentional 500');
   });
-  app.post('/test/trigger-digest', asyncHandler(async (_req, res) => {
-    await sendDailyDigest();
-    res.json({ ok: true, message: 'Daily digest triggered' });
-  }));
+  app.post('/test/trigger-digest', async (_req, res) => {
+    try {
+      await sendDailyDigest();
+      res.json({ ok: true, message: 'Daily digest triggered' });
+    } catch (err: any) {
+      res.status(500).json({ ok: false, error: err?.message, stack: err?.stack?.split('\n').slice(0, 5) });
+    }
+  });
   console.log('⚠️  Test routes enabled: GET /test/sentry-error, POST /test/trigger-digest');
 }
 
