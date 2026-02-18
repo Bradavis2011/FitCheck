@@ -41,12 +41,11 @@ try { _ads = require('react-native-google-mobile-ads'); } catch { /* native modu
 const InterstitialAd = _ads?.InterstitialAd;
 const _TestIds = _ads?.TestIds;
 
-// TODO: Replace placeholder unit ID with real one from AdMob dashboard before release.
 const INTERSTITIAL_UNIT_ID = __DEV__
   ? (_TestIds?.INTERSTITIAL ?? '')
   : Platform.select({
       ios: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      android: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+      android: 'ca-app-pub-1244039707249288/3950498348',
       default: _TestIds?.INTERSTITIAL ?? '',
     })!;
 
