@@ -4,6 +4,13 @@ import { resetWeeklyPoints, resetMonthlyPoints } from './gamification.service.js
 import { prisma } from '../utils/prisma.js';
 import { Resend } from 'resend';
 import { pushService } from './push.service.js';
+import { runContentCalendar } from './content-calendar.service.js';
+import { runGrowthDashboard } from './growth-dashboard.service.js';
+import { runBetaRecruiter } from './beta-recruiter.service.js';
+import { runViralMonitor } from './viral-monitor.service.js';
+import { runAiQualityMonitor } from './ai-quality-monitor.service.js';
+import { runRevenueCostTracker } from './revenue-cost.service.js';
+import { runFounderBrief } from './founder-brief.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -473,5 +480,54 @@ export function initializeScheduler(): void {
     console.log('⏭️  [Scheduler] ENABLE_NUDGE=false — skipping engagement nudger');
   }
 
-  console.log('✅ [Scheduler] All cron jobs registered');
+  // ── Agent 10: Content Calendar — Monday 8am UTC ──────────────────────────
+  cron.schedule('0 8 * * 1', async () => {
+    console.log('📅 [Scheduler] Running content calendar generator...');
+    try { await runContentCalendar(); }
+    catch (err) { console.error('[Scheduler] Content calendar failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Agent 11: Growth Dashboard — Daily 9am UTC ───────────────────────────
+  cron.schedule('0 9 * * *', async () => {
+    console.log('📈 [Scheduler] Running growth dashboard...');
+    try { await runGrowthDashboard(); }
+    catch (err) { console.error('[Scheduler] Growth dashboard failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Agent 12: Beta Recruiter — Wednesday 10am UTC ─────────────────────────
+  cron.schedule('0 10 * * 3', async () => {
+    console.log('🌟 [Scheduler] Running beta recruiter...');
+    try { await runBetaRecruiter(); }
+    catch (err) { console.error('[Scheduler] Beta recruiter failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Agent 13: Viral Loop Monitor — Friday 9am UTC ────────────────────────
+  cron.schedule('0 9 * * 5', async () => {
+    console.log('🔁 [Scheduler] Running viral loop monitor...');
+    try { await runViralMonitor(); }
+    catch (err) { console.error('[Scheduler] Viral monitor failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Agent 14: AI Quality Monitor — Daily 1:30pm UTC ─────────────────────
+  cron.schedule('30 13 * * *', async () => {
+    console.log('🤖 [Scheduler] Running AI quality monitor...');
+    try { await runAiQualityMonitor(); }
+    catch (err) { console.error('[Scheduler] AI quality monitor failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Agent 15: Revenue & Cost Tracker — Monday 9am UTC ───────────────────
+  cron.schedule('0 9 * * 1', async () => {
+    console.log('💰 [Scheduler] Running revenue & cost tracker...');
+    try { await runRevenueCostTracker(); }
+    catch (err) { console.error('[Scheduler] Revenue cost tracker failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Agent 16: Weekly Founder Brief — Sunday 8pm UTC ─────────────────────
+  cron.schedule('0 20 * * 0', async () => {
+    console.log('📋 [Scheduler] Running weekly founder brief...');
+    try { await runFounderBrief(); }
+    catch (err) { console.error('[Scheduler] Founder brief failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16)');
 }
