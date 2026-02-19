@@ -19,6 +19,8 @@ import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community
 import { runSocialMediaManager } from './social-media-manager.service.js';
 import { runAppStoreManager, runAppStoreWeeklySummary } from './appstore-manager.service.js';
 import { runOutreachAgent } from './outreach-agent.service.js';
+import { runFashionTrendCron } from './fashion-trends.service.js';
+import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -488,6 +490,20 @@ export function initializeScheduler(): void {
     console.log('⏭️  [Scheduler] ENABLE_NUDGE=false — skipping engagement nudger');
   }
 
+  // ── Fashion Trend Intelligence — Monday 7am UTC (before content calendar) ──
+  cron.schedule('0 7 * * 1', async () => {
+    console.log('👗 [Scheduler] Running fashion trend cron...');
+    try { await runFashionTrendCron(); }
+    catch (err) { console.error('[Scheduler] Fashion trend cron failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Calibration Snapshot — Sunday 9pm UTC ────────────────────────────────
+  cron.schedule('0 21 * * 0', async () => {
+    console.log('📐 [Scheduler] Running calibration snapshot...');
+    try { await runCalibrationSnapshot(); }
+    catch (err) { console.error('[Scheduler] Calibration snapshot failed:', err); }
+  }, { timezone: 'UTC' });
+
   // ── Agent 10: Content Calendar — Monday 8am UTC ──────────────────────────
   cron.schedule('0 8 * * 1', async () => {
     console.log('📅 [Scheduler] Running content calendar generator...');
@@ -600,5 +616,5 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce)');
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence)');
 }
