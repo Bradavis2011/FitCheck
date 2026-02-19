@@ -13,7 +13,7 @@ interface PostIdea {
   postTime: string;
 }
 
-async function getTrendData(): Promise<{ topStyles: string[]; popularOccasions: string[]; colorTrends: string[] }> {
+export async function getTrendData(): Promise<{ topStyles: string[]; popularOccasions: string[]; colorTrends: string[] }> {
   try {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 

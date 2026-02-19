@@ -98,6 +98,7 @@ model OutfitCheck {
   aiFeedback     Json?     @map("ai_feedback")
   aiScore        Float?    @map("ai_score")
   aiProcessedAt  DateTime? @map("ai_processed_at")
+  promptVersion  String?   @map("prompt_version")
 
   // User rating of feedback
   feedbackHelpful Boolean? @map("feedback_helpful")
@@ -565,6 +566,22 @@ model ChallengeVote {
   @@map("challenge_votes")
   @@index([submissionId])
   @@index([userId])
+}
+
+model FashionTrend {
+  id               String    @id @default(uuid())
+  period           String    @unique  // "2026-W08"
+  region           String    @default("global")
+  seasonalColors   String[]  @map("seasonal_colors")
+  trendingStyles   String[]  @map("trending_styles")
+  keyPieces        String[]  @map("key_pieces")
+  trendingPatterns String[]  @map("trending_patterns")
+  fadingTrends     String[]  @map("fading_trends")
+  rawAnalysis      Json?     @map("raw_analysis")
+  platformTrends   Json?     @map("platform_trends")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("fashion_trends")
 }
 
 // ─── Autonomous Agent Workforce Models ───────────────────────────────────────

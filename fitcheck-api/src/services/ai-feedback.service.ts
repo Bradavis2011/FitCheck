@@ -3,12 +3,16 @@ import { OutfitFeedback, OutfitCheckInput } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
 import { trackServerEvent } from '../lib/posthog.js';
+import { getLatestFashionTrendText } from './fashion-trends.service.js';
 
 // In-memory AI counters (reset on server restart; used by metrics.service for digest)
 let _aiSuccessCount = 0;
 let _aiFallbackCount = 0;
 export function getAiCounters() { return { success: _aiSuccessCount, fallback: _aiFallbackCount }; }
 export function resetAiCounters() { _aiSuccessCount = 0; _aiFallbackCount = 0; }
+
+// Prompt versioning — increment when SYSTEM_PROMPT or analysis logic changes significantly
+export const PROMPT_VERSION = 'v2.0';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -343,20 +347,57 @@ interface UserContext {
   budgetLevel?: string | null;
 }
 
+// ─── Season & Date ────────────────────────────────────────────────────────────
+
+function getSeasonContext(): string {
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1-12
+
+  let season: string;
+  let transition = '';
+
+  if (month === 12 || month === 1 || month === 2) {
+    season = 'Winter';
+    if (month === 2) transition = ', transitioning to Spring';
+  } else if (month >= 3 && month <= 5) {
+    season = 'Spring';
+    if (month === 5) transition = ', transitioning to Summer';
+  } else if (month >= 6 && month <= 8) {
+    season = 'Summer';
+    if (month === 8) transition = ', transitioning to Fall';
+  } else {
+    season = 'Fall';
+    if (month === 11) transition = ', transitioning to Winter';
+  }
+
+  const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return `Current date: ${dateStr} (${season}${transition})`;
+}
+
+// ─── Rating weight helper ─────────────────────────────────────────────────────
+
+function getRatingWeight(feedbackHelpful: boolean | null, feedbackRating: number | null): number {
+  if (feedbackHelpful === false) return 0.3;
+  if (feedbackRating !== null && feedbackRating <= 2) return 0.4;
+  if (feedbackRating !== null && feedbackRating >= 4) return 1.2;
+  return 1.0;
+}
+
+// ─── Calibration ──────────────────────────────────────────────────────────────
+
 async function getCalibrationContext(): Promise<string | null> {
   try {
-    // Find outfits with both AI and community scores
     const calibrationData = await prisma.outfitCheck.findMany({
       where: {
         aiScore: { not: null },
-        communityScoreCount: { gte: 3 }, // At least 3 community votes
+        communityScoreCount: { gte: 3 },
       },
       select: { aiScore: true, communityAvgScore: true },
       take: 100,
       orderBy: { createdAt: 'desc' },
     });
 
-    if (calibrationData.length < 10 || calibrationData.length === 0) return null;
+    if (calibrationData.length < 10) return null;
 
     const avgDelta = calibrationData.reduce((sum, d) => {
       return sum + ((d.aiScore || 0) - (d.communityAvgScore || 0));
@@ -373,7 +414,209 @@ async function getCalibrationContext(): Promise<string | null> {
   }
 }
 
-function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHistory?: string[], calibrationContext?: string | null): string {
+// Per-user calibration: compares this user's AI scores vs community scores on their outfits
+async function getUserCalibrationContext(userId: string): Promise<string | null> {
+  try {
+    const userData = await prisma.outfitCheck.findMany({
+      where: {
+        userId,
+        aiScore: { not: null },
+        communityScoreCount: { gte: 3 },
+      },
+      select: { aiScore: true, communityAvgScore: true },
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (userData.length < 5) return null; // Need enough data for per-user calibration
+
+    const avgDelta = userData.reduce((sum, d) => {
+      return sum + ((d.aiScore || 0) - (d.communityAvgScore || 0));
+    }, 0) / userData.length;
+
+    if (Math.abs(avgDelta) > 0.5) { // Higher threshold than global (0.5 vs 0.3)
+      const direction = avgDelta > 0 ? 'higher' : 'lower';
+      return `For this specific user, your scores run ${Math.abs(avgDelta).toFixed(1)} points ${direction} than community consensus on their outfits specifically.`;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to get user calibration context:', error);
+    return null;
+  }
+}
+
+// Self-correction: if recent ratings are consistently low, adjust tone and approach
+async function getRatingCalibration(userId: string): Promise<string | null> {
+  try {
+    const recentRated = await prisma.outfitCheck.findMany({
+      where: {
+        userId,
+        feedbackRating: { not: null },
+      },
+      select: { feedbackRating: true, feedbackHelpful: true },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (recentRated.length < 3) return null;
+
+    const avgRating = recentRated.reduce((sum, r) => sum + (r.feedbackRating || 0), 0) / recentRated.length;
+    const unhelpfulCount = recentRated.filter(r => r.feedbackHelpful === false).length;
+    const unhelpfulPct = unhelpfulCount / recentRated.length;
+
+    if (avgRating < 3.0 || unhelpfulPct > 0.4) {
+      const issues: string[] = [];
+      if (avgRating < 3.0) issues.push(`average rating ${avgRating.toFixed(1)}/5`);
+      if (unhelpfulPct > 0.4) issues.push(`${Math.round(unhelpfulPct * 100)}% marked unhelpful`);
+      return `This user's recent feedback has rated poorly (${issues.join(', ')}). Adjust your approach: be more specific, practical, and actionable. Fewer general principles — more concrete next steps they can take today.`;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to get rating calibration:', error);
+    return null;
+  }
+}
+
+// ─── Cold-start personalization ───────────────────────────────────────────────
+
+// Profile-based insights when there's no StyleDNA history yet
+function getColdStartInsights(user?: UserContext): string[] {
+  if (!user) return [];
+
+  const insights: string[] = [];
+
+  const colorSeasonMap: Record<string, string> = {
+    spring: 'warm, clear colors like coral, golden yellow, warm peach, and bright greens',
+    summer: 'cool, muted colors like dusty rose, lavender, sage, and powder blue',
+    autumn: 'warm, muted colors like terracotta, mustard, olive, and rust',
+    winter: 'cool, bold colors like icy blue, pure white, black, and jewel tones',
+  };
+
+  if (user.colorSeason) {
+    const season = user.colorSeason.toLowerCase();
+    const match = Object.entries(colorSeasonMap).find(([key]) => season.includes(key));
+    if (match) {
+      insights.push(`${user.colorSeason} color season — flattering palette: ${match[1]}`);
+    }
+  }
+
+  const bodyTypeMap: Record<string, string> = {
+    petite: 'monochromatic looks, high-waisted bottoms, and vertical lines to elongate',
+    tall: 'bold patterns, wide-leg silhouettes, and horizontal details work well',
+    athletic: 'feminine details, wrap styles, and belted looks to define the waist',
+    curvy: 'wrap styles, empire waists, V-necks, and well-fitted cuts',
+    pear: 'A-line skirts, wide-neck tops, darker bottoms, and embellished tops',
+    apple: 'empire waists, V-necks, structured blazers, and straight-leg pants',
+    rectangular: 'peplum tops, belted looks, and ruffles/texture to create curves',
+    hourglass: 'fitted cuts, wrap dresses, and tailored pieces that follow natural curves',
+  };
+
+  if (user.bodyType) {
+    const bodyType = user.bodyType.toLowerCase();
+    const match = Object.entries(bodyTypeMap).find(([key]) => bodyType.includes(key));
+    if (match) {
+      insights.push(`${user.bodyType} body type — proportion tips: ${match[1]}`);
+    }
+  }
+
+  if (user.fashionGoals && user.fashionGoals.length > 0) {
+    const goals = user.fashionGoals.slice(0, 2);
+    insights.push(`User's fashion goals: ${goals.join(', ')} — frame advice around these aspirations`);
+  }
+
+  if (user.fitPreference) {
+    insights.push(`Preferred fit style: ${user.fitPreference} — honor this preference in suggestions`);
+  }
+
+  return insights;
+}
+
+// Aggregate insights from similar users (matching body type and/or color season)
+async function getSimilarUserInsights(userId: string, user?: UserContext): Promise<string[]> {
+  if (!user || (!user.bodyType && !user.colorSeason)) return [];
+
+  try {
+    const whereConditions: any[] = [{ id: { not: userId } }];
+    if (user.bodyType) whereConditions.push({ bodyType: user.bodyType });
+    if (user.colorSeason) whereConditions.push({ colorSeason: user.colorSeason });
+
+    const similarUsers = await prisma.user.findMany({
+      where: { AND: whereConditions },
+      select: { id: true },
+      take: 20,
+    });
+
+    if (similarUsers.length === 0) return [];
+
+    const similarUserIds = similarUsers.map(u => u.id);
+
+    const topDNAs = await prisma.styleDNA.findMany({
+      where: { userId: { in: similarUserIds } },
+      include: { outfitCheck: { select: { aiScore: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    const harmonyScores = new Map<string, { sum: number; count: number }>();
+    const archetypeScores = new Map<string, { sum: number; count: number }>();
+
+    for (const dna of topDNAs) {
+      if (!dna.outfitCheck.aiScore) continue;
+
+      if (dna.colorHarmony) {
+        const entry = harmonyScores.get(dna.colorHarmony) || { sum: 0, count: 0 };
+        entry.sum += dna.outfitCheck.aiScore;
+        entry.count++;
+        harmonyScores.set(dna.colorHarmony, entry);
+      }
+
+      for (const arch of dna.styleArchetypes) {
+        const entry = archetypeScores.get(arch) || { sum: 0, count: 0 };
+        entry.sum += dna.outfitCheck.aiScore;
+        entry.count++;
+        archetypeScores.set(arch, entry);
+      }
+    }
+
+    const insights: string[] = [];
+
+    const topHarmony = [...harmonyScores.entries()]
+      .filter(([_, v]) => v.count >= 2)
+      .sort((a, b) => b[1].sum / b[1].count - a[1].sum / a[1].count)[0];
+
+    if (topHarmony) {
+      insights.push(`Users with similar profile score best with ${topHarmony[0]} color combinations`);
+    }
+
+    const topArchetype = [...archetypeScores.entries()]
+      .filter(([_, v]) => v.count >= 2)
+      .sort((a, b) => b[1].sum / b[1].count - a[1].sum / a[1].count)[0];
+
+    if (topArchetype) {
+      insights.push(`Top performing style for users with similar profile: ${topArchetype[0]}`);
+    }
+
+    return insights;
+  } catch (error) {
+    console.error('Failed to get similar user insights:', error);
+    return [];
+  }
+}
+
+// ─── Prompt builder ───────────────────────────────────────────────────────────
+
+function buildUserPrompt(
+  input: OutfitCheckInput,
+  user?: UserContext,
+  feedbackHistory?: string[],
+  calibrationContext?: string | null,
+  options?: {
+    dateContext?: string;
+    trendContext?: string | null;
+    userCalibrationContext?: string | null;
+    ratingCalibration?: string | null;
+  }
+): string {
   const parts = [
     'Analyze this outfit photo.',
     '',
@@ -390,7 +633,6 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
   if (user) {
     parts.push('', 'User Style Profile:');
 
-    // Physical attributes
     if (user.height) {
       parts.push(`- Height: ${user.height} (consider proportion guidelines)`);
     }
@@ -403,7 +645,6 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
       parts.push(`- Color season: ${user.colorSeason} (recommend flattering color tones)`);
     }
 
-    // Preferences
     if (user.fitPreference) {
       parts.push(`- Fit preference: ${user.fitPreference} (honor their comfort level)`);
     }
@@ -420,11 +661,9 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
       parts.push(`- Budget: ${user.budgetLevel} (suggest appropriate alternatives)`);
     }
 
-    // Style preferences from JSON
     if (user.stylePreferences) {
       const prefs = user.stylePreferences;
 
-      // New structure from style-preferences screen
       if (prefs.styles?.length > 0) {
         parts.push(`- Style categories: ${prefs.styles.join(', ')} (align recommendations with their aesthetic)`);
       }
@@ -460,17 +699,37 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
     }
   }
 
-  // Add feedback history insights
+  // Add feedback history insights (weighted by ratings)
   if (feedbackHistory && feedbackHistory.length > 0) {
-    parts.push('', 'Past Feedback Patterns:');
+    parts.push('', 'Past Feedback Patterns (from this user\'s history):');
     feedbackHistory.forEach(insight => {
       parts.push(`- ${insight}`);
     });
   }
 
-  // Add calibration context
+  // Date and season context
+  if (options?.dateContext) {
+    parts.push('', options.dateContext);
+  }
+
+  // Current fashion trend context
+  if (options?.trendContext) {
+    parts.push('', options.trendContext);
+  }
+
+  // Global calibration
   if (calibrationContext) {
-    parts.push('', `Calibration note: ${calibrationContext}`);
+    parts.push('', `Global calibration note: ${calibrationContext}`);
+  }
+
+  // Per-user calibration (overrides global when present)
+  if (options?.userCalibrationContext) {
+    parts.push(`Per-user calibration: ${options.userCalibrationContext}`);
+  }
+
+  // Self-correction based on user's rating history
+  if (options?.ratingCalibration) {
+    parts.push('', `Feedback quality note: ${options.ratingCalibration}`);
   }
 
   parts.push('', 'Provide your analysis as JSON, using all context above to personalize recommendations.');
@@ -478,7 +737,8 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
   return parts.join('\n');
 }
 
-// Attempt to repair a truncated JSON string (unclosed strings/arrays/objects)
+// ─── JSON repair utilities ────────────────────────────────────────────────────
+
 function repairTruncatedJSON(raw: string): string | null {
   let s = raw.trim();
 
@@ -515,7 +775,6 @@ function repairTruncatedJSON(raw: string): string | null {
   try { JSON.parse(s); return s; } catch { return null; }
 }
 
-// Fill any missing required fields on a partially-repaired feedback object
 function fillMissingFeedbackFields(partial: any): OutfitFeedback {
   return {
     overallScore: typeof partial.overallScore === 'number' ? partial.overallScore : 6,
@@ -550,64 +809,69 @@ function fillMissingFeedbackFields(partial: any): OutfitFeedback {
   };
 }
 
-// Helper to strip markdown code fences from JSON responses
 function stripMarkdownFences(text: string): string {
-  // Remove ```json and ``` markers if present
   return text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
 }
 
-// Get user's past feedback patterns to personalize advice
+// ─── Style insights (rating-weighted) ────────────────────────────────────────
+
 async function getStyleInsights(userId: string): Promise<string[]> {
   try {
     const insights: string[] = [];
 
     const styleDNAs = await prisma.styleDNA.findMany({
       where: { userId },
-      include: { outfitCheck: { select: { aiScore: true, feedbackHelpful: true, occasions: true } } },
+      include: {
+        outfitCheck: {
+          select: { aiScore: true, feedbackHelpful: true, feedbackRating: true, occasions: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
-    if (styleDNAs.length < 3) return insights; // Need enough data
+    if (styleDNAs.length < 3) return insights;
 
-    // 1. Best scoring color combinations
-    const byColorHarmony = new Map<string, number[]>();
+    // 1. Best scoring color combinations (weighted by user ratings)
+    const byColorHarmony = new Map<string, { weightedSum: number; totalWeight: number; count: number }>();
     styleDNAs.forEach(dna => {
       if (dna.colorHarmony && dna.outfitCheck.aiScore) {
-        const scores = byColorHarmony.get(dna.colorHarmony) || [];
-        scores.push(dna.outfitCheck.aiScore);
-        byColorHarmony.set(dna.colorHarmony, scores);
+        const weight = getRatingWeight(dna.outfitCheck.feedbackHelpful, dna.outfitCheck.feedbackRating);
+        const entry = byColorHarmony.get(dna.colorHarmony) || { weightedSum: 0, totalWeight: 0, count: 0 };
+        entry.weightedSum += dna.outfitCheck.aiScore * weight;
+        entry.totalWeight += weight;
+        entry.count++;
+        byColorHarmony.set(dna.colorHarmony, entry);
       }
     });
     const bestHarmony = [...byColorHarmony.entries()]
-      .filter(([_, scores]) => scores.length > 0)
-      .map(([harmony, scores]) => ({ harmony, avg: scores.reduce((a, b) => a + b) / scores.length, count: scores.length }))
-      .filter(h => h.count >= 2)
+      .filter(([_, e]) => e.count >= 2 && e.totalWeight > 0)
+      .map(([harmony, e]) => ({ harmony, avg: e.weightedSum / e.totalWeight, count: e.count }))
       .sort((a, b) => b.avg - a.avg);
     if (bestHarmony.length > 0) {
-      insights.push(`User's ${bestHarmony[0].harmony} color outfits score highest (avg ${bestHarmony[0].avg.toFixed(1)})`);
+      insights.push(`User's ${bestHarmony[0].harmony} color outfits score highest (weighted avg ${bestHarmony[0].avg.toFixed(1)})`);
     }
 
-    // 2. Strongest and weakest sub-scores
-    const avgScores = {
-      color: 0, proportion: 0, fit: 0, coherence: 0, count: 0,
-    };
+    // 2. Strongest and weakest sub-scores (weighted)
+    const avgScores = { colorSum: 0, proportionSum: 0, fitSum: 0, coherenceSum: 0, totalWeight: 0, count: 0 };
     styleDNAs.forEach(dna => {
       if (dna.colorScore && dna.proportionScore && dna.fitScore && dna.coherenceScore) {
-        avgScores.color += dna.colorScore;
-        avgScores.proportion += dna.proportionScore;
-        avgScores.fit += dna.fitScore;
-        avgScores.coherence += dna.coherenceScore;
+        const weight = getRatingWeight(dna.outfitCheck.feedbackHelpful, dna.outfitCheck.feedbackRating);
+        avgScores.colorSum += dna.colorScore * weight;
+        avgScores.proportionSum += dna.proportionScore * weight;
+        avgScores.fitSum += dna.fitScore * weight;
+        avgScores.coherenceSum += dna.coherenceScore * weight;
+        avgScores.totalWeight += weight;
         avgScores.count++;
       }
     });
-    if (avgScores.count >= 3) {
-      const n = avgScores.count;
+    if (avgScores.count >= 3 && avgScores.totalWeight > 0) {
+      const w = avgScores.totalWeight;
       const dimensions = [
-        { name: 'color coordination', avg: avgScores.color / n },
-        { name: 'proportions', avg: avgScores.proportion / n },
-        { name: 'fit', avg: avgScores.fit / n },
-        { name: 'style coherence', avg: avgScores.coherence / n },
+        { name: 'color coordination', avg: avgScores.colorSum / w },
+        { name: 'proportions', avg: avgScores.proportionSum / w },
+        { name: 'fit', avg: avgScores.fitSum / w },
+        { name: 'style coherence', avg: avgScores.coherenceSum / w },
       ].sort((a, b) => b.avg - a.avg);
       insights.push(`Strongest area: ${dimensions[0].name} (avg ${dimensions[0].avg.toFixed(1)})`);
       insights.push(`Growth area: ${dimensions[3].name} (avg ${dimensions[3].avg.toFixed(1)}) - focus improvement here`);
@@ -625,21 +889,23 @@ async function getStyleInsights(userId: string): Promise<string[]> {
       insights.push(`User's dominant style: ${topArchetype[0]} (${topArchetype[1]} of last ${styleDNAs.length} outfits)`);
     }
 
-    // 4. Favorite colors (most frequently used that score well)
-    const colorScores = new Map<string, { total: number; count: number }>();
+    // 4. Best-performing colors (weighted by user ratings)
+    const colorScores = new Map<string, { weightedTotal: number; totalWeight: number; count: number }>();
     styleDNAs.forEach(dna => {
       if (dna.outfitCheck.aiScore) {
+        const weight = getRatingWeight(dna.outfitCheck.feedbackHelpful, dna.outfitCheck.feedbackRating);
         dna.dominantColors.forEach(color => {
-          const entry = colorScores.get(color) || { total: 0, count: 0 };
-          entry.total += dna.outfitCheck.aiScore!;
+          const entry = colorScores.get(color) || { weightedTotal: 0, totalWeight: 0, count: 0 };
+          entry.weightedTotal += dna.outfitCheck.aiScore! * weight;
+          entry.totalWeight += weight;
           entry.count++;
           colorScores.set(color, entry);
         });
       }
     });
     const topColors = [...colorScores.entries()]
-      .filter(([_, v]) => v.count >= 2)
-      .map(([color, v]) => ({ color, avg: v.total / v.count, count: v.count }))
+      .filter(([_, v]) => v.count >= 2 && v.totalWeight > 0)
+      .map(([color, v]) => ({ color, avg: v.weightedTotal / v.totalWeight, count: v.count }))
       .sort((a, b) => b.avg - a.avg)
       .slice(0, 3);
     if (topColors.length > 0) {
@@ -652,6 +918,8 @@ async function getStyleInsights(userId: string): Promise<string[]> {
     return [];
   }
 }
+
+// ─── Main analysis ────────────────────────────────────────────────────────────
 
 export async function analyzeOutfit(
   outfitCheckId: string,
@@ -721,9 +989,12 @@ export async function analyzeOutfit(
     };
   }
 
-  // Get userId from outfit check to fetch feedback history
   let feedbackHistory: string[] = [];
   let calibrationContext: string | null = null;
+  let userCalibrationContext: string | null = null;
+  let ratingCalibration: string | null = null;
+  let trendContext: string | null = null;
+
   try {
     const outfitCheck = await prisma.outfitCheck.findUnique({
       where: { id: outfitCheckId },
@@ -732,19 +1003,35 @@ export async function analyzeOutfit(
 
     if (outfitCheck) {
       feedbackHistory = await getStyleInsights(outfitCheck.userId);
-      calibrationContext = await getCalibrationContext();
+
+      // Cold-start: when no StyleDNA history, use profile + similar users
+      if (feedbackHistory.length === 0) {
+        const coldStart = getColdStartInsights(user);
+        const similarInsights = await getSimilarUserInsights(outfitCheck.userId, user);
+        feedbackHistory = [...coldStart, ...similarInsights];
+        if (feedbackHistory.length > 0) {
+          console.log(`[AI] Cold-start insights injected (${feedbackHistory.length} items)`);
+        }
+      }
+
+      [calibrationContext, userCalibrationContext, ratingCalibration, trendContext] = await Promise.all([
+        getCalibrationContext(),
+        getUserCalibrationContext(outfitCheck.userId),
+        getRatingCalibration(outfitCheck.userId),
+        getLatestFashionTrendText(),
+      ]);
     }
   } catch (error) {
-    console.error('Failed to load feedback history:', error);
-    // Continue without history if this fails
+    console.error('Failed to load personalization context:', error);
+    // Continue without personalization context
   }
 
+  const dateContext = getSeasonContext();
   const maxRetries = 3;
   const aiStartTime = Date.now();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Build tier-specific system instruction
       const tierSuffix = hasPriorityProcessing ? PREMIUM_PROMPT_SUFFIX : STANDARD_PROMPT_SUFFIX;
       const fullSystemPrompt = SYSTEM_PROMPT + '\n\n' + tierSuffix;
 
@@ -752,7 +1039,6 @@ export async function analyzeOutfit(
         model: 'gemini-2.5-flash',
         systemInstruction: fullSystemPrompt,
         generationConfig: {
-          // Priority processing (Plus/Pro): lower temperature for precision, higher token budget
           temperature: hasPriorityProcessing ? 0.3 : 0.5,
           maxOutputTokens: hasPriorityProcessing ? 8192 : 4096,
           responseMimeType: 'application/json',
@@ -760,13 +1046,9 @@ export async function analyzeOutfit(
         },
       });
 
-      // Prepare image data for Gemini
       let imagePart;
       if (input.imageBase64) {
-        // Strip data URL prefix if present (e.g., "data:image/jpeg;base64,")
         const cleanBase64 = input.imageBase64.replace(/^data:image\/\w+;base64,/, '');
-
-        // Base64 image data
         imagePart = {
           inlineData: {
             mimeType: 'image/jpeg',
@@ -774,7 +1056,6 @@ export async function analyzeOutfit(
           },
         };
       } else if (input.imageUrl) {
-        // Fetch image from S3/URL and convert to base64 for Gemini inline data
         const fetchResponse = await fetch(input.imageUrl);
         if (!fetchResponse.ok) {
           throw new Error(`Failed to fetch image from URL: ${fetchResponse.status}`);
@@ -793,7 +1074,12 @@ export async function analyzeOutfit(
       }
 
       const result = await model.generateContent([
-        buildUserPrompt(input, user, feedbackHistory, calibrationContext),
+        buildUserPrompt(input, user, feedbackHistory, calibrationContext, {
+          dateContext,
+          trendContext,
+          userCalibrationContext,
+          ratingCalibration,
+        }),
         imagePart,
       ]);
 
@@ -804,15 +1090,12 @@ export async function analyzeOutfit(
         throw new Error('No response from AI');
       }
 
-      // Detect degeneration loop (repeated phrases 4+ times)
       if (/(.{20,})\1{3,}/.test(content)) {
         throw new Error('AI response contains degeneration loop, retrying');
       }
 
-      // Parse JSON response (strip any markdown fences first)
       const cleanContent = stripMarkdownFences(content);
 
-      // Try to parse JSON - if it fails, attempt repair before giving up
       let feedback: OutfitFeedback;
       try {
         feedback = JSON.parse(cleanContent) as OutfitFeedback;
@@ -834,7 +1117,6 @@ export async function analyzeOutfit(
         }
       }
 
-      // Validate response structure
       if (
         typeof feedback.overallScore !== 'number' ||
         !feedback.summary ||
@@ -843,17 +1125,16 @@ export async function analyzeOutfit(
         throw new Error('Invalid feedback structure');
       }
 
-      // Update database with feedback
       await prisma.outfitCheck.update({
         where: { id: outfitCheckId },
         data: {
           aiFeedback: feedback as any,
           aiScore: feedback.overallScore,
           aiProcessedAt: new Date(),
+          promptVersion: PROMPT_VERSION,
         },
       });
 
-      // Notify user that analysis is complete
       if (user?.id) {
         const score = feedback.overallScore;
         const emoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
@@ -869,10 +1150,8 @@ export async function analyzeOutfit(
         }).catch((err) => console.error('Failed to send analysis notification:', err));
       }
 
-      // Save Style DNA to separate table for querying
       if (feedback.styleDNA) {
         try {
-          // Fetch userId from outfit check for StyleDNA record
           const outfit = await prisma.outfitCheck.findUnique({
             where: { id: outfitCheckId },
             select: { userId: true },
@@ -903,7 +1182,6 @@ export async function analyzeOutfit(
           });
         } catch (styleDNAError) {
           console.error('Failed to save Style DNA:', styleDNAError);
-          // Continue even if StyleDNA save fails
         }
       }
 
@@ -913,6 +1191,10 @@ export async function analyzeOutfit(
         fallback: false,
         latency_ms: Date.now() - aiStartTime,
         model: 'gemini-2.5-flash',
+        prompt_version: PROMPT_VERSION,
+        has_trend_context: !!trendContext,
+        has_user_calibration: !!userCalibrationContext,
+        is_cold_start: feedbackHistory.length > 0 && feedbackHistory[0].includes('body type'),
       });
 
       return feedback;
@@ -920,13 +1202,12 @@ export async function analyzeOutfit(
       console.error(`AI feedback attempt ${attempt} failed:`, error);
 
       if (attempt < maxRetries) {
-        // Exponential backoff
         await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
     }
   }
 
-  // If all retries failed, return a fallback response
+  // Fallback response if all retries failed
   console.error('All AI feedback attempts failed, using fallback');
   const fallbackFeedback: OutfitFeedback = {
     overallScore: 7,
@@ -971,10 +1252,10 @@ export async function analyzeOutfit(
       aiFeedback: fallbackFeedback as any,
       aiScore: fallbackFeedback.overallScore,
       aiProcessedAt: new Date(),
+      promptVersion: PROMPT_VERSION,
     },
   });
 
-  // Notify user even for fallback (analysis did complete)
   if (user?.id) {
     createNotification({
       userId: user.id,
@@ -992,19 +1273,25 @@ export async function analyzeOutfit(
     fallback: true,
     latency_ms: Date.now() - aiStartTime,
     model: 'gemini-2.5-flash',
+    prompt_version: PROMPT_VERSION,
   });
 
   return fallbackFeedback;
 }
 
+// ─── Follow-up conversations (with memory) ────────────────────────────────────
+
 export async function handleFollowUpQuestion(
   outfitCheckId: string,
   question: string
 ): Promise<string> {
-  // Get original outfit check and feedback
   const outfitCheck = await prisma.outfitCheck.findUnique({
     where: { id: outfitCheckId },
-    include: { followUps: true },
+    include: {
+      followUps: {
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   });
 
   if (!outfitCheck) {
@@ -1014,14 +1301,35 @@ export async function handleFollowUpQuestion(
   const previousFeedback = outfitCheck.aiFeedback as unknown as OutfitFeedback;
   const previousScore = outfitCheck.aiScore;
 
-  const systemPrompt = `You are continuing a conversation about an outfit you previously analyzed.
+  // Build outfit context for system prompt
+  const outfitContextLines = [
+    outfitCheck.occasions?.length ? `Occasions: ${outfitCheck.occasions.join(', ')}` : null,
+    outfitCheck.setting ? `Setting: ${outfitCheck.setting}` : null,
+    outfitCheck.vibe ? `Desired vibe: ${outfitCheck.vibe}` : null,
+    outfitCheck.weather ? `Weather: ${outfitCheck.weather}` : null,
+  ].filter((l): l is string => l !== null);
 
-Previous analysis summary: ${previousFeedback?.summary || 'N/A'}
-Score given: ${previousScore}/10
+  const systemPrompt = `You are a personal stylist continuing a conversation about an outfit you previously analyzed.
 
-The user has a follow-up question. Answer helpfully and specifically, keeping your warm, supportive tone. If they ask for product recommendations, suggest general categories/styles rather than specific brands (unless they ask).
+Original outfit context:
+${outfitContextLines.length > 0 ? outfitContextLines.join('\n') : 'No additional context provided'}
+
+Your previous analysis:
+- Score: ${previousScore || 'N/A'}/10
+- Summary: ${previousFeedback?.summary || 'N/A'}
+- What worked: ${previousFeedback?.whatsWorking?.map(w => w.point).join(', ') || 'N/A'}
+- Suggestions: ${previousFeedback?.consider?.map(c => c.point).join(', ') || 'N/A'}
+
+Answer follow-up questions helpfully and specifically. Keep your warm, supportive tone. For product recommendations, suggest general categories/styles rather than specific brands unless asked.
 
 Keep responses concise (2-4 sentences) but helpful.`;
+
+  // Build conversation history from prior follow-ups (last 5 Q&A turns)
+  const recentFollowUps = outfitCheck.followUps.slice(-5);
+  const history = recentFollowUps.flatMap(fu => [
+    { role: 'user' as const, parts: [{ text: fu.userQuestion }] },
+    { role: 'model' as const, parts: [{ text: fu.aiResponse || '' }] },
+  ]);
 
   try {
     const model = genAI.getGenerativeModel({
@@ -1029,15 +1337,15 @@ Keep responses concise (2-4 sentences) but helpful.`;
       systemInstruction: systemPrompt,
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 800, // Increased from 300 to allow full responses
+        maxOutputTokens: 800,
       },
     });
 
-    const result = await model.generateContent(question);
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(question);
     const response = await result.response;
     const answer = response.text() || 'I apologize, but I could not generate a response. Please try again.';
 
-    // Save follow-up to database
     await prisma.followUp.create({
       data: {
         outfitCheckId,
