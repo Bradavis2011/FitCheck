@@ -28,17 +28,21 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState('');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [pendingReset, setPendingReset] = useState(false);
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
-  // Intercept Android hardware back during email verification to return to sign-up form
+  // Intercept Android hardware back during email verification or password reset
   useEffect(() => {
-    if (!pendingVerification) return;
+    if (!pendingVerification && !isForgotPassword) return;
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      setPendingVerification(false);
-      setCode('');
-      return true; // Prevent default (app close)
+      if (pendingVerification) { setPendingVerification(false); setCode(''); }
+      if (isForgotPassword) { setIsForgotPassword(false); setPendingReset(false); setResetCode(''); setNewPassword(''); }
+      return true;
     });
     return () => handler.remove();
-  }, [pendingVerification]);
+  }, [pendingVerification, isForgotPassword]);
 
   const handleSignIn = async () => {
     if (!signInLoaded) return;
@@ -132,6 +136,51 @@ export default function LoginScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!signInLoaded || !email) {
+      Alert.alert('Error', 'Please enter your email address first');
+      return;
+    }
+    setLoading(true);
+    try {
+      await signIn.create({ strategy: 'reset_password_email_code', identifier: email });
+      setPendingReset(true);
+    } catch (error: any) {
+      Alert.alert('Error', error.errors?.[0]?.message || 'Failed to send reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!signInLoaded || !resetCode || !newPassword) {
+      Alert.alert('Error', 'Please enter the code and a new password');
+      return;
+    }
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code: resetCode,
+        password: newPassword,
+      });
+      if (result.status === 'complete') {
+        await setActiveSignIn({ session: result.createdSessionId });
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'Reset failed. Please try again.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.errors?.[0]?.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (pendingVerification) {
       handleVerifyEmail();
@@ -141,6 +190,95 @@ export default function LoginScreen() {
       handleSignIn();
     }
   };
+
+  // ── Forgot password: enter reset code + new password ──────────────────────
+  if (isForgotPassword && pendingReset) {
+    return (
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <OrThisLogo size={42} />
+            <Text style={styles.subtitle}>Check your email for a reset code</Text>
+          </View>
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Reset Code</Text>
+              <TextInput
+                style={styles.input}
+                value={resetCode}
+                onChangeText={setResetCode}
+                placeholder="6-digit code"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>New Password</Text>
+              <TextInput
+                style={styles.input}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="Min 8 characters"
+                placeholderTextColor={Colors.textMuted}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleResetPassword}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>{loading ? 'Resetting...' : 'Reset Password'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.switchButton} onPress={() => { setIsForgotPassword(false); setPendingReset(false); setResetCode(''); setNewPassword(''); }}>
+              <Text style={styles.switchText}>Back to sign in</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // ── Forgot password: enter email ───────────────────────────────────────────
+  if (isForgotPassword) {
+    return (
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <OrThisLogo size={42} />
+            <Text style={styles.subtitle}>Enter your email to reset your password</Text>
+          </View>
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="your@email.com"
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleForgotPassword}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Code'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.switchButton} onPress={() => setIsForgotPassword(false)}>
+              <Text style={styles.switchText}>Back to sign in</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   if (pendingVerification) {
     return (
@@ -268,6 +406,15 @@ export default function LoginScreen() {
               {loading ? 'Please wait...' : isRegister ? 'Sign Up' : 'Sign In'}
             </Text>
           </TouchableOpacity>
+
+          {!isRegister && (
+            <TouchableOpacity
+              style={styles.switchButton}
+              onPress={() => setIsForgotPassword(true)}
+            >
+              <Text style={styles.switchText}>Forgot password?</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.switchButton}
