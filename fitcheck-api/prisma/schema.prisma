@@ -567,6 +567,121 @@ model ChallengeVote {
   @@index([userId])
 }
 
+// ─── Autonomous Agent Workforce Models ───────────────────────────────────────
+
+model AgentAction {
+  id          String    @id @default(uuid())
+  agent       String
+  actionType  String    @map("action_type")
+  riskLevel   String    @default("low") @map("risk_level")
+  status      String    @default("pending") // "pending", "approved", "executed", "rejected", "failed"
+  payload     Json
+  result      Json?
+  reviewedBy  String?   @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  executedAt  DateTime? @map("executed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("agent_actions")
+  @@index([agent, status])
+  @@index([status, createdAt])
+  @@index([riskLevel, status])
+}
+
+model AgentConfig {
+  id               String    @id @default(uuid())
+  agent            String    @unique
+  enabled          Boolean   @default(true)
+  maxActionsPerDay Int       @default(50) @map("max_actions_per_day")
+  maxActionsPerHour Int      @default(10) @map("max_actions_per_hour")
+  autoApproveRisk  String    @default("medium") @map("auto_approve_risk") // max risk level to auto-approve
+  config           Json      @default("{}")
+  lastRunAt        DateTime? @map("last_run_at")
+  lastError        String?   @map("last_error")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@map("agent_configs")
+}
+
+model EmailSequence {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  sequence    String    // "welcome", "onboarding", "reengagement", "upgrade", "churn_prevention"
+  currentStep Int       @default(0) @map("current_step")
+  status      String    @default("active") // "active", "completed", "cancelled", "paused"
+  startedAt   DateTime  @default(now()) @map("started_at")
+  nextSendAt  DateTime? @map("next_send_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@map("email_sequences")
+  @@unique([userId, sequence])
+  @@index([status, nextSendAt])
+}
+
+model EmailEvent {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  sequence String
+  step     Int
+  subject  String
+  status   String   @default("sent") // "sent", "delivered", "opened", "clicked", "bounced"
+  sentAt   DateTime @default(now()) @map("sent_at")
+
+  @@map("email_events")
+  @@index([userId, sequence])
+}
+
+model ConversionSignal {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  signalType String   @map("signal_type") // "hit_daily_limit", "used_follow_up", "high_engagement", "loyal_free"
+  strength   Float
+  actedOn    Boolean  @default(false) @map("acted_on")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("conversion_signals")
+  @@index([userId, actedOn])
+  @@index([signalType, createdAt])
+}
+
+model SocialPost {
+  id           String    @id @default(uuid())
+  platform     String    // "twitter", "instagram", "tiktok"
+  content      String    @db.Text
+  mediaUrl     String?   @map("media_url")
+  hashtags     String[]
+  status       String    @default("draft") // "draft", "approved", "posted", "rejected"
+  scheduledFor DateTime? @map("scheduled_for")
+  postedAt     DateTime? @map("posted_at")
+  externalId   String?   @map("external_id")
+  engagement   Json?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("social_posts")
+  @@index([status, scheduledFor])
+}
+
+model AppReview {
+  id          String    @id @default(uuid())
+  store       String    // "apple", "google"
+  externalId  String    @unique @map("external_id")
+  rating      Int
+  title       String?
+  body        String?   @db.Text
+  author      String?
+  draftReply  String?   @db.Text @map("draft_reply")
+  replyStatus String    @default("pending") @map("reply_status") // "pending", "approved", "posted", "skipped"
+  postedAt    DateTime? @map("posted_at")
+  reviewDate  DateTime  @map("review_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("app_reviews")
+  @@index([store, replyStatus])
+  @@index([rating, createdAt])
+}
+
+// ─── End Agent Workforce Models ───────────────────────────────────────────────
+
 model DailyMetricsSnapshot {
   id             String   @id @default(uuid())
   date           DateTime @unique @db.Date // The date this snapshot covers (UTC midnight)

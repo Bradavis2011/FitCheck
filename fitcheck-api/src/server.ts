@@ -30,6 +30,7 @@ import { isConfigured as isS3Configured } from './services/s3.service.js';
 import { initializeScheduler } from './services/scheduler.service.js';
 import { shutdownPostHog } from './lib/posthog.js';
 import adminRoutes from './routes/admin.routes.js';
+import agentAdminRoutes from './routes/agent-admin.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -109,6 +110,7 @@ app.use('/api/wardrobe', wardrobeRoutes);
 // app.use('/api/events', eventRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/agents', agentAdminRoutes);
 
 // 404 handler
 app.use((req, res) => {
