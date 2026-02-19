@@ -245,6 +245,26 @@ SCORING GUIDE (use the full 1-10 range naturally):
 
 IMPORTANT: Use the FULL scoring range based on actual quality. Don't default to 7-8. A typical casual outfit might be 5-6, a well-thought-out look 7-8, only exceptional outfits deserve 9-10. Be honest and differentiate - users need varied scores to understand progress.`;
 
+// Standard tier prompt suffix — keeps responses within 4096 tokens
+const STANDARD_PROMPT_SUFFIX = `RESPONSE LENGTH (Standard tier):
+- "point": Brief title, 3-7 words max
+- "detail": Exactly 1 sentence, specific and actionable
+- "summary": 1 sentence, under 20 words
+- quickFixes "suggestion"/"impact": Under 12 words each
+- "notes" in occasionMatch: 1 sentence
+- Aim for 2 items in whatsWorking, 2 in consider, 1-2 quickFixes
+- Be specific and valuable — just concise`;
+
+// Premium tier prompt suffix — rich, educational responses
+const PREMIUM_PROMPT_SUFFIX = `RESPONSE LENGTH (Premium tier):
+- "point": Descriptive title, 5-10 words
+- "detail": 2-3 sentences with fashion principles cited and personalized reasoning
+- "summary": 1-2 sentences capturing the full analysis
+- quickFixes: Include reasoning for each suggestion
+- "notes": 2-3 sentences with dress code references
+- Provide 3 items in whatsWorking, 2-3 in consider, 2-3 quickFixes
+- Be thorough and educational — explain the "why" behind each point`;
+
 // Export response schema for training/testing
 export const RESPONSE_SCHEMA = {
   type: SchemaType.OBJECT,
@@ -458,6 +478,78 @@ function buildUserPrompt(input: OutfitCheckInput, user?: UserContext, feedbackHi
   return parts.join('\n');
 }
 
+// Attempt to repair a truncated JSON string (unclosed strings/arrays/objects)
+function repairTruncatedJSON(raw: string): string | null {
+  let s = raw.trim();
+
+  // Step 1: Close unclosed string if cursor is mid-string
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (escaped) { escaped = false; continue; }
+    if (c === '\\') { escaped = true; continue; }
+    if (c === '"') inString = !inString;
+  }
+  if (inString) s += '"';
+
+  // Step 2: Close unclosed brackets/braces
+  const stack: string[] = [];
+  inString = false;
+  escaped = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (escaped) { escaped = false; continue; }
+    if (c === '\\') { escaped = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if (c === '{' || c === '[') stack.push(c);
+      else if (c === '}' && stack[stack.length - 1] === '{') stack.pop();
+      else if (c === ']' && stack[stack.length - 1] === '[') stack.pop();
+    }
+  }
+  for (let i = stack.length - 1; i >= 0; i--) {
+    s += stack[i] === '{' ? '}' : ']';
+  }
+
+  try { JSON.parse(s); return s; } catch { return null; }
+}
+
+// Fill any missing required fields on a partially-repaired feedback object
+function fillMissingFeedbackFields(partial: any): OutfitFeedback {
+  return {
+    overallScore: typeof partial.overallScore === 'number' ? partial.overallScore : 6,
+    summary: partial.summary || 'Your outfit has been analyzed.',
+    whatsWorking: Array.isArray(partial.whatsWorking) && partial.whatsWorking.length > 0
+      ? partial.whatsWorking
+      : [{ point: 'Overall look', detail: 'Your outfit has a cohesive feel.' }],
+    consider: Array.isArray(partial.consider) && partial.consider.length > 0
+      ? partial.consider
+      : [{ point: 'Resubmit for full feedback', detail: 'Analysis was partially completed — try again for complete detail.' }],
+    quickFixes: Array.isArray(partial.quickFixes) ? partial.quickFixes : [],
+    occasionMatch: partial.occasionMatch && typeof partial.occasionMatch.score === 'number'
+      ? partial.occasionMatch
+      : { score: 6, notes: 'Appropriate for the occasion.' },
+    styleDNA: partial.styleDNA && Array.isArray(partial.styleDNA.dominantColors)
+      ? partial.styleDNA
+      : {
+          dominantColors: [],
+          colorHarmony: 'neutral',
+          colorCount: 0,
+          formalityLevel: 3,
+          styleArchetypes: [],
+          silhouetteType: 'balanced',
+          garments: [],
+          patterns: [],
+          textures: [],
+          colorScore: 6,
+          proportionScore: 6,
+          fitScore: 6,
+          coherenceScore: 6,
+        },
+  };
+}
+
 // Helper to strip markdown code fences from JSON responses
 function stripMarkdownFences(text: string): string {
   // Remove ```json and ``` markers if present
@@ -652,9 +744,13 @@ export async function analyzeOutfit(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      // Build tier-specific system instruction
+      const tierSuffix = hasPriorityProcessing ? PREMIUM_PROMPT_SUFFIX : STANDARD_PROMPT_SUFFIX;
+      const fullSystemPrompt = SYSTEM_PROMPT + '\n\n' + tierSuffix;
+
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: fullSystemPrompt,
         generationConfig: {
           // Priority processing (Plus/Pro): lower temperature for precision, higher token budget
           temperature: hasPriorityProcessing ? 0.3 : 0.5,
@@ -708,16 +804,34 @@ export async function analyzeOutfit(
         throw new Error('No response from AI');
       }
 
+      // Detect degeneration loop (repeated phrases 4+ times)
+      if (/(.{20,})\1{3,}/.test(content)) {
+        throw new Error('AI response contains degeneration loop, retrying');
+      }
+
       // Parse JSON response (strip any markdown fences first)
       const cleanContent = stripMarkdownFences(content);
 
-      // Try to parse JSON - if it fails, log the raw content for debugging
+      // Try to parse JSON - if it fails, attempt repair before giving up
       let feedback: OutfitFeedback;
       try {
         feedback = JSON.parse(cleanContent) as OutfitFeedback;
       } catch (parseError) {
-        console.error('JSON parse error. Raw content:', cleanContent.substring(0, 500));
-        throw new Error(`Invalid JSON from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        console.warn(`[AI] JSON parse failed on attempt ${attempt}, attempting repair...`);
+        const repaired = repairTruncatedJSON(cleanContent);
+        if (repaired) {
+          try {
+            const partial = JSON.parse(repaired);
+            feedback = fillMissingFeedbackFields(partial);
+            console.log(`[AI] JSON repair succeeded on attempt ${attempt}`);
+          } catch {
+            console.error('JSON parse error (repair also failed). Raw content:', cleanContent.substring(0, 500));
+            throw new Error(`Invalid JSON from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+          }
+        } else {
+          console.error('JSON parse error (unrepaired). Raw content:', cleanContent.substring(0, 500));
+          throw new Error(`Invalid JSON from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        }
       }
 
       // Validate response structure
