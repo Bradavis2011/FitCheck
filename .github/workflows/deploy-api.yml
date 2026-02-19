@@ -41,19 +41,6 @@ jobs:
       - run: npx prisma generate
       - name: Run migrations against test DB
         run: npx prisma migrate deploy
-
-  deploy:
-    name: Deploy to Railway
-    runs-on: ubuntu-latest
-    needs: validate-migrations
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-      - name: Deploy
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service FitCheck --detach
       - name: Notify success
         if: success()
         env:
@@ -63,7 +50,7 @@ jobs:
           curl -s -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] API deployed ✓\",\"html\":\"<p>API deployed successfully at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>${{ github.event.head_commit.message }}</p>\"}"
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] API deploying ✓\",\"html\":\"<p>Migrations validated. Railway auto-deploy triggered at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>${{ github.event.head_commit.message }}</p>\"}"
       - name: Notify failure
         if: failure()
         env:
@@ -73,4 +60,4 @@ jobs:
           curl -s -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] ⚠️ API deploy FAILED\",\"html\":\"<p>API deployment failed at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>Check GitHub Actions for details.</p>\"}"
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] ⚠️ Migration validation FAILED\",\"html\":\"<p>Prisma migration validation failed at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>Check GitHub Actions for details. Railway deploy was NOT triggered.</p>\"}"
