@@ -243,8 +243,9 @@ export default function GiveFeedbackScreen() {
     );
   }
 
-  const imageUri = currentOutfit.thumbnailData
-    ? `data:image/jpeg;base64,${currentOutfit.thumbnailData}`
+  const rawThumb = currentOutfit.thumbnailData;
+  const imageUri = rawThumb
+    ? (rawThumb.startsWith('data:') ? rawThumb : `data:image/jpeg;base64,${rawThumb}`)
     : currentOutfit.thumbnailUrl;
 
   return (
