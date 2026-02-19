@@ -11,6 +11,14 @@ import { runViralMonitor } from './viral-monitor.service.js';
 import { runAiQualityMonitor } from './ai-quality-monitor.service.js';
 import { runRevenueCostTracker } from './revenue-cost.service.js';
 import { runFounderBrief } from './founder-brief.service.js';
+// ── Autonomous Operator Agents (Phase 2-4) ────────────────────────────────────
+import { processApprovedActions } from './agent-manager.service.js';
+import { runLifecycleEmail } from './lifecycle-email.service.js';
+import { runConversionIntelligence } from './conversion-intelligence.service.js';
+import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community-manager.service.js';
+import { runSocialMediaManager } from './social-media-manager.service.js';
+import { runAppStoreManager, runAppStoreWeeklySummary } from './appstore-manager.service.js';
+import { runOutreachAgent } from './outreach-agent.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -529,5 +537,68 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Founder brief failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16)');
+  // ── Agent Manager: Process approved actions — every 5 min ─────────────────
+  cron.schedule('*/5 * * * *', async () => {
+    try { await processApprovedActions(); }
+    catch (err) { console.error('[Scheduler] processApprovedActions failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Lifecycle Email: Process due email sequences — every 30 min ───────────
+  cron.schedule('*/30 * * * *', async () => {
+    console.log('📧 [Scheduler] Running lifecycle email...');
+    try { await runLifecycleEmail(); }
+    catch (err) { console.error('[Scheduler] Lifecycle email failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Conversion Intelligence: Scan for signals — Daily 11am UTC ───────────
+  cron.schedule('0 11 * * *', async () => {
+    console.log('📊 [Scheduler] Running conversion intelligence...');
+    try { await runConversionIntelligence(); }
+    catch (err) { console.error('[Scheduler] Conversion intelligence failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Community Manager: Daily highlights — Daily 10am UTC ─────────────────
+  cron.schedule('0 10 * * *', async () => {
+    console.log('🌟 [Scheduler] Running community manager (daily)...');
+    try { await runCommunityManagerDaily(); }
+    catch (err) { console.error('[Scheduler] Community manager daily failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Community Manager: Weekly challenge — Monday 9am UTC ─────────────────
+  cron.schedule('0 9 * * 1', async () => {
+    console.log('🏆 [Scheduler] Running community manager (weekly challenge)...');
+    try { await runCommunityManagerWeekly(); }
+    catch (err) { console.error('[Scheduler] Community manager weekly failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Social Media Manager: Draft posts — Monday 8am UTC ───────────────────
+  // Note: replaces content-calendar (Agent 10) for post drafting; Agent 10 still runs for email calendar
+  cron.schedule('0 8 * * 1', async () => {
+    console.log('📱 [Scheduler] Running social media manager...');
+    try { await runSocialMediaManager(); }
+    catch (err) { console.error('[Scheduler] Social media manager failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── App Store Manager: Fetch + respond to reviews — Daily 2pm UTC ────────
+  cron.schedule('0 14 * * *', async () => {
+    console.log('⭐ [Scheduler] Running app store manager...');
+    try { await runAppStoreManager(); }
+    catch (err) { console.error('[Scheduler] App store manager failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── App Store Manager: Weekly review summary — Sunday 7pm UTC ────────────
+  cron.schedule('0 19 * * 0', async () => {
+    console.log('📊 [Scheduler] Running app store weekly summary...');
+    try { await runAppStoreWeeklySummary(); }
+    catch (err) { console.error('[Scheduler] App store weekly summary failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Outreach Agent: Generate outreach drafts — Wednesday 10am UTC ─────────
+  cron.schedule('0 10 * * 3', async () => {
+    console.log('📨 [Scheduler] Running outreach agent...');
+    try { await runOutreachAgent(); }
+    catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce)');
 }
