@@ -73,6 +73,10 @@ export async function getOfferings(): Promise<PurchasesOfferings | null> {
  * Purchase a specific package.
  */
 export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerInfo | null> {
+  if (!isConfigured) {
+    console.warn('[Purchases] Cannot purchase — SDK not configured for', Platform.OS);
+    return null;
+  }
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     return customerInfo;
@@ -90,6 +94,10 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerIn
  * Restore purchases (e.g., after reinstall).
  */
 export async function restorePurchases(): Promise<CustomerInfo | null> {
+  if (!isConfigured) {
+    console.warn('[Purchases] Cannot restore — SDK not configured for', Platform.OS);
+    return null;
+  }
   try {
     return await Purchases.restorePurchases();
   } catch (error) {
