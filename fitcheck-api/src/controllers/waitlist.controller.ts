@@ -23,7 +23,7 @@ function makeReferralCode(): string {
 }
 
 function getAppUrl(): string {
-  return process.env.APP_URL || 'https://orthis.app';
+  return (process.env.APP_URL || 'https://orthis.app').trim().replace(/\/$/, '');
 }
 
 // POST /api/waitlist
