@@ -753,3 +753,15 @@ model SubscriptionEvent {
   @@map("subscription_events")
   @@index([userId, processedAt])
 }
+
+model WaitlistEntry {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  referralCode String   @unique @map("referral_code") // code others use to sign up via this person
+  referredBy   String?  @map("referred_by")           // referralCode of the person who referred them
+  position     Int      @default(0)                    // queue position (lower = earlier access)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist_entries")
+  @@index([createdAt])
+}

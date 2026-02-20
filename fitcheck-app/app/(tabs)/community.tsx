@@ -236,13 +236,7 @@ export default function CommunityScreen() {
       >
         <Ionicons name="heart-outline" size={24} color={Colors.white} />
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/create-comparison' as any)}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="add" size={28} color={Colors.white} />
-      </TouchableOpacity>
+      {/* LAUNCH: create-comparison FAB hidden — backend endpoint disabled at launch */}
     </SafeAreaView>
   );
 }
@@ -384,7 +378,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fabSecondary: {
-    bottom: 148, // 80 + 56 + 12 (spacing)
+    bottom: 80, // create-comparison FAB removed — this is now the only FAB
     backgroundColor: Colors.secondary,
   },
   comparisonSection: {

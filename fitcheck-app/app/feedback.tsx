@@ -18,6 +18,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import ViewShot from 'react-native-view-shot';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
@@ -27,6 +30,7 @@ import ScoreDisplay from '../src/components/ScoreDisplay';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
+import ShareableScoreCard from '../src/components/ShareableScoreCard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 // LAUNCH: useOutfitExpertReview removed — expert reviews disabled at launch
 import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
@@ -75,6 +79,7 @@ export default function FeedbackScreen() {
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const wasAnalyzingRef = useRef(false);
   const interstitialRef = useRef<any>(null);
+  const viewShotRef = useRef<any>(null);
 
   // Fetch community feedback if outfit is public
   const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
@@ -247,30 +252,40 @@ export default function FeedbackScreen() {
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
       const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`;
 
-      // For now, use text-only sharing
-      // Image sharing requires rebuilding the app with EAS
-      await Share.share({
-        message: shareMessage,
-        title: `My Or This? Score: ${score}/10`,
-      });
+      // Try image capture first (requires EAS production build with react-native-view-shot)
+      let imageShared = false;
+      if (viewShotRef.current?.capture) {
+        try {
+          // Small delay to ensure the off-screen card is fully rendered
+          await new Promise(resolve => setTimeout(resolve, 150));
+          const uri = await viewShotRef.current.capture();
 
-      // TODO: Enable image sharing after EAS build
-      // Uncomment this code after running: npx expo prebuild && npx expo run:ios/android
-      /*
-      if (viewShotRef.current) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const uri = await viewShotRef.current.capture?.();
+          if (uri) {
+            const fileUri = `${FileSystem.cacheDirectory}outfit-score-${Date.now()}.png`;
+            await FileSystem.copyAsync({ from: uri, to: fileUri });
 
-        if (uri && Platform.OS === 'ios') {
-          await Share.share({ url: uri, message: shareMessage });
-        } else if (uri) {
-          // Android: Save to file system and share
-          const fileUri = `${FileSystem.cacheDirectory}outfit-score.png`;
-          await FileSystem.copyAsync({ from: uri, to: fileUri });
-          await Share.share({ message: shareMessage });
+            const canShare = await Sharing.isAvailableAsync();
+            if (canShare) {
+              await Sharing.shareAsync(fileUri, {
+                mimeType: 'image/png',
+                dialogTitle: `My Or This? Score: ${score}/10`,
+              });
+              imageShared = true;
+            }
+          }
+        } catch (imgError) {
+          // Native module not available (e.g. Expo Go) — fall through to text share
+          console.warn('Image capture unavailable, using text share:', imgError);
         }
       }
-      */
+
+      // Fallback: text-only share
+      if (!imageShared) {
+        await Share.share({
+          message: shareMessage,
+          title: `My Or This? Score: ${score}/10`,
+        });
+      }
     } catch (error: any) {
       console.error('Failed to share score:', error);
       if (error.message !== 'User cancelled' && !error.message?.includes('cancelled')) {
@@ -671,6 +686,19 @@ export default function FeedbackScreen() {
         specificConcerns={outfit.specificConcerns}
         existingFollowUps={outfit.followUps}
       />
+
+      {/* Off-screen share card — captured by react-native-view-shot for image sharing */}
+      <View style={styles.hiddenShareCard} pointerEvents="none">
+        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.95 }}>
+          <ShareableScoreCard
+            score={score}
+            imageUri={imageUri}
+            summary={feedback.summary}
+            occasion={outfit.occasions?.[0]}
+            username={user?.name || undefined}
+          />
+        </ViewShot>
+      </View>
     </View>
   );
 }
@@ -1147,6 +1175,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  // Off-screen share card (captured by react-native-view-shot)
+  hiddenShareCard: {
+    position: 'absolute',
+    left: -1000,
+    top: 0,
+    // Not opacity:0 — some platforms skip rendering transparent views
   },
   // Expert Review Section
   expertReviewSection: {

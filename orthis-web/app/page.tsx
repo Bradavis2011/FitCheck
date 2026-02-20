@@ -1,6 +1,71 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+// Inner component that uses useSearchParams (requires Suspense boundary)
+function WaitlistPage() {
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref") || "";
+
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [result, setResult] = useState<{
+    position: number;
+    referralCode: string;
+    referralLink: string;
+    alreadyJoined?: boolean;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setStatus("loading");
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), referralCode: refCode }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Something went wrong. Please try again.");
+        setStatus("error");
+        return;
+      }
+
+      setResult(data);
+      setStatus("success");
+    } catch {
+      setErrorMsg("Network error. Please check your connection and try again.");
+      setStatus("error");
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!result?.referralLink) return;
+    try {
+      await navigator.clipboard.writeText(result.referralLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API not available
+    }
+  };
+
+  const shareText = result
+    ? `I just joined the Or This? waitlist — get instant AI feedback on your outfits! Join here: ${result.referralLink}`
+    : "";
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FBF7F4" }}>
       {/* Nav */}
@@ -10,11 +75,11 @@ export default function Home() {
           <a href="#features" className="text-sm font-medium text-[#2D2D2D] hover:text-[#E85D4C] transition-colors hidden sm:block">Features</a>
           <a href="#pricing" className="text-sm font-medium text-[#2D2D2D] hover:text-[#E85D4C] transition-colors hidden sm:block">Pricing</a>
           <a
-            href="#download"
+            href="#waitlist"
             className="text-sm font-semibold px-4 py-2 rounded-full text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "#E85D4C" }}
           >
-            Download
+            Get Early Access
           </a>
         </div>
       </nav>
@@ -38,23 +103,107 @@ export default function Home() {
           Snap a photo, get instant AI feedback on your look — score, what&apos;s working,
           and exactly what to fix. Confidence in every choice.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4" id="download">
-          <a
-            href="https://apps.apple.com/app/or-this/id000000000"
-            className="flex items-center gap-3 px-6 py-3 rounded-2xl text-white font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#1A1A1A" }}
-          >
-            <AppleIcon />
-            <span>Download on App Store</span>
-          </a>
-          <a
-            href="https://play.google.com/store/apps/details?id=com.bradavis.orthis"
-            className="flex items-center gap-3 px-6 py-3 rounded-2xl text-white font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#1A1A1A" }}
-          >
-            <GooglePlayIcon />
-            <span>Get it on Google Play</span>
-          </a>
+
+        {/* Waitlist form */}
+        <div id="waitlist" className="max-w-md mx-auto">
+          {status !== "success" ? (
+            <>
+              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="flex-1 px-5 py-3 rounded-2xl border text-[#1A1A1A] text-sm outline-none focus:ring-2 focus:ring-[#E85D4C]"
+                  style={{ backgroundColor: "#fff", borderColor: "#E8E8E8" }}
+                  disabled={status === "loading"}
+                />
+                <button
+                  type="submit"
+                  disabled={status === "loading" || !email.trim()}
+                  className="px-6 py-3 rounded-2xl text-white font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-60 whitespace-nowrap"
+                  style={{ backgroundColor: "#E85D4C" }}
+                >
+                  {status === "loading" ? "Joining..." : "Get Early Access"}
+                </button>
+              </form>
+              {refCode && (
+                <p className="mt-3 text-sm" style={{ color: "#A8B5A0" }}>
+                  You were referred — you&apos;ll jump ahead in the queue!
+                </p>
+              )}
+              {status === "error" && (
+                <p className="mt-3 text-sm text-red-500">{errorMsg}</p>
+              )}
+              <p className="mt-4 text-xs" style={{ color: "#9B9B9B" }}>
+                Free to start. No credit card required. Launching on Android first.
+              </p>
+            </>
+          ) : (
+            /* Post-signup success state */
+            <div
+              className="rounded-3xl p-8 text-center"
+              style={{ background: "linear-gradient(135deg, #E85D4C, #FF7A6B)" }}
+            >
+              <div className="text-4xl mb-3">🎉</div>
+              <h2 className="text-2xl font-bold text-white mb-1">
+                {result?.alreadyJoined ? "You're already in!" : "You're on the list!"}
+              </h2>
+              <p className="text-white/90 text-lg font-semibold mb-1">
+                Queue position: #{result?.position}
+              </p>
+              <p className="text-white/80 text-sm mb-6">
+                Share your link — every friend who joins moves you up 5 spots.
+              </p>
+
+              {/* Referral link box */}
+              <div
+                className="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4"
+                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              >
+                <span className="flex-1 text-white text-xs truncate text-left">
+                  {result?.referralLink}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  className="text-white font-semibold text-xs px-3 py-1 rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: "rgba(255,255,255,0.3)" }}
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              {/* Share buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: "#25D366", color: "#fff" }}
+                >
+                  <span>💬</span> WhatsApp
+                </a>
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: "#1DA1F2", color: "#fff" }}
+                >
+                  <span>𝕏</span> Tweet
+                </a>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "#fff" }}
+                >
+                  <span>🔗</span> {copied ? "Copied!" : "Copy Link"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -118,25 +267,18 @@ export default function Home() {
             Ready to dress with{" "}
             <span className="font-display italic">confidence?</span>
           </h2>
-          <p className="text-white/90 text-lg mb-8">Free to start. No credit card required.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="https://apps.apple.com/app/or-this/id000000000"
-              className="flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#1A1A1A", color: "#fff" }}
-            >
-              <AppleIcon />
-              <span>App Store</span>
-            </a>
-            <a
-              href="https://play.google.com/store/apps/details?id=com.bradavis.orthis"
-              className="flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#1A1A1A", color: "#fff" }}
-            >
-              <GooglePlayIcon />
-              <span>Google Play</span>
-            </a>
-          </div>
+          <p className="text-white/90 text-lg mb-8">Be the first to get access when we launch.</p>
+          <a
+            href="#waitlist"
+            className="inline-block px-8 py-4 rounded-2xl font-semibold text-base transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "#fff", color: "#E85D4C" }}
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            Join the Waitlist
+          </a>
         </div>
       </section>
 
@@ -161,22 +303,6 @@ function Logo() {
       <span style={{ color: "#1A1A1A" }}>Or </span>
       <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
     </span>
-  );
-}
-
-function AppleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-    </svg>
-  );
-}
-
-function GooglePlayIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 20.5v-17c0-.83.94-1.3 1.6-.8l14 8.5c.6.37.6 1.23 0 1.6l-14 8.5c-.66.5-1.6.03-1.6-.8z"/>
-    </svg>
   );
 }
 
@@ -212,3 +338,11 @@ const plans = [
     features: ["Everything in Plus", "Priority AI processing", "Advanced style analytics", "Outfit recommendations", "Early access to features"],
   },
 ];
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#FBF7F4" }} />}>
+      <WaitlistPage />
+    </Suspense>
+  );
+}
