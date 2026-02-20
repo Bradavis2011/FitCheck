@@ -5,3 +5,9 @@ dist
 .DS_Store
 tsc_*.txt
 .claude/settings.local.json
+
+# Large assets — store in Google Drive, not git
+fitcheck-app/store-assets/screenshots/*.jpg
+fitcheck-app/store-assets/screenshots/*.zip
+Branding/*.png
+Monetization/*.zip
