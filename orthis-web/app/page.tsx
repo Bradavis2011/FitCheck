@@ -335,7 +335,7 @@ const plans = [
     price: "$14.99",
     period: "per month",
     featured: false,
-    features: ["Everything in Plus", "Priority AI processing", "Advanced style analytics", "Outfit recommendations", "Early access to features"],
+    features: ["Everything in Plus", "Priority access to human stylist reviews — coming soon", "1 stylist session credit per month", "Advanced style analytics", "First access to all new features"],
   },
 ];
 
