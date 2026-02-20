@@ -44,9 +44,12 @@ async function apiFetch(method, url, body) {
   }
 
   if (res.status === 401 || res.status === 403) {
-    clearToken();
-    navigate('login');
-    throw new Error('Session expired — please sign in again');
+    const errBody = await res.json().catch(() => ({}));
+    if (getToken()) {
+      clearToken();
+      navigate('login');
+    }
+    throw new Error(errBody.error || 'Invalid credentials');
   }
 
   const data = await res.json().catch(() => ({}));
@@ -218,9 +221,12 @@ function initLogin() {
       await apiFetch('POST', '/api/admin/agents/auth/verify', { token });
       setToken(token);
       navigate('overview');
-    } catch (_) {
-      errEl.textContent = 'Invalid token — check ADMIN_DASHBOARD_TOKEN in your .env';
-      errEl.classList.remove('hidden');
+    } catch (err) {
+      const currentErr = document.getElementById('login-error');
+      if (currentErr) {
+        currentErr.textContent = err.message || 'Login failed';
+        currentErr.classList.remove('hidden');
+      }
     }
   });
 }

@@ -23,6 +23,16 @@ export async function verifyToken(req: Request, res: Response) {
   const { token } = req.body || {};
   const adminToken = process.env.ADMIN_DASHBOARD_TOKEN;
 
+  // Debug: log token comparison details (no actual values logged)
+  console.log('[Dashboard Auth]', {
+    hasBody: !!req.body,
+    hasToken: !!token,
+    tokenLen: token?.length,
+    hasAdminToken: !!adminToken,
+    adminTokenLen: adminToken?.length,
+    match: token === adminToken,
+  });
+
   if (!adminToken) {
     res.status(503).json({ error: 'ADMIN_DASHBOARD_TOKEN not configured on server' });
     return;
