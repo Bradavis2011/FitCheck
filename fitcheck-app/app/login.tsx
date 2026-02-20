@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   BackHandler,
 } from 'react-native';
-import { useSignIn, useSignUp } from '@clerk/clerk-expo';
+import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import OrThisLogo from '../src/components/OrThisLogo';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
@@ -20,6 +20,7 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme'
 export default function LoginScreen() {
   const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp();
+  const { signOut } = useAuth();
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -54,6 +55,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      // Clear any stale session — prevents "session already exists" error
+      try { await signOut(); } catch {}
+
       const signInAttempt = await signIn.create({
         identifier: email,
         password,
@@ -89,6 +93,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      // Clear any stale session — prevents "session already exists" error
+      try { await signOut(); } catch {}
+
       await signUp.create({
         emailAddress: email,
         password,
