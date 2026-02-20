@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
+import path from 'path';
 import morgan from 'morgan';
 import { limiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -56,6 +57,10 @@ if (process.env.SENTRY_DSN) {
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Serve dashboard static files BEFORE helmet so CDN resources aren't blocked by CSP
+// __dirname is the compiled dist/ directory, so ../public = fitcheck-api/public/
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Trust proxy - 1 hop (Railway's load balancer). Using true is too permissive for rate limiting.
 app.set('trust proxy', 1);

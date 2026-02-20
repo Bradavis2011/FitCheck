@@ -1,10 +1,11 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import {
   getAgentDashboard,
   getAgentActions,
+  getAllActions,
   getPendingQueue,
   approveAction,
   rejectAction,
@@ -16,6 +17,22 @@ import {
 } from '../services/agent-manager.service.js';
 
 const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
+
+// POST /api/admin/agents/auth/verify — validate dashboard token (no auth required)
+export async function verifyToken(req: Request, res: Response) {
+  const { token } = req.body || {};
+  const adminToken = process.env.ADMIN_DASHBOARD_TOKEN;
+
+  if (!adminToken) {
+    res.status(503).json({ error: 'ADMIN_DASHBOARD_TOKEN not configured on server' });
+    return;
+  }
+  if (!token || token !== adminToken) {
+    res.status(401).json({ error: 'Invalid token' });
+    return;
+  }
+  res.json({ ok: true });
+}
 
 function requireAdmin(req: AuthenticatedRequest): void {
   const userId = req.userId;
@@ -104,6 +121,25 @@ export async function rejectAgentAction(req: AuthenticatedRequest, res: Response
   const userId = req.userId!;
   await rejectAction(id, userId);
   res.json({ ok: true, actionId: id, status: 'rejected' });
+}
+
+// GET /api/admin/agents/actions — paginated full action log with optional filters
+export async function getAllActionLog(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const Schema = z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    agent: z.string().optional(),
+    status: z.string().optional(),
+    riskLevel: z.string().optional(),
+  });
+  const params = Schema.parse(req.query);
+  const result = await getAllActions(params.page, params.limit, {
+    agent: params.agent,
+    status: params.status,
+    riskLevel: params.riskLevel,
+  });
+  res.json(result);
 }
 
 // POST /api/admin/agents/kill-all — global kill switch
