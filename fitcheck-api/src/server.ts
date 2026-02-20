@@ -33,6 +33,8 @@ import { initializeScheduler } from './services/scheduler.service.js';
 import { shutdownPostHog } from './lib/posthog.js';
 import adminRoutes from './routes/admin.routes.js';
 import agentAdminRoutes from './routes/agent-admin.routes.js';
+import trendsRoutes from './routes/trends.routes.js';
+import { prisma } from './utils/prisma.js';
 
 // Load environment variables
 dotenv.config();
@@ -94,9 +96,14 @@ app.post('/api/webhooks/revenuecat', asyncHandler(handleWebhook));
 // Rate limiting
 app.use('/api', limiter);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check — verifies DB connectivity
+app.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ status: 'degraded', db: 'error', timestamp: new Date().toISOString() });
+  }
 });
 
 // API Routes
@@ -118,6 +125,7 @@ app.use('/api/waitlist', waitlistRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api/admin/agents', agentAdminRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/trends', trendsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -153,6 +161,21 @@ process.on('SIGTERM', async () => {
   console.log('🛑 SIGTERM received — flushing analytics...');
   await shutdownPostHog();
   process.exit(0);
+});
+
+// Crash handlers — capture to Sentry, flush analytics, then exit
+process.on('unhandledRejection', async (reason) => {
+  console.error('[server] Unhandled rejection:', reason);
+  if (process.env.SENTRY_DSN) Sentry.captureException(reason);
+  await shutdownPostHog();
+  process.exit(1);
+});
+
+process.on('uncaughtException', async (error) => {
+  console.error('[server] Uncaught exception:', error);
+  if (process.env.SENTRY_DSN) Sentry.captureException(error);
+  await shutdownPostHog();
+  process.exit(1);
 });
 
 export default app;

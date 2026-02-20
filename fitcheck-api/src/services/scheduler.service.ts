@@ -580,23 +580,23 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Community manager daily failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── Community Manager: Weekly challenge — Monday 9am UTC ─────────────────
-  cron.schedule('0 9 * * 1', async () => {
+  // ── Community Manager: Weekly challenge — Monday 9:30am UTC ─────────────────
+  cron.schedule('30 9 * * 1', async () => {
     console.log('🏆 [Scheduler] Running community manager (weekly challenge)...');
     try { await runCommunityManagerWeekly(); }
     catch (err) { console.error('[Scheduler] Community manager weekly failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── Social Media Manager: Draft posts — Monday 8am UTC ───────────────────
+  // ── Social Media Manager: Draft posts — Monday 8:30am UTC ───────────────────
   // Note: replaces content-calendar (Agent 10) for post drafting; Agent 10 still runs for email calendar
-  cron.schedule('0 8 * * 1', async () => {
+  cron.schedule('30 8 * * 1', async () => {
     console.log('📱 [Scheduler] Running social media manager...');
     try { await runSocialMediaManager(); }
     catch (err) { console.error('[Scheduler] Social media manager failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── App Store Manager: Fetch + respond to reviews — Daily 2pm UTC ────────
-  cron.schedule('0 14 * * *', async () => {
+  // ── App Store Manager: Fetch + respond to reviews — Daily 2:15pm UTC ────────
+  cron.schedule('15 14 * * *', async () => {
     console.log('⭐ [Scheduler] Running app store manager...');
     try { await runAppStoreManager(); }
     catch (err) { console.error('[Scheduler] App store manager failed:', err); }
@@ -609,8 +609,8 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] App store weekly summary failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── Outreach Agent: Generate outreach drafts — Wednesday 10am UTC ─────────
-  cron.schedule('0 10 * * 3', async () => {
+  // ── Outreach Agent: Generate outreach drafts — Wednesday 10:30am UTC ─────────
+  cron.schedule('30 10 * * 3', async () => {
     console.log('📨 [Scheduler] Running outreach agent...');
     try { await runOutreachAgent(); }
     catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
