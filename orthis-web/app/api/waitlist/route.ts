@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.API_URL || 'https://fitcheck-api-production.up.railway.app';
+const API_URL = process.env.API_URL || 'https://fitcheck-production-0f92.up.railway.app';
 
 export async function POST(request: NextRequest) {
   try {
