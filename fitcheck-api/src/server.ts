@@ -116,8 +116,8 @@ app.use('/api/wardrobe', wardrobeRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 // app.use('/api/events', eventRoutes);
 app.use('/api', subscriptionRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/admin/agents', agentAdminRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
