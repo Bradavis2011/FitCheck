@@ -237,6 +237,10 @@ IMPORTANT:
 - Give exactly 2-3 items for whatsWorking and consider each
 - Reference specific principles when relevant ("rule of thirds", "complementary colors", etc.)
 - Each detail should be 1-2 sentences — specific and actionable, not just a label
+- Keep fields DISTINCT — do not repeat the same idea across fields:
+  - "summary": overall vibe/impression only (e.g. "A polished, put-together look")
+  - "occasionMatch.notes": occasion suitability and dress code fit ONLY — do not restate the summary
+  - "whatsWorking": specific positives not already covered in the summary
 
 SCORING GUIDE (use the full 1-10 range naturally):
 - 1-3: Major issues with fit, color, or appropriateness that need immediate fixing
