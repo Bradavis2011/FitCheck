@@ -15,13 +15,22 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "Or This? — AI Outfit Feedback",
-  description: "Get instant AI-powered feedback on your outfits. Confidence in every choice.",
+  description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
+  metadataBase: new URL("https://orthis.app"),
   openGraph: {
     title: "Or This? — AI Outfit Feedback",
-    description: "Get instant AI-powered feedback on your outfits. Confidence in every choice.",
+    description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
     url: "https://orthis.app",
     siteName: "Or This?",
     type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Or This? — AI Outfit Feedback",
+    description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
+    site: "@orthisapp",
+    creator: "@orthisapp",
   },
 };
 
