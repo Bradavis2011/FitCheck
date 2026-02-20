@@ -1,0 +1,245 @@
+/* ─── Brand & Base ─────────────────────────────────────────────────── */
+:root {
+  --coral: #E85D4C;
+  --coral-light: #FF7A6B;
+  --coral-dark: #C94A3A;
+  --cream: #FBF7F4;
+  --cream-dark: #F5EDE7;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: #1A1A1A;
+}
+
+/* ─── Toggle Switch ────────────────────────────────────────────────── */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-slider {
+  width: 40px;
+  height: 22px;
+  background: #D1D5DB;
+  border-radius: 22px;
+  transition: background 0.2s;
+  position: relative;
+  display: block;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--coral);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* ─── Status Pills ─────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill-pending  { background: #FEF3C7; color: #D97706; }
+.pill-approved { background: #DBEAFE; color: #1D4ED8; }
+.pill-executed { background: #D1FAE5; color: #065F46; }
+.pill-failed   { background: #FEE2E2; color: #991B1B; }
+.pill-rejected { background: #F3F4F6; color: #6B7280; }
+
+/* ─── Risk Badges ──────────────────────────────────────────────────── */
+.badge-low    { background: #D1FAE5; color: #065F46; }
+.badge-medium { background: #FEF3C7; color: #D97706; }
+.badge-high   { background: #FEE2E2; color: #991B1B; }
+
+/* ─── Nav Active State ─────────────────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6B7280;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { background: #F9FAFB; color: #374151; }
+.nav-item.nav-active {
+  background: var(--cream);
+  color: var(--coral);
+  font-weight: 600;
+}
+.nav-item.nav-active:hover {
+  background: var(--cream-dark);
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────── */
+.btn-coral {
+  background: linear-gradient(135deg, var(--coral), var(--coral-light));
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.btn-coral:hover { opacity: 0.9; box-shadow: 0 4px 12px rgba(232,93,76,0.35); }
+
+.btn-approve {
+  background: #D1FAE5;
+  color: #065F46;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-approve:hover { background: #A7F3D0; }
+
+.btn-reject {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-reject:hover { background: #FECACA; }
+
+.btn-danger {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #FECACA; }
+
+.btn-ghost {
+  background: transparent;
+  color: #9CA3AF;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-ghost:hover { background: #F9FAFB; color: #6B7280; }
+
+/* ─── Card ─────────────────────────────────────────────────────────── */
+.card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #F3F4F6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* ─── Loading Spinner ──────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--coral);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+/* ─── Toast ────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast-inner {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.toast-success { background: #1A1A1A; color: white; }
+.toast-error   { background: #DC2626; color: white; }
+.toast-warning { background: #D97706; color: white; }
+
+/* ─── Details/Summary ──────────────────────────────────────────────── */
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* ─── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* ─── Logo gradient text ───────────────────────────────────────────── */
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--coral), var(--coral-light));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* ─── Stat card hover ──────────────────────────────────────────────── */
+.stat-card { transition: box-shadow 0.15s, transform 0.15s; }
+.stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+
+/* ─── Agent card hover ─────────────────────────────────────────────── */
+.agent-card { transition: box-shadow 0.15s; }
+.agent-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+/* ─── Table ────────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9CA3AF;
+  border-bottom: 1px solid #F3F4F6;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.data-table td {
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #F9FAFB;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: #FAFAFA; }

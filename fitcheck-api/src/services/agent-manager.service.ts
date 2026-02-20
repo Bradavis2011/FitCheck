@@ -352,6 +352,30 @@ export async function killAllAgents(): Promise<void> {
   console.log('[AgentManager] All operator agents killed');
 }
 
+export async function getAllActions(
+  page = 1,
+  limit = 50,
+  filters?: { agent?: string; status?: string; riskLevel?: string },
+) {
+  const skip = (page - 1) * limit;
+  const where: Record<string, unknown> = {};
+  if (filters?.agent) where.agent = filters.agent;
+  if (filters?.status) where.status = filters.status;
+  if (filters?.riskLevel) where.riskLevel = filters.riskLevel;
+
+  const [actions, total] = await Promise.all([
+    prisma.agentAction.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.agentAction.count({ where }),
+  ]);
+
+  return { actions, total, page, limit };
+}
+
 export async function getDashboardSummary() {
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 

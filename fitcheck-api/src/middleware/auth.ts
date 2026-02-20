@@ -23,6 +23,19 @@ export async function authenticateToken(
       return;
     }
 
+    // Check ADMIN_DASHBOARD_TOKEN first (dashboard bypass — no Clerk required)
+    const dashboardToken = process.env.ADMIN_DASHBOARD_TOKEN;
+    if (dashboardToken && token === dashboardToken) {
+      const adminIds = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
+      const adminId = adminIds[0];
+      if (adminId) {
+        req.userId = adminId;
+        req.user = { id: adminId, email: 'admin@dashboard.local', tier: 'PREMIUM' } as any;
+        next();
+        return;
+      }
+    }
+
     // Verify Clerk token - no fallbacks
     let clerkUserId: string;
     try {
