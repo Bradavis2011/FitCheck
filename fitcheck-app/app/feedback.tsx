@@ -380,14 +380,6 @@ export default function FeedbackScreen() {
           {/* Summary */}
           <View style={styles.summarySection}>
             <Text style={styles.summaryText}>{feedback.summary}</Text>
-            {feedback.occasionMatch && (
-              <View style={styles.matchBadge}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
-                <Text style={styles.matchText}>
-                  {feedback.occasionMatch.notes || 'Perfect for this occasion'}
-                </Text>
-              </View>
-            )}
           </View>
 
           {/* Retry Analysis Banner */}

@@ -113,10 +113,12 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Skip Button - Always visible */}
-        <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        {/* Skip Button - Hidden on last slide (Get Started is already there) */}
+        {!isLastSlide && (
+          <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Slides */}
         <FlatList
