@@ -137,6 +137,18 @@ export function useDeleteOutfit() {
   });
 }
 
+export function useReanalyzeOutfit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (outfitId: string) => outfitService.reanalyzeOutfit(outfitId),
+    onSuccess: (_data, outfitId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfit(outfitId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfits() });
+    },
+  });
+}
+
 // Community/Social hooks
 export function useCommunityFeed(filters?: {
   filter?: 'recent' | 'popular' | 'top-rated';

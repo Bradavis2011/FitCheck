@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import AdBanner from '../../src/components/AdBanner';
 import PillButton from '../../src/components/PillButton';
 import { HistoryGridSkeleton } from '../../src/components/SkeletonLoader';
 import ErrorState from '../../src/components/ErrorState';
-import { useOutfits, useToggleFavorite } from '../../src/hooks/useApi';
+import { useOutfits, useToggleFavorite, useDeleteOutfit, useReanalyzeOutfit } from '../../src/hooks/useApi';
 
 const FILTERS = ['All', 'Favorites', 'Work', 'Casual', 'Date Night', 'Event', 'Interview'];
 
@@ -27,6 +27,8 @@ export default function HistoryScreen() {
 
   const { data, isLoading, isError, error, refetch } = useOutfits(filters);
   const toggleFavoriteMutation = useToggleFavorite();
+  const deleteOutfitMutation = useDeleteOutfit();
+  const reanalyzeMutation = useReanalyzeOutfit();
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = data?.outfits || [];
@@ -46,6 +48,39 @@ export default function HistoryScreen() {
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
     }
+  };
+
+  const handleLongPress = (outfitId: string) => {
+    Alert.alert('Outfit Options', '', [
+      {
+        text: 'Re-analyze',
+        onPress: () => {
+          reanalyzeMutation.mutate(outfitId, {
+            onSuccess: () => Alert.alert('Re-analyzing', 'Your outfit is being re-analyzed. Check back in a moment.'),
+            onError: () => Alert.alert('Error', 'Failed to start re-analysis. Please try again.'),
+          });
+        },
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert('Delete Outfit', 'This will permanently remove this outfit from your history.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => {
+                deleteOutfitMutation.mutate(outfitId, {
+                  onError: () => Alert.alert('Error', 'Failed to delete outfit. Please try again.'),
+                });
+              },
+            },
+          ]);
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   return (
@@ -119,6 +154,7 @@ export default function HistoryScreen() {
                   occasions={item.occasions || []}
                   isFavorite={item.isFavorite}
                   onPress={() => router.push(`/feedback?outfitId=${item.id}` as any)}
+                  onLongPress={() => handleLongPress(item.id)}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
                 />
               </View>

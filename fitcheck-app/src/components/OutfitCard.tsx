@@ -10,10 +10,11 @@ type Props = {
   occasions: string[];
   isFavorite: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
   onFavoritePress?: () => void;
 };
 
-export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onPress, onFavoritePress }: Props) {
+export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onPress, onLongPress, onFavoritePress }: Props) {
   const scoreColor = getScoreColor(score);
   // Ensure imageUrl is valid (not empty string or just whitespace)
   const hasValidImage = imageUrl && imageUrl.trim().length > 0;
@@ -54,9 +55,9 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
     </Animated.View>
   );
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+      <TouchableOpacity onPress={onPress} onLongPress={onLongPress} activeOpacity={0.9}>
         {content}
       </TouchableOpacity>
     );
