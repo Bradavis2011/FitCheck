@@ -1190,6 +1190,7 @@ export async function analyzeOutfit(
       }
 
       _aiSuccessCount++;
+      const usage = response.usageMetadata;
       trackServerEvent(user?.id || outfitCheckId, 'ai_feedback_generated', {
         score: feedback.overallScore,
         fallback: false,
@@ -1199,7 +1200,13 @@ export async function analyzeOutfit(
         has_trend_context: !!trendContext,
         has_user_calibration: !!userCalibrationContext,
         is_cold_start: feedbackHistory.length > 0 && feedbackHistory[0].includes('body type'),
+        tokens_input: usage?.promptTokenCount ?? null,
+        tokens_output: usage?.candidatesTokenCount ?? null,
+        tokens_total: usage?.totalTokenCount ?? null,
       });
+      if (usage) {
+        console.log(`[AI] tokens — input: ${usage.promptTokenCount}, output: ${usage.candidatesTokenCount}, total: ${usage.totalTokenCount}`);
+      }
 
       return feedback;
     } catch (error) {
@@ -1349,6 +1356,10 @@ Keep responses concise (2-4 sentences) but helpful.`;
     const result = await chat.sendMessage(question);
     const response = await result.response;
     const answer = response.text() || 'I apologize, but I could not generate a response. Please try again.';
+    const followUpUsage = response.usageMetadata;
+    if (followUpUsage) {
+      console.log(`[AI] follow-up tokens — input: ${followUpUsage.promptTokenCount}, output: ${followUpUsage.candidatesTokenCount}, total: ${followUpUsage.totalTokenCount}`);
+    }
 
     await prisma.followUp.create({
       data: {

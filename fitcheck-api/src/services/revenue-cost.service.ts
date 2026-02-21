@@ -17,8 +17,9 @@ export interface RevenueMetrics {
 
 const PLUS_PRICE = 4.99;
 const PRO_PRICE = 9.99;
-// gemini-2.5-flash: ~$0.15/1M input tokens, $0.60/1M output; avg ~3000 tokens per analysis
-const GEMINI_COST_PER_ANALYSIS = 0.000225; // conservative estimate
+// gemini-2.5-flash: ~$0.15/1M input tokens, $0.60/1M output; avg ~6000 input + ~400 output per analysis
+// Real token counts now logged to PostHog via usageMetadata; update this when enough data is collected
+const GEMINI_COST_PER_ANALYSIS = 0.000225; // placeholder — ~$0.15*6k/1M + $0.60*400/1M ≈ $0.00115 actual; adjust after observing PostHog data
 
 async function getRevenueMetrics(): Promise<RevenueMetrics> {
   const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

@@ -17,7 +17,7 @@ export class LiveAIService {
     }
   ): Promise<string> {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       const prompt = `You are a friendly, encouraging style advisor watching a live outfit stream.
 
