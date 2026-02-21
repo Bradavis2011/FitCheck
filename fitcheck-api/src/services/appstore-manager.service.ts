@@ -79,7 +79,7 @@ async function draftReply(rating: number, title: string | null, body: string | n
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     const prompt = `You are customer support for "Or This?", an AI-powered outfit feedback app. Brand voice: warm, encouraging, supportive.
 
 Draft a brief reply to this app store review. Requirements:

@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, BorderRadius, Spacing, getScoreColor } from '../constants/theme';
 
 type Props = {
@@ -20,7 +19,7 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
   const hasValidImage = imageUrl && imageUrl.trim().length > 0;
 
   const content = (
-    <Animated.View entering={FadeInDown.duration(400).springify()} style={styles.card}>
+    <View style={styles.card}>
       {hasValidImage ? (
         <ImageBackground
           source={{ uri: imageUrl }}
@@ -52,7 +51,7 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
           />
         </View>
       )}
-    </Animated.View>
+    </View>
   );
 
   if (onPress || onLongPress) {

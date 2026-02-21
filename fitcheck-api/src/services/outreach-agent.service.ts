@@ -50,7 +50,7 @@ async function generateOutreachDraft(target: OutreachTarget): Promise<OutreachDr
   if (!process.env.GEMINI_API_KEY) return null;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     const prompt = `Write a cold outreach email for "Or This?", an AI-powered outfit feedback app.
 
 App description: Or This? gives users instant AI outfit feedback with a confidence score and specific styling tips. Like having a personal stylist in your pocket. Free to use.

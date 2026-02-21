@@ -34,7 +34,7 @@ export async function checkContent(text: string, context: string): Promise<Brand
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const prompt = `You are a brand safety reviewer for "Or This?", an AI-powered outfit feedback app.
 

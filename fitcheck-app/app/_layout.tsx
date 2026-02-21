@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -111,6 +112,7 @@ export default function RootLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ErrorBoundary>
       <ClerkProvider
         publishableKey={CLERK_PUBLISHABLE_KEY}
@@ -125,6 +127,7 @@ export default function RootLayout() {
         </ClerkLoaded>
       </ClerkProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
 

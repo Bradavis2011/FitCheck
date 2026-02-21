@@ -56,7 +56,7 @@ export async function runCommunityManagerWeekly(): Promise<void> {
       .filter(Boolean)
       .join('. ') || 'Mixed styles and colors';
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     const prompt = `Generate a 7-day fashion challenge for the "Or This?" app community.
 Based on trending styles this week: ${trendSummary}.
 Return JSON only (no markdown): { "title": string (max 60 chars), "description": string (max 200 chars, inspiring + clear), "theme": string (1-3 words), "prize": string (e.g. "Featured on our community feed") }`;
