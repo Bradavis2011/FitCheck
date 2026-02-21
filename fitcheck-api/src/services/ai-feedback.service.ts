@@ -1040,7 +1040,7 @@ export async function analyzeOutfit(
       const fullSystemPrompt = SYSTEM_PROMPT + '\n\n' + tierSuffix;
 
       const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         systemInstruction: fullSystemPrompt,
         generationConfig: {
           temperature: hasPriorityProcessing ? 0.3 : 0.5,
@@ -1195,7 +1195,7 @@ export async function analyzeOutfit(
         score: feedback.overallScore,
         fallback: false,
         latency_ms: Date.now() - aiStartTime,
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         prompt_version: PROMPT_VERSION,
         has_trend_context: !!trendContext,
         has_user_calibration: !!userCalibrationContext,
@@ -1344,7 +1344,7 @@ Keep responses concise (2-4 sentences) but helpful.`;
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: systemPrompt,
       generationConfig: {
         temperature: 0.7,
