@@ -164,15 +164,57 @@ export async function runSocialMediaManager(): Promise<void> {
   }
 
   try {
-    const trends = await getTrendData();
-    const trendSummary = [
-      trends.topStyles.length > 0 ? `Top styles: ${trends.topStyles.join(', ')}` : '',
-      trends.popularOccasions.length > 0 ? `Popular occasions: ${trends.popularOccasions.join(', ')}` : '',
-      trends.colorTrends.length > 0 ? `Trending colors: ${trends.colorTrends.join(', ')}` : '',
-    ].filter(Boolean).join('. ') || 'Mixed community styles';
+    const [trends, userCount] = await Promise.all([
+      getTrendData(),
+      prisma.user.count(),
+    ]);
 
+    const isPreLaunch = userCount < 50;
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `Generate 5 social media post drafts for "Or This?", an AI-powered outfit feedback app.
+
+    let prompt: string;
+
+    if (isPreLaunch) {
+      console.log(`[SocialMediaManager] Pre-launch mode (${userCount} users) — using pre-launch prompt`);
+      prompt = `Generate 5 social media post drafts for "Or This?", an AI-powered outfit feedback app launching soon.
+Tagline: "Confidence in every choice"
+Brand voice: warm, encouraging, playful — like a stylish best friend who gets Gen Z culture.
+Target audience: fashion-conscious women aged 18-25 who love TikTok and Instagram.
+
+Generate 3 Twitter posts and 2 TikTok captions. All content must build anticipation and drive waitlist signups at orthis.app.
+
+Content mix (use all of these):
+- Relatable outfit-decision pain point ("you when you've texted 5 friends 'does this work?' and they all say 'yes' but you still change")
+- Fashion tip or styling advice (builds authority — no app mention needed)
+- App feature teaser / sneak peek ("imagine getting a score + 3 fixes for your outfit in 10 seconds")
+- Waitlist CTA (direct: "join the waitlist at orthis.app — spots are limited")
+- Outfit confidence moment (relatable story or feeling)
+
+Return a JSON array only (no markdown fences):
+[
+  {
+    "platform": "twitter",
+    "caption": "tweet text max 220 chars",
+    "hashtags": ["OrThis", "OutfitCheck", "StyleTips"],
+    "imageDescription": "description of ideal accompanying image or video"
+  },
+  {
+    "platform": "tiktok",
+    "caption": "TikTok caption — punchy hook in first line, 3-5 lines max, casual Gen Z tone",
+    "hashtags": ["OrThis", "OutfitCheck", "GRWM", "StyleTips"],
+    "imageDescription": "TikTok video concept description for manual filming"
+  }
+]
+
+No emojis in hashtags. Max 4 hashtags per post. Vary tone across all 5 posts.`;
+    } else {
+      const trendSummary = [
+        trends.topStyles.length > 0 ? `Top styles: ${trends.topStyles.join(', ')}` : '',
+        trends.popularOccasions.length > 0 ? `Popular occasions: ${trends.popularOccasions.join(', ')}` : '',
+        trends.colorTrends.length > 0 ? `Trending colors: ${trends.colorTrends.join(', ')}` : '',
+      ].filter(Boolean).join('. ') || 'Mixed community styles';
+
+      prompt = `Generate 5 social media post drafts for "Or This?", an AI-powered outfit feedback app.
 Tagline: "Confidence in every choice"
 Brand voice: warm, encouraging, supportive — like a stylish best friend.
 This week's community trends: ${trendSummary}
@@ -189,6 +231,7 @@ Return a JSON array only (no markdown fences):
 
 Mix of: inspirational style tips, community highlights, feature spotlights, trend commentary, CTAs.
 All 5 posts should be varied in tone and content. No emojis in hashtags. Max 4 hashtags per post.`;
+    }
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');

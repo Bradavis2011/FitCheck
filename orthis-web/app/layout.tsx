@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import PostHogInit from "./posthog-init";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${dmSans.variable} ${playfair.variable} font-sans antialiased bg-cream text-clarity`}>
+        <PostHogInit />
         {children}
       </body>
     </html>
