@@ -158,3 +158,42 @@ export async function killAll(req: AuthenticatedRequest, res: Response) {
   await killAllAgents();
   res.json({ ok: true, message: 'All operator agents disabled' });
 }
+
+// POST /api/admin/agents/:name/trigger — manually trigger an agent run now
+export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const { name } = req.params;
+
+  const agentMap: Record<string, () => Promise<void>> = {
+    'social-media-manager': async () => {
+      const { runSocialMediaManager } = await import('../services/social-media-manager.service.js');
+      await runSocialMediaManager();
+    },
+    'content-calendar': async () => {
+      const { runContentCalendar } = await import('../services/content-calendar.service.js');
+      await runContentCalendar();
+    },
+    'outreach-agent': async () => {
+      const { runOutreachAgent } = await import('../services/outreach-agent.service.js');
+      await runOutreachAgent();
+    },
+    'fashion-trends': async () => {
+      const { runFashionTrendCron } = await import('../services/fashion-trends.service.js');
+      await runFashionTrendCron();
+    },
+  };
+
+  const agentFn = agentMap[name];
+  if (!agentFn) {
+    res.status(404).json({
+      error: `Unknown agent: "${name}"`,
+      supported: Object.keys(agentMap),
+    });
+    return;
+  }
+
+  // Fire and forget — agents can run for several seconds/minutes
+  agentFn().catch(err => console.error(`[AgentAdmin] Triggered agent "${name}" failed:`, err));
+
+  res.json({ ok: true, agent: name, message: `Agent "${name}" triggered — running in background` });
+}

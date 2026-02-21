@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createHmac } from 'crypto';
 import { prisma } from '../utils/prisma.js';
 import { executeOrQueue } from './agent-manager.service.js';
+import { getLatestFashionTrendText } from './fashion-trends.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -176,37 +177,64 @@ export async function runSocialMediaManager(): Promise<void> {
 
     if (isPreLaunch) {
       console.log(`[SocialMediaManager] Pre-launch mode (${userCount} users) — using pre-launch prompt`);
-      prompt = `Generate 5 social media post drafts for "Or This?", an AI-powered outfit feedback app launching soon.
+
+      const trendText = await getLatestFashionTrendText();
+      const trendContext = trendText
+        ? `\nCurrent fashion trends to reference naturally in content:\n${trendText}`
+        : `\nNo stored trend data — use your own knowledge of current fashion trends for ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.`;
+
+      prompt = `Generate 7 social media post drafts for "Or This?", an AI-powered outfit feedback app launching soon.
 Tagline: "Confidence in every choice"
 Brand voice: warm, encouraging, playful — like a stylish best friend who gets Gen Z culture.
 Target audience: fashion-conscious women aged 18-25 who love TikTok and Instagram.
+All content builds anticipation and drives waitlist signups at orthis.app.
+${trendContext}
 
-Generate 3 Twitter posts and 2 TikTok captions. All content must build anticipation and drive waitlist signups at orthis.app.
+Generate exactly 3 Twitter posts, 2 TikTok captions, and 2 Pinterest pins using these platform specs:
 
-Content mix (use all of these):
-- Relatable outfit-decision pain point ("you when you've texted 5 friends 'does this work?' and they all say 'yes' but you still change")
-- Fashion tip or styling advice (builds authority — no app mention needed)
-- App feature teaser / sneak peek ("imagine getting a score + 3 fixes for your outfit in 10 seconds")
-- Waitlist CTA (direct: "join the waitlist at orthis.app — spots are limited")
-- Outfit confidence moment (relatable story or feeling)
+TWITTER (3 posts):
+- Max 220 chars (leave room for hashtags)
+- Conversational, punchy, personality-driven
+- 2-3 hashtags, no emojis in hashtags
+- Types: (1) hot take on a current trend, (2) relatable outfit-decision pain point, (3) waitlist CTA
+
+TIKTOK (2 captions):
+- Include a video concept + caption (not just text)
+- Hook in first line (what stops the scroll)
+- Suggest a trending sound/format (e.g., "use the GRWM format", "POV: style challenge")
+- 3-5 hashtags including trending ones
+- Types: (1) GRWM concept, (2) outfit challenge or day-in-the-life
+
+PINTEREST (2 pins):
+- Keyword-rich description 2-3 sentences (Pinterest is a search engine, not social media)
+- Pin title: what the image should show
+- Board category suggestion
+- 4-6 SEO-friendly hashtags
+- Types: (1) outfit inspo roundup, (2) seasonal styling tip or "X ways to style [piece]"
 
 Return a JSON array only (no markdown fences):
 [
   {
     "platform": "twitter",
     "caption": "tweet text max 220 chars",
-    "hashtags": ["OrThis", "OutfitCheck", "StyleTips"],
-    "imageDescription": "description of ideal accompanying image or video"
+    "hashtags": ["OrThis", "OutfitCheck"],
+    "imageDescription": "ideal accompanying image description"
   },
   {
     "platform": "tiktok",
-    "caption": "TikTok caption — punchy hook in first line, 3-5 lines max, casual Gen Z tone",
-    "hashtags": ["OrThis", "OutfitCheck", "GRWM", "StyleTips"],
-    "imageDescription": "TikTok video concept description for manual filming"
+    "caption": "Hook line that stops the scroll\\n\\nVideo concept: [what to film]\\n\\nCaption text here\\n\\nSuggested format: [format or sound name]",
+    "hashtags": ["OrThis", "GRWM", "OutfitCheck", "StyleTok"],
+    "imageDescription": "TikTok video concept for manual filming"
+  },
+  {
+    "platform": "pinterest",
+    "caption": "Pin title: [descriptive title]\\n\\nBoard: [category]\\n\\n[Keyword-rich 2-3 sentence description with styling advice]",
+    "hashtags": ["OutfitInspo", "StyleTips", "FashionAdvice", "OrThis"],
+    "imageDescription": "what the pin image should show"
   }
 ]
 
-No emojis in hashtags. Max 4 hashtags per post. Vary tone across all 5 posts.`;
+No emojis in hashtags. Vary tone across all 7 posts. Weave in current trends naturally — not as a list, but as timely context that makes the content feel relevant right now.`;
     } else {
       const trendSummary = [
         trends.topStyles.length > 0 ? `Top styles: ${trends.topStyles.join(', ')}` : '',
@@ -251,7 +279,7 @@ All 5 posts should be varied in tone and content. No emojis in hashtags. Max 4 h
 
     let queued = 0;
 
-    for (const draft of drafts.slice(0, 5)) {
+    for (const draft of drafts.slice(0, 7)) {
       if (!draft.caption) continue;
 
       const platform = draft.platform || 'twitter';

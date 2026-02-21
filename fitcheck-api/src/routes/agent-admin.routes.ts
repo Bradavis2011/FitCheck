@@ -12,6 +12,7 @@ import {
   approveAgentAction,
   rejectAgentAction,
   killAll,
+  triggerAgent,
 } from '../controllers/agent-admin.controller.js';
 
 const router = Router();
@@ -42,5 +43,6 @@ router.post('/actions/:id/reject', asyncHandler(rejectAgentAction));
 // Per-agent controls
 router.get('/:name/actions', asyncHandler(getAgentActionLog));
 router.post('/:name/toggle', asyncHandler(toggleAgent));
+router.post('/:name/trigger', asyncHandler(triggerAgent));
 
 export default router;

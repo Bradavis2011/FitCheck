@@ -57,7 +57,7 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
 
   if (onPress || onLongPress) {
     return (
-      <TouchableOpacity onPress={onPress} onLongPress={onLongPress} activeOpacity={0.9}>
+      <TouchableOpacity onPress={onPress} onLongPress={onLongPress} delayLongPress={400} activeOpacity={0.9}>
         {content}
       </TouchableOpacity>
     );
