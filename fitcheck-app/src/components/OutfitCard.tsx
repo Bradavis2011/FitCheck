@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -57,9 +57,14 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
 
   if (onPress || onLongPress) {
     return (
-      <TouchableOpacity onPress={onPress} onLongPress={onLongPress} delayLongPress={400} activeOpacity={0.9}>
+      <Pressable
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={400}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      >
         {content}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
   return content;
