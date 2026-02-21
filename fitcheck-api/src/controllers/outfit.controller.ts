@@ -20,6 +20,7 @@ const OutfitCheckSchema = z.object({
   weather: z.string().optional(),
   vibe: z.string().optional(),
   specificConcerns: z.string().optional(),
+  timezone: z.string().optional(),
   // Sharing: 'private' (just me), 'inner_circle', 'public'
   shareWith: z.enum(['private', 'inner_circle', 'public']).optional(),
 }).refine(data => data.imageUrl || data.imageBase64, {
@@ -165,9 +166,12 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       throw new AppError(404, 'User not found');
     }
 
-    // Reset daily checks if needed
-    const today = new Date().toDateString();
-    const resetDate = new Date(user.dailyChecksResetAt).toDateString();
+    // Reset daily checks if needed — use user's local timezone so reset is at their midnight
+    const tz = data.timezone || 'UTC';
+    const toLocalDateStr = (d: Date) =>
+      d.toLocaleDateString('en-CA', { timeZone: tz }); // 'en-CA' gives YYYY-MM-DD
+    const today = toLocalDateStr(new Date());
+    const resetDate = toLocalDateStr(new Date(user.dailyChecksResetAt));
 
     if (today !== resetDate) {
       user = await prisma.user.update({

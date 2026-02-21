@@ -119,6 +119,7 @@ export interface OutfitCheckInput {
   weather?: string;
   vibe?: string;
   specificConcerns?: string;
+  timezone?: string;
   shareWith?: ShareWith;
 }
 

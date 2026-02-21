@@ -92,6 +92,7 @@ export default function ContextScreen() {
         weather: selectedWeather || undefined,
         vibe: selectedVibes.join(', ') || undefined,
         specificConcerns: concerns || undefined,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         shareWith,
       });
       console.log('[Context] API response received:', response.id);
