@@ -91,6 +91,9 @@ function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Enable animations only after JS hydration
+    document.documentElement.classList.add("js");
+
     const el = ref.current;
     if (!el) return;
 
@@ -102,12 +105,11 @@ function useScrollReveal() {
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.1, rootMargin: "0px 0px -20px 0px" }
     );
 
     const children = el.querySelectorAll(".fade-in-up");
     children.forEach((child) => observer.observe(child));
-    // Also observe the container itself if it has the class
     if (el.classList.contains("fade-in-up")) observer.observe(el);
 
     return () => observer.disconnect();
@@ -804,7 +806,7 @@ function PhoneMockup() {
             <div className="text-center mb-4 mt-2">
               <p className="text-[10px] text-charcoal/60 uppercase tracking-wider mb-1">Your Score</p>
               <div className="text-5xl font-bold text-[#10B981]">8.5</div>
-              <p className="text-xs text-charcoal/60 mt-1">Date Night \u2022 Trendy</p>
+              <p className="text-xs text-charcoal/60 mt-1">Date Night &bull; Trendy</p>
             </div>
 
             {/* What's Working card */}
