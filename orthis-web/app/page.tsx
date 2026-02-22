@@ -7,6 +7,12 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import posthog from "posthog-js";
 
+// Local illustration assets
+import illustrationDuo from "../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-unsplash.jpg";
+import illustrationBlue from "../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg";
+import illustrationTan from "../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg";
+import illustrationPurple from "../assets/images/artby-hensi-ELsHxUox7OU-unsplash.jpg";
+
 /* ─────────────────────────────────────────────
    HOOKS
    ───────────────────────────────────────────── */
@@ -83,18 +89,17 @@ function WaitlistPage() {
         </div>
       </nav>
 
-      {/* ── 2. Hero — Full-bleed photography, 100vh ── */}
+      {/* ── 2. Hero — Full-bleed video, 100vh ── */}
       <section className="relative w-full h-screen overflow-hidden">
-        <div className="absolute inset-0 editorial-image">
-          <Image
-            src="https://images.pexels.com/photos/18235318/pexels-photo-18235318.jpeg?auto=compress&cs=tinysrgb&w=1920&q=80"
-            alt="Model in dress looking in mirror"
-            fill
-            className="object-cover ken-burns"
-            priority
-            sizes="100vw"
-          />
-        </div>
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/video/7305164-uhd_4096_2160_25fps.mp4" type="video/mp4" />
+        </video>
         <div className="hero-overlay absolute inset-0" />
         <div className="relative h-full flex flex-col items-center justify-center text-center px-6 pt-20">
           <p className="section-label text-white/50 mb-8 fade-in-up">
@@ -135,20 +140,20 @@ function WaitlistPage() {
         </div>
       </section>
 
-      {/* ── 4. The Answer — Black bg ── */}
+      {/* ── 4. The Answer — Black bg, illustration left ── */}
       <section className="bg-clarity">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row items-stretch">
-            {/* Left: editorial photo */}
+            {/* Left: editorial illustration */}
             <div
               className="editorial-image relative flex-1 fade-in-up"
               style={{ minHeight: "60vh" }}
             >
               <Image
-                src="https://images.pexels.com/photos/2896428/pexels-photo-2896428.jpeg?auto=compress&cs=tinysrgb&w=1280&q=80"
-                alt="Woman wearing fashionable jacket"
+                src={illustrationDuo}
+                alt="Two women in editorial fashion illustration"
                 fill
-                className="object-cover"
+                className="object-cover object-top"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
@@ -189,30 +194,30 @@ function WaitlistPage() {
         </div>
       </section>
 
-      {/* ── 5. Editorial Grid ── */}
+      {/* ── 5. Editorial Grid — 3 illustrations ── */}
       <section className="py-24 sm:py-32 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div
             className="grid grid-cols-2 gap-3 sm:gap-4"
             style={{ gridTemplateRows: "auto auto" }}
           >
-            {/* Tall image — left, spans 2 rows */}
+            {/* Tall left — spans 2 rows */}
             <div
               className="row-span-2 editorial-image relative fade-in-up"
               style={{ minHeight: "600px" }}
             >
               <Image
-                src="https://images.pexels.com/photos/30451277/pexels-photo-30451277.jpeg?auto=compress&cs=tinysrgb&w=1200&q=80"
-                alt="Street style fashion portrait in red coat"
+                src={illustrationBlue}
+                alt="Fashion illustration — woman in dark jacket, navy background"
                 fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, 33vw"
+                className="object-cover object-top"
+                sizes="(max-width: 640px) 100vw, 50vw"
               />
               <div
                 className="absolute bottom-0 left-0 right-0 p-8"
                 style={{
                   background:
-                    "linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%)",
+                    "linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)",
                 }}
               >
                 <p className="pull-quote text-2xl sm:text-3xl text-white leading-tight">
@@ -227,11 +232,11 @@ function WaitlistPage() {
               style={{ minHeight: "290px" }}
             >
               <Image
-                src="https://images.pexels.com/photos/5457415/pexels-photo-5457415.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
-                alt="Woman in trench coat at rooftop sunset"
+                src={illustrationTan}
+                alt="Fashion illustration — woman looking over shoulder"
                 fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, 33vw"
+                className="object-cover object-top"
+                sizes="(max-width: 640px) 100vw, 50vw"
               />
             </div>
 
@@ -241,18 +246,18 @@ function WaitlistPage() {
               style={{ minHeight: "290px" }}
             >
               <Image
-                src="https://images.pexels.com/photos/29940495/pexels-photo-29940495.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
-                alt="Elegant fashion editorial portrait"
+                src={illustrationPurple}
+                alt="Fashion illustration — woman with sunglasses"
                 fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, 33vw"
+                className="object-cover object-top"
+                sizes="(max-width: 640px) 100vw, 50vw"
               />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── 6. Early Access — Black bg, primary conversion ── */}
+      {/* ── 6. Early Access — Black bg ── */}
       <section className="py-28 sm:py-36 bg-clarity" id="waitlist">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-20 fade-in-up">
@@ -265,7 +270,6 @@ function WaitlistPage() {
             </p>
           </div>
 
-          {/* Perks as thin text columns */}
           <div className="grid grid-cols-1 sm:grid-cols-3 mb-20">
             {[
               {
@@ -307,20 +311,20 @@ function WaitlistPage() {
         </div>
       </section>
 
-      {/* ── 7. Portrait — Cinematic 21:9 ── */}
+      {/* ── 7. Portrait — Cinematic video, 21:9 ── */}
       <section
         className="relative w-full overflow-hidden"
         style={{ aspectRatio: "21/9" }}
       >
-        <div className="absolute inset-0 editorial-image">
-          <Image
-            src="https://images.pexels.com/photos/7219679/pexels-photo-7219679.jpeg?auto=compress&cs=tinysrgb&w=2560&q=80"
-            alt="Reflection of a woman holding a hanger with a shirt"
-            fill
-            className="object-cover"
-            sizes="100vw"
-          />
-        </div>
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/video/5822800-hd_1920_1080_25fps.mp4" type="video/mp4" />
+        </video>
         <div className="hero-overlay absolute inset-0" />
         <div className="relative h-full flex items-center justify-center text-center px-6">
           <h2 className="pull-quote text-4xl sm:text-6xl lg:text-7xl text-white leading-tight">
