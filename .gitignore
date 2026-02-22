@@ -11,3 +11,4 @@ fitcheck-app/store-assets/screenshots/*.jpg
 fitcheck-app/store-assets/screenshots/*.zip
 Branding/*.png
 Monetization/*.zip
+.vercel
