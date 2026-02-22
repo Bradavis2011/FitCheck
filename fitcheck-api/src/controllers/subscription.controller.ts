@@ -44,7 +44,7 @@ export async function handleWebhook(req: Request, res: Response) {
       const evt = req.body?.event || req.body;
       const appUserId = evt?.app_user_id || null;
       if (appUserId) {
-        const user = await prisma.user.findUnique({ where: { clerkId: appUserId }, select: { id: true } });
+        const user = await prisma.user.findUnique({ where: { revenuecatId: appUserId }, select: { id: true } });
         if (user) {
           await prisma.subscriptionEvent.create({
             data: {
