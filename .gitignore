@@ -12,3 +12,7 @@ fitcheck-app/store-assets/screenshots/*.zip
 Branding/*.png
 Monetization/*.zip
 .vercel
+
+# Local reference repos — not tracked as submodules
+lovable-mockup/
+test-app/
