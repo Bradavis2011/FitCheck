@@ -66,7 +66,6 @@ function WaitlistPage() {
   const productRef = useScrollReveal();
   const comparisonRef = useScrollReveal();
   const incentiveRef = useScrollReveal();
-  const statsRef = useScrollReveal();
   const ctaRef = useScrollReveal();
 
   const scrollToWaitlist = useCallback((e: React.MouseEvent) => {
@@ -110,8 +109,8 @@ function WaitlistPage() {
                   Or this?
                 </p>
                 <p className="text-lg sm:text-xl text-charcoal max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
-                  Standing in front of the mirror, holding up two tops, running late.
-                  You need an answer before the doubt follows you out the door.
+                  Standing in front of your mirror at 8:47, holding up two tops, running late.
+                  You need a real answer — not &ldquo;both are cute&rdquo; from someone who isn&apos;t even looking.
                 </p>
                 {/* Early access badge */}
                 <div
@@ -142,35 +141,18 @@ function WaitlistPage() {
       {/* ── 3. "The Cost of Not Knowing" — Emotional Amplification ── */}
       <section className="py-20 sm:py-28 bg-cream-dark" ref={anxietyRef}>
         <div className="max-w-4xl mx-auto px-6">
-          <div className="fade-in-up text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-clarity">
-              The cost of{" "}
-              <span className="font-display italic text-coral">not knowing.</span>
-            </h2>
-          </div>
-
           <div className="flex flex-col gap-6 stagger">
             {[
-              {
-                title: "The morning spiral",
-                text: "You tried on four things. You're late. You went with the first one anyway — and spent the rest of the morning wondering if it was the wrong call.",
-              },
-              {
-                title: "The text-a-friend delay",
-                text: "You sent the mirror selfie. She replied \"cute!\" You know that means nothing. You sent another angle. She's typing. You're already in the car.",
-              },
-              {
-                title: "The all-day doubt",
-                text: "You're at the table, you're in the meeting, you're at the party — and you can't stop thinking about whether this was the right call.",
-              },
-            ].map((card) => (
+              "You tried on four things. Left in the first one anyway. Thought about it all day.",
+              "You sent the mirror selfie. She said \"cute !!!\" You know exactly what that means.",
+              "You're already there. Already in it. And you can't stop wondering if the other one was better.",
+            ].map((text) => (
               <div
-                key={card.title}
+                key={text}
                 className="fade-in-up pl-5 py-5 pr-6 rounded-r-xl"
                 style={{ borderLeft: "3px solid #E85D4C", backgroundColor: "rgba(255, 255, 255, 0.65)" }}
               >
-                <p className="font-semibold text-clarity mb-2">{card.title}</p>
-                <p className="text-charcoal leading-relaxed">{card.text}</p>
+                <p className="text-charcoal text-lg leading-relaxed">{text}</p>
               </div>
             ))}
           </div>
@@ -185,16 +167,18 @@ function WaitlistPage() {
             <div className="flex-1 text-center lg:text-left">
               <div className="fade-in-up">
                 <p className="text-sm font-medium tracking-wide uppercase mb-4 text-coral">
-                  The answer takes ten seconds
+                  Your phone. Ten seconds. Done.
                 </p>
                 <h2 className="text-4xl sm:text-5xl font-bold text-clarity mb-8 leading-tight">
-                  Snap. Know. Go.
+                  It tells you
+                  <br />
+                  <span className="font-display italic text-coral">the truth.</span>
                 </h2>
                 <ul className="flex flex-col gap-5">
                   {[
-                    "A score that tells you exactly where you stand.",
-                    "What's working, what to reconsider, and one thing to change right now.",
-                    "Ask follow-ups until you're sure. 'Should I swap the shoes?' 'Is this too casual?'",
+                    "A score out of 10. No sugarcoating.",
+                    "What's working, what isn't, and one thing to fix right now.",
+                    "Keep asking until you're sure. 'Should I swap the shoes?' 'Is this too casual?' It doesn't care how many times you ask.",
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-charcoal text-lg leading-relaxed">
                       <span className="w-6 h-6 rounded-full bg-coral flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -233,7 +217,7 @@ function WaitlistPage() {
                   <span className="font-display italic text-coral">Get an answer you trust.</span>
                 </h2>
                 <p className="text-charcoal text-lg leading-relaxed">
-                  Post both options side by side. Your community votes — and you get a clear answer in minutes, not hours.
+                  Post both. Your community votes. You get an answer that&apos;s actually useful.
                 </p>
               </div>
             </div>
@@ -255,7 +239,7 @@ function WaitlistPage() {
         <div className="max-w-3xl mx-auto px-6 text-center">
           <div className="fade-in-up">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Early members get more.
+              First in gets more.
             </h2>
             <p className="text-white/85 text-lg mb-10">
               Join the waitlist now. Your first month of Plus is on us.
@@ -265,18 +249,18 @@ function WaitlistPage() {
               {[
                 {
                   icon: "∞",
-                  label: "Unlimited outfit checks",
-                  sub: "vs 3/day on free",
+                  label: "Check as many looks as you want",
+                  sub: "no daily cap",
                 },
                 {
                   icon: "✦",
-                  label: "Full history + Style DNA",
-                  sub: "your style, learned over time",
+                  label: "It learns your style over time",
+                  sub: "gets smarter every time you use it",
                 },
                 {
                   icon: "💬",
-                  label: "Unlimited follow-up questions",
-                  sub: "ask until you're sure",
+                  label: "Keep asking until you're sure",
+                  sub: "no limit on follow-ups",
                 },
               ].map((perk) => (
                 <div
@@ -302,30 +286,7 @@ function WaitlistPage() {
         </div>
       </section>
 
-      {/* ── 7. Stats Bar ── */}
-      <section className="py-14" ref={statsRef}>
-        <div className="max-w-4xl mx-auto px-6">
-          <div
-            className="fade-in-up rounded-2xl px-8 py-10"
-            style={{ backgroundColor: "#F5EDE7" }}
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center divide-y sm:divide-y-0 sm:divide-x divide-coral/10">
-              {[
-                { stat: "10 seconds", label: "Average time to feedback" },
-                { stat: "24/7", label: "Always available" },
-                { stat: "$0", label: "To join the waitlist" },
-              ].map(({ stat, label }) => (
-                <div key={stat} className="py-4 sm:py-0 sm:px-8 first:pt-0 last:pb-0">
-                  <div className="text-3xl sm:text-4xl font-bold text-coral mb-1">{stat}</div>
-                  <div className="text-sm text-charcoal/60">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 8. Final CTA — "The Close" ── */}
+      {/* ── 7. Final CTA — "The Close" ── */}
       <section className="py-20 sm:py-28" ref={ctaRef}>
         <div className="max-w-5xl mx-auto px-6">
           <div
