@@ -107,6 +107,22 @@ export async function restorePurchases(): Promise<CustomerInfo | null> {
 }
 
 /**
+ * Log out of RevenueCat. Call before signing the user out.
+ * Resets the SDK so the next user gets a fresh session.
+ */
+export async function logOutPurchases(): Promise<void> {
+  if (!isConfigured) return;
+  try {
+    await Purchases.logOut();
+    console.log('[Purchases] Logged out');
+  } catch (error) {
+    console.error('[Purchases] Logout failed:', error);
+  } finally {
+    isConfigured = false;
+  }
+}
+
+/**
  * Check if user has a specific entitlement active.
  */
 export function hasEntitlement(customerInfo: CustomerInfo, entitlement: string): boolean {

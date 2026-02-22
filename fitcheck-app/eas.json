@@ -37,6 +37,7 @@
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsub3J0aGlzLmFwcCQ",
         "EXPO_PUBLIC_API_URL": "https://fitcheck-production-0f92.up.railway.app",
         "EXPO_PUBLIC_SENTRY_DSN": "https://900c9a299a8dfe7085bb1c329f7ce5e9@o4510899532791808.ingest.us.sentry.io/4510899538493440",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_REPLACE_WITH_YOUR_KEY",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_jdzgDfJJXBsWevLLflMTpMfOQlT",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_X4AbONnj9dANx6umof3sGoDWfN2Bvap9CpvzY3OT9SI"
       }

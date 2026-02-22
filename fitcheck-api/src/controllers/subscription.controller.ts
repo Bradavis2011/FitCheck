@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
+import * as Sentry from '@sentry/node';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { processWebhookEvent, syncSubscriptionFromClient } from '../services/subscription.service.js';
 import { getTierLimits } from '../constants/tiers.js';
 import { trackServerEvent } from '../lib/posthog.js';
+import { prisma } from '../utils/prisma.js';
 
 const REVENUECAT_WEBHOOK_AUTH = process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN;
 
@@ -36,8 +38,28 @@ export async function handleWebhook(req: Request, res: Response) {
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('[Webhook] Processing error:', error);
-    // Return 200 anyway to prevent RevenueCat from retrying
-    // We logged the event, we can reprocess later
+    Sentry.captureException(error, { extra: { webhookPayload: req.body } });
+    // Attempt to persist the failed event so it can be reprocessed
+    try {
+      const evt = req.body?.event || req.body;
+      const appUserId = evt?.app_user_id || null;
+      if (appUserId) {
+        const user = await prisma.user.findUnique({ where: { clerkId: appUserId }, select: { id: true } });
+        if (user) {
+          await prisma.subscriptionEvent.create({
+            data: {
+              userId: user.id,
+              eventType: 'PROCESSING_ERROR',
+              entitlementIds: [],
+              rawPayload: req.body,
+            },
+          });
+        }
+      }
+    } catch (persistError) {
+      console.error('[Webhook] Failed to persist error event:', persistError);
+    }
+    // Return 200 to prevent RevenueCat from retrying — event is logged for manual reprocessing
     res.status(200).json({ success: true, warning: 'Processed with errors' });
   }
 }

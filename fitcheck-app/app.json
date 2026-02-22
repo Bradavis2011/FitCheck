@@ -51,6 +51,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "react-native-purchases",
       [
         "react-native-google-mobile-ads",
         {

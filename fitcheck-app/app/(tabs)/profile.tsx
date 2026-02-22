@@ -10,6 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
+import { logOutPurchases } from '../../src/services/purchases.service';
 import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals } from '../../src/hooks/useApi';
 import PillButton from '../../src/components/PillButton';
 import { styles as styleOptions } from '../../src/lib/mockData';
@@ -109,6 +110,7 @@ export default function ProfileScreen() {
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
         try {
           // Clear all app state
+          await logOutPurchases(); // Log out of RevenueCat (must be before signOut)
           await clearAuth(); // Clear auth store
           queryClient.clear(); // Clear React Query cache (history, stats, etc.)
           useSubscriptionStore.setState({

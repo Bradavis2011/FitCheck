@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@clerk/clerk-expo';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { logOutPurchases } from '../src/services/purchases.service';
 import { useUpdateProfile, useUser } from '../src/hooks/useApi';
 import { userService } from '../src/services/api.service';
 
@@ -105,6 +106,7 @@ export default function PrivacySettingsScreen() {
                   onPress: async () => {
                     try {
                       await userService.deleteAccount();
+                      await logOutPurchases();
                       await signOut();
                     } catch (error) {
                       Alert.alert('Error', 'Failed to delete account. Please try again.');
