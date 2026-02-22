@@ -42,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} ${playfair.variable} font-sans antialiased bg-cream text-clarity`}>
+      <body className={`${dmSans.variable} ${playfair.variable} font-sans antialiased bg-white text-clarity`}>
         <PostHogInit />
         {children}
       </body>
