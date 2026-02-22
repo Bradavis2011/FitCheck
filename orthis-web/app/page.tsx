@@ -87,8 +87,8 @@ function WaitlistPage() {
       <section className="relative w-full h-screen overflow-hidden">
         <div className="absolute inset-0 editorial-image">
           <Image
-            src="https://source.unsplash.com/R8RWUApHTrA"
-            alt="Woman trying on dress in front of mirror"
+            src="https://images.pexels.com/photos/18235318/pexels-photo-18235318.jpeg?auto=compress&cs=tinysrgb&w=1920&q=80"
+            alt="Model in dress looking in mirror"
             fill
             className="object-cover ken-burns"
             priority
@@ -145,8 +145,8 @@ function WaitlistPage() {
               style={{ minHeight: "60vh" }}
             >
               <Image
-                src="https://source.unsplash.com/fneWFi75m2w"
-                alt="Woman in red blazer striking a pose"
+                src="https://images.pexels.com/photos/2896428/pexels-photo-2896428.jpeg?auto=compress&cs=tinysrgb&w=1280&q=80"
+                alt="Woman wearing fashionable jacket"
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -202,8 +202,8 @@ function WaitlistPage() {
               style={{ minHeight: "600px" }}
             >
               <Image
-                src="https://source.unsplash.com/o3Kib4dGawY"
-                alt="Fashionable woman poses by red phone booth"
+                src="https://images.pexels.com/photos/30451277/pexels-photo-30451277.jpeg?auto=compress&cs=tinysrgb&w=1200&q=80"
+                alt="Street style fashion portrait in red coat"
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 50vw, 33vw"
@@ -227,8 +227,8 @@ function WaitlistPage() {
               style={{ minHeight: "290px" }}
             >
               <Image
-                src="https://source.unsplash.com/g2n7ytb8gjw"
-                alt="Woman in trench coat leaning on column"
+                src="https://images.pexels.com/photos/5457415/pexels-photo-5457415.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
+                alt="Woman in trench coat at rooftop sunset"
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 50vw, 33vw"
@@ -241,8 +241,8 @@ function WaitlistPage() {
               style={{ minHeight: "290px" }}
             >
               <Image
-                src="https://source.unsplash.com/DKiUiznse2E"
-                alt="Woman in black hat and white turtleneck"
+                src="https://images.pexels.com/photos/29940495/pexels-photo-29940495.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
+                alt="Elegant fashion editorial portrait"
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 50vw, 33vw"
@@ -314,8 +314,8 @@ function WaitlistPage() {
       >
         <div className="absolute inset-0 editorial-image">
           <Image
-            src="https://source.unsplash.com/bEJPppcasGc"
-            alt="Woman in front of mirrors, multiple reflections"
+            src="https://images.pexels.com/photos/7219679/pexels-photo-7219679.jpeg?auto=compress&cs=tinysrgb&w=2560&q=80"
+            alt="Reflection of a woman holding a hanger with a shirt"
             fill
             className="object-cover"
             sizes="100vw"
