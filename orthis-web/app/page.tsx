@@ -110,7 +110,7 @@ function WaitlistPage() {
           </h1>
           <p className="pull-quote text-4xl sm:text-5xl lg:text-6xl mb-14 fade-in-up">
             <span className="text-clarity">Or </span>
-            <span className="text-coral">this?</span>
+            <span className="text-coral">This?</span>
           </p>
           <div className="w-full max-w-md fade-in-up">
             <WaitlistForm refCode={refCode} variant="dark" />
