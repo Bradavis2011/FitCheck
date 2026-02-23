@@ -74,7 +74,7 @@ html.js .stagger > .fade-in-up:nth-child(6) { transition-delay: 600ms; }
 /* Pull quote typography */
 .pull-quote {
   font-family: var(--font-playfair), ui-serif, Georgia, serif;
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   letter-spacing: -0.02em;
 }

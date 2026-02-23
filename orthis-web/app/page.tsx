@@ -108,8 +108,9 @@ function WaitlistPage() {
           <h1 className="pull-quote text-6xl sm:text-7xl lg:text-8xl text-white leading-tight mb-6 fade-in-up max-w-4xl">
             You already know<br />the question.
           </h1>
-          <p className="pull-quote text-4xl sm:text-5xl lg:text-6xl text-coral mb-14 fade-in-up">
-            Or this?
+          <p className="pull-quote text-4xl sm:text-5xl lg:text-6xl mb-14 fade-in-up">
+            <span className="text-white">Or </span>
+            <span className="text-coral">this?</span>
           </p>
           <div className="w-full max-w-md fade-in-up">
             <WaitlistForm refCode={refCode} variant="dark" />
@@ -180,7 +181,7 @@ function WaitlistPage() {
                     className="flex items-start gap-4 text-white/75 text-lg leading-relaxed"
                   >
                     <span
-                      className="font-display italic text-xl flex-shrink-0 mt-0.5"
+                      className="font-display text-xl flex-shrink-0 mt-0.5"
                       style={{ color: "#E85D4C" }}
                     >
                       &mdash;
@@ -617,7 +618,7 @@ function Logo() {
   return (
     <span className="text-xl font-medium select-none">
       <span className="text-clarity">Or </span>
-      <span className="font-display italic text-coral">This?</span>
+      <span className="font-display text-coral">This?</span>
     </span>
   );
 }
