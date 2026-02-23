@@ -19,8 +19,7 @@ export const metadata: Metadata = {
   description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
   metadataBase: new URL("https://orthis.app"),
   icons: {
-    icon: [{ url: "/icon", type: "image/png", sizes: "32x32" }],
-    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
   },
   openGraph: {
     title: "Or This? — AI Outfit Feedback",

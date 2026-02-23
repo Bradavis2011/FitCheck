@@ -35,6 +35,7 @@
       "node": "22.12.0",
       "env": {
         "npm_config_legacy_peer_deps": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsub3J0aGlzLmFwcCQ",
         "EXPO_PUBLIC_API_URL": "https://fitcheck-production-0f92.up.railway.app",
         "EXPO_PUBLIC_SENTRY_DSN": "https://900c9a299a8dfe7085bb1c329f7ce5e9@o4510899532791808.ingest.us.sentry.io/4510899538493440",
