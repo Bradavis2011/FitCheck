@@ -18,9 +18,6 @@ export const metadata: Metadata = {
   title: "Or This? — AI Outfit Feedback",
   description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
   metadataBase: new URL("https://orthis.app"),
-  icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-  },
   openGraph: {
     title: "Or This? — AI Outfit Feedback",
     description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
@@ -28,6 +25,14 @@ export const metadata: Metadata = {
     siteName: "Or This?",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Or This? — AI Outfit Feedback",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -35,6 +40,7 @@ export const metadata: Metadata = {
     description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
     site: "@orthisapp",
     creator: "@orthisapp",
+    images: ["/og-image.jpg"],
   },
 };
 
