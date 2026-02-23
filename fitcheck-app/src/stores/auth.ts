@@ -13,6 +13,7 @@ interface AppState {
   selectedWeather: string | null;
   selectedVibes: string[];
   concerns: string;
+  eventDate: Date | null;
   isAnalyzing: boolean;
   currentFeedback: FeedbackResponse | null;
 
@@ -26,6 +27,7 @@ interface AppState {
   setSelectedWeather: (weather: string | null) => void;
   toggleVibe: (vibe: string) => void;
   setConcerns: (text: string) => void;
+  setEventDate: (date: Date | null) => void;
   startAnalysis: () => void;
   setFeedback: (feedback: FeedbackResponse) => void;
   resetCheckFlow: () => void;
@@ -43,6 +45,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedWeather: null,
   selectedVibes: [],
   concerns: '',
+  eventDate: null,
   isAnalyzing: false,
   currentFeedback: null,
   outfits: [],
@@ -65,6 +68,7 @@ export const useAppStore = create<AppState>((set) => ({
         : [...state.selectedVibes, vibe],
     })),
   setConcerns: (text) => set({ concerns: text }),
+  setEventDate: (date) => set({ eventDate: date }),
   startAnalysis: () => set({ isAnalyzing: true }),
   setFeedback: (feedback) => set({ currentFeedback: feedback, isAnalyzing: false }),
 
@@ -76,6 +80,7 @@ export const useAppStore = create<AppState>((set) => ({
       selectedWeather: null,
       selectedVibes: [],
       concerns: '',
+      eventDate: null,
       currentFeedback: null,
       isAnalyzing: false,
     }),

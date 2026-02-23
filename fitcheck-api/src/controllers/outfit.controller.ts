@@ -11,6 +11,9 @@ import { getTierLimits } from '../constants/tiers.js';
 import { getRecommendations as getOutfitRecommendations } from '../services/recommendation.service.js';
 import * as gamificationService from '../services/gamification.service.js';
 import { trackServerEvent } from '../lib/posthog.js';
+import { scheduleFollowUp, EVENT_OCCASIONS, recordFollowUpResponse } from '../services/event-followup.service.js';
+import { checkMilestones } from '../services/milestone-message.service.js';
+import { getOutfitMemory } from '../services/outfit-memory.service.js';
 
 const OutfitCheckSchema = z.object({
   imageUrl: z.string().url().optional(),
@@ -21,6 +24,7 @@ const OutfitCheckSchema = z.object({
   vibe: z.string().optional(),
   specificConcerns: z.string().optional(),
   timezone: z.string().optional(),
+  eventDate: z.string().datetime().optional(),
   // Sharing: 'private' (just me), 'inner_circle', 'public'
   shareWith: z.enum(['private', 'inner_circle', 'public']).optional(),
 }).refine(data => data.imageUrl || data.imageBase64, {
@@ -290,6 +294,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         weather: data.weather,
         vibe: data.vibe,
         specificConcerns: data.specificConcerns,
+        eventDate: data.eventDate ? new Date(data.eventDate) : null,
         isPublic,
         visibility: outfitVisibility,
         blurFace: blurFaceDefault,
@@ -301,6 +306,16 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       occasion: data.occasions[0],
       shareWith: shareWith,
     });
+
+    // Schedule post-event follow-up if occasion warrants it (fire-and-forget)
+    if (data.occasions.some((o) => EVENT_OCCASIONS.includes(o))) {
+      scheduleFollowUp(
+        outfitId,
+        userId,
+        data.occasions,
+        data.eventDate ? new Date(data.eventDate) : null,
+      ).catch((err) => console.error('Follow-up scheduling failed:', err));
+    }
 
     // Notify inner circle members when sharing to inner circle
     if (shareWith === 'inner_circle') {
@@ -348,14 +363,28 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     // Update user streak and points
     await updateUserStreakAndPoints(userId);
 
-    // Check for outfit-submission badges (non-blocking)
-    prisma.outfitCheck.count({ where: { userId, isDeleted: false } }).then((outfitCount) => {
-      gamificationService.checkOutfitBadges(userId, outfitCount).catch((err) => {
-        console.error('Outfit badge check failed:', err);
-      });
-    }).catch((err) => {
-      console.error('Outfit count for badge check failed:', err);
-    });
+    // Check for outfit-submission badges + milestones (non-blocking)
+    (async () => {
+      try {
+        const [outfitCount, stats] = await Promise.all([
+          prisma.outfitCheck.count({ where: { userId, isDeleted: false } }),
+          prisma.userStats.findUnique({ where: { userId }, select: { currentStreak: true } }),
+        ]);
+        await Promise.all([
+          gamificationService.checkOutfitBadges(userId, outfitCount).catch((err) => {
+            console.error('Outfit badge check failed:', err);
+          }),
+          checkMilestones(userId, {
+            outfitCount,
+            currentStreak: stats?.currentStreak || 0,
+          }).catch((err) => {
+            console.error('Milestone check failed:', err);
+          }),
+        ]);
+      } catch (err) {
+        console.error('Post-submit checks failed:', err);
+      }
+    })();
 
     // Resize image for AI analysis (reduces payload from ~5MB to ~200KB)
     let aiData = data;
@@ -711,6 +740,39 @@ export async function deleteOutfitCheck(req: AuthenticatedRequest, res: Response
     });
 
     res.json({ success: true });
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function respondToFollowUp(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const { followUpId } = req.params;
+    const { response } = req.body;
+
+    if (!response || typeof response !== 'string') {
+      throw new AppError(400, 'response is required');
+    }
+
+    await recordFollowUpResponse(followUpId, userId, response);
+    res.json({ success: true });
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getOutfitMemoryHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+    const occasionsParam = (req.query.occasions as string) || '';
+    const occasions = occasionsParam
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+
+    const memory = await getOutfitMemory(userId, occasions);
+    res.json({ memory });
   } catch (error) {
     throw error;
   }

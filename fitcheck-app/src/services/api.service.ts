@@ -120,7 +120,20 @@ export interface OutfitCheckInput {
   vibe?: string;
   specificConcerns?: string;
   timezone?: string;
+  eventDate?: string; // ISO 8601 datetime string
   shareWith?: ShareWith;
+}
+
+export type EventFollowUpResponse = 'crushed_it' | 'felt_good' | 'meh' | 'not_great';
+
+export interface OutfitMemory {
+  id: string;
+  aiScore: number;
+  occasion: string;
+  thumbnailUrl: string | null;
+  thumbnailData: string | null;
+  summary: string | null;
+  createdAt: string;
 }
 
 export interface UserStats {
@@ -229,6 +242,21 @@ export const outfitService = {
   async reanalyzeOutfit(outfitId: string) {
     const response = await api.post<{ message: string }>(`/api/outfits/${outfitId}/reanalyze`);
     return response.data;
+  },
+
+  async getOutfitMemory(occasions: string[]) {
+    const response = await api.get<{ memory: OutfitMemory | null }>(
+      `/api/outfits/memory?occasions=${occasions.map(encodeURIComponent).join(',')}`,
+    );
+    return response.data;
+  },
+
+  async respondToEventFollowUp(followUpId: string, response: EventFollowUpResponse) {
+    const res = await api.post<{ success: boolean }>(
+      `/api/outfits/follow-up/${followUpId}/respond`,
+      { response },
+    );
+    return res.data;
   },
 };
 

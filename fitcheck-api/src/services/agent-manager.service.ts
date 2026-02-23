@@ -337,6 +337,9 @@ const ALL_AGENT_NAMES = [
   'social-media-manager',
   'appstore-manager',
   'outreach-agent',
+  'event-followup',
+  'style-narrative',
+  'milestone-scanner',
 ];
 
 export async function killAllAgents(): Promise<void> {

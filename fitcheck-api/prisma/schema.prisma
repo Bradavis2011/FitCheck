@@ -70,6 +70,9 @@ model User {
   wardrobeItems          WardrobeItem[]
   events                 Event[]
   eventOutfits           EventOutfit[]
+  eventFollowUps         EventFollowUp[]
+  styleNarratives        StyleNarrative[]
+  milestoneMessages      MilestoneMessage[]
 
   @@map("users")
 }
@@ -93,6 +96,7 @@ model OutfitCheck {
   weather          String?
   vibe             String?
   specificConcerns String? @map("specific_concerns")
+  eventDate        DateTime? @map("event_date")
 
   // AI Feedback
   aiFeedback     Json?     @map("ai_feedback")
@@ -124,6 +128,7 @@ model OutfitCheck {
   challengeSubmissions ChallengeSubmission[]
   eventOutfits         EventOutfit[]
   wardrobeLinks        WardrobeItemOutfit[]
+  eventFollowUps       EventFollowUp[]
 
   @@map("outfit_checks")
 }
@@ -719,6 +724,59 @@ model AppReview {
 }
 
 // ─── End Agent Workforce Models ───────────────────────────────────────────────
+
+// ─── Relationship System Models ───────────────────────────────────────────────
+
+model EventFollowUp {
+  id            String      @id @default(uuid())
+  outfitCheckId String      @map("outfit_check_id")
+  outfitCheck   OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occasion      String
+  eventDate     DateTime?   @map("event_date")
+  followUpAt    DateTime    @map("follow_up_at")
+  response      String?     // "crushed_it" | "felt_good" | "meh" | "not_great"
+  respondedAt   DateTime?   @map("responded_at")
+  pushSentAt    DateTime?   @map("push_sent_at")
+  emailSentAt   DateTime?   @map("email_sent_at")
+  status        String      @default("pending") // "pending" | "push_sent" | "email_sent" | "completed" | "expired"
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@map("event_follow_ups")
+  @@index([followUpAt, status])
+  @@index([userId, status])
+}
+
+model StyleNarrative {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  narrative   String   @db.Text
+  period      String   // "2026-W08"
+  outfitCount Int      @map("outfit_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, period])
+  @@map("style_narratives")
+  @@index([userId])
+}
+
+model MilestoneMessage {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestoneKey String   @map("milestone_key")
+  message      String   @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, milestoneKey])
+  @@map("milestone_messages")
+  @@index([userId])
+}
+
+// ─── End Relationship System Models ──────────────────────────────────────────
 
 model DailyMetricsSnapshot {
   id             String   @id @default(uuid())

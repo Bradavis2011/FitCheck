@@ -54,7 +54,14 @@ export function usePushNotifications() {
         linkId?: string;
       };
 
-      if (data.linkType === 'outfit' && data.linkId) {
+      if (data.type === 'event_followup' && data.linkId) {
+        // Navigate to the outfit screen — EventFollowUpModal can be triggered there
+        router.push(`/outfit/${data.linkId}` as any);
+      } else if (data.type === 'style_narrative') {
+        router.push('/(tabs)/profile' as any);
+      } else if (data.type === 'milestone') {
+        router.push('/(tabs)/profile' as any);
+      } else if (data.linkType === 'outfit' && data.linkId) {
         router.push(`/outfit/${data.linkId}` as any);
       } else if (data.type === 'follow') {
         router.push('/(tabs)/community' as any);

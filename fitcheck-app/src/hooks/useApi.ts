@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -7,6 +7,7 @@ export const queryKeys = {
   userStats: ['user', 'stats'],
   outfit: (id: string) => ['outfit', id],
   outfits: (filters?: any) => ['outfits', filters],
+  outfitMemory: (occasions: string[]) => ['outfit', 'memory', occasions.sort().join(',')],
   communityFeed: (filters?: any) => ['community', 'feed', filters],
   communityFeedback: (outfitId: string) => ['community', 'feedback', outfitId],
   publicUser: (userId: string) => ['community', 'user', userId],
@@ -51,6 +52,22 @@ export function useOutfit(id: string) {
     queryKey: queryKeys.outfit(id),
     queryFn: () => outfitService.getOutfit(id),
     enabled: !!id,
+  });
+}
+
+export function useOutfitMemory(occasions: string[]) {
+  return useQuery({
+    queryKey: queryKeys.outfitMemory(occasions),
+    queryFn: () => outfitService.getOutfitMemory(occasions),
+    enabled: occasions.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useRespondToEventFollowUp() {
+  return useMutation({
+    mutationFn: ({ followUpId, response }: { followUpId: string; response: EventFollowUpResponse }) =>
+      outfitService.respondToEventFollowUp(followUpId, response),
   });
 }
 

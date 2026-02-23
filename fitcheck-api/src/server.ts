@@ -106,6 +106,32 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Email click-through follow-up response (unauthenticated — link from email)
+app.get('/api/follow-up/:id/respond/:response', asyncHandler(async (req, res) => {
+  const { id, response } = req.params;
+  const valid = ['crushed_it', 'felt_good', 'meh', 'not_great'];
+  if (!valid.includes(response)) {
+    return res.status(400).send('Invalid response.');
+  }
+  try {
+    const { prisma: db } = await import('./utils/prisma.js');
+    await db.eventFollowUp.updateMany({
+      where: { id, response: null },
+      data: { response, respondedAt: new Date(), status: 'completed' },
+    });
+  } catch (err) {
+    console.error('[FollowUp] Email click-through failed:', err);
+  }
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;border-radius:16px;">
+      <div style="font-size:48px;">✅</div>
+      <h2 style="color:#E85D4C;">Got it!</h2>
+      <p style="color:#2D2D2D;">Thanks for letting us know. Your feedback helps us improve.</p>
+      <a href="https://orthis.app" style="color:#E85D4C;font-weight:600;">Open Or This? →</a>
+    </div>
+  </body></html>`);
+}));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/outfits', outfitRoutes);

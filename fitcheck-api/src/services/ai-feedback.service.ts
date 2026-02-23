@@ -4,6 +4,7 @@ import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
 import { trackServerEvent } from '../lib/posthog.js';
 import { getLatestFashionTrendText } from './fashion-trends.service.js';
+import { checkMilestones } from './milestone-message.service.js';
 
 // In-memory AI counters (reset on server restart; used by metrics.service for digest)
 let _aiSuccessCount = 0;
@@ -1152,6 +1153,11 @@ export async function analyzeOutfit(
           linkType: 'outfit',
           linkId: outfitCheckId,
         }).catch((err) => console.error('Failed to send analysis notification:', err));
+
+        // Check score-based milestones (first 9+)
+        checkMilestones(user.id, { latestScore: score }).catch((err) =>
+          console.error('Score milestone check failed:', err),
+        );
       }
 
       if (feedback.styleDNA) {

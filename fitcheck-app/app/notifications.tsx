@@ -13,7 +13,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../src/hooks/useApi';
 
-type NotificationType = 'feedback' | 'milestone' | 'follow';
+type NotificationType =
+  | 'feedback'
+  | 'milestone'
+  | 'follow'
+  | 'event_followup'
+  | 'style_narrative'
+  | 'nudge_push'
+  | string;
 
 type Notification = {
   id: string;
@@ -58,6 +65,12 @@ export default function NotificationsScreen() {
         return 'trophy';
       case 'follow':
         return 'person-add';
+      case 'event_followup':
+        return 'calendar';
+      case 'style_narrative':
+        return 'sparkles';
+      case 'nudge_push':
+        return 'notifications';
       default:
         return 'notifications';
     }

@@ -21,6 +21,9 @@ import { runAppStoreManager, runAppStoreWeeklySummary } from './appstore-manager
 import { runOutreachAgent } from './outreach-agent.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
+import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.service.js';
+import { runMilestoneScanner } from './milestone-message.service.js';
+import { runStyleNarrativeAgent } from './style-narrative.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -617,5 +620,34 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence)');
+  // ── Relationship System ───────────────────────────────────────────────────────
+
+  // Post-event follow-up: every 30 minutes
+  cron.schedule('*/30 * * * *', async () => {
+    try { await runEventFollowUp(); }
+    catch (err) { console.error('[Scheduler] Event follow-up failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // Follow-up email fallback: every 6 hours
+  cron.schedule('0 */6 * * *', async () => {
+    console.log('📧 [Scheduler] Running follow-up email fallback...');
+    try { await runFollowUpEmailFallback(); }
+    catch (err) { console.error('[Scheduler] Follow-up email fallback failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // Milestone scanner: daily 3pm UTC
+  cron.schedule('0 15 * * *', async () => {
+    console.log('🏆 [Scheduler] Running milestone scanner...');
+    try { await runMilestoneScanner(); }
+    catch (err) { console.error('[Scheduler] Milestone scanner failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // Style narrative agent: Sunday 5pm UTC
+  cron.schedule('0 17 * * 0', async () => {
+    console.log('✍️  [Scheduler] Running style narrative agent...');
+    try { await runStyleNarrativeAgent(); }
+    catch (err) { console.error('[Scheduler] Style narrative agent failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Relationship System)');
 }

@@ -8,6 +8,7 @@ import {
   TextInput,
   Image,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,7 +20,10 @@ import LoadingOverlay from '../src/components/LoadingOverlay';
 import PillButton from '../src/components/PillButton';
 import { uploadImage } from '../src/services/image-upload.service';
 import { outfitService, ShareWith } from '../src/services/api.service';
-import { useUserStats } from '../src/hooks/useApi';
+import { useUserStats, useOutfitMemory } from '../src/hooks/useApi';
+
+// Occasions that get a follow-up the next morning
+const EVENT_OCCASIONS = ['Date Night', 'Interview', 'Event'];
 
 const SHARE_OPTIONS: { value: ShareWith; label: string; icon: string; description: string }[] = [
   { value: 'private', label: 'Just Me', icon: 'lock-closed-outline', description: 'Only you can see this' },
@@ -36,16 +40,59 @@ export default function ContextScreen() {
     selectedWeather,
     selectedVibes,
     concerns,
+    eventDate,
     toggleOccasion,
     setSelectedSetting,
     setSelectedWeather,
     toggleVibe,
     setConcerns,
+    setEventDate,
     isAnalyzing,
   } = useAppStore();
 
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [shareWith, setShareWith] = useState<ShareWith>('private');
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [customDateText, setCustomDateText] = useState('');
+
+  const hasEventOccasion = selectedOccasions.some((o) => EVENT_OCCASIONS.includes(o));
+
+  // Outfit memory — fetch best past outfit for selected occasions
+  const { data: memoryData } = useOutfitMemory(selectedOccasions);
+  const outfitMemory = memoryData?.memory;
+
+  // Quick date helpers
+  const getDateLabel = (d: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(d);
+    target.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const setQuickDate = (daysFromNow: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    setEventDate(d);
+  };
+
+  const handleCustomDate = () => {
+    setShowDateModal(true);
+  };
+
+  const confirmCustomDate = () => {
+    const parsed = new Date(customDateText);
+    if (isNaN(parsed.getTime())) {
+      Alert.alert('Invalid date', 'Please enter a date like "2026-03-15"');
+      return;
+    }
+    setEventDate(parsed);
+    setShowDateModal(false);
+    setCustomDateText('');
+  };
 
   // Fetch user stats to check daily limit
   const { data: stats } = useUserStats();
@@ -93,6 +140,7 @@ export default function ContextScreen() {
         vibe: selectedVibes.join(', ') || undefined,
         specificConcerns: concerns || undefined,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        eventDate: eventDate ? eventDate.toISOString() : undefined,
         shareWith,
       });
       console.log('[Context] API response received:', response.id);
@@ -184,6 +232,104 @@ export default function ContextScreen() {
               ))}
             </View>
           </View>
+
+          {/* Outfit memory callback — show best past outfit for this occasion */}
+          {outfitMemory && (
+            <TouchableOpacity
+              style={styles.memoryCard}
+              onPress={() => router.push(`/outfit/${outfitMemory.id}` as any)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.memoryRow}>
+                {(outfitMemory.thumbnailUrl || outfitMemory.thumbnailData) && (
+                  <Image
+                    source={{
+                      uri: outfitMemory.thumbnailUrl ||
+                        `data:image/jpeg;base64,${outfitMemory.thumbnailData}`,
+                    }}
+                    style={styles.memoryThumb}
+                  />
+                )}
+                <View style={styles.memoryContent}>
+                  <Text style={styles.memoryLabel}>Last time you dressed for {outfitMemory.occasion}</Text>
+                  <Text style={styles.memoryScore}>
+                    {outfitMemory.aiScore.toFixed(1)}/10
+                  </Text>
+                  {outfitMemory.summary && (
+                    <Text style={styles.memorySummary} numberOfLines={2}>
+                      {outfitMemory.summary}
+                    </Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Event date picker — only shown when an event occasion is selected */}
+          {hasEventOccasion && (
+            <View style={styles.datePicker}>
+              <Text style={styles.datePickerTitle}>When is the event?</Text>
+              <Text style={styles.datePickerHint}>Optional — we'll follow up to see how it went</Text>
+              <View style={styles.dateOptions}>
+                {[0, 1, 2].map((daysFromNow) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + daysFromNow);
+                  const isSelected =
+                    eventDate &&
+                    new Date(eventDate).toDateString() === d.toDateString();
+                  return (
+                    <TouchableOpacity
+                      key={daysFromNow}
+                      style={[styles.dateChip, isSelected && styles.dateChipActive]}
+                      onPress={() => setQuickDate(daysFromNow)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.dateChipText, isSelected && styles.dateChipTextActive]}>
+                        {getDateLabel(d)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={[
+                    styles.dateChip,
+                    eventDate &&
+                      ![0, 1, 2].some(() => {
+                        const d = new Date();
+                        return [0, 1, 2].some((n) => {
+                          const nd = new Date();
+                          nd.setDate(nd.getDate() + n);
+                          return eventDate && new Date(eventDate).toDateString() === nd.toDateString();
+                        });
+                      }) && styles.dateChipActive,
+                  ]}
+                  onPress={handleCustomDate}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.dateChipText}>Other date</Text>
+                </TouchableOpacity>
+                {eventDate && (
+                  <TouchableOpacity
+                    style={styles.dateClear}
+                    onPress={() => setEventDate(null)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {eventDate && (
+                <Text style={styles.dateSelected}>
+                  {new Date(eventDate).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Text>
+              )}
+            </View>
+          )}
 
           {/* Details accordion */}
           <TouchableOpacity
@@ -334,6 +480,35 @@ export default function ContextScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {/* Custom date picker modal */}
+      <Modal visible={showDateModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Enter event date</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="YYYY-MM-DD (e.g. 2026-03-15)"
+              placeholderTextColor={Colors.textMuted}
+              value={customDateText}
+              onChangeText={setCustomDateText}
+              keyboardType="numbers-and-punctuation"
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => { setShowDateModal(false); setCustomDateText(''); }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalConfirm} onPress={confirmCustomDate}>
+                <Text style={styles.modalConfirmText}>Set Date</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Loading overlay */}
       {isAnalyzing && <LoadingOverlay messages={loadingMessages} />}
@@ -561,5 +736,154 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSize.lg,
     fontWeight: '700',
+  },
+  // Outfit memory card
+  memoryCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+  },
+  memoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  memoryThumb: {
+    width: 48,
+    height: 64,
+    borderRadius: 8,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  memoryContent: {
+    flex: 1,
+    gap: 2,
+  },
+  memoryLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    fontWeight: '500',
+  },
+  memoryScore: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  memorySummary: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  // Event date picker
+  datePicker: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  datePickerTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  datePickerHint: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  dateOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+    alignItems: 'center',
+  },
+  dateChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  dateChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dateChipText: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+    color: Colors.text,
+  },
+  dateChipTextActive: {
+    color: Colors.white,
+  },
+  dateClear: {
+    padding: 4,
+  },
+  dateSelected: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  // Custom date modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: '100%',
+    gap: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  modalCancel: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.full,
+  },
+  modalCancelText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.textMuted,
+  },
+  modalConfirm: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.full,
+  },
+  modalConfirmText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.white,
   },
 });

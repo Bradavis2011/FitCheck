@@ -14,6 +14,12 @@ router.post('/check', asyncHandler(outfitController.submitOutfitCheck));
 // Get personalized recommendations (must be before /:id to avoid conflicts)
 router.get('/recommendations', asyncHandler(outfitController.getRecommendations));
 
+// Outfit memory: best past outfit for given occasions
+router.get('/memory', asyncHandler(outfitController.getOutfitMemoryHandler));
+
+// Post-event follow-up response
+router.post('/follow-up/:followUpId/respond', asyncHandler(outfitController.respondToFollowUp));
+
 // Get outfit feedback by ID
 router.get('/:id', asyncHandler(outfitController.getOutfitFeedback));
 
