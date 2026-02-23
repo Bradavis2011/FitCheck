@@ -220,9 +220,13 @@ export default function CompareScreen() {
       setVerdict(result);
       setScreenState('verdict');
       track('ai_comparison_complete', { winner: result.winner });
-    } catch {
+    } catch (error: any) {
       setScreenState('selecting');
-      Alert.alert('Analysis Failed', 'Could not analyze your outfits. Please check your connection and try again.');
+      const msg =
+        error?.response?.data?.error ||
+        error?.message ||
+        'Could not analyze your outfits. Please check your connection and try again.';
+      Alert.alert('Analysis Failed', msg);
     }
   };
 

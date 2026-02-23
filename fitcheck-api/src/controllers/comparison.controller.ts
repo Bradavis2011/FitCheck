@@ -210,9 +210,9 @@ Replace "A" in the winner field with either "A" or "B".`;
 
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   const result = await model.generateContent([
-    prompt,
-    { inlineData: { data: imageABase64, mimeType: 'image/jpeg' } },
-    { inlineData: { data: imageBBase64, mimeType: 'image/jpeg' } },
+    { text: prompt },
+    { inlineData: { mimeType: 'image/jpeg', data: imageABase64 } },
+    { inlineData: { mimeType: 'image/jpeg', data: imageBBase64 } },
   ]);
 
   const text = result.response.text().trim();
