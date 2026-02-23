@@ -18,7 +18,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import ViewShot from 'react-native-view-shot';
+// react-native-view-shot requires native binary — guard so Expo Go loads safely
+let ViewShot: any = null;
+try { ViewShot = require('react-native-view-shot').default; } catch { /* unavailable in Expo Go */ }
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useAppStore } from '../src/stores/auth';
@@ -688,17 +690,19 @@ export default function FeedbackScreen() {
       />
 
       {/* Off-screen share card — captured by react-native-view-shot for image sharing */}
-      <View style={styles.hiddenShareCard} pointerEvents="none">
-        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.95 }}>
-          <ShareableScoreCard
-            score={score}
-            imageUri={imageUri}
-            summary={feedback.summary}
-            occasion={outfit.occasions?.[0]}
-            username={user?.name || undefined}
-          />
-        </ViewShot>
-      </View>
+      {ViewShot && (
+        <View style={styles.hiddenShareCard} pointerEvents="none">
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.95 }}>
+            <ShareableScoreCard
+              score={score}
+              imageUri={imageUri}
+              summary={feedback.summary}
+              occasion={outfit.occasions?.[0]}
+              username={user?.name || undefined}
+            />
+          </ViewShot>
+        </View>
+      )}
     </View>
   );
 }
