@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createHmac } from 'crypto';
 import { prisma } from '../utils/prisma.js';
-import { executeOrQueue } from './agent-manager.service.js';
+import { executeOrQueue, registerExecutor } from './agent-manager.service.js';
 import { getLatestFashionTrendText } from './fashion-trends.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -98,7 +98,7 @@ function buildOAuthHeader(
 
 // ─── Post to Twitter ──────────────────────────────────────────────────────────
 
-export async function postToTwitter(socialPostId: string): Promise<{ posted: boolean; tweetId?: string; error?: string }> {
+export async function postToTwitter(socialPostId: string): Promise<{ posted: boolean; tweetId?: string; error?: string; detail?: unknown }> {
   const apiKey = process.env.TWITTER_API_KEY;
   const apiSecret = process.env.TWITTER_API_SECRET;
   const accessToken = process.env.TWITTER_ACCESS_TOKEN;
@@ -130,11 +130,13 @@ export async function postToTwitter(socialPostId: string): Promise<{ posted: boo
     if (!response.ok) {
       const errBody = await response.text();
       console.error(`[SocialMediaManager] Twitter API error ${response.status}:`, errBody);
+      let parsedErr: unknown = errBody;
+      try { parsedErr = JSON.parse(errBody); } catch { /* keep raw */ }
       await prisma.socialPost.update({
         where: { id: socialPostId },
         data: { status: 'rejected', engagement: { error: errBody, status: response.status } },
       });
-      return { posted: false, error: `twitter_api_${response.status}` };
+      return { posted: false, error: `twitter_api_${response.status}`, detail: parsedErr };
     }
 
     const data = (await response.json()) as { data?: { id?: string } };
@@ -320,4 +322,16 @@ All 5 posts should be varied in tone and content. No emojis in hashtags. Max 4 h
   } catch (err) {
     console.error('[SocialMediaManager] Draft generation failed:', err);
   }
+}
+
+/** Register executors at startup so processApprovedActions works after a server restart. */
+export function registerExecutors(): void {
+  registerExecutor('social-media-manager', 'post_social', async (payload) => {
+    const p = payload as { socialPostId: string; platform: string };
+    if (p.platform === 'twitter') {
+      return await postToTwitter(p.socialPostId);
+    }
+    console.log(`[SocialMediaManager] Platform "${p.platform}" requires manual posting`);
+    return { posted: false, note: 'manual_posting_required' };
+  });
 }

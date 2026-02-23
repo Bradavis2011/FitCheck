@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend';
-import { executeOrQueue } from './agent-manager.service.js';
+import { executeOrQueue, registerExecutor } from './agent-manager.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -197,4 +197,29 @@ export async function runOutreachAgent(): Promise<void> {
   }
 
   console.log(`[OutreachAgent] Done — ${drafted} outreach draft(s) queued for approval`);
+}
+
+/** Register executors at startup so processApprovedActions works after a server restart. */
+export function registerExecutors(): void {
+  registerExecutor('outreach-agent', 'outreach_draft', async (payload) => {
+    const p = payload as { type: string; label: string; subject: string; body: string };
+    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+    if (!resend) {
+      console.warn('[OutreachAgent] RESEND_API_KEY not set — cannot send outreach email');
+      return { sent: false, note: 'resend_not_configured' };
+    }
+    const recipient = process.env.REPORT_RECIPIENT_EMAIL;
+    const fromEmail = process.env.REPORT_FROM_EMAIL || 'reports@orthis.app';
+    if (!recipient) {
+      return { sent: false, note: 'no_recipient' };
+    }
+    const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body }, p.label);
+    await resend.emails.send({
+      from: fromEmail,
+      to: recipient,
+      subject: `Or This? Outreach Draft: ${p.label} — "${p.subject}"`,
+      html,
+    });
+    return { type: p.type, sent: true, preview: p.body.slice(0, 100) };
+  });
 }

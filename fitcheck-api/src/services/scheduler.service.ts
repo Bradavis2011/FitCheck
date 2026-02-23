@@ -16,9 +16,9 @@ import { processApprovedActions } from './agent-manager.service.js';
 import { runLifecycleEmail } from './lifecycle-email.service.js';
 import { runConversionIntelligence } from './conversion-intelligence.service.js';
 import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community-manager.service.js';
-import { runSocialMediaManager } from './social-media-manager.service.js';
-import { runAppStoreManager, runAppStoreWeeklySummary } from './appstore-manager.service.js';
-import { runOutreachAgent } from './outreach-agent.service.js';
+import { runSocialMediaManager, registerExecutors as registerSocialExecutors } from './social-media-manager.service.js';
+import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
+import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.service.js';
@@ -375,6 +375,11 @@ export function initializeScheduler(): void {
     console.log('⏭️  [Scheduler] ENABLE_CRON not set — skipping cron jobs');
     return;
   }
+
+  // Register executors for high-risk agents so processApprovedActions works after restart
+  registerSocialExecutors();
+  registerAppstoreExecutors();
+  registerOutreachExecutors();
 
   console.log('⏰ [Scheduler] Initializing cron jobs...');
 

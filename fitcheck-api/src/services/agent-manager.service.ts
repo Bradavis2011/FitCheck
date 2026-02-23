@@ -18,6 +18,11 @@ type Executor = (payload: Record<string, unknown>) => Promise<unknown>;
 // Module-level executor registry: "${agent}:${actionType}" → executor fn
 const executorRegistry = new Map<string, Executor>();
 
+/** Register an executor so processApprovedActions can run it after a server restart. */
+export function registerExecutor(agent: string, actionType: string, fn: Executor): void {
+  executorRegistry.set(`${agent}:${actionType}`, fn);
+}
+
 // ─── Config Helpers ───────────────────────────────────────────────────────────
 
 interface AgentConfigResolved {

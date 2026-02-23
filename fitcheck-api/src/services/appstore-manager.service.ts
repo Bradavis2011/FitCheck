@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createSign } from 'crypto';
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
-import { executeOrQueue } from './agent-manager.service.js';
+import { executeOrQueue, registerExecutor } from './agent-manager.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -364,4 +364,13 @@ export async function runAppStoreManager(): Promise<void> {
   await fetchAppleReviews();
   await fetchGooglePlayReviews();
   console.log('[AppStoreManager] Daily run complete');
+}
+
+/** Register executors at startup so processApprovedActions works after a server restart. */
+export function registerExecutors(): void {
+  registerExecutor('appstore-manager', 'reply_review', async (payload) => {
+    const p = payload as { reviewId: string; store: string };
+    console.log(`[AppStoreManager] ${p.store} review reply queued for manual posting (reviewId: ${p.reviewId})`);
+    return { posted: false, note: p.store === 'apple' ? 'manual_required_via_app_store_connect' : 'manual_required_via_play_console' };
+  });
 }
