@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "migrate:s3": "tsx scripts/migrate-images-to-s3.ts",
+    "test:wardrobe": "tsx scripts/test-wardrobe-sync.ts",
     "test:model": "tsx scripts/quick-test.ts",
     "test:full": "tsx scripts/test-model-quality.ts",
     "generate:training-data": "tsx scripts/generate-training-data.ts",

@@ -18,7 +18,7 @@ const COLOR_WORDS = new Set([
   'light', 'dark', 'bright', 'deep', 'pale', 'pastel',
 ]);
 
-function normalizeName(name: string): string {
+export function normalizeName(name: string): string {
   return name
     .toLowerCase()
     .trim()
@@ -26,7 +26,7 @@ function normalizeName(name: string): string {
     .replace(/grey/g, 'gray');
 }
 
-function resolveCategory(normalized: string): string | null {
+export function resolveCategory(normalized: string): string | null {
   for (const { keywords, category } of CATEGORY_MAP) {
     for (const kw of keywords) {
       if (normalized === kw) return category; // exact word match
@@ -41,7 +41,7 @@ function resolveCategory(normalized: string): string | null {
   return null;
 }
 
-function extractColorAndBase(normalized: string): { color: string | null; baseName: string } {
+export function extractColorAndBase(normalized: string): { color: string | null; baseName: string } {
   const words = normalized.split(' ');
   const colorWords: string[] = [];
   const baseWords: string[] = [];
