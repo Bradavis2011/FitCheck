@@ -236,13 +236,6 @@ export default function CommunityScreen() {
       >
         <Ionicons name="heart-outline" size={24} color={Colors.white} />
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.fab, styles.fabCompare]}
-        onPress={() => router.push('/compare' as any)}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="git-compare-outline" size={24} color={Colors.white} />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -386,10 +379,6 @@ const styles = StyleSheet.create({
   fabSecondary: {
     bottom: 80,
     backgroundColor: Colors.secondary,
-  },
-  fabCompare: {
-    bottom: 148, // stacked above fabSecondary (80 + 56 + 12 gap)
-    backgroundColor: Colors.primary,
   },
   comparisonSection: {
     marginBottom: Spacing.lg,

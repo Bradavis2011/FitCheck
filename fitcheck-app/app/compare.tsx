@@ -32,6 +32,113 @@ interface VerdictResult {
   reasoning: string;
 }
 
+function ImageSlot({
+  image,
+  label,
+  onAdd,
+  onRemove,
+}: {
+  image: string | null;
+  label: string;
+  onAdd: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <View style={slotStyles.container}>
+      <Text style={slotStyles.label}>{label}</Text>
+      <View style={slotStyles.box}>
+        {image ? (
+          <>
+            <Image
+              source={{ uri: image }}
+              style={StyleSheet.absoluteFillObject}
+              resizeMode="cover"
+            />
+            <TouchableOpacity
+              style={slotStyles.removeBtn}
+              onPress={onRemove}
+              hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+            >
+              <Ionicons name="close-circle" size={26} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={slotStyles.editBtn}
+              onPress={onAdd}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="pencil" size={14} color="#fff" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            onPress={onAdd}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[Colors.primary, Colors.primaryLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={slotStyles.gradient}
+            >
+              <Ionicons name="camera" size={32} color="#fff" />
+              <Text style={slotStyles.addText}>Add Photo</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const slotStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  label: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  box: {
+    width: '100%',
+    aspectRatio: 3 / 4,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  addText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 99,
+  },
+  editBtn: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 99,
+    padding: 6,
+  },
+});
+
 export default function CompareScreen() {
   useEffect(() => {
     track('feature_used', { feature: 'compare_outfits' });
@@ -55,8 +162,7 @@ export default function CompareScreen() {
         quality: 0.8,
       });
       if (!result.canceled && result.assets[0]) {
-        if (slot === 'A') setImageA(result.assets[0].uri);
-        else setImageB(result.assets[0].uri);
+        slot === 'A' ? setImageA(result.assets[0].uri) : setImageB(result.assets[0].uri);
       }
     } catch {
       Alert.alert('Error', 'Failed to select image. Please try again.');
@@ -67,7 +173,7 @@ export default function CompareScreen() {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
+        Alert.alert('Permission Required', 'Camera access is needed to take photos.');
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -76,8 +182,7 @@ export default function CompareScreen() {
         quality: 0.8,
       });
       if (!result.canceled && result.assets[0]) {
-        if (slot === 'A') setImageA(result.assets[0].uri);
-        else setImageB(result.assets[0].uri);
+        slot === 'A' ? setImageA(result.assets[0].uri) : setImageB(result.assets[0].uri);
       }
     } catch {
       Alert.alert('Error', 'Failed to take photo. Please try again.');
@@ -124,7 +229,7 @@ export default function CompareScreen() {
   const handleShareWithCommunity = async () => {
     if (!imageA || !imageB) return;
     if (selectedOccasions.length === 0) {
-      Alert.alert('Select Occasion', 'Please select at least one occasion before sharing with the community.');
+      Alert.alert('Select Occasion', 'Please select at least one occasion before sharing.');
       return;
     }
     setIsSharing(true);
@@ -166,47 +271,55 @@ export default function CompareScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
             <Ionicons name="close" size={24} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>AI Verdict</Text>
-          <View style={styles.headerButton} />
+          <View style={styles.headerBtn} />
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Winner banner */}
+        <ScrollView showsVerticalScrollIndicator={false}>
           <LinearGradient
             colors={[Colors.primary, Colors.primaryLight]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.winnerBanner}
           >
-            <Ionicons name="star" size={18} color={Colors.white} />
+            <Ionicons name="star" size={18} color="#fff" />
             <Text style={styles.winnerBannerText}>The AI has spoken</Text>
           </LinearGradient>
 
-          {/* Side-by-side with winner highlighted */}
-          <View style={styles.verdictImages}>
-            <View style={styles.verdictSlotWinner}>
+          {/* Verdict image pair */}
+          <View style={styles.verdictRow}>
+            {/* Winner */}
+            <View style={styles.verdictSlot}>
               <View style={styles.winnerBadge}>
-                <Ionicons name="checkmark-circle" size={14} color={Colors.white} />
+                <Ionicons name="checkmark-circle" size={14} color="#fff" />
                 <Text style={styles.winnerBadgeText}>Wear this</Text>
               </View>
-              <View style={styles.verdictImageWrap}>
-                <Image source={{ uri: winnerImage! }} style={styles.verdictImage} />
+              <View style={[styles.verdictBox, styles.verdictBoxWinner]}>
+                <Image
+                  source={{ uri: winnerImage! }}
+                  style={StyleSheet.absoluteFillObject}
+                  resizeMode="cover"
+                />
               </View>
               <Text style={styles.verdictSlotLabel}>{winnerLabel}</Text>
             </View>
 
-            <View style={styles.verdictSlotLoser}>
-              <View style={[styles.verdictImageWrap, styles.verdictImageWrapDimmed]}>
-                <Image source={{ uri: loserImage! }} style={[styles.verdictImage, styles.verdictImageDimmed]} />
+            {/* Loser */}
+            <View style={[styles.verdictSlot, { marginTop: 30 }]}>
+              <View style={styles.verdictBox}>
+                <Image
+                  source={{ uri: loserImage! }}
+                  style={[StyleSheet.absoluteFillObject, { opacity: 0.5 }]}
+                  resizeMode="cover"
+                />
               </View>
-              <Text style={[styles.verdictSlotLabel, styles.verdictSlotLabelMuted]}>{loserLabel}</Text>
+              <Text style={[styles.verdictSlotLabel, { color: Colors.textMuted }]}>{loserLabel}</Text>
             </View>
           </View>
 
-          {/* Reasoning */}
           <View style={styles.verdictCard}>
             <Text style={styles.verdictCardTitle}>Why {winnerLabel} wins</Text>
             <Text style={styles.verdictCardText}>{verdict.reasoning}</Text>
@@ -222,10 +335,9 @@ export default function CompareScreen() {
             <Text style={styles.verdictCardText}>{loserAnalysis}</Text>
           </View>
 
-          {/* Actions */}
           <View style={styles.verdictActions}>
             <TouchableOpacity
-              style={styles.shareButton}
+              style={styles.shareBtn}
               onPress={handleShareWithCommunity}
               disabled={isSharing}
               activeOpacity={0.8}
@@ -235,17 +347,17 @@ export default function CompareScreen() {
               ) : (
                 <>
                   <Ionicons name="people-outline" size={18} color={Colors.text} />
-                  <Text style={styles.shareButtonText}>Share with Community</Text>
+                  <Text style={styles.shareBtnText}>Share with Community</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.doneButton}
+              style={styles.doneBtn}
               onPress={() => router.back()}
               activeOpacity={0.8}
             >
-              <Text style={styles.doneButtonText}>Done</Text>
+              <Text style={styles.doneBtnText}>Done</Text>
             </TouchableOpacity>
           </View>
 
@@ -259,73 +371,37 @@ export default function CompareScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Can't decide?</Text>
-        <View style={styles.headerButton} />
+        <View style={styles.headerBtn} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Text style={styles.heroSubtitle}>
-            Add two outfits. AI picks a winner. Optionally share with the community.
-          </Text>
-        </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.subtitle}>
+          Add two outfits. AI picks a winner. Optionally share with the community.
+        </Text>
 
         {/* Image slots */}
-        <View style={styles.imagesContainer}>
-          {(['A', 'B'] as const).map(slot => {
-            const image = slot === 'A' ? imageA : imageB;
-            const setImage = slot === 'A' ? setImageA : setImageB;
-            const gradientColors: [string, string] =
-              slot === 'A'
-                ? [Colors.primary, Colors.primaryLight]
-                : [Colors.primaryLight, Colors.primary];
+        <View style={styles.slotsRow}>
+          <ImageSlot
+            image={imageA}
+            label="Option A"
+            onAdd={() => showImageOptions('A')}
+            onRemove={() => setImageA(null)}
+          />
 
-            return (
-              <View key={slot} style={styles.imageSlot}>
-                <Text style={styles.imageLabel}>Option {slot}</Text>
-                {image ? (
-                  <TouchableOpacity
-                    style={styles.imagePreview}
-                    onPress={() => showImageOptions(slot)}
-                    activeOpacity={0.8}
-                  >
-                    <Image source={{ uri: image }} style={styles.image} />
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => setImage(null)}
-                      hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                    >
-                      <Ionicons name="close-circle" size={24} color={Colors.white} />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.imagePlaceholder}
-                    onPress={() => showImageOptions(slot)}
-                    activeOpacity={0.7}
-                  >
-                    <LinearGradient
-                      colors={gradientColors}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.placeholderGradient}
-                    >
-                      <Ionicons name="camera" size={32} color={Colors.white} />
-                      <Text style={styles.placeholderText}>Add Photo</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })}
-
-          {/* "or" badge between slots */}
           <View style={styles.orBadge}>
             <Text style={styles.orText}>or</Text>
           </View>
+
+          <ImageSlot
+            image={imageB}
+            label="Option B"
+            onAdd={() => showImageOptions('B')}
+            onRemove={() => setImageB(null)}
+          />
         </View>
 
         {/* Question */}
@@ -340,13 +416,13 @@ export default function CompareScreen() {
             multiline
             maxLength={150}
           />
-          <Text style={styles.characterCount}>{question.length}/150</Text>
+          <Text style={styles.charCount}>{question.length}/150</Text>
         </View>
 
         {/* Occasion */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Occasion (optional)</Text>
-          <View style={styles.pillsContainer}>
+          <View style={styles.pills}>
             {OCCASIONS.map(occasion => (
               <PillButton
                 key={occasion}
@@ -364,7 +440,7 @@ export default function CompareScreen() {
       {/* Analyze button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.analyzeButton, (!canAnalyze || screenState === 'analyzing') && styles.analyzeButtonDisabled]}
+          style={[styles.analyzeBtn, !canAnalyze && styles.analyzeBtnDisabled]}
           onPress={handleAnalyze}
           disabled={!canAnalyze || screenState === 'analyzing'}
           activeOpacity={0.8}
@@ -373,26 +449,21 @@ export default function CompareScreen() {
             colors={canAnalyze ? [Colors.primary, Colors.primaryLight] : [Colors.surface, Colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.analyzeButtonGradient}
+            style={styles.analyzeBtnGradient}
           >
             {screenState === 'analyzing' ? (
               <>
-                <ActivityIndicator size="small" color={Colors.white} />
-                <Text style={styles.analyzeButtonText}>Analyzing…</Text>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.analyzeBtnText}>Analyzing…</Text>
               </>
             ) : (
               <>
                 <Ionicons
                   name="sparkles"
                   size={20}
-                  color={canAnalyze ? Colors.white : Colors.textMuted}
+                  color={canAnalyze ? '#fff' : Colors.textMuted}
                 />
-                <Text
-                  style={[
-                    styles.analyzeButtonText,
-                    !canAnalyze && styles.analyzeButtonTextDisabled,
-                  ]}
-                >
+                <Text style={[styles.analyzeBtnText, !canAnalyze && { color: Colors.textMuted }]}>
                   Get AI Verdict
                 </Text>
               </>
@@ -418,7 +489,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  headerButton: {
+  headerBtn: {
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -429,95 +500,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
   },
-  scrollView: {
-    flex: 1,
-  },
-  hero: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    alignItems: 'center',
-  },
-  heroSubtitle: {
+  subtitle: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
     lineHeight: 20,
   },
-  imagesContainer: {
+  slotsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  imageSlot: {
-    flex: 1,
-  },
-  imageLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-    textAlign: 'center',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    aspectRatio: 3 / 4,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-  },
-  placeholderGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  placeholderText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.white,
-  },
-  imagePreview: {
-    width: '100%',
-    aspectRatio: 3 / 4,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    backgroundColor: Colors.surface,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: BorderRadius.full,
+    marginVertical: Spacing.md,
   },
   orBadge: {
-    position: 'absolute',
-    left: '50%',
-    top: '55%',
-    marginLeft: -18,
     width: 36,
     height: 36,
-    borderRadius: BorderRadius.full,
+    borderRadius: 99,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1,
+    flexShrink: 0,
   },
   orText: {
     fontSize: FontSize.xs,
     fontWeight: '700',
-    color: Colors.white,
+    color: '#fff',
     fontStyle: 'italic',
   },
   section: {
@@ -539,13 +550,13 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  characterCount: {
+  charCount: {
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     textAlign: 'right',
     marginTop: Spacing.xs,
   },
-  pillsContainer: {
+  pills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
@@ -556,66 +567,56 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  analyzeButton: {
+  analyzeBtn: {
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
   },
-  analyzeButtonDisabled: {
+  analyzeBtnDisabled: {
     opacity: 0.5,
   },
-  analyzeButtonGradient: {
+  analyzeBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
   },
-  analyzeButtonText: {
+  analyzeBtnText: {
     fontSize: FontSize.lg,
     fontWeight: '700',
-    color: Colors.white,
-  },
-  analyzeButtonTextDisabled: {
-    color: Colors.textMuted,
+    color: '#fff',
   },
 
-  // ── Verdict styles ────────────────────────────────────────────────────────
+  // ── Verdict ───────────────────────────────────────────────────────────────
   winnerBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
   },
   winnerBannerText: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.white,
-    letterSpacing: 0.5,
+    color: '#fff',
   },
-  verdictImages: {
+  verdictRow: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.md,
     gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginVertical: Spacing.lg,
     alignItems: 'flex-start',
   },
-  verdictSlotWinner: {
+  verdictSlot: {
     flex: 1,
     alignItems: 'center',
-  },
-  verdictSlotLoser: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 28, // offset for the winner badge height
   },
   winnerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 99,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     marginBottom: Spacing.xs,
@@ -623,37 +624,26 @@ const styles = StyleSheet.create({
   winnerBadgeText: {
     fontSize: FontSize.xs,
     fontWeight: '700',
-    color: Colors.white,
+    color: '#fff',
   },
-  verdictImageWrap: {
+  verdictBox: {
     width: '100%',
     aspectRatio: 3 / 4,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: Colors.primary,
     backgroundColor: Colors.surface,
-  },
-  verdictImageWrapDimmed: {
+    borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  verdictImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  verdictImageDimmed: {
-    opacity: 0.55,
+  verdictBoxWinner: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
   },
   verdictSlotLabel: {
     fontSize: FontSize.sm,
     fontWeight: '600',
     color: Colors.text,
     marginTop: Spacing.xs,
-    textAlign: 'center',
-  },
-  verdictSlotLabelMuted: {
-    color: Colors.textMuted,
   },
   verdictCard: {
     marginHorizontal: Spacing.lg,
@@ -678,7 +668,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     gap: Spacing.sm,
   },
-  shareButton: {
+  shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -689,21 +679,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
   },
-  shareButtonText: {
+  shareBtnText: {
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.text,
   },
-  doneButton: {
+  doneBtn: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primary,
   },
-  doneButtonText: {
+  doneBtnText: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.white,
+    color: '#fff',
   },
 });

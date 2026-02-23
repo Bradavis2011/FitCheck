@@ -195,6 +195,15 @@ export default function HistoryScreen() {
           )}
         </View>
       )}
+
+      {/* Compare FAB */}
+      <TouchableOpacity
+        style={styles.compareFab}
+        onPress={() => router.push('/compare' as any)}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="git-compare-outline" size={24} color={Colors.white} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -282,5 +291,21 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.white,
+  },
+  compareFab: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
