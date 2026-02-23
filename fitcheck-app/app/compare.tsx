@@ -463,6 +463,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   imagePlaceholder: {
+    width: '100%',
     aspectRatio: 3 / 4,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
@@ -482,6 +483,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   imagePreview: {
+    width: '100%',
     aspectRatio: 3 / 4,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
@@ -630,6 +632,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: Colors.primary,
+    backgroundColor: Colors.surface,
   },
   verdictImageWrapDimmed: {
     borderColor: Colors.border,
