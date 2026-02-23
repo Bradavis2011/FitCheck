@@ -1,8 +1,11 @@
 import { Response } from 'express';
 import { z } from 'zod';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const CreateComparisonSchema = z.object({
   imageAData: z.string().optional(),
@@ -164,6 +167,65 @@ export async function voteOnComparison(req: AuthenticatedRequest, res: Response)
   });
 
   res.json({ success: true, votesA: updatedPost.votesA, votesB: updatedPost.votesB, myVote: choice });
+}
+
+const AnalyzeComparisonSchema = z.object({
+  imageAData: z.string().min(1),
+  imageBData: z.string().min(1),
+  question: z.string().max(150).optional(),
+  occasions: z.array(z.string()).optional(),
+});
+
+/**
+ * AI side-by-side analysis of two outfit photos — returns winner + reasoning
+ * Available to all authenticated users (no tier gate)
+ */
+export async function analyzeComparison(req: AuthenticatedRequest, res: Response) {
+  const data = AnalyzeComparisonSchema.parse(req.body);
+
+  const occasionText = data.occasions?.length ? data.occasions.join(', ') : 'general wear';
+  const questionText = data.question ? `\nThe person is asking: "${data.question}"` : '';
+
+  const prompt = `You are a professional personal stylist. Compare these two outfit photos.
+
+Occasion: ${occasionText}${questionText}
+
+Photo A is the FIRST image. Photo B is the SECOND image.
+
+Give specific, honest feedback on each outfit and clearly recommend which one to wear for the occasion.
+
+Respond in this exact JSON format with no markdown fences:
+{
+  "analysisA": "<2-3 sentences about outfit A: what works and any concerns>",
+  "analysisB": "<2-3 sentences about outfit B: what works and any concerns>",
+  "winner": "A",
+  "reasoning": "<2-3 sentences explaining why the winner is the better choice for this occasion>"
+}
+
+Replace "A" in the winner field with either "A" or "B".`;
+
+  // Strip data: URI prefix from base64 strings if present
+  const imageABase64 = data.imageAData.includes(',') ? data.imageAData.split(',')[1] : data.imageAData;
+  const imageBBase64 = data.imageBData.includes(',') ? data.imageBData.split(',')[1] : data.imageBData;
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const result = await model.generateContent([
+    prompt,
+    { inlineData: { data: imageABase64, mimeType: 'image/jpeg' } },
+    { inlineData: { data: imageBBase64, mimeType: 'image/jpeg' } },
+  ]);
+
+  const text = result.response.text().trim();
+  const jsonText = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+
+  let analysis: { analysisA: string; analysisB: string; winner: 'A' | 'B'; reasoning: string };
+  try {
+    analysis = JSON.parse(jsonText);
+  } catch {
+    throw new AppError(500, 'AI analysis returned an unexpected format. Please try again.');
+  }
+
+  res.json(analysis);
 }
 
 /**

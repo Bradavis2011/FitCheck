@@ -587,6 +587,21 @@ export const comparisonService = {
     const response = await api.delete<{ success: boolean }>(`/api/comparisons/${postId}`);
     return response.data;
   },
+
+  async analyze(data: {
+    imageAData: string;
+    imageBData: string;
+    question?: string;
+    occasions?: string[];
+  }) {
+    const response = await api.post<{
+      winner: 'A' | 'B';
+      analysisA: string;
+      analysisB: string;
+      reasoning: string;
+    }>('/api/comparisons/analyze', data);
+    return response.data;
+  },
 };
 
 // Expert Review Service

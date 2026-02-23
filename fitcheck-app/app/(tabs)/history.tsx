@@ -50,7 +50,7 @@ export default function HistoryScreen() {
     }
   };
 
-  const handleLongPress = (outfitId: string) => {
+  const handleLongPress = (outfitId: string, imageUri: string) => {
     Alert.alert('Outfit Options', '', [
       {
         text: 'Re-analyze',
@@ -60,6 +60,10 @@ export default function HistoryScreen() {
             onError: () => Alert.alert('Error', 'Failed to start re-analysis. Please try again.'),
           });
         },
+      },
+      {
+        text: 'Compare Outfits',
+        onPress: () => router.push('/compare' as any),
       },
       {
         text: 'Delete',
@@ -154,7 +158,7 @@ export default function HistoryScreen() {
                   occasions={item.occasions || []}
                   isFavorite={item.isFavorite}
                   onPress={() => router.push(`/feedback?outfitId=${item.id}` as any)}
-                  onLongPress={() => handleLongPress(item.id)}
+                  onLongPress={() => handleLongPress(item.id, imageUri)}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
                 />
               </View>

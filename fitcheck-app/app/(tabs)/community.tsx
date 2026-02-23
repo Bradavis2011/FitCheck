@@ -236,7 +236,13 @@ export default function CommunityScreen() {
       >
         <Ionicons name="heart-outline" size={24} color={Colors.white} />
       </TouchableOpacity>
-      {/* LAUNCH: create-comparison FAB hidden — backend endpoint disabled at launch */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabCompare]}
+        onPress={() => router.push('/compare' as any)}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="git-compare-outline" size={24} color={Colors.white} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -378,8 +384,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fabSecondary: {
-    bottom: 80, // create-comparison FAB removed — this is now the only FAB
+    bottom: 80,
     backgroundColor: Colors.secondary,
+  },
+  fabCompare: {
+    bottom: 148, // stacked above fabSecondary (80 + 56 + 12 gap)
+    backgroundColor: Colors.primary,
   },
   comparisonSection: {
     marginBottom: Spacing.lg,
