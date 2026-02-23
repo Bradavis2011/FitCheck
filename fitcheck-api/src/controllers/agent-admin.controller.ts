@@ -165,21 +165,80 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
   const { name } = req.params;
 
   const agentMap: Record<string, () => Promise<void>> = {
-    'social-media-manager': async () => {
-      const { runSocialMediaManager } = await import('../services/social-media-manager.service.js');
-      await runSocialMediaManager();
-    },
+    // ── Content & Social ──────────────────────────────────────────────────────
     'content-calendar': async () => {
       const { runContentCalendar } = await import('../services/content-calendar.service.js');
       await runContentCalendar();
+    },
+    'social-media-manager': async () => {
+      const { runSocialMediaManager } = await import('../services/social-media-manager.service.js');
+      await runSocialMediaManager();
     },
     'outreach-agent': async () => {
       const { runOutreachAgent } = await import('../services/outreach-agent.service.js');
       await runOutreachAgent();
     },
+    // ── Growth & Analytics ────────────────────────────────────────────────────
+    'growth-dashboard': async () => {
+      const { runGrowthDashboard } = await import('../services/growth-dashboard.service.js');
+      await runGrowthDashboard();
+    },
+    'viral-monitor': async () => {
+      const { runViralMonitor } = await import('../services/viral-monitor.service.js');
+      await runViralMonitor();
+    },
+    'beta-recruiter': async () => {
+      const { runBetaRecruiter } = await import('../services/beta-recruiter.service.js');
+      await runBetaRecruiter();
+    },
+    // ── Revenue & Quality ─────────────────────────────────────────────────────
+    'revenue-cost': async () => {
+      const { runRevenueCostTracker } = await import('../services/revenue-cost.service.js');
+      await runRevenueCostTracker();
+    },
+    'ai-quality-monitor': async () => {
+      const { runAiQualityMonitor } = await import('../services/ai-quality-monitor.service.js');
+      await runAiQualityMonitor();
+    },
+    // ── Community & App Store ─────────────────────────────────────────────────
+    'community-manager-daily': async () => {
+      const { runCommunityManagerDaily } = await import('../services/community-manager.service.js');
+      await runCommunityManagerDaily();
+    },
+    'community-manager-weekly': async () => {
+      const { runCommunityManagerWeekly } = await import('../services/community-manager.service.js');
+      await runCommunityManagerWeekly();
+    },
+    'appstore-manager': async () => {
+      const { runAppStoreManager } = await import('../services/appstore-manager.service.js');
+      await runAppStoreManager();
+    },
+    'appstore-weekly': async () => {
+      const { runAppStoreWeeklySummary } = await import('../services/appstore-manager.service.js');
+      await runAppStoreWeeklySummary();
+    },
+    // ── AI & Intelligence ─────────────────────────────────────────────────────
     'fashion-trends': async () => {
       const { runFashionTrendCron } = await import('../services/fashion-trends.service.js');
       await runFashionTrendCron();
+    },
+    'calibration-snapshot': async () => {
+      const { runCalibrationSnapshot } = await import('../services/calibration-snapshot.service.js');
+      await runCalibrationSnapshot();
+    },
+    // ── Lifecycle & Conversion ─────────────────────────────────────────────────
+    'lifecycle-email': async () => {
+      const { runLifecycleEmail } = await import('../services/lifecycle-email.service.js');
+      await runLifecycleEmail();
+    },
+    'conversion-intelligence': async () => {
+      const { runConversionIntelligence } = await import('../services/conversion-intelligence.service.js');
+      await runConversionIntelligence();
+    },
+    // ── Founder Summary ───────────────────────────────────────────────────────
+    'founder-brief': async () => {
+      const { runFounderBrief } = await import('../services/founder-brief.service.js');
+      await runFounderBrief();
     },
   };
 
