@@ -1,6 +1,8 @@
 'use strict';
 
 // ─── Agent metadata ──────────────────────────────────────────────────────────
+
+// Operator agents — use executeOrQueue, show full stats in grid
 const AGENT_NAMES = [
   'lifecycle-email',
   'conversion-intelligence',
@@ -9,6 +11,17 @@ const AGENT_NAMES = [
   'appstore-manager',
   'outreach-agent',
 ];
+
+// Trigger name to use when "Run Now" is pressed for each operator agent
+const AGENT_TRIGGER_NAME = {
+  'lifecycle-email':         'lifecycle-email',
+  'conversion-intelligence': 'conversion-intelligence',
+  'community-manager':       'community-manager-daily',
+  'social-media-manager':    'social-media-manager',
+  'appstore-manager':        'appstore-manager',
+  'outreach-agent':          'outreach-agent',
+};
+
 const AGENT_META = {
   'lifecycle-email':         { icon: '📧', label: 'Lifecycle Email' },
   'conversion-intelligence': { icon: '📈', label: 'Conversion Intel' },
@@ -17,6 +30,21 @@ const AGENT_META = {
   'appstore-manager':        { icon: '⭐', label: 'App Store' },
   'outreach-agent':          { icon: '📨', label: 'Outreach' },
 };
+
+// Reporting agents — email results directly, no action queue
+const REPORTING_AGENTS = [
+  { name: 'content-calendar',         icon: '📅', label: 'Content Calendar' },
+  { name: 'growth-dashboard',         icon: '📊', label: 'Growth Dashboard' },
+  { name: 'viral-monitor',            icon: '🔁', label: 'Viral Monitor' },
+  { name: 'beta-recruiter',           icon: '🌟', label: 'Beta Recruiter' },
+  { name: 'revenue-cost',             icon: '💰', label: 'Revenue & Cost' },
+  { name: 'ai-quality-monitor',       icon: '🤖', label: 'AI Quality' },
+  { name: 'community-manager-weekly', icon: '🏆', label: 'Community Weekly' },
+  { name: 'appstore-weekly',          icon: '📋', label: 'App Store Weekly' },
+  { name: 'fashion-trends',           icon: '👗', label: 'Fashion Trends' },
+  { name: 'calibration-snapshot',     icon: '📐', label: 'Calibration' },
+  { name: 'founder-brief',            icon: '📝', label: 'Founder Brief' },
+];
 
 function agentIcon(name)  { return AGENT_META[name]?.icon  || '🤖'; }
 function agentLabel(name) { return AGENT_META[name]?.label || name; }
@@ -313,13 +341,36 @@ async function loadOverview() {
             <div><span style="font-weight:600;color:#1A1A1A;">${executed}</span> executed</div>
             <div><span style="font-weight:600;color:${hasErrors ? '#DC2626' : '#1A1A1A'};">${failed}</span> failed</div>
           </div>
-          <a href="#agent/${encodeURIComponent(name)}"
-             style="display:block;margin-top:10px;text-align:center;font-size:0.75rem;color:var(--coral);font-weight:500;text-decoration:none;">
-            View details →
-          </a>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button onclick="handleTrigger('${esc(AGENT_TRIGGER_NAME[name] || name)}', this)"
+                    class="btn-coral" style="flex:1;padding:6px 0;border-radius:8px;font-size:0.75rem;font-weight:500;">
+              ▶ Run Now
+            </button>
+            <a href="#agent/${encodeURIComponent(name)}"
+               style="flex:1;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--coral);font-weight:500;text-decoration:none;border:1px solid var(--coral);border-radius:8px;padding:6px 0;">
+              Details →
+            </a>
+          </div>
         </div>
       `;
     }).join('');
+
+    // ── Reporting agents (run-on-demand, no action queue) ──
+    const reportingEl = document.getElementById('reporting-agents');
+    if (reportingEl) {
+      reportingEl.innerHTML = REPORTING_AGENTS.map(a => `
+        <div class="card" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+            <span style="font-size:1.125rem;">${a.icon}</span>
+            <span style="font-weight:500;font-size:0.875rem;color:#1A1A1A;white-space:nowrap;">${esc(a.label)}</span>
+          </div>
+          <button onclick="handleTrigger('${esc(a.name)}', this)"
+                  class="btn-coral" style="padding:5px 14px;border-radius:8px;font-size:0.8125rem;font-weight:500;white-space:nowrap;flex-shrink:0;">
+            ▶ Run Now
+          </button>
+        </div>
+      `).join('');
+    }
 
     // ── Pending preview ──
     const pending = (dash.recentActions || []).filter(a => a.status === 'pending').slice(0, 5);
@@ -435,15 +486,21 @@ async function loadAgent(name) {
 
       <!-- Config Card -->
       <div class="card p-6" style="margin-bottom:20px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
           <div>
             <h2 style="font-weight:600;color:#1A1A1A;margin-bottom:4px;">Agent Configuration</h2>
             <code style="font-size:0.8125rem;color:#9CA3AF;">${esc(name)}</code>
           </div>
-          <label class="toggle-switch">
-            <input type="checkbox" ${enabled ? 'checked' : ''} data-agent="${esc(name)}" onchange="handleToggle(this)">
-            <span class="toggle-slider"></span>
-          </label>
+          <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+            <button onclick="handleTrigger('${esc(AGENT_TRIGGER_NAME[name] || name)}', this)"
+                    class="btn-coral" style="padding:7px 16px;border-radius:8px;font-size:0.875rem;font-weight:500;">
+              ▶ Run Now
+            </button>
+            <label class="toggle-switch">
+              <input type="checkbox" ${enabled ? 'checked' : ''} data-agent="${esc(name)}" onchange="handleToggle(this)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F3F4F6;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
           <div>
@@ -616,6 +673,21 @@ function logRowHTML(action) {
 }
 
 // ─── Action Handlers ─────────────────────────────────────────────────────────
+async function handleTrigger(name, btn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+  try {
+    await apiPost(`/api/admin/agents/${encodeURIComponent(name)}/trigger`);
+    showToast(`${name} triggered — running in background`);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
 async function handleApprove(actionId) {
   try {
     await apiPost(`/api/admin/agents/actions/${actionId}/approve`);
