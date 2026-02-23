@@ -30,6 +30,13 @@
         "gradleCommand": ":app:assembleRelease -x lintVitalAnalyzeRelease"
       }
     },
+    "production-aab": {
+      "extends": "production",
+      "distribution": "store",
+      "android": {
+        "gradleCommand": ":app:bundleRelease -x lintVitalAnalyzeRelease"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "node": "22.12.0",
