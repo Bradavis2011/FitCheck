@@ -123,6 +123,7 @@ model OutfitCheck {
   expertReviews ExpertReview[]
   challengeSubmissions ChallengeSubmission[]
   eventOutfits         EventOutfit[]
+  wardrobeLinks        WardrobeItemOutfit[]
 
   @@map("outfit_checks")
 }
@@ -498,21 +499,41 @@ model EventOutfit {
 }
 
 model WardrobeItem {
-  id        String    @id @default(uuid())
-  userId    String    @map("user_id")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  category  String    // "tops" | "bottoms" | "shoes" | "accessories" | "outerwear"
-  color     String?
-  imageUrl  String?   @db.Text @map("image_url")
-  timesWorn Int       @default(0) @map("times_worn")
-  lastWorn  DateTime? @map("last_worn")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  category       String    // "tops" | "bottoms" | "shoes" | "accessories" | "outerwear"
+  color          String?
+  imageUrl       String?   @db.Text @map("image_url")
+  timesWorn      Int       @default(0) @map("times_worn")
+  lastWorn       DateTime? @map("last_worn")
+  source         String    @default("manual") // "manual" | "ai-detected"
+  normalizedName String?   @map("normalized_name")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  outfitLinks WardrobeItemOutfit[]
 
   @@map("wardrobe_items")
   @@index([userId, category])
   @@index([userId, timesWorn(sort: Desc)])
+  @@index([userId, normalizedName])
+}
+
+model WardrobeItemOutfit {
+  id              String      @id @default(uuid())
+  wardrobeItemId  String      @map("wardrobe_item_id")
+  wardrobeItem    WardrobeItem @relation(fields: [wardrobeItemId], references: [id], onDelete: Cascade)
+  outfitCheckId   String      @map("outfit_check_id")
+  outfitCheck     OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  detectedName    String      @map("detected_name")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  @@unique([wardrobeItemId, outfitCheckId])
+  @@map("wardrobe_item_outfits")
+  @@index([wardrobeItemId])
+  @@index([outfitCheckId])
 }
 
 model Challenge {

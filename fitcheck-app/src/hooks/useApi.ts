@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -74,6 +74,8 @@ export function useSubmitOutfitCheck() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.outfits() });
       queryClient.invalidateQueries({ queryKey: queryKeys.userStats });
+      queryClient.invalidateQueries({ queryKey: ['wardrobe'] });
+      queryClient.invalidateQueries({ queryKey: ['wardrobeProgress'] });
     },
   });
 }
@@ -479,10 +481,27 @@ export function useVoteForSubmission() {
 }
 
 // Wardrobe hooks
-export function useWardrobeItems(category?: WardrobeCategory) {
+export function useWardrobeItems(params?: { category?: WardrobeCategory; source?: 'ai-detected' | 'manual' }) {
+  const category = params?.category;
   return useQuery({
-    queryKey: ['wardrobe', category ?? 'all'],
-    queryFn: () => wardrobeService.listItems(category),
+    queryKey: ['wardrobe', category ?? 'all', params?.source ?? 'all'],
+    queryFn: () => wardrobeService.listItems(params),
+  });
+}
+
+export function useWardrobeProgress() {
+  return useQuery({
+    queryKey: ['wardrobeProgress'],
+    queryFn: () => wardrobeService.getProgress(),
+    staleTime: 60_000,
+  });
+}
+
+export function useWardrobeItemOutfits(id: string | null) {
+  return useQuery({
+    queryKey: ['wardrobeItemOutfits', id],
+    queryFn: () => wardrobeService.getItemOutfits(id!),
+    enabled: !!id,
   });
 }
 

@@ -13,6 +13,7 @@ import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { logOutPurchases } from '../../src/services/purchases.service';
 import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals } from '../../src/hooks/useApi';
 import PillButton from '../../src/components/PillButton';
+import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 import { styles as styleOptions } from '../../src/lib/mockData';
 
 export default function ProfileScreen() {
@@ -378,24 +379,7 @@ export default function ProfileScreen() {
         {/* LAUNCH: Style DNA hidden until post-launch */}
 
         {/* Wardrobe */}
-        <View style={styles.editProfileCard}>
-          <TouchableOpacity
-            style={styles.editProfileButton}
-            onPress={() => router.push('/wardrobe' as any)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.editProfileIcon, { backgroundColor: 'rgba(236, 72, 153, 0.1)' }]}>
-              <Ionicons name="shirt" size={20} color="#EC4899" />
-            </View>
-            <View style={styles.editProfileText}>
-              <Text style={styles.editProfileTitle}>My Wardrobe</Text>
-              <Text style={styles.editProfileDesc}>
-                Build outfits from your closet
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
+        <WardrobeProgressCard />
 
         {/* LAUNCH: Event Planner hidden until post-launch */}
 

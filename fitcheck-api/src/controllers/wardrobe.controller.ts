@@ -20,22 +20,87 @@ const UpdateItemSchema = z.object({
   imageUrl: z.string().optional().nullable(),
 });
 
-// GET /api/wardrobe?category=tops
+// GET /api/wardrobe?category=tops&source=ai-detected
 export async function listWardrobeItems(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;
-  const { category } = req.query;
+  const { category, source } = req.query;
 
-  const where: { userId: string; category?: string } = { userId };
+  const where: { userId: string; category?: string; source?: string } = { userId };
   if (category && VALID_CATEGORIES.includes(category as any)) {
     where.category = category as string;
+  }
+  if (source === 'ai-detected' || source === 'manual') {
+    where.source = source;
   }
 
   const items = await prisma.wardrobeItem.findMany({
     where,
     orderBy: [{ category: 'asc' }, { timesWorn: 'desc' }],
+    include: { _count: { select: { outfitLinks: true } } },
   });
 
   res.json({ items });
+}
+
+// GET /api/wardrobe/progress
+export async function getWardrobeProgress(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user!.id;
+  const UNLOCK_THRESHOLD = 10;
+
+  const [outfitCheckCount, wardrobeItemCount, categoryCounts] = await Promise.all([
+    prisma.outfitCheck.count({ where: { userId, isDeleted: false } }),
+    prisma.wardrobeItem.count({ where: { userId } }),
+    prisma.wardrobeItem.groupBy({
+      by: ['category'],
+      where: { userId },
+      _count: { id: true },
+    }),
+  ]);
+
+  const isUnlocked = outfitCheckCount >= UNLOCK_THRESHOLD;
+  const progress = Math.min(outfitCheckCount, UNLOCK_THRESHOLD);
+
+  const categoryCountsMap: Record<string, number> = {};
+  for (const row of categoryCounts) {
+    categoryCountsMap[row.category] = row._count.id;
+  }
+
+  res.json({
+    outfitCheckCount,
+    wardrobeItemCount,
+    unlockThreshold: UNLOCK_THRESHOLD,
+    isUnlocked,
+    progress,
+    categoryCounts: categoryCountsMap,
+  });
+}
+
+// GET /api/wardrobe/:id/outfits
+export async function getWardrobeItemOutfits(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user!.id;
+  const { id } = req.params;
+
+  const item = await prisma.wardrobeItem.findFirst({ where: { id, userId } });
+  if (!item) throw new AppError(404, 'Item not found');
+
+  const links = await prisma.wardrobeItemOutfit.findMany({
+    where: { wardrobeItemId: id },
+    include: {
+      outfitCheck: {
+        select: {
+          id: true,
+          thumbnailUrl: true,
+          thumbnailData: true,
+          aiScore: true,
+          createdAt: true,
+          occasions: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json({ outfits: links.map((l) => l.outfitCheck) });
 }
 
 // GET /api/wardrobe/:id

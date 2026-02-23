@@ -599,7 +599,7 @@ export const comparisonService = {
       analysisA: string;
       analysisB: string;
       reasoning: string;
-    }>('/api/comparisons/analyze', data);
+    }>('/api/comparisons/analyze', data, { timeout: 120000 });
     return response.data;
   },
 };
@@ -801,19 +801,55 @@ export interface WardrobeItem {
   imageUrl: string | null;
   timesWorn: number;
   lastWorn: string | null;
+  source: 'manual' | 'ai-detected';
+  normalizedName: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { outfitLinks: number };
+}
+
+export interface WardrobeProgress {
+  outfitCheckCount: number;
+  wardrobeItemCount: number;
+  unlockThreshold: number;
+  isUnlocked: boolean;
+  progress: number;
+  categoryCounts: Record<string, number>;
 }
 
 export const wardrobeService = {
-  async listItems(category?: WardrobeCategory) {
+  async listItems(params?: { category?: WardrobeCategory; source?: 'ai-detected' | 'manual' }) {
     const response = await api.get<{ items: WardrobeItem[] }>('/api/wardrobe', {
-      params: category ? { category } : undefined,
+      params,
     });
     return response.data;
   },
 
-  async createItem(data: { name: string; category: WardrobeCategory; color?: string; imageUrl?: string }) {
+  async getProgress() {
+    const response = await api.get<WardrobeProgress>('/api/wardrobe/progress');
+    return response.data;
+  },
+
+  async getItemOutfits(id: string) {
+    const response = await api.get<{
+      outfits: Array<{
+        id: string;
+        thumbnailUrl: string | null;
+        thumbnailData: string | null;
+        aiScore: number | null;
+        createdAt: string;
+        occasions: string[];
+      }>;
+    }>(`/api/wardrobe/${id}/outfits`);
+    return response.data;
+  },
+
+  async createItem(data: {
+    name: string;
+    category: WardrobeCategory;
+    color?: string;
+    imageUrl?: string;
+  }) {
     const response = await api.post<{ item: WardrobeItem }>('/api/wardrobe', data);
     return response.data;
   },

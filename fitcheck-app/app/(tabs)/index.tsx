@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
 import AdBanner from '../../src/components/AdBanner';
+import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 import { getTimeGreeting } from '../../src/lib/mockData';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
@@ -174,6 +175,9 @@ export default function HomeScreen() {
             <Text style={styles.quickActionText}>Favorites</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Wardrobe Progress */}
+        <WardrobeProgressCard />
 
         {/* Recent Checks */}
         {outfits.length > 0 && (

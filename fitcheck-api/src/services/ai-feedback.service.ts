@@ -230,7 +230,7 @@ In addition to your feedback, extract structured attributes from the outfit:
 - Formality: 1=gym/lounge, 2=casual errand, 3=smart casual/date, 4=office/cocktail, 5=gala/wedding
 - Style archetypes: Choose from [minimalist, classic, preppy, streetwear, bohemian, romantic, edgy, sporty, avant-garde, vintage, coastal, western, maximalist]
 - Silhouette: Overall shape of the outfit on the body
-- Garments: Every visible item including accessories, shoes, bags
+- Garments: Every visible item — use simple standard names with color prefix if visible (e.g., "navy blazer", "white sneakers", "black belt"). One entry per distinct item. Avoid brand names.
 - Sub-scores: Rate each dimension independently (a well-fitted but poorly-colored outfit should show high fit, low color)
 
 IMPORTANT:
@@ -1184,6 +1184,18 @@ export async function analyzeOutfit(
               coherenceScore: feedback.styleDNA.coherenceScore,
             },
           });
+          // Sync detected garments to wardrobe (non-fatal)
+          try {
+            const { syncGarmentsToWardrobe } = await import('./wardrobe-sync.service.js');
+            await syncGarmentsToWardrobe(
+              outfit.userId,
+              outfitCheckId,
+              feedback.styleDNA.garments,
+              feedback.styleDNA.dominantColors
+            );
+          } catch (syncError) {
+            console.error('[AI] Wardrobe sync failed (non-fatal):', syncError);
+          }
         } catch (styleDNAError) {
           console.error('Failed to save Style DNA:', styleDNAError);
         }

@@ -15,7 +15,7 @@ import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
-import { useWardrobeItems, useAddWardrobeItem, useDeleteWardrobeItem, useLogWear } from '../src/hooks/useApi';
+import { useWardrobeItems, useAddWardrobeItem, useDeleteWardrobeItem, useLogWear, useWardrobeItemOutfits } from '../src/hooks/useApi';
 import type { WardrobeCategory, WardrobeItem } from '../src/services/api.service';
 import { track } from '../src/lib/analytics';
 
@@ -54,10 +54,13 @@ export default function WardrobeScreen() {
   const [addName, setAddName] = useState('');
   const [addCategory, setAddCategory] = useState<WardrobeCategory>('tops');
   const [addColor, setAddColor] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   const apiCategory = selectedCategory === 'all' ? undefined : selectedCategory;
-  const { data, isLoading, isError } = useWardrobeItems(apiCategory);
+  const { data, isLoading, isError } = useWardrobeItems(apiCategory ? { category: apiCategory } : undefined);
   const items: WardrobeItem[] = data?.items ?? [];
+
+  const { data: itemOutfitsData } = useWardrobeItemOutfits(selectedItemId);
 
   const addItem = useAddWardrobeItem();
   const deleteItem = useDeleteWardrobeItem();
@@ -111,11 +114,25 @@ export default function WardrobeScreen() {
   }
 
   function handleItemPress(item: WardrobeItem) {
-    Alert.alert(item.name, `Category: ${item.category}\nColor: ${item.color ?? '—'}\nWorn ${item.timesWorn}x\nLast worn: ${formatLastWorn(item.lastWorn)}`, [
-      { text: 'Log Wear', onPress: () => handleLogWear(item) },
-      { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
-      { text: 'Close', style: 'cancel' },
-    ]);
+    if (item.source === 'ai-detected') {
+      setSelectedItemId(item.id);
+      const outfitCount = item._count?.outfitLinks ?? item.timesWorn;
+      Alert.alert(
+        item.name,
+        `Category: ${item.category}\nColor: ${item.color ?? '—'}\nSeen in ${outfitCount} outfit${outfitCount !== 1 ? 's' : ''}\nLast worn: ${formatLastWorn(item.lastWorn)}\n\n✨ AI-detected`,
+        [
+          { text: 'Log Wear', onPress: () => handleLogWear(item) },
+          { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
+          { text: 'Close', style: 'cancel', onPress: () => setSelectedItemId(null) },
+        ]
+      );
+    } else {
+      Alert.alert(item.name, `Category: ${item.category}\nColor: ${item.color ?? '—'}\nWorn ${item.timesWorn}x\nLast worn: ${formatLastWorn(item.lastWorn)}`, [
+        { text: 'Log Wear', onPress: () => handleLogWear(item) },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
+        { text: 'Close', style: 'cancel' },
+      ]);
+    }
   }
 
   return (
@@ -204,6 +221,11 @@ export default function WardrobeScreen() {
                     />
                   </View>
                 )}
+                {item.source === 'ai-detected' && (
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>AI</Text>
+                  </View>
+                )}
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName} numberOfLines={2}>
                     {item.name}
@@ -211,7 +233,11 @@ export default function WardrobeScreen() {
                   {item.color ? (
                     <Text style={styles.itemMeta}>{item.color}</Text>
                   ) : null}
-                  <Text style={styles.itemMeta}>Worn {item.timesWorn}x</Text>
+                  {item.source === 'ai-detected' ? (
+                    <Text style={styles.itemMeta}>Seen in {item._count?.outfitLinks ?? item.timesWorn} outfit{(item._count?.outfitLinks ?? item.timesWorn) !== 1 ? 's' : ''}</Text>
+                  ) : (
+                    <Text style={styles.itemMeta}>Worn {item.timesWorn}x</Text>
+                  )}
                   <Text style={styles.itemLastWorn}>{formatLastWorn(item.lastWorn)}</Text>
                 </View>
               </TouchableOpacity>
@@ -358,6 +384,23 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.border,
+    position: 'relative',
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    zIndex: 1,
+  },
+  aiBadgeText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   itemImage: {
     width: '100%',
