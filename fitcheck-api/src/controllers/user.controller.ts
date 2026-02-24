@@ -108,34 +108,59 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+const ADMIN_EMAILS = ['bradavis2011@gmail.com', 'admin@orthis.app'];
+
 export async function getUserStats(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
+    const tz = (req.query.timezone as string) || 'UTC';
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         tier: true,
+        email: true,
         dailyChecksUsed: true,
+        dailyChecksResetAt: true,
       },
     });
 
-    const stats = await prisma.userStats.findUnique({
-      where: { userId },
-    });
+    const [stats, outfitCount, favoriteCount] = await Promise.all([
+      prisma.userStats.findUnique({ where: { userId } }),
+      prisma.outfitCheck.count({ where: { userId, isDeleted: false } }),
+      prisma.outfitCheck.count({ where: { userId, isFavorite: true, isDeleted: false } }),
+    ]);
 
-    const outfitCount = await prisma.outfitCheck.count({
-      where: { userId, isDeleted: false },
-    });
+    // Admin accounts are always unlimited
+    if (user?.email && ADMIN_EMAILS.includes(user.email)) {
+      return res.json({
+        ...stats,
+        totalOutfits: outfitCount,
+        totalFavorites: favoriteCount,
+        dailyChecksUsed: 0,
+        dailyChecksLimit: 999,
+        dailyChecksRemaining: 999,
+      });
+    }
 
-    const favoriteCount = await prisma.outfitCheck.count({
-      where: { userId, isFavorite: true, isDeleted: false },
-    });
+    // Apply same reset logic as outfit submission — so the UI updates at midnight
+    // without requiring the user to submit first.
+    const toLocalDateStr = (d: Date) =>
+      d.toLocaleDateString('en-CA', { timeZone: tz }); // 'en-CA' → YYYY-MM-DD
+    const today = toLocalDateStr(new Date());
+    const resetDate = toLocalDateStr(new Date(user?.dailyChecksResetAt ?? new Date()));
 
-    // Calculate daily checks limit based on tier
+    let dailyChecksUsed = user?.dailyChecksUsed || 0;
+    if (today !== resetDate) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { dailyChecksUsed: 0, dailyChecksResetAt: new Date() },
+      });
+      dailyChecksUsed = 0;
+    }
+
     const limits = getTierLimits(user?.tier || 'free');
     const dailyChecksLimit = limits.dailyChecks === Infinity ? 999 : limits.dailyChecks;
-    const dailyChecksUsed = user?.dailyChecksUsed || 0;
     const dailyChecksRemaining = Math.max(0, dailyChecksLimit - dailyChecksUsed);
 
     res.json({

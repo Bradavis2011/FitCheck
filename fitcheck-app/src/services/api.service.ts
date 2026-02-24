@@ -273,7 +273,8 @@ export const userService = {
   },
 
   async getStats() {
-    const response = await api.get<UserStats>('/api/user/stats');
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const response = await api.get<UserStats>('/api/user/stats', { params: { timezone } });
     return response.data;
   },
 

@@ -188,6 +188,10 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     }
 
     // Check daily limit based on tier, with give-to-get bonus
+    const ADMIN_EMAILS = ['bradavis2011@gmail.com', 'admin@orthis.app'];
+    if (ADMIN_EMAILS.includes(user.email)) {
+      // Admin/founder accounts are always unlimited — skip limit check
+    } else {
     const limits = getTierLimits(user.tier);
     let effectiveDailyLimit = limits.dailyChecks;
     if (effectiveDailyLimit !== Infinity) {
@@ -208,6 +212,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     if (effectiveDailyLimit !== Infinity && user.dailyChecksUsed >= effectiveDailyLimit) {
       throw new AppError(429, 'Daily limit reached. Give community feedback to earn bonus checks, or upgrade to Plus!');
     }
+    } // end admin bypass else
 
     // Generate UUID for the outfit (needed for S3 key)
     const { randomUUID } = await import('crypto');
