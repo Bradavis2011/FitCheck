@@ -110,7 +110,7 @@ function WaitlistPage() {
           </h1>
           <p className="pull-quote text-4xl sm:text-5xl lg:text-6xl mb-14 fade-in-up">
             <span className="text-clarity">Or </span>
-            <span className="text-coral">This?</span>
+            <span className="font-display italic text-coral">This?</span>
           </p>
           <div className="w-full max-w-md fade-in-up">
             <WaitlistForm refCode={refCode} variant="dark" />
@@ -618,7 +618,7 @@ function Logo() {
   return (
     <span className="text-xl font-medium select-none">
       <span className="text-clarity">Or </span>
-      <span className="font-display text-coral">This?</span>
+      <span className="font-display italic text-coral">This?</span>
     </span>
   );
 }
