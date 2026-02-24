@@ -1,0 +1,49 @@
+name: Build iOS IPA (App Store)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: EAS Local Build — iOS IPA
+    runs-on: macos-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: fitcheck-app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: fitcheck-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS IPA (local — no EAS minutes used)
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+        run: |
+          eas build \
+            --local \
+            --profile production \
+            --platform ios \
+            --output ./app-release.ipa \
+            --non-interactive
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-ipa
+          path: fitcheck-app/app-release.ipa
+          retention-days: 7
