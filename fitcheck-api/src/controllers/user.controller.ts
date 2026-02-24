@@ -405,12 +405,26 @@ export async function deleteAccount(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
 
-    // Delete user — cascade handles related records via schema onDelete: Cascade
-    await prisma.user.delete({
-      where: { id: userId },
-    });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError(404, 'User not found');
 
-    res.json({ success: true });
+    // Delete reports filed by this user (reporter relation has no cascade)
+    await prisma.report.deleteMany({ where: { reporterId: userId } });
+
+    // Delete user — cascade handles outfitChecks, followUps, styleDNA,
+    // userStats, communityFeedback, notifications, pushTokens, etc.
+    await prisma.user.delete({ where: { id: userId } });
+
+    // Attempt Clerk deletion (best-effort — don't fail the response)
+    try {
+      const { createClerkClient } = await import('@clerk/express');
+      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      await clerk.users.deleteUser(userId);
+    } catch (clerkError) {
+      console.error('Failed to delete Clerk user (non-fatal):', clerkError);
+    }
+
+    res.json({ success: true, message: 'Account permanently deleted' });
   } catch (error) {
     throw error;
   }

@@ -711,7 +711,8 @@ export async function reanalyzeOutfit(req: AuthenticatedRequest, res: Response) 
     };
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    analyzeOutfit(id, analysisInput, user!).catch((error) => {
+    const tierLimits = getTierLimits(user?.tier || 'FREE');
+    analyzeOutfit(id, analysisInput as OutfitCheckInput, user!, tierLimits.hasPriorityProcessing).catch((error) => {
       console.error('Background re-analysis failed:', error);
     });
 
