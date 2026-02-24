@@ -196,6 +196,25 @@ export async function executeOrQueue(
   }
 }
 
+// ─── Executor Resolver (dynamic import fallback) ──────────────────────────────
+
+// Maps agent:actionType → the service module path and its registerExecutors export.
+// Using dynamic import avoids circular dependencies at compile time.
+async function resolveExecutor(agent: string, actionType: string): Promise<Executor | undefined> {
+  const key = `${agent}:${actionType}`;
+  // Attempt to load the relevant service module, which will call its module-level
+  // registerExecutors() and populate the registry as a side effect.
+  const serviceMap: Record<string, string> = {
+    'social-media-manager:post_social': './social-media-manager.service.js',
+    'appstore-manager:reply_review': './appstore-manager.service.js',
+    'outreach-agent:outreach_draft': './outreach-agent.service.js',
+  };
+  const modulePath = serviceMap[key];
+  if (!modulePath) return undefined;
+  await import(modulePath);
+  return executorRegistry.get(key);
+}
+
 // ─── Process Approved Actions (cron every 5 min) ──────────────────────────────
 
 export async function processApprovedActions(): Promise<void> {
@@ -211,7 +230,16 @@ export async function processApprovedActions(): Promise<void> {
 
   for (const action of approved) {
     const key = `${action.agent}:${action.actionType}`;
-    const executor = executorRegistry.get(key);
+
+    // Resolve executor: prefer in-memory registry, fall back to direct module import
+    let executor = executorRegistry.get(key);
+    if (!executor) {
+      try {
+        executor = await resolveExecutor(action.agent, action.actionType);
+      } catch {
+        // resolveExecutor throws if agent is unknown
+      }
+    }
 
     if (!executor) {
       await prisma.agentAction.update({
