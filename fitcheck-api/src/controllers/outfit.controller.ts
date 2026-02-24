@@ -13,6 +13,7 @@ import * as gamificationService from '../services/gamification.service.js';
 import { trackServerEvent } from '../lib/posthog.js';
 import { scheduleFollowUp, EVENT_OCCASIONS, recordFollowUpResponse } from '../services/event-followup.service.js';
 import { checkMilestones } from '../services/milestone-message.service.js';
+import { recordPromptRating } from '../services/recursive-improvement.service.js';
 import { getOutfitMemory } from '../services/outfit-memory.service.js';
 
 const OutfitCheckSchema = z.object({
@@ -640,6 +641,11 @@ export async function rateFeedback(req: AuthenticatedRequest, res: Response) {
         feedbackRating: rating,
       },
     });
+
+    // Track rating for recursive self-improvement A/B testing
+    if (outfitCheck.promptVersion && rating != null) {
+      recordPromptRating(outfitCheck.promptVersion, rating, helpful ?? null).catch(() => {});
+    }
 
     // Update user stats: increment feedback counts and add points
     const existingStats = await prisma.userStats.findUnique({

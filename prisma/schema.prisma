@@ -82,6 +82,7 @@ model OutfitCheck {
   aiFeedback     Json?     @map("ai_feedback")
   aiScore        Float?    @map("ai_score")
   aiProcessedAt  DateTime? @map("ai_processed_at")
+  promptVersion  String?   @map("prompt_version") // Tracks which prompt version produced this analysis
 
   // User rating of feedback
   feedbackHelpful Boolean? @map("feedback_helpful")
@@ -332,4 +333,80 @@ model SubscriptionEvent {
 
   @@map("subscription_events")
   @@index([userId, processedAt])
+}
+
+// ─── Recursive Self-Improvement ─────────────────────────────────────────────
+
+model PromptVersion {
+  id            String   @id @default(uuid())
+  version       String   @unique // "v2.0", "v2.1-auto", "v2.1-auto-2", etc.
+  parentVersion String?  @map("parent_version") // What version was this derived from
+  promptText    String   @db.Text @map("prompt_text")
+  source        String   // "manual", "auto-optimize", "a/b-winner"
+
+  // Performance metrics (updated as data accumulates)
+  sampleSize        Int    @default(0) @map("sample_size")
+  avgAiScore        Float? @map("avg_ai_score")
+  avgUserRating     Float? @map("avg_user_rating")
+  avgCommunityDelta Float? @map("avg_community_delta") // |AI - community| lower is better
+  helpfulPct        Float? @map("helpful_pct") // % marked helpful
+  fallbackRate      Float? @map("fallback_rate") // % that hit fallback
+
+  // A/B testing
+  trafficPct    Float   @default(0) @map("traffic_pct") // 0-100, what % of requests use this
+  isActive      Boolean @default(false) @map("is_active")
+  isCandidate   Boolean @default(false) @map("is_candidate") // Challenger in A/B test
+  promotedAt    DateTime? @map("promoted_at") // When this became the primary prompt
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("prompt_versions")
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model ImprovementCycle {
+  id        String   @id @default(uuid())
+  trigger   String   // "scheduled", "quality-drop", "manual"
+  status    String   @default("running") // "running", "completed", "failed", "promoted"
+
+  // What triggered it
+  triggerMetrics Json? @map("trigger_metrics") // Snapshot of metrics that triggered the cycle
+
+  // What was generated
+  sourceVersion    String? @map("source_version") // Parent prompt version
+  candidateVersion String? @map("candidate_version") // Generated prompt version
+
+  // Results
+  weaknessesFound   Json?   @map("weaknesses_found") // Top weaknesses identified
+  knowledgeExtracted Json?  @map("knowledge_extracted") // New fashion rules discovered
+  improvementDelta   Float? @map("improvement_delta") // Avg score improvement
+
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  log         String?   @db.Text // Human-readable log
+
+  @@map("improvement_cycles")
+  @@index([status])
+  @@index([startedAt])
+}
+
+model DiscoveredRule {
+  id          String   @id @default(uuid())
+  category    String   // "color", "proportion", "occasion", "seasonal", "archetype"
+  rule        String   @db.Text // The discovered fashion rule
+  confidence  Float    // 0-1, how statistically significant
+  sampleSize  Int      @map("sample_size")
+  evidence    String?  @db.Text // Supporting data summary
+
+  // Whether it's been incorporated into the prompt
+  incorporated    Boolean  @default(false)
+  incorporatedIn  String?  @map("incorporated_in") // Prompt version that includes this rule
+
+  discoveredAt DateTime @default(now()) @map("discovered_at")
+
+  @@map("discovered_rules")
+  @@index([category])
+  @@index([incorporated])
 }
