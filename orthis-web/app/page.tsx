@@ -12,6 +12,7 @@ import illustrationDuo from "../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-u
 import illustrationBlue from "../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg";
 import illustrationTan from "../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg";
 import illustrationPurple from "../assets/images/fabian-kunzel-zeller-Ir7tmdZ6dWU-unsplash.jpg";
+import charlotaPhoto from "../assets/images/charlota-blunarova-r5xHI_H44aM-unsplash.jpg";
 
 /* ─────────────────────────────────────────────
    HOOKS
@@ -195,13 +196,10 @@ function WaitlistPage() {
         </div>
       </section>
 
-      {/* ── 5. Editorial Grid — 3 illustrations ── */}
+      {/* ── 5. Editorial Grid — 4 illustrations ── */}
       <section className="py-24 sm:py-32 bg-white">
         <div className="max-w-6xl mx-auto px-6">
-          <div
-            className="grid grid-cols-2 gap-3 sm:gap-4"
-            style={{ gridTemplateRows: "auto auto" }}
-          >
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {/* Tall left — spans 2 rows */}
             <div
               className="row-span-2 editorial-image relative fade-in-up"
@@ -254,6 +252,20 @@ function WaitlistPage() {
                 sizes="(max-width: 640px) 100vw, 50vw"
               />
             </div>
+
+            {/* Full-width bottom row — Charlota Blunarova */}
+            <div
+              className="col-span-2 editorial-image relative fade-in-up"
+              style={{ minHeight: "400px" }}
+            >
+              <Image
+                src={charlotaPhoto}
+                alt="Fashion editorial photograph by Charlota Blunarova"
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 640px) 100vw, 100vw"
+              />
+            </div>
           </div>
           <p className="text-xs text-center mt-4" style={{ color: "rgba(26,26,26,0.3)" }}>
             Photos by{" "}
@@ -265,6 +277,16 @@ function WaitlistPage() {
               style={{ color: "rgba(26,26,26,0.4)" }}
             >
               Fabian Künzel-Zeller
+            </a>
+            {" "}·{" "}
+            <a
+              href="https://www.instagram.com/charlotablunarova"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: "rgba(26,26,26,0.4)" }}
+            >
+              Charlota Blunarova
             </a>
           </p>
         </div>
@@ -351,7 +373,7 @@ function WaitlistPage() {
         <div className="max-w-2xl mx-auto px-6 text-center">
           <div className="fade-in-up">
             <h2 className="pull-quote text-5xl sm:text-6xl text-clarity leading-tight mb-6">
-              Your mirror can&apos;t tell you.<br />We can.
+              Your mirror can&apos;t tell&nbsp;you.<br />We can.
             </h2>
             <p className="text-lg mb-12 max-w-md mx-auto leading-relaxed" style={{ color: "rgba(45,45,45,0.5)" }}>
               Join the waitlist. Your first month of Plus is included.

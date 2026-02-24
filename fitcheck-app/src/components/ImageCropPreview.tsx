@@ -16,6 +16,8 @@ import {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  runOnUI,
+  runOnJS,
 } from 'react-native-reanimated';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
@@ -49,6 +51,10 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
   const [naturalHeight, setNaturalHeight] = useState<number | null>(null);
   const [sizeError, setSizeError] = useState(false);
+  // EXIF-normalised URI — manipulateAsync bakes in orientation so that the
+  // dimensions it reports and the coordinates it expects for cropping are
+  // guaranteed to be in the same pixel space.
+  const [normalizedUri, setNormalizedUri] = useState<string | null>(null);
 
   // Processing state while manipulateAsync runs
   const [isCropping, setIsCropping] = useState(false);
@@ -73,28 +79,33 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
   // ── Load natural image size ──────────────────────────────────────────────
 
   useEffect(() => {
-    Image.getSize(
-      uri,
-      (w, h) => {
-        setNaturalWidth(w);
-        setNaturalHeight(h);
-        natW.value = w;
-        natH.value = h;
+    let cancelled = false;
 
-        // The image wrapper is rendered at SCREEN_WIDTH wide.
-        // Start at a scale where the FULL image fits inside the crop frame
-        // so the user can see their complete outfit (head to toe) immediately.
-        // For 3:4 portraits this is scale=1; for taller/9:16 images this
-        // zooms out to reveal feet.
-        const imageHeightAtScale1 = (h / w) * SCREEN_WIDTH;
-        const startScale = Math.min(1, CROP_FRAME_H / imageHeightAtScale1);
-        scale.value = startScale;
-        savedScale.value = startScale;
-      },
-      () => {
-        setSizeError(true);
-      }
-    );
+    // Use a no-op manipulateAsync pass instead of Image.getSize.
+    // Image.getSize can return logical (device-independent) pixels on some
+    // Android versions, while manipulateAsync always works in physical pixel
+    // coordinates. Using the same function for both dimension discovery and
+    // cropping guarantees they operate in the same coordinate space.
+    // The no-op pass also physically bakes in EXIF orientation, so the
+    // normalised URI is consistent on all platforms.
+    manipulateAsync(uri, []).then((info) => {
+      if (cancelled) return;
+      const { width: w, height: h, uri: nUri } = info;
+      setNaturalWidth(w);
+      setNaturalHeight(h);
+      setNormalizedUri(nUri);
+      natW.value = w;
+      natH.value = h;
+
+      const imageHeightAtScale1 = (h / w) * SCREEN_WIDTH;
+      const startScale = Math.min(1, CROP_FRAME_H / imageHeightAtScale1);
+      scale.value = startScale;
+      savedScale.value = startScale;
+    }).catch(() => {
+      if (!cancelled) setSizeError(true);
+    });
+
+    return () => { cancelled = true; };
   }, [uri]);
 
   // ── Clamp helpers ────────────────────────────────────────────────────────
@@ -186,14 +197,10 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
 
   // ── Crop & accept ─────────────────────────────────────────────────────────
 
-  const handleAccept = useCallback(async () => {
-    if (!naturalWidth || !naturalHeight || isCropping) return;
+  const doCrop = useCallback(async (currentScale: number, currentTx: number, currentTy: number) => {
     setIsCropping(true);
 
     try {
-      const currentScale = scale.value;
-      const currentTx = translateX.value;
-      const currentTy = translateY.value;
 
       // The image wrapper is positioned at its natural aspect ratio, centered
       // on screen. At scale=1 the wrapper is SCREEN_WIDTH × imageNaturalH,
@@ -230,7 +237,7 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
       const safeOriginY = Math.round(originY);
 
       const result = await manipulateAsync(
-        uri,
+        normalizedUri ?? uri,
         [{ crop: { originX: safeOriginX, originY: safeOriginY, width: safeW, height: safeH } }],
         { compress: 0.85, format: SaveFormat.JPEG }
       );
@@ -238,12 +245,28 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
       onAccept(result.uri);
     } catch (err) {
       console.error('[ImageCropPreview] crop failed:', err);
-      // Fall back to the uncropped image rather than leaving the user stuck.
-      onAccept(uri);
+      // Fall back to the normalised (or original) image rather than leaving the user stuck.
+      onAccept(normalizedUri ?? uri);
     } finally {
       setIsCropping(false);
     }
-  }, [naturalWidth, naturalHeight, isCropping, uri, onAccept]);
+  }, [naturalWidth, naturalHeight, normalizedUri, uri, onAccept]);
+
+  // Read the current transform from the UI thread then hand off to JS for the
+  // async crop computation. This avoids the JS-thread stale-read problem where
+  // gesture-driven updates to shared values haven't synced back from the UI
+  // thread yet when the user taps "Use This Photo".
+  const handleAccept = useCallback(() => {
+    if (!naturalWidth || !naturalHeight || isCropping) return;
+
+    runOnUI(() => {
+      'worklet';
+      const s = scale.value;
+      const tx = translateX.value;
+      const ty = translateY.value;
+      runOnJS(doCrop)(s, tx, ty);
+    })();
+  }, [naturalWidth, naturalHeight, isCropping, doCrop]);
 
   // ── Render states ─────────────────────────────────────────────────────────
 
@@ -283,7 +306,7 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
             animatedImageStyle,
           ]}
         >
-          <Image source={{ uri }} style={styles.image} />
+          <Image source={{ uri: normalizedUri ?? uri }} style={styles.image} />
         </Animated.View>
       </GestureDetector>
 

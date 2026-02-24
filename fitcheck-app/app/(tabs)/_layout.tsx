@@ -1,9 +1,11 @@
 import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts } from '../../src/constants/theme';
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -12,8 +14,8 @@ export default function TabsLayout() {
           backgroundColor: Colors.white,
           borderTopColor: 'rgba(0,0,0,0.12)',
           borderTopWidth: 1,
-          height: 85,
-          paddingBottom: 20,
+          height: 85 + insets.bottom,
+          paddingBottom: 20 + insets.bottom,
           paddingTop: 8,
           // sharp top border — no rounding per editorial spec
           borderTopLeftRadius: 0,

@@ -10,8 +10,8 @@ import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 
 const EDITORIAL_IMAGES = [
   require('../../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg'),
-  require('../../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg'),
   require('../../assets/images/fabian-kunzel-zeller-Ir7tmdZ6dWU-unsplash.jpg'),
+  require('../../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg'),
   require('../../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-unsplash.jpg'),
 ];
 import { useAuthStore } from '../../src/stores/authStore';
