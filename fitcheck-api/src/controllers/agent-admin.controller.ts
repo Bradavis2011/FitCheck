@@ -136,8 +136,8 @@ export async function updateSocialPost(req: AuthenticatedRequest, res: Response)
   const { content, hashtags } = Schema.parse(req.body);
 
   const post = await prisma.socialPost.findUnique({ where: { id: postId } });
-  if (!post) throw new AppError('Social post not found', 404);
-  if (post.status !== 'pending') throw new AppError('Post is no longer pending', 409);
+  if (!post) throw new AppError(404, 'Social post not found');
+  if (post.status !== 'pending') throw new AppError(409, 'Post is no longer pending');
 
   await prisma.socialPost.update({
     where: { id: postId },
