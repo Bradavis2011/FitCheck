@@ -13,6 +13,7 @@ import {
   rejectAgentAction,
   killAll,
   triggerAgent,
+  updateSocialPost,
 } from '../controllers/agent-admin.controller.js';
 
 const router = Router();
@@ -35,6 +36,9 @@ router.get('/actions', asyncHandler(getAllActionLog));
 
 // Global kill switch
 router.post('/kill-all', asyncHandler(killAll));
+
+// Social post content editing (before posting)
+router.patch('/social-posts/:postId', asyncHandler(updateSocialPost));
 
 // Action approval/rejection (before /:name/toggle to avoid conflict)
 router.post('/actions/:id/approve', asyncHandler(approveAgentAction));

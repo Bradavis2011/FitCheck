@@ -643,13 +643,14 @@ async function loadQueue(page) {
 
 // ─── Social post card ─────────────────────────────────────────────────────────
 function socialPostCardHTML(action, opts = {}) {
-  const id      = esc(action.id);
-  const p       = action.payload || {};
-  const content = p.content || '';
+  const id       = esc(action.id);
+  const p        = action.payload || {};
+  const content  = p.content || '';
   const hashtags = Array.isArray(p.hashtags) ? p.hashtags : [];
   const platform = (p.platform || 'twitter').toLowerCase();
   const ctLabel  = CONTENT_TYPE_LABELS[p.contentType] || p.contentType || '';
   const imgHint  = p.imageDescription || '';
+  const postId   = p.socialPostId || '';
   const pmeta    = PLATFORM_META[platform] || PLATFORM_META.twitter;
 
   const fullText = content + (hashtags.length ? ' ' + hashtags.map(h => `#${h}`).join(' ') : '');
@@ -674,18 +675,102 @@ function socialPostCardHTML(action, opts = {}) {
         <span style="margin-left:auto;font-size:0.8125rem;color:var(--muted);">${fmtRelative(action.createdAt)}</span>
         ${showHistory ? statusPill(action.status) : ''}
       </div>
-      <div class="post-text" style="margin-bottom:16px;">${esc(content)}</div>
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:${imgHint ? '12px' : '0'};">
-        ${hashtagHTML}
-        ${pmeta.limit ? `<span class="char-count ${charCls}" style="margin-left:auto;">${charLen}/${pmeta.limit}</span>` : ''}
+
+      <!-- Read view -->
+      <div class="post-read-view-${id}">
+        <div class="post-text" style="margin-bottom:16px;">${esc(content)}</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:${imgHint ? '12px' : '0'};">
+          ${hashtagHTML}
+          ${pmeta.limit ? `<span class="char-count ${charCls}" style="margin-left:auto;">${charLen}/${pmeta.limit}</span>` : ''}
+        </div>
+        ${imgHint ? `<p class="image-hint" style="margin-bottom:16px;">📷 ${esc(imgHint)}</p>` : ''}
       </div>
-      ${imgHint ? `<p class="image-hint" style="margin-bottom:16px;">📷 ${esc(imgHint)}</p>` : ''}
+
+      <!-- Edit view (hidden by default) -->
+      <div class="post-edit-view-${id}" style="display:none;">
+        <textarea
+          id="post-edit-content-${id}"
+          style="width:100%;min-height:120px;padding:16px;border:1px solid var(--coral);background:var(--cream);font-family:'DM Sans',sans-serif;font-size:1rem;line-height:1.65;resize:vertical;color:var(--black);letter-spacing:-0.01em;"
+        >${esc(content)}</textarea>
+        <div style="margin-top:8px;">
+          <input
+            id="post-edit-hashtags-${id}"
+            type="text"
+            value="${esc(hashtags.join(' '))}"
+            placeholder="hashtag1 hashtag2 (no # needed)"
+            style="width:100%;padding:10px 14px;border:1px solid var(--border-solid);font-family:'DM Sans',sans-serif;font-size:0.875rem;color:var(--charcoal);background:white;"
+          >
+          <p style="font-size:0.6875rem;color:var(--muted);margin-top:4px;letter-spacing:0.05em;">Space-separated hashtags, without #</p>
+        </div>
+      </div>
+
       ${showActions ? `
-        <div style="display:flex;gap:10px;padding-top:16px;border-top:1px solid var(--border-solid);">
+        <div style="display:flex;gap:10px;padding-top:16px;border-top:1px solid var(--border-solid);flex-wrap:wrap;">
           <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:10px 24px;">Approve ✓</button>
-          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:10px 18px;">Reject ✕</button>
+          <button onclick="togglePostEdit('${id}')" class="btn-outline" style="padding:10px 18px;" id="post-edit-btn-${id}">Edit</button>
+          <button onclick="handleEditAndApprove('${id}', '${esc(postId)}')" class="btn-coral" style="padding:10px 24px;display:none;" id="post-save-btn-${id}">Save &amp; Approve →</button>
+          <button onclick="handleReject('${id}')" class="btn-reject" style="padding:10px 18px;margin-left:auto;">Reject ✕</button>
         </div>` : ''}
     </div>`;
+}
+
+// ─── Social post edit helpers ─────────────────────────────────────────────────
+function togglePostEdit(actionId) {
+  const readView = document.querySelector(`.post-read-view-${actionId}`);
+  const editView = document.querySelector(`.post-edit-view-${actionId}`);
+  const editBtn  = document.getElementById(`post-edit-btn-${actionId}`);
+  const saveBtn  = document.getElementById(`post-save-btn-${actionId}`);
+  if (!readView || !editView) return;
+
+  const isEditing = editView.style.display !== 'none';
+  if (isEditing) {
+    // Cancel — restore read view
+    readView.style.display = '';
+    editView.style.display = 'none';
+    editBtn.textContent = 'Edit';
+    saveBtn.style.display = 'none';
+  } else {
+    // Enter edit mode
+    readView.style.display = 'none';
+    editView.style.display = '';
+    editBtn.textContent = 'Cancel';
+    saveBtn.style.display = '';
+    document.getElementById(`post-edit-content-${actionId}`)?.focus();
+  }
+}
+
+async function handleEditAndApprove(actionId, postId) {
+  if (!postId) {
+    // No socialPostId in payload — just approve as-is
+    return handleApprove(actionId);
+  }
+
+  const contentEl  = document.getElementById(`post-edit-content-${actionId}`);
+  const hashtagsEl = document.getElementById(`post-edit-hashtags-${actionId}`);
+  const saveBtn    = document.getElementById(`post-save-btn-${actionId}`);
+  if (!contentEl) return;
+
+  const content  = contentEl.value.trim();
+  const hashtags = hashtagsEl?.value.trim()
+    ? hashtagsEl.value.trim().split(/\s+/).map(h => h.replace(/^#/, ''))
+    : [];
+
+  if (!content) { showToast('Post content cannot be empty', 'error'); return; }
+
+  const origText = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    await apiPost(`/api/admin/agents/social-posts/${postId}`, { content, hashtags });
+    await apiPost(`/api/admin/agents/actions/${actionId}/approve`);
+    showToast('Post updated and approved — executing now');
+    removeQueueItem(actionId);
+  } catch (err) {
+    showToast(err.message, 'error');
+    saveBtn.disabled = false;
+    saveBtn.textContent = origText;
+  }
 }
 
 // ─── Queue item ───────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { prisma } from '../utils/prisma.js';
 import {
   getAgentDashboard,
   getAgentActions,
@@ -122,6 +123,31 @@ export async function approveAgentAction(req: AuthenticatedRequest, res: Respons
   }
 
   res.json({ ok: true, actionId: id, status: 'approved_and_processing' });
+}
+
+// PATCH /api/admin/agents/social-posts/:postId — edit content/hashtags before posting
+export async function updateSocialPost(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const { postId } = req.params;
+  const Schema = z.object({
+    content:  z.string().min(1).max(2000),
+    hashtags: z.array(z.string()).optional(),
+  });
+  const { content, hashtags } = Schema.parse(req.body);
+
+  const post = await prisma.socialPost.findUnique({ where: { id: postId } });
+  if (!post) throw new AppError('Social post not found', 404);
+  if (post.status !== 'pending') throw new AppError('Post is no longer pending', 409);
+
+  await prisma.socialPost.update({
+    where: { id: postId },
+    data: {
+      content,
+      ...(hashtags !== undefined && { hashtags }),
+    },
+  });
+
+  res.json({ ok: true, postId });
 }
 
 // POST /api/admin/agents/actions/:id/reject — reject a queued action
