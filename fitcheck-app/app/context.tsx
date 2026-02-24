@@ -197,14 +197,14 @@ export default function ContextScreen() {
             </View>
           )}
 
-          {/* Image preview */}
+          {/* Image preview — contain so the full outfit is always visible */}
           {capturedImage && (
             <View style={styles.imagePreviewContainer}>
               <View style={styles.imagePreview}>
                 <Image
                   source={{ uri: capturedImage }}
                   style={styles.image}
-                  resizeMode="cover"
+                  resizeMode="contain"
                   onError={(error) => {
                     console.error('[Context] Image load error:', error.nativeEvent.error);
                     console.error('[Context] Image URI:', capturedImage);
@@ -568,20 +568,15 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   imagePreviewContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   imagePreview: {
-    width: 128,
-    height: 176,
-    borderRadius: 16,
+    width: '100%',
+    height: 260,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   image: {
     width: '100%',
