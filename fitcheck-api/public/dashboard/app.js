@@ -222,9 +222,13 @@ function errorHTML(msg) {
 }
 
 function emptyHTML(msg) {
-  return `<div style="text-align:center;padding:48px;color:#9CA3AF;">
-    <div style="font-size:2.5rem;margin-bottom:8px;">✅</div>
-    <p style="font-size:0.875rem;">${esc(msg)}</p>
+  return `<div style="text-align:center;padding:56px 24px;">
+    <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span style="flex:1;max-width:48px;height:1px;background:var(--border-solid);display:block;"></span>
+      <span style="width:5px;height:5px;background:var(--coral);transform:rotate(45deg);opacity:0.4;display:block;flex-shrink:0;"></span>
+      <span style="flex:1;max-width:48px;height:1px;background:var(--border-solid);display:block;"></span>
+    </div>
+    <p style="font-size:0.6875rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);">${esc(msg)}</p>
   </div>`;
 }
 

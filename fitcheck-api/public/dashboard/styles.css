@@ -371,3 +371,187 @@ details > summary::-webkit-details-marker { display: none; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-solid); }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ─── Login split-screen layout ─────────────────────────────────────────── */
+#page-login {
+  display: flex;
+  min-height: 100vh;
+  background: var(--cream);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+@media (min-width: 900px) {
+  #page-login {
+    padding: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+}
+
+/* ─── Login editorial panel (dark, desktop-only) ────────────────────────── */
+.login-editorial-panel {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .login-editorial-panel {
+    display: flex;
+    flex-direction: column;
+    width: 42%;
+    min-width: 300px;
+    max-width: 480px;
+    background: var(--black);
+    padding: 44px 40px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+}
+
+.login-editorial-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.login-editorial-brand-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: -0.01em;
+}
+
+.login-figure-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.login-fashion-svg {
+  width: 100%;
+  max-width: 256px;
+  height: auto;
+}
+
+.login-editorial-footer {
+  flex-shrink: 0;
+}
+
+.login-editorial-quote {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 10px;
+}
+
+.login-editorial-sub {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+
+/* ─── Login form panel ───────────────────────────────────────────────────── */
+.login-form-panel {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 900px) {
+  .login-form-panel {
+    flex: 1;
+    background: white;
+    padding: 40px;
+  }
+}
+
+.login-form-inner {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Mobile: wrap in card */
+.login-form-inner > * {
+  /* children inherit fine */
+}
+
+@media (max-width: 899px) {
+  .login-form-inner {
+    background: white;
+    padding: 32px;
+    border: 1px solid var(--border-solid);
+  }
+}
+
+/* Mobile logo: visible on small screens */
+.login-mobile-header {
+  display: block;
+  margin-bottom: 32px;
+}
+
+/* Desktop heading (editorial panel already shows logo) */
+.login-desktop-header {
+  display: none;
+  margin-bottom: 32px;
+}
+
+@media (min-width: 900px) {
+  .login-mobile-header { display: none; }
+  .login-desktop-header { display: block; }
+}
+
+.login-form-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 2rem;
+  color: var(--black);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.login-form-sub {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* ─── Sidebar editorial rule ─────────────────────────────────────────────── */
+.sidebar-editorial-rule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px 10px;
+}
+
+.sidebar-editorial-rule::before,
+.sidebar-editorial-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.sidebar-editorial-mark {
+  display: block;
+  width: 5px;
+  height: 5px;
+  background: var(--coral);
+  transform: rotate(45deg);
+  opacity: 0.5;
+  margin: 0 8px;
+  flex-shrink: 0;
+}

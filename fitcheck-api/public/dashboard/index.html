@@ -28,34 +28,112 @@
 <body class="bg-cream font-sans antialiased">
 
   <!-- ─── Login Page ──────────────────────────────────────────────── -->
-  <div id="page-login" class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <div class="card p-8">
-        <div class="text-center mb-8">
-          <div class="logo-icon mx-auto mb-4">?</div>
-          <h1 class="editorial-heading" style="font-size:1.75rem;">Agent Dashboard</h1>
-          <p class="text-gray-400 text-sm mt-1">Or This? Operator Console</p>
+  <div id="page-login" class="login-split">
+
+    <!-- Editorial illustration panel (desktop only) -->
+    <div class="login-editorial-panel">
+      <!-- Brand mark -->
+      <div class="login-editorial-brand">
+        <div class="logo-icon">?</div>
+        <span class="login-editorial-brand-name">Or This?</span>
+      </div>
+
+      <!-- Fashion illustration -->
+      <div class="login-figure-wrap">
+        <svg viewBox="0 0 280 540" fill="none" xmlns="http://www.w3.org/2000/svg" class="login-fashion-svg">
+          <!-- Watermark ? -->
+          <text x="-22" y="430" font-family="Georgia,serif" font-style="italic" font-size="440" fill="rgba(255,255,255,0.038)">?</text>
+          <!-- Editorial horizontal rules at waist level -->
+          <line x1="16" y1="192" x2="58" y2="192" stroke="rgba(232,93,76,0.45)" stroke-width="0.75"/>
+          <line x1="222" y1="192" x2="264" y2="192" stroke="rgba(232,93,76,0.45)" stroke-width="0.75"/>
+          <!-- HEAD -->
+          <ellipse cx="140" cy="62" rx="18" ry="22" fill="rgba(255,255,255,0.93)"/>
+          <!-- Hair (abstract) -->
+          <path d="M124 50 Q131 32 140 39 Q149 27 158 48" stroke="rgba(255,255,255,0.38)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <!-- NECK -->
+          <rect x="135" y="83" width="10" height="18" fill="rgba(255,255,255,0.90)"/>
+          <!-- COAT body -->
+          <path d="M135 99 L68 123 L60 263 L80 269 L108 269 L126 230 L132 216 L140 213 L148 216 L154 230 L172 269 L200 269 L220 263 L212 123 L145 99 Z" fill="rgba(255,255,255,0.88)"/>
+          <!-- LAPELS in coral -->
+          <path d="M135 99 L122 113 L137 124 L140 133 L143 124 L158 113 L145 99 Z" fill="#E85D4C"/>
+          <!-- BELT in coral -->
+          <rect x="96" y="218" width="88" height="4" fill="#E85D4C"/>
+          <!-- Center button detail -->
+          <circle cx="140" cy="160" r="1.6" fill="rgba(232,93,76,0.5)"/>
+          <circle cx="140" cy="176" r="1.6" fill="rgba(232,93,76,0.5)"/>
+          <circle cx="140" cy="193" r="1.6" fill="rgba(232,93,76,0.5)"/>
+          <!-- LEFT ARM -->
+          <path d="M71 127 L52 208 L61 213 L78 132 Z" fill="rgba(255,255,255,0.76)"/>
+          <!-- RIGHT ARM -->
+          <path d="M209 127 L226 203 L217 208 L202 132 Z" fill="rgba(255,255,255,0.70)"/>
+          <!-- Clutch bag in coral -->
+          <rect x="220" y="193" width="22" height="14" rx="1" fill="#E85D4C" opacity="0.82"/>
+          <!-- BACK LEG -->
+          <rect x="150" y="267" width="16" height="200" fill="rgba(255,255,255,0.66)"/>
+          <!-- FRONT LEG -->
+          <rect x="114" y="267" width="16" height="200" fill="rgba(255,255,255,0.87)"/>
+          <!-- FRONT SHOE (toe box + heel post) -->
+          <path d="M105 466 L130 466 L130 472 Q130 479 124 481 L108 481 Q100 478 100 471 Q100 466 105 466 Z" fill="rgba(255,255,255,0.87)"/>
+          <rect x="127" y="481" width="3" height="13" fill="rgba(255,255,255,0.70)"/>
+          <!-- BACK SHOE -->
+          <path d="M150 466 L166 466 L166 472 Q166 479 162 481 L152 481 Q146 478 146 471 Q146 466 150 466 Z" fill="rgba(255,255,255,0.66)"/>
+          <rect x="163" y="481" width="3" height="13" fill="rgba(255,255,255,0.52)"/>
+          <!-- Dot column accents (editorial) -->
+          <circle cx="32" cy="308" r="1.5" fill="rgba(232,93,76,0.32)"/>
+          <circle cx="32" cy="321" r="1.5" fill="rgba(232,93,76,0.32)"/>
+          <circle cx="32" cy="334" r="1.5" fill="rgba(232,93,76,0.32)"/>
+          <circle cx="248" cy="308" r="1.5" fill="rgba(232,93,76,0.32)"/>
+          <circle cx="248" cy="321" r="1.5" fill="rgba(232,93,76,0.32)"/>
+          <circle cx="248" cy="334" r="1.5" fill="rgba(232,93,76,0.32)"/>
+        </svg>
+      </div>
+
+      <!-- Quote -->
+      <div class="login-editorial-footer">
+        <p class="login-editorial-quote">Style is a way to say who you are without having to speak.</p>
+        <p class="login-editorial-sub">Confidence in every choice.</p>
+      </div>
+    </div>
+
+    <!-- Form panel -->
+    <div class="login-form-panel">
+      <div class="login-form-inner">
+
+        <!-- Mobile: logo + title -->
+        <div class="login-mobile-header">
+          <div class="logo-icon" style="margin:0 auto 16px;">?</div>
+          <h1 class="editorial-heading" style="font-size:1.75rem;text-align:center;">Agent Dashboard</h1>
+          <p style="color:var(--muted);font-size:0.875rem;text-align:center;margin-top:4px;">Or This? Operator Console</p>
         </div>
+
+        <!-- Desktop: just heading (logo is in editorial panel) -->
+        <div class="login-desktop-header">
+          <h2 class="login-form-heading">Agent Dashboard</h2>
+          <p class="login-form-sub">Or This? Operator Console</p>
+        </div>
+
         <form id="login-form" autocomplete="off">
           <label class="block text-sm font-medium text-gray-700 mb-2">Access Token</label>
           <input
             id="token-input"
             type="password"
             placeholder="Paste your ADMIN_DASHBOARD_TOKEN"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-gray-900 text-sm"
+            class="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:ring-2 focus:border-transparent text-gray-900 text-sm"
             style="--tw-ring-color: #E85D4C;"
           >
           <p id="login-error" class="hidden text-red-500 text-sm mt-2 pl-1"></p>
           <button
             type="submit"
-            class="btn-coral w-full mt-4 py-3 rounded-xl text-sm font-semibold"
+            class="btn-coral w-full mt-4 py-3 text-sm font-semibold"
           >Sign in to Dashboard</button>
         </form>
+        <p class="text-center text-xs text-gray-400 mt-6">
+          Set <code class="bg-white px-1 py-0.5 rounded text-gray-600">ADMIN_DASHBOARD_TOKEN</code> in your server .env
+        </p>
+
       </div>
-      <p class="text-center text-xs text-gray-400 mt-4">
-        Set <code class="bg-white px-1 py-0.5 rounded text-gray-600">ADMIN_DASHBOARD_TOKEN</code> in your server .env
-      </p>
     </div>
+
   </div>
 
   <!-- ─── App Shell ───────────────────────────────────────────────── -->
@@ -99,6 +177,8 @@
 
       <!-- Bottom -->
       <div class="p-3 border-t border-gray-100 space-y-1">
+        <!-- Editorial fashion accent -->
+        <div class="sidebar-editorial-rule" aria-hidden="true"><span class="sidebar-editorial-mark"></span></div>
         <button id="kill-all-btn" class="btn-danger w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium">
           🛑 Kill All Agents
         </button>
