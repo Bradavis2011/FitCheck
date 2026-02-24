@@ -12,6 +12,9 @@
   --surface:     #FFFFFF;
 }
 
+/* Critical: define .hidden independently of Tailwind CDN */
+.hidden { display: none !important; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
