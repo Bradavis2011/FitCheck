@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Or This? — Agent Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -33,7 +33,7 @@
       <div class="card p-8">
         <div class="text-center mb-8">
           <div class="logo-icon mx-auto mb-4">?</div>
-          <h1 class="text-2xl font-semibold text-gray-900">Agent Dashboard</h1>
+          <h1 class="editorial-heading" style="font-size:1.75rem;">Agent Dashboard</h1>
           <p class="text-gray-400 text-sm mt-1">Or This? Operator Console</p>
         </div>
         <form id="login-form" autocomplete="off">
@@ -79,6 +79,10 @@
         <a href="#overview" data-nav="overview" class="nav-item">
           <span>📊</span><span>Overview</span>
         </a>
+        <a href="#social" data-nav="social" class="nav-item">
+          <span>📱</span><span>Social Posts</span>
+          <span id="social-badge" class="ml-auto hidden text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"></span>
+        </a>
         <a href="#queue" data-nav="queue" class="nav-item">
           <span>⏳</span><span>Approval Queue</span>
           <span id="queue-badge" class="ml-auto hidden text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"></span>
@@ -111,7 +115,7 @@
         <!-- ── Overview ─────────────────────────────────────────── -->
         <div data-page="overview" class="hidden">
           <div class="mb-8">
-            <h1 class="text-2xl font-semibold text-gray-900">Overview</h1>
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Agent Dashboard</h1>
             <p class="text-gray-400 text-sm mt-1">Autonomous agent workforce at a glance</p>
           </div>
           <div id="stat-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
@@ -132,10 +136,35 @@
           </div>
         </div>
 
+        <!-- ── Social Posts ────────────────────────────────────── -->
+        <div data-page="social" class="hidden">
+          <div class="mb-8">
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Social Posts</h1>
+            <p class="text-gray-400 text-sm">Review, approve, and publish content to social channels</p>
+          </div>
+          <div id="social-run-bar" class="card p-4 mb-6" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+            <div>
+              <p style="font-weight:600;font-size:0.875rem;color:#1A1A1A;">Content Engine</p>
+              <p class="section-label" style="margin-top:2px;">Mon · Wed · Fri at 8:30am UTC — or run now</p>
+            </div>
+            <button onclick="handleForceTrigger(this)" class="btn-coral" style="padding:10px 20px;font-size:0.875rem;font-weight:600;white-space:nowrap;">
+              ▶ Generate Posts Now
+            </button>
+          </div>
+          <div>
+            <p class="section-label" style="margin-bottom:12px;">Pending Review</p>
+            <div id="social-queue-content"></div>
+          </div>
+          <div style="margin-top:32px;">
+            <p class="section-label" style="margin-bottom:12px;">Recent Posts</p>
+            <div id="social-history-content"></div>
+          </div>
+        </div>
+
         <!-- ── Approval Queue ──────────────────────────────────── -->
         <div data-page="queue" class="hidden">
           <div class="mb-8">
-            <h1 class="text-2xl font-semibold text-gray-900">Approval Queue</h1>
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Approval Queue</h1>
             <p class="text-gray-400 text-sm mt-1">Review and approve high-risk agent actions</p>
           </div>
           <div id="queue-content"></div>
@@ -150,7 +179,7 @@
         <!-- ── Action Log ──────────────────────────────────────── -->
         <div data-page="log" class="hidden">
           <div class="mb-8">
-            <h1 class="text-2xl font-semibold text-gray-900">Action Log</h1>
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Action Log</h1>
             <p class="text-gray-400 text-sm mt-1">Full audit trail of every agent action</p>
           </div>
           <div class="flex flex-wrap gap-3 mb-6">

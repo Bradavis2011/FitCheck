@@ -49,6 +49,23 @@ const REPORTING_AGENTS = [
 function agentIcon(name)  { return AGENT_META[name]?.icon  || '🤖'; }
 function agentLabel(name) { return AGENT_META[name]?.label || name; }
 
+// ─── Social post metadata ─────────────────────────────────────────────────────
+const CONTENT_TYPE_LABELS = {
+  founder_story:        'Founder Story',
+  fashion_news:         'Fashion News',
+  community_spotlight:  'Community Spotlight',
+  style_data_drop:      'Style Data Drop',
+  wardrobe_insight:     'Wardrobe Insight',
+  conversation_starter: 'Conversation Starter',
+  behind_the_scenes:    'Behind the Scenes',
+};
+
+const PLATFORM_META = {
+  twitter:   { icon: '𝕏', label: 'Twitter', limit: 280, cls: 'platform-twitter'  },
+  tiktok:    { icon: '♪', label: 'TikTok',  limit: null, cls: 'platform-tiktok'  },
+  pinterest: { icon: '📌', label: 'Pinterest', limit: null, cls: 'platform-pinterest' },
+};
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 const getToken  = () => sessionStorage.getItem('dashboard_token');
 const setToken  = (t) => sessionStorage.setItem('dashboard_token', t);
@@ -135,6 +152,7 @@ function routePage() {
 
   switch (page) {
     case 'overview': loadOverview();       break;
+    case 'social':   loadSocialPosts();    break;
     case 'queue':    loadQueue(1);         break;
     case 'agent':    loadAgent(param);     break;
     case 'log':      loadLog(1);           break;
@@ -390,6 +408,82 @@ async function loadOverview() {
   }
 }
 
+// ─── Social Posts Page ────────────────────────────────────────────────────────
+
+async function loadSocialPosts() {
+  const queueEl   = document.getElementById('social-queue-content');
+  const historyEl = document.getElementById('social-history-content');
+  if (!queueEl || !historyEl) return;
+
+  queueEl.innerHTML   = loadingHTML();
+  historyEl.innerHTML = loadingHTML();
+
+  try {
+    const [queueData, logData] = await Promise.all([
+      apiGet('/api/admin/agents/queue?page=1&limit=50'),
+      apiGet('/api/admin/agents/actions?agent=social-media-manager&limit=30'),
+    ]);
+
+    // Filter pending queue to social posts only
+    const pendingPosts = (queueData.actions || []).filter(
+      a => a.agent === 'social-media-manager' && a.actionType === 'post_social'
+    );
+
+    // Update social badge
+    const socialBadge = document.getElementById('social-badge');
+    if (socialBadge) {
+      if (pendingPosts.length > 0) {
+        socialBadge.textContent = pendingPosts.length;
+        socialBadge.classList.remove('hidden');
+      } else {
+        socialBadge.classList.add('hidden');
+      }
+    }
+
+    if (pendingPosts.length === 0) {
+      queueEl.innerHTML = `<div class="card">${emptyHTML('No posts awaiting review')}</div>`;
+    } else {
+      queueEl.innerHTML = `
+        <div class="card" style="overflow:hidden;">
+          ${pendingPosts.map(a => socialPostCardHTML(a)).join('')}
+        </div>`;
+    }
+
+    // History — non-pending social posts
+    const historyPosts = (logData.actions || []).filter(
+      a => a.actionType === 'post_social' && a.status !== 'pending'
+    );
+
+    if (historyPosts.length === 0) {
+      historyEl.innerHTML = `<div class="card">${emptyHTML('No post history yet')}</div>`;
+    } else {
+      historyEl.innerHTML = `
+        <div class="card" style="overflow:hidden;">
+          ${historyPosts.map(a => socialPostCardHTML(a, { showActions: false, showHistory: true })).join('')}
+        </div>`;
+    }
+  } catch (err) {
+    queueEl.innerHTML   = errorHTML(err.message);
+    historyEl.innerHTML = '';
+  }
+}
+
+async function handleForceTrigger(btn) {
+  const original = btn.textContent;
+  btn.disabled   = true;
+  btn.textContent = 'Running…';
+  try {
+    await apiPost('/api/admin/agents/social-media-manager/trigger', { force: true });
+    showToast('Content engine triggered — check back in ~30 seconds');
+    setTimeout(() => loadSocialPosts(), 30000);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = original;
+  }
+}
+
 // ─── Approval Queue ──────────────────────────────────────────────────────────
 async function loadQueue(page) {
   page = page || 1;
@@ -423,7 +517,70 @@ async function loadQueue(page) {
   }
 }
 
+function socialPostCardHTML(action, opts = {}) {
+  const id      = esc(action.id);
+  const p       = action.payload || {};
+  const content = p.content || '';
+  const hashtags= Array.isArray(p.hashtags) ? p.hashtags : [];
+  const platform= (p.platform || 'twitter').toLowerCase();
+  const ctLabel = CONTENT_TYPE_LABELS[p.contentType] || p.contentType || '';
+  const imgHint = p.imageDescription || '';
+  const pmeta   = PLATFORM_META[platform] || PLATFORM_META.twitter;
+
+  const fullText = content + (hashtags.length ? ' ' + hashtags.map(h => `#${h}`).join(' ') : '');
+  const charLen  = fullText.length;
+  let charCls = 'char-ok';
+  if (pmeta.limit) {
+    if (charLen > pmeta.limit) charCls = 'char-over';
+    else if (charLen > pmeta.limit * 0.9) charCls = 'char-warn';
+  }
+
+  const showActions = opts.showActions !== false;
+  const showHistory = opts.showHistory === true;
+
+  const hashtagHTML = hashtags.map(h => `<span class="hashtag-chip">#${esc(h)}</span>`).join('');
+
+  return `
+    <div id="qi-${id}" style="padding:20px 24px;border-bottom:1px solid #F3F4F6;">
+      <!-- Header row -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <span class="pill ${pmeta.cls}" style="font-size:0.75rem;font-weight:600;">
+          ${pmeta.icon} ${esc(pmeta.label)}
+        </span>
+        ${ctLabel ? `<span class="content-type-chip">${esc(ctLabel)}</span>` : ''}
+        ${riskBadge(action.riskLevel)}
+        <span style="margin-left:auto;font-size:0.75rem;color:#9CA3AF;">${fmtRelative(action.createdAt)}</span>
+        ${showHistory ? statusPill(action.status) : ''}
+      </div>
+
+      <!-- Post text -->
+      <div class="post-text" style="margin-bottom:10px;">${esc(content)}</div>
+
+      <!-- Hashtags + char count -->
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+        ${hashtagHTML}
+        ${pmeta.limit ? `<span class="char-count ${charCls}" style="margin-left:auto;">${charLen}/${pmeta.limit}</span>` : ''}
+      </div>
+
+      <!-- Image hint -->
+      ${imgHint ? `<p class="image-hint" style="margin-bottom:12px;">📷 ${esc(imgHint)}</p>` : ''}
+
+      <!-- Actions -->
+      ${showActions ? `
+      <div style="display:flex;gap:8px;padding-top:4px;">
+        <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:8px 20px;font-size:0.8125rem;">✓ Approve &amp; Schedule</button>
+        <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:8px 16px;font-size:0.8125rem;">✕ Reject</button>
+      </div>` : ''}
+    </div>
+  `;
+}
+
 function queueItemHTML(action) {
+  // Social media posts get a rich preview card
+  if (action.agent === 'social-media-manager' && action.actionType === 'post_social') {
+    return socialPostCardHTML(action);
+  }
+
   const id      = esc(action.id);
   const payload = prettyJSON(action.payload);
   return `
@@ -443,12 +600,12 @@ function queueItemHTML(action) {
             <summary style="font-size:0.75rem;color:var(--coral);cursor:pointer;font-weight:500;user-select:none;">
               View payload ▾
             </summary>
-            <pre style="margin-top:8px;padding:10px;background:#F9FAFB;border-radius:8px;font-size:0.72rem;color:#4B5563;overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
+            <pre style="margin-top:8px;padding:10px;background:#F9FAFB;font-size:0.72rem;color:#4B5563;overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
           </details>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px;">
-          <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:6px 12px;border-radius:8px;font-size:0.8125rem;font-weight:500;">✓ Approve</button>
-          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:6px 12px;border-radius:8px;font-size:0.8125rem;font-weight:500;">✕ Reject</button>
+          <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:6px 12px;font-size:0.8125rem;">✓ Approve</button>
+          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:6px 12px;font-size:0.8125rem;">✕ Reject</button>
         </div>
       </div>
     </div>
@@ -677,8 +834,10 @@ async function handleTrigger(name, btn) {
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Running…';
+  // social-media-manager has a day-of-week guard — force bypasses it
+  const body = name === 'social-media-manager' ? { force: true } : undefined;
   try {
-    await apiPost(`/api/admin/agents/${encodeURIComponent(name)}/trigger`);
+    await apiPost(`/api/admin/agents/${encodeURIComponent(name)}/trigger`, body);
     showToast(`${name} triggered — running in background`);
   } catch (err) {
     showToast(err.message, 'error');

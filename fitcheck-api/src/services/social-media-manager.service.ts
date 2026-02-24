@@ -142,7 +142,7 @@ async function queueGeneratedPost(post: GeneratedPost): Promise<void> {
     'social-media-manager',
     'post_social',
     'high',
-    { socialPostId: record.id, platform: post.platform, content: post.content, hashtags: post.hashtags } as unknown as Record<string, unknown>,
+    { socialPostId: record.id, platform: post.platform, content: post.content, hashtags: post.hashtags, contentType: post.contentType, imageDescription: post.imageDescription } as unknown as Record<string, unknown>,
     async (payload) => {
       const p = payload as { socialPostId: string; platform: string };
       if (p.platform === 'twitter') {
