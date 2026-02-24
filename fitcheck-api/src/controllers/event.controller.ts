@@ -276,10 +276,15 @@ export async function compareOutfits(req: AuthenticatedRequest, res: Response) {
   const outfitSummaries = event.outfitOptions.map((eo, i) => {
     const oc = eo.outfitCheck;
     const fb = oc.aiFeedback as any;
-    const summary = fb?.summary ?? 'No AI summary available';
+    // Support both v3.0 (editorialSummary / whatsRight / couldImprove) and legacy v2.0 formats
+    const summary = fb?.editorialSummary ?? fb?.summary ?? 'No AI summary available';
     const score = oc.aiScore ?? 'Unknown';
-    const working = fb?.whatsWorking?.map((w: any) => w.point).join(', ') ?? '';
-    const concerns = fb?.consider?.map((c: any) => c.point).join(', ') ?? '';
+    const working = Array.isArray(fb?.whatsRight)
+      ? fb.whatsRight.join(', ')
+      : (fb?.whatsWorking?.map((w: any) => w.point).join(', ') ?? '');
+    const concerns = Array.isArray(fb?.couldImprove)
+      ? fb.couldImprove.join(', ')
+      : (fb?.consider?.map((c: any) => c.point).join(', ') ?? '');
     return `Outfit ${i + 1} (ID: ${oc.id}):
   - AI Score: ${score}/10
   - Summary: ${summary}

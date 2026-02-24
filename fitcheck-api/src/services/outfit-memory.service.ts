@@ -41,7 +41,8 @@ export async function getOutfitMemory(
   const matchingOccasion =
     occasions.find((o) => match.occasions.includes(o)) || match.occasions[0];
   const feedback = match.aiFeedback as any;
-  const summary: string | null = feedback?.summary || null;
+  // Support both v3.0 (editorialSummary) and legacy v2.0 (summary) formats
+  const summary: string | null = feedback?.editorialSummary || feedback?.summary || null;
 
   return {
     id: match.id,

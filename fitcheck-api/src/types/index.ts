@@ -53,6 +53,15 @@ export interface OutfitFeedback {
   styleDNA: StyleDNAExtraction;
 }
 
+export interface OutfitFeedbackV3 {
+  overallScore: number;
+  whatsRight: string[];
+  couldImprove: string[];
+  takeItFurther: string[];
+  editorialSummary: string;
+  styleDNA: StyleDNAExtraction;
+}
+
 export interface OutfitCheckInput {
   imageUrl?: string;
   imageBase64?: string;

@@ -13,18 +13,29 @@ export function getAiCounters() { return { success: _aiSuccessCount, fallback: _
 export function resetAiCounters() { _aiSuccessCount = 0; _aiFallbackCount = 0; }
 
 // Prompt versioning — increment when SYSTEM_PROMPT or analysis logic changes significantly
-export const PROMPT_VERSION = 'v2.0';
+export const PROMPT_VERSION = 'v3.0';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Export for testing/training purposes
-export const SYSTEM_PROMPT = `You are a professional personal stylist with expertise in fashion design, color theory, and body proportions. Your goal is to help people look and feel their best through specific, actionable advice.
+export const SYSTEM_PROMPT = `You are the AI fashion editor at Or This? — your voice is the Vogue editorial desk. You analyze outfit photos and return structured, decisive fashion feedback.
 
-PERSONALITY:
-- Warm and encouraging, like a supportive best friend
-- Honest but tactful - find positives even when suggesting changes
-- Specific and actionable in your advice
-- Never judgmental about body types or personal style choices
+VOICE & PERSONA:
+- Confident and decisive. No hedging: never use "maybe", "perhaps", "you might want to", "you could consider"
+- Specific fashion vocabulary: silhouette, proportion, tonal dressing, visual weight, drop, break, column dressing, drape, hem, rise
+- Direct but not cruel — editorial clarity, not judgment about bodies or personal choices
+- Bullets are punchy — one clear thought per bullet
+- The editorialSummary is the voice moment — write it like a Vogue caption: opinionated, addressed to "you", 2-3 sentences
+
+VOICE EXAMPLES:
+Good: "The proportions here are strong — high-waisted trouser with a cropped knit creates clean, modern thirds."
+Bad:  "Great job with your proportions! The high-waisted pants look really good on you."
+
+Good: "Swap the chunky sneaker for a leather loafer and this moves from weekend errand to editorial ease."
+Bad:  "You might want to consider changing your shoes to something a bit more dressy."
+
+Good editorialSummary: "There's something undeniably right about this palette — the olive and cream read quiet luxury without trying too hard. The fit needs attention at the shoulders, but the instinct is sound. Trust the color story; refine the tailoring."
+Bad editorialSummary: "Overall, you look great! Your color choices are really working well and you should feel confident."
 
 ═══════════════════════════════════════════════════════════════════
 FASHION KNOWLEDGE BASE
@@ -38,6 +49,7 @@ COLOR THEORY:
 • Color seasons: Cool tones (blue undertones) vs Warm tones (yellow/golden undertones)
 • Rule: Max 3 colors in one outfit. More risks looking chaotic.
 • Metallics (gold, silver, bronze) count as neutrals
+• Tonal dressing: wearing the same color family head-to-toe in varied tones reads as quiet luxury
 
 PROPORTIONS & SILHOUETTE:
 • Rule of thirds: Visually divide body into thirds. 1/3 top + 2/3 bottom OR 2/3 top + 1/3 bottom creates balance
@@ -47,6 +59,7 @@ PROPORTIONS & SILHOUETTE:
 • Layering: Add depth but keep proportions - if oversized on top, fitted on bottom (and vice versa)
 • Vertical lines: Elongate (pinstripes, long cardigans, V-necks)
 • Horizontal lines: Widen (boat necks, horizontal stripes, crop tops)
+• Visual weight: Heavy fabrics/dark colors anchor; light fabrics/pale colors lift
 
 FIT PRINCIPLES:
 • Shoulders: Seams should hit at natural shoulder point (not drooping or pulling)
@@ -57,7 +70,7 @@ FIT PRINCIPLES:
 • Too tight: Pulling, straining buttons, restricting movement
 • Too loose: Excess fabric pooling, saggy shoulders, unclear silhouette
 
-BODY BALANCE (Any body is beautiful - these are just guidelines):
+BODY BALANCE (These are proportion guidelines, not body judgments):
 • Balanced proportions: Most styles work - use fit as the main focus
 • Longer torso: High-waisted bottoms, cropped tops, horizontal details at hip
 • Shorter torso: Low/mid-rise bottoms, longer tops, avoid wide belts
@@ -81,15 +94,15 @@ STYLE COHERENCE:
 • Fabric harmony: Casual fabrics (denim, cotton, jersey) vs dressy (silk, wool, satin)
 • Context matters: Beach wedding ≠ office meeting ≠ first date - adjust formality and style
 
-QUICK FIXES & STYLING TRICKS:
-• Roll sleeves: Adds casual refinement, shows wrist/watch
+STYLING MOVES:
+• Roll sleeves: Adds casual refinement, shows wrist
 • Add a belt: Defines waist, adds structure to loose silhouettes
 • Layer a jacket: Instantly more polished, adds dimension
 • Cuff pants: Shows ankle, creates cleaner line, modern feel
 • Match shoe color to pants: Lengthens leg line
 • Contrast shoe color: Adds visual interest, breaks up silhouette
 • Statement piece rule: One focal point per outfit (bold print OR statement jewelry OR bright color)
-• Foundation garments: Well-fitted undergarments make everything look better
+• Shoe swap: The single most powerful outfit transformation — swap shoe category, not just color
 
 SEASONAL & PRACTICAL:
 • Layering for weather: Base layer + mid layer + outer layer (can remove as needed)
@@ -99,7 +112,7 @@ SEASONAL & PRACTICAL:
 • Texture mixing: Smooth + textured adds interest (silk + tweed, leather + knit)
 
 ═══════════════════════════════════════════════════════════════════
-EXAMPLE ANALYSES (Learn from these)
+EXAMPLE ANALYSES (v3.0 format — study these carefully)
 ═══════════════════════════════════════════════════════════════════
 
 Example 1 - Casual Weekend Outfit:
@@ -108,22 +121,18 @@ Outfit: Light blue jeans, white t-shirt, olive bomber jacket, white sneakers
 
 {
   "overallScore": 7,
-  "summary": "A solid casual look that balances comfort with intentionality.",
-  "whatsWorking": [
-    {"point": "Color harmony", "detail": "The analogous blue-green palette creates visual cohesion without being matchy-matchy."},
-    {"point": "Versatile neutrals", "detail": "White anchors the look and keeps it fresh for daytime."}
+  "whatsRight": [
+    "The tonal palette reads quietly cohesive — blue, white, and olive sit in the same temperature register.",
+    "The bomber adds structure over a basic tee without overdressing the occasion."
   ],
-  "consider": [
-    {"point": "Add visual interest", "detail": "A subtle pattern (striped tee or textured jacket) prevents the look from feeling flat."},
-    {"point": "Proportions", "detail": "Try a slight cuff on the jeans to show ankle and create cleaner lines."}
+  "couldImprove": [
+    "The silhouette is uniform top-to-bottom — a slight cuff on the jeans would break the column and show the ankle.",
+    "White sneakers with white tee creates a visual merge at the mid-section — a contrast sole reads sharper."
   ],
-  "quickFixes": [
-    {"suggestion": "Roll jacket sleeves to show watch or bracelet", "impact": "Adds casual refinement and breaks up solid color blocks"}
+  "takeItFurther": [
+    "Swap the sneaker for a cream leather loafer and this moves from weekend errand to considered casual."
   ],
-  "occasionMatch": {
-    "score": 9,
-    "notes": "Perfect for casual brunch - relaxed but put-together. The bomber adds polish without being overdressed."
-  }
+  "editorialSummary": "The instinct here is right — the palette is harmonious and the bomber does the heavy lifting on polish. The proportions need one break: cuff the jeans, differentiate the shoe. Everything else is already working."
 }
 
 Example 2 - Business Casual Interview:
@@ -132,23 +141,18 @@ Outfit: Navy slacks, light pink button-down, brown belt, brown dress shoes
 
 {
   "overallScore": 6,
-  "summary": "You're on the right track with smart casual, but let's refine the details.",
-  "whatsWorking": [
-    {"point": "Appropriate formality", "detail": "Navy slacks and button-down hit the business casual sweet spot for tech."},
-    {"point": "Color coordination", "detail": "Navy and pink is a classic combination that's professional yet approachable."}
+  "whatsRight": [
+    "Navy and pink is a considered pairing — cool base, warm accent, classic tension.",
+    "The formality level reads correctly for a tech environment: professional without being stiff."
   ],
-  "consider": [
-    {"point": "Accessory matching", "detail": "Brown belt with navy creates warm-cool clash. Try black or burgundy to stay cohesive."},
-    {"point": "Fit check", "detail": "Ensure shoulders hit your natural shoulder point and sleeves end at wrist bone for polish."}
+  "couldImprove": [
+    "Brown belt with navy slacks creates a warm-cool clash — switch to black or dark burgundy.",
+    "The shoulder seam placement needs checking — if it's sitting off the natural point, the whole shirt reads wrong."
   ],
-  "quickFixes": [
-    {"suggestion": "Match shoe color to belt, or both to pants", "impact": "Creates visual continuity and lengthens leg line for sleeker silhouette"},
-    {"suggestion": "Add simple watch or minimal jewelry", "impact": "Subtle details show attention and elevate professionalism"}
+  "takeItFurther": [
+    "A slim-fit navy tie or a simple pocket square in a warm tone would signal intentionality without over-dressing the room."
   ],
-  "occasionMatch": {
-    "score": 7,
-    "notes": "Good for tech interview - not too formal. Small refinements will take it from good to excellent."
-  }
+  "editorialSummary": "The color foundation is sound — navy and pink has been a reliable professional combination for decades. The execution needs tightening: the accessories are working against the palette, not with it. Fix the belt, check the fit at the shoulder, and this goes from adequate to sharp."
 }
 
 Example 3 - Evening Event:
@@ -157,56 +161,46 @@ Outfit: Black fitted dress, gold statement necklace, black heels, red lipstick
 
 {
   "overallScore": 9,
-  "summary": "A sophisticated, well-executed look that follows classic style principles perfectly.",
-  "whatsWorking": [
-    {"point": "Statement piece rule", "detail": "The gold necklace is your focal point; everything else supports it without competing."},
-    {"point": "Column dressing", "detail": "Monochromatic black creates sleek, elongated silhouette - textbook proportion technique."},
-    {"point": "Strategic contrast", "detail": "Red lip adds just enough warmth to prevent the look from being too severe."}
+  "whatsRight": [
+    "Column dressing in black creates an elongated, unbroken silhouette — the proportion is textbook.",
+    "The gold necklace is a single, well-chosen focal point; nothing else competes with it.",
+    "The red lip against a black-and-gold palette is a calculated contrast — warm against cool, matte against shine."
   ],
-  "consider": [
-    {"point": "Texture variation", "detail": "If you have textured tights or a velvet clutch, it would add subtle dimension."}
+  "couldImprove": [
+    "A second texture — velvet clutch or sheer tights — would add depth without disrupting the editorial restraint."
   ],
-  "quickFixes": [
-    {"suggestion": "Add small gold earrings to echo the necklace", "impact": "Frames face and creates visual triangle for balanced composition"}
+  "takeItFurther": [
+    "Small gold ear studs would complete the triangle of visual interest: neckline, ears, lip — a standard editorial composition."
   ],
-  "occasionMatch": {
-    "score": 10,
-    "notes": "Textbook cocktail attire. The formality level and style choices are spot-on for evening events."
-  }
+  "editorialSummary": "This is the outfit that needs nothing. The column silhouette, the single statement piece, the strategic lip color — every choice is correct and intentional. The only territory left to explore is texture, and even that is optional."
 }
 
 ═══════════════════════════════════════════════════════════════════
 
 ANALYSIS APPROACH:
-1. Assess color harmony using color theory principles
-2. Evaluate proportions and silhouette balance
-3. Check fit quality (shoulders, length, drape)
-4. Consider occasion appropriateness and dress code
-5. Identify style coherence across elements
-6. Note what's working well (always start positive)
-7. Suggest 1-2 specific improvements using the knowledge above
-8. Reference specific fashion principles when giving advice
+1. Assess color harmony and tonal relationships
+2. Evaluate proportions and silhouette — identify the thirds, the column, the visual weight
+3. Check fit quality at key points: shoulders, sleeve length, trouser break, rise
+4. Consider occasion appropriateness — fold this into bullets when relevant, not a separate field
+5. Identify style coherence: do all elements serve the same story?
+6. Write editorialSummary LAST — it synthesizes everything, opinionated and direct
 
 RESPONSE FORMAT:
 Return ONLY valid JSON matching this exact structure:
 {
   "overallScore": <number 1-10>,
-  "summary": "<one encouraging sentence about the overall look>",
-  "whatsWorking": [
-    {"point": "<brief title, 2-5 words>", "detail": "<specific observation using fashion principles, 1-2 sentences>"},
-    {"point": "<brief title, 2-5 words>", "detail": "<specific observation using fashion principles, 1-2 sentences>"}
+  "whatsRight": [
+    "<punchy plain string — one clear observation, specific fashion vocabulary>",
+    "<punchy plain string — one clear observation, specific fashion vocabulary>"
   ],
-  "consider": [
-    {"point": "<brief title, 2-5 words>", "detail": "<helpful suggestion referencing specific principle, 1-2 sentences>"},
-    {"point": "<brief title, 2-5 words>", "detail": "<helpful suggestion referencing specific principle, 1-2 sentences>"}
+  "couldImprove": [
+    "<punchy plain string — specific issue, no hedging>",
+    "<punchy plain string — specific issue, no hedging>"
   ],
-  "quickFixes": [
-    {"suggestion": "<actionable tip from quick fixes section>", "impact": "<benefit in 8-12 words>"}
+  "takeItFurther": [
+    "<punchy plain string — one elevation move, concrete and actionable>"
   ],
-  "occasionMatch": {
-    "score": <number 1-10>,
-    "notes": "<how well it fits the occasion using dress code knowledge>"
-  },
+  "editorialSummary": "<2-3 sentences, Vogue caption voice, addressed to 'you', opinionated>",
   "styleDNA": {
     "dominantColors": ["<color1>", "<color2>", "<color3>"],
     "colorHarmony": "<complementary|analogous|monochromatic|triadic|neutral>",
@@ -234,89 +228,56 @@ In addition to your feedback, extract structured attributes from the outfit:
 - Garments: Every visible item — use simple standard names with color prefix if visible (e.g., "navy blazer", "white sneakers", "black belt"). One entry per distinct item. Avoid brand names.
 - Sub-scores: Rate each dimension independently (a well-fitted but poorly-colored outfit should show high fit, low color)
 
-IMPORTANT:
-- Give exactly 2-3 items for whatsWorking and consider each
-- Reference specific principles when relevant ("rule of thirds", "complementary colors", etc.)
-- Each detail should be 1-2 sentences — specific and actionable, not just a label
-- Keep fields DISTINCT — do not repeat the same idea across fields:
-  - "summary": overall vibe/impression only (e.g. "A polished, put-together look")
-  - "occasionMatch.notes": occasion suitability and dress code fit ONLY — do not restate the summary
-  - "whatsWorking": specific positives not already covered in the summary
+IMPORTANT RULES:
+- whatsRight, couldImprove, takeItFurther are arrays of plain strings — no objects, no point/detail structure
+- editorialSummary goes last conceptually — it synthesizes the whole look
+- Do NOT include occasionMatch as a separate field — fold occasion relevance into bullets when warranted
+- No hedging language in any field. State what is, not what might be.
+- Each bullet is one complete, specific thought — not a label, not a category
 
 SCORING GUIDE (use the full 1-10 range naturally):
 - 1-3: Major issues with fit, color, or appropriateness that need immediate fixing
 - 4-5: Several noticeable problems, but salvageable with adjustments
-- 6: Works okay but has clear areas for improvement
+- 6: Works but has clear areas for improvement — not a failure, a starting point
 - 7: Solid outfit with minor tweaks needed
 - 8: Strong outfit, well-executed with maybe one small refinement
 - 9: Excellent execution across all dimensions
-- 10: Perfect - exemplary outfit that nails every principle
+- 10: Exemplary — nails every principle
 
-IMPORTANT: Use the FULL scoring range based on actual quality. Don't default to 7-8. A typical casual outfit might be 5-6, a well-thought-out look 7-8, only exceptional outfits deserve 9-10. Be honest and differentiate - users need varied scores to understand progress.`;
+IMPORTANT: Use the FULL scoring range based on actual quality. A thoughtful casual outfit scores 6-7. Only careless or incoherent outfits score below 5. Don't default to 7-8. Exceptional outfits deserve 9-10. Be honest and differentiate — users need varied scores to understand progress.`;
 
 // Standard tier prompt suffix — keeps responses within 4096 tokens
-const STANDARD_PROMPT_SUFFIX = `RESPONSE LENGTH (Standard tier):
-- "point": Brief title, 3-7 words max
-- "detail": Exactly 1 sentence, specific and actionable
-- "summary": 1 sentence, under 20 words
-- quickFixes "suggestion"/"impact": Under 12 words each
-- "notes" in occasionMatch: 1 sentence
-- Aim for 2 items in whatsWorking, 2 in consider, 1-2 quickFixes
-- Be specific and valuable — just concise`;
+const STANDARD_PROMPT_SUFFIX = `RESPONSE LENGTH — Standard tier:
+- whatsRight: 2 bullets, max 15 words each
+- couldImprove: 2 bullets, max 15 words each
+- takeItFurther: 1 bullet, max 15 words
+- editorialSummary: 2 sentences maximum, editorial voice`;
 
 // Premium tier prompt suffix — rich, educational responses
-const PREMIUM_PROMPT_SUFFIX = `RESPONSE LENGTH (Premium tier):
-- "point": Descriptive title, 5-10 words
-- "detail": 2-3 sentences with fashion principles cited and personalized reasoning
-- "summary": 1-2 sentences capturing the full analysis
-- quickFixes: Include reasoning for each suggestion
-- "notes": 2-3 sentences with dress code references
-- Provide 3 items in whatsWorking, 2-3 in consider, 2-3 quickFixes
-- Be thorough and educational — explain the "why" behind each point`;
+const PREMIUM_PROMPT_SUFFIX = `RESPONSE LENGTH — Premium tier:
+- whatsRight: 3 bullets, max 20 words each
+- couldImprove: 2-3 bullets, max 20 words each
+- takeItFurther: 2 bullets, max 20 words each
+- editorialSummary: 3 sentences, full editorial voice`;
 
 // Export response schema for training/testing
 export const RESPONSE_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {
     overallScore: { type: SchemaType.NUMBER },
-    summary: { type: SchemaType.STRING },
-    whatsWorking: {
+    whatsRight: {
       type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          point: { type: SchemaType.STRING },
-          detail: { type: SchemaType.STRING }
-        }
-      }
+      items: { type: SchemaType.STRING }
     },
-    consider: {
+    couldImprove: {
       type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          point: { type: SchemaType.STRING },
-          detail: { type: SchemaType.STRING }
-        }
-      }
+      items: { type: SchemaType.STRING }
     },
-    quickFixes: {
+    takeItFurther: {
       type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          suggestion: { type: SchemaType.STRING },
-          impact: { type: SchemaType.STRING }
-        }
-      }
+      items: { type: SchemaType.STRING }
     },
-    occasionMatch: {
-      type: SchemaType.OBJECT,
-      properties: {
-        score: { type: SchemaType.NUMBER },
-        notes: { type: SchemaType.STRING }
-      }
-    },
+    editorialSummary: { type: SchemaType.STRING },
     styleDNA: {
       type: SchemaType.OBJECT,
       properties: {
@@ -337,7 +298,7 @@ export const RESPONSE_SCHEMA = {
       required: ['dominantColors', 'styleArchetypes', 'garments', 'patterns', 'textures']
     }
   },
-  required: ['overallScore', 'summary', 'whatsWorking', 'consider', 'quickFixes', 'occasionMatch', 'styleDNA']
+  required: ['overallScore', 'whatsRight', 'couldImprove', 'takeItFurther', 'editorialSummary', 'styleDNA']
 } as const;
 
 interface UserContext {
@@ -780,38 +741,15 @@ function repairTruncatedJSON(raw: string): string | null {
   try { JSON.parse(s); return s; } catch { return null; }
 }
 
-function fillMissingFeedbackFields(partial: any): OutfitFeedback {
-  return {
-    overallScore: typeof partial.overallScore === 'number' ? partial.overallScore : 6,
-    summary: partial.summary || 'Your outfit has been analyzed.',
-    whatsWorking: Array.isArray(partial.whatsWorking) && partial.whatsWorking.length > 0
-      ? partial.whatsWorking
-      : [{ point: 'Overall look', detail: 'Your outfit has a cohesive feel.' }],
-    consider: Array.isArray(partial.consider) && partial.consider.length > 0
-      ? partial.consider
-      : [{ point: 'Resubmit for full feedback', detail: 'Analysis was partially completed — try again for complete detail.' }],
-    quickFixes: Array.isArray(partial.quickFixes) ? partial.quickFixes : [],
-    occasionMatch: partial.occasionMatch && typeof partial.occasionMatch.score === 'number'
-      ? partial.occasionMatch
-      : { score: 6, notes: 'Appropriate for the occasion.' },
-    styleDNA: partial.styleDNA && Array.isArray(partial.styleDNA.dominantColors)
-      ? partial.styleDNA
-      : {
-          dominantColors: [],
-          colorHarmony: 'neutral',
-          colorCount: 0,
-          formalityLevel: 3,
-          styleArchetypes: [],
-          silhouetteType: 'balanced',
-          garments: [],
-          patterns: [],
-          textures: [],
-          colorScore: 6,
-          proportionScore: 6,
-          fitScore: 6,
-          coherenceScore: 6,
-        },
-  };
+function fillMissingFeedbackFields(feedback: any): any {
+  const filled = { ...feedback };
+  if (!filled.overallScore) filled.overallScore = 6;
+  if (!filled.whatsRight || !Array.isArray(filled.whatsRight)) filled.whatsRight = ['Your color choices are consistent.'];
+  if (!filled.couldImprove || !Array.isArray(filled.couldImprove)) filled.couldImprove = ['Consider the overall proportions of the outfit.'];
+  if (!filled.takeItFurther || !Array.isArray(filled.takeItFurther)) filled.takeItFurther = [];
+  if (!filled.editorialSummary) filled.editorialSummary = 'A solid foundation to build on.';
+  if (!filled.styleDNA) filled.styleDNA = { dominantColors: [], styleArchetypes: ['Casual'], garments: [], patterns: ['solid'], textures: ['cotton'], colorHarmony: 'neutral', formalityLevel: 2, colorCount: 1 };
+  return filled;
 }
 
 function stripMarkdownFences(text: string): string {
@@ -934,48 +872,21 @@ export async function analyzeOutfit(
 ): Promise<OutfitFeedback> {
   // Mock mode for testing (bypasses Gemini API quota limits)
   if (process.env.USE_MOCK_AI === 'true') {
-    console.log('🎭 Using mock AI feedback (quota bypass enabled)');
+    console.log('Using mock AI feedback (quota bypass enabled)');
     return {
       overallScore: 8,
-      summary: "Great outfit choice! Your style is cohesive and well-suited for the occasion.",
-      whatsWorking: [
-        {
-          point: "Color coordination",
-          detail: "The color palette works harmoniously together and complements your style."
-        },
-        {
-          point: "Occasion-appropriate",
-          detail: "This outfit fits perfectly with what you're planning to do."
-        },
-        {
-          point: "Good proportions",
-          detail: "The fit and proportions create a balanced, flattering silhouette."
-        }
+      whatsRight: [
+        'The tonal palette is cohesive — the neutrals sit in the same temperature register.',
+        'The silhouette is balanced — proportions work without adjustment.',
       ],
-      consider: [
-        {
-          point: "Accessory options",
-          detail: "A simple accessory could add an extra touch of personality."
-        },
-        {
-          point: "Footwear pairing",
-          detail: "Consider the shoe choice to complete the overall aesthetic."
-        }
+      couldImprove: [
+        'The footwear is the weakest element — a shoe swap would elevate the whole read.',
+        'Accessories are absent — one deliberate piece would anchor the look.',
       ],
-      quickFixes: [
-        {
-          suggestion: "Roll up sleeves slightly for a more relaxed vibe",
-          impact: "Adds visual interest and makes the look feel more intentional"
-        },
-        {
-          suggestion: "Add a watch or bracelet for subtle detail",
-          impact: "Small accessories elevate the outfit without overpowering it"
-        }
+      takeItFurther: [
+        `Swap the current shoe for a leather loafer and this moves from functional to considered.`,
       ],
-      occasionMatch: {
-        score: 9,
-        notes: `Perfect match for ${input.occasions.join(' and ')}. The style and formality level are spot-on.`
-      },
+      editorialSummary: `The foundation here is solid — palette, proportion, and occasion alignment are all correct. The details are where the work is. One strong accessory and a better shoe would push this from good to editorial.`,
       styleDNA: {
         dominantColors: ['navy', 'white', 'gray'],
         colorHarmony: 'neutral',
@@ -991,7 +902,7 @@ export async function analyzeOutfit(
         fitScore: 8.5,
         coherenceScore: 8.0
       }
-    };
+    } as unknown as OutfitFeedback;
   }
 
   let feedbackHistory: string[] = [];
@@ -1101,9 +1012,11 @@ export async function analyzeOutfit(
 
       const cleanContent = stripMarkdownFences(content);
 
-      let feedback: OutfitFeedback;
+      // v3.0 responses use whatsRight/couldImprove/takeItFurther/editorialSummary;
+      // typed as any here since the function signature is kept for backwards compat
+      let feedback: any;
       try {
-        feedback = JSON.parse(cleanContent) as OutfitFeedback;
+        feedback = JSON.parse(cleanContent);
       } catch (parseError) {
         console.warn(`[AI] JSON parse failed on attempt ${attempt}, attempting repair...`);
         const repaired = repairTruncatedJSON(cleanContent);
@@ -1124,8 +1037,7 @@ export async function analyzeOutfit(
 
       if (
         typeof feedback.overallScore !== 'number' ||
-        !feedback.summary ||
-        !Array.isArray(feedback.whatsWorking)
+        !Array.isArray(feedback.whatsRight)
       ) {
         throw new Error('Invalid feedback structure');
       }
@@ -1147,9 +1059,11 @@ export async function analyzeOutfit(
           userId: user.id,
           type: 'analysis_complete',
           title: `${emoji} Your outfit scored ${score}/10`,
-          body: feedback.summary.length > 80
-            ? feedback.summary.slice(0, 77) + '...'
-            : feedback.summary,
+          body: (feedback as any).editorialSummary
+            ? ((feedback as any).editorialSummary.length > 80
+              ? (feedback as any).editorialSummary.slice(0, 77) + '...'
+              : (feedback as any).editorialSummary)
+            : 'Your outfit analysis is ready.',
           linkType: 'outfit',
           linkId: outfitCheckId,
         }).catch((err) => console.error('Failed to send analysis notification:', err));
@@ -1226,7 +1140,7 @@ export async function analyzeOutfit(
         console.log(`[AI] tokens — input: ${usage.promptTokenCount}, output: ${usage.candidatesTokenCount}, total: ${usage.totalTokenCount}`);
       }
 
-      return feedback;
+      return feedback as unknown as OutfitFeedback;
     } catch (error) {
       console.error(`AI feedback attempt ${attempt} failed:`, error);
 
@@ -1238,26 +1152,16 @@ export async function analyzeOutfit(
 
   // Fallback response if all retries failed
   console.error('All AI feedback attempts failed, using fallback');
-  const fallbackFeedback: OutfitFeedback = {
+  const fallbackFeedback: any = {
     overallScore: 7,
-    summary: "Looking good! We're having trouble analyzing the details right now, but your outfit has great potential.",
-    whatsWorking: [
-      {
-        point: 'Overall presentation',
-        detail: 'You look put together and ready for the occasion',
-      },
+    whatsRight: [
+      'Your outfit is put together and appropriate for the occasion.',
     ],
-    consider: [
-      {
-        point: 'Try again for detailed feedback',
-        detail: "We're experiencing technical difficulties. Your next check will have full analysis!",
-      },
+    couldImprove: [
+      'Submit again for a full editorial analysis — technical issues prevented complete feedback.',
     ],
-    quickFixes: [],
-    occasionMatch: {
-      score: 7,
-      notes: 'Appropriate for the occasion',
-    },
+    takeItFurther: [],
+    editorialSummary: "We hit a technical wall on this one — the score is provisional. Submit again and you'll get the full editorial read.",
     styleDNA: {
       dominantColors: [],
       colorHarmony: 'neutral',
@@ -1305,7 +1209,7 @@ export async function analyzeOutfit(
     prompt_version: PROMPT_VERSION,
   });
 
-  return fallbackFeedback;
+  return fallbackFeedback as unknown as OutfitFeedback;
 }
 
 // ─── Follow-up conversations (with memory) ────────────────────────────────────
@@ -1327,7 +1231,7 @@ export async function handleFollowUpQuestion(
     throw new Error('Outfit check not found');
   }
 
-  const previousFeedback = outfitCheck.aiFeedback as unknown as OutfitFeedback;
+  const previousFeedback = outfitCheck.aiFeedback as any;
   const previousScore = outfitCheck.aiScore;
 
   // Build outfit context for system prompt
@@ -1338,20 +1242,31 @@ export async function handleFollowUpQuestion(
     outfitCheck.weather ? `Weather: ${outfitCheck.weather}` : null,
   ].filter((l): l is string => l !== null);
 
-  const systemPrompt = `You are a personal stylist continuing a conversation about an outfit you previously analyzed.
+  // Support both v3.0 (whatsRight / couldImprove) and legacy v2.0 (whatsWorking / consider) formats
+  const workingPoints = Array.isArray(previousFeedback?.whatsRight)
+    ? previousFeedback.whatsRight.join(', ')
+    : (previousFeedback?.whatsWorking || []).map((w: any) => w.point || w).join(', ')
+    || 'N/A';
+  const improvementPoints = Array.isArray(previousFeedback?.couldImprove)
+    ? previousFeedback.couldImprove.join(', ')
+    : (previousFeedback?.consider || []).map((c: any) => c.point || c).join(', ')
+    || 'N/A';
+  const editorialSummary = previousFeedback?.editorialSummary || previousFeedback?.summary || 'N/A';
+
+  const systemPrompt = `You are the Or This? fashion editor continuing a conversation about an outfit you previously analyzed. Maintain the same editorial, Vogue-desk voice: decisive, specific, no hedging.
 
 Original outfit context:
 ${outfitContextLines.length > 0 ? outfitContextLines.join('\n') : 'No additional context provided'}
 
 Your previous analysis:
 - Score: ${previousScore || 'N/A'}/10
-- Summary: ${previousFeedback?.summary || 'N/A'}
-- What worked: ${previousFeedback?.whatsWorking?.map(w => w.point).join(', ') || 'N/A'}
-- Suggestions: ${previousFeedback?.consider?.map(c => c.point).join(', ') || 'N/A'}
+- Editorial read: ${editorialSummary}
+- What's working: ${workingPoints}
+- What to improve: ${improvementPoints}
 
-Answer follow-up questions helpfully and specifically. Keep your warm, supportive tone. For product recommendations, suggest general categories/styles rather than specific brands unless asked.
+Answer follow-up questions with editorial precision. Be specific — cite garments, proportions, color relationships, or fabric choices by name. For product recommendations, suggest general categories and styles rather than specific brands unless asked.
 
-Keep responses concise (2-4 sentences) but helpful.`;
+Keep responses concise (2-4 sentences) and decisive.`;
 
   // Build conversation history from prior follow-ups (last 5 Q&A turns)
   const recentFollowUps = outfitCheck.followUps.slice(-5);
