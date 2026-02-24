@@ -14,7 +14,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -57,6 +57,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = Math.round(SCREEN_WIDTH * 1.1); // ~portrait aspect
 
 export default function FeedbackScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   const outfitId = params.outfitId as string;
@@ -324,7 +325,7 @@ export default function FeedbackScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Minimal header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoHome}>
@@ -532,7 +533,7 @@ export default function FeedbackScreen() {
         </ScrollView>
 
         {/* Sharp-corner action bar */}
-        <View style={styles.actionBar}>
+        <View style={[styles.actionBar, { paddingBottom: Spacing.md + Math.round(insets.bottom / 2) }]}>
           <TouchableOpacity
             style={[styles.iconButton, isFavorite && styles.iconButtonActive]}
             onPress={handleToggleFavorite}

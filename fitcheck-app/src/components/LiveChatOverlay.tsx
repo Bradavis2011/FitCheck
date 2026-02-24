@@ -36,7 +36,7 @@ export function LiveChatOverlay({ messages, onSendMessage, onTyping }: Props) {
         ))}
       </ScrollView>
 
-      <View style={[styles.inputContainer, { paddingBottom: insets.bottom + Spacing.lg }]}>
+      <View style={[styles.inputContainer, { paddingBottom: Math.round(insets.bottom / 2) + Spacing.lg }]}>
         <LiveChatInput onSend={onSendMessage} onTyping={onTyping} />
       </View>
     </View>

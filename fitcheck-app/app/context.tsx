@@ -10,7 +10,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../src/stores/auth';
@@ -32,6 +32,7 @@ const SHARE_OPTIONS: { value: ShareWith; label: string; icon: string; descriptio
 ];
 
 export default function ContextScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const {
     capturedImage,
@@ -176,7 +177,7 @@ export default function ContextScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -463,7 +464,7 @@ export default function ContextScreen() {
         </ScrollView>
 
         {/* Submit button */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Spacing.lg + Math.round(insets.bottom / 2) }]}>
           {!isAtLimit && dailyChecksRemaining !== null && dailyChecksRemaining > 0 && (
             <Text style={styles.remainingText}>
               {dailyChecksRemaining} check{dailyChecksRemaining !== 1 ? 's' : ''} remaining today
