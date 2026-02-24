@@ -155,7 +155,7 @@ async function queueGeneratedPost(post: GeneratedPost): Promise<void> {
   );
 }
 
-export async function runSocialMediaManager(): Promise<void> {
+export async function runSocialMediaManager(options?: { force?: boolean }): Promise<void> {
   if (!process.env.GEMINI_API_KEY) {
     console.log('[SocialMediaManager] GEMINI_API_KEY not set — skipping');
     return;
@@ -181,8 +181,18 @@ export async function runSocialMediaManager(): Promise<void> {
       generators = [generateBehindTheScenes, generateFashionNewsTake, generateCommunitySpotlight];
       break;
     default:
-      console.log(`[SocialMediaManager] Not a content day (UTC day ${dayOfWeek}) — skipping`);
-      return;
+      if (!options?.force) {
+        console.log(`[SocialMediaManager] Not a content day (UTC day ${dayOfWeek}) — skipping`);
+        return;
+      }
+      // force=true: run all 7 generators for testing
+      dayLabel = 'Forced';
+      generators = [
+        generateFounderStory, generateFashionNewsTake, generateCommunitySpotlight,
+        generateStyleDataDrop, generateConversationStarter, generateWardrobeInsight,
+        generateBehindTheScenes,
+      ];
+      break;
   }
 
   console.log(`[SocialMediaManager] ${dayLabel} content run — ${generators.length} generators`);

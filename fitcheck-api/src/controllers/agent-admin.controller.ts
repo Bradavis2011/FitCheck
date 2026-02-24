@@ -160,9 +160,11 @@ export async function killAll(req: AuthenticatedRequest, res: Response) {
 }
 
 // POST /api/admin/agents/:name/trigger — manually trigger an agent run now
+// Body: { force?: boolean } — pass force:true to bypass day-of-week guard on social-media-manager
 export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
   requireAdmin(req);
   const { name } = req.params;
+  const force = req.body?.force === true;
 
   const agentMap: Record<string, () => Promise<void>> = {
     // ── Content & Social ──────────────────────────────────────────────────────
@@ -172,7 +174,7 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
     },
     'social-media-manager': async () => {
       const { runSocialMediaManager } = await import('../services/social-media-manager.service.js');
-      await runSocialMediaManager();
+      await runSocialMediaManager({ force });
     },
     'outreach-agent': async () => {
       const { runOutreachAgent } = await import('../services/outreach-agent.service.js');
