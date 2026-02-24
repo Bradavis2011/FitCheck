@@ -531,6 +531,34 @@ details > summary::-webkit-details-marker { display: none; }
   color: var(--muted);
 }
 
+/* ─── Page editorial headers with fashion figures ───────────────────────── */
+.page-ed-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-solid);
+  overflow: hidden;
+  gap: 16px;
+}
+
+.page-ed-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-ed-fig {
+  flex-shrink: 0;
+  height: 88px;
+  width: auto;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .page-ed-fig { display: none; }
+}
+
 /* ─── Sidebar editorial rule ─────────────────────────────────────────────── */
 .sidebar-editorial-rule {
   position: relative;
