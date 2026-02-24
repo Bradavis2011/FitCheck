@@ -533,7 +533,7 @@ export default function FeedbackScreen() {
         </ScrollView>
 
         {/* Sharp-corner action bar */}
-        <View style={[styles.actionBar, { paddingBottom: Spacing.md + Math.round(insets.bottom / 2) }]}>
+        <View style={[styles.actionBar, { paddingBottom: Spacing.md + Math.round(insets.bottom * 0.75) }]}>
           <TouchableOpacity
             style={[styles.iconButton, isFavorite && styles.iconButtonActive]}
             onPress={handleToggleFavorite}

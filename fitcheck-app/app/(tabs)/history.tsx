@@ -192,7 +192,7 @@ export default function HistoryScreen() {
 
       {/* Compare FAB */}
       <TouchableOpacity
-        style={[styles.compareFab, { bottom: Spacing.xl + Math.round(insets.bottom / 2) }]}
+        style={[styles.compareFab, { bottom: Spacing.xl + Math.round(insets.bottom * 0.75) }]}
         onPress={() => router.push('/compare' as any)}
         activeOpacity={0.9}
       >

@@ -11,8 +11,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -177,6 +178,49 @@ function generateSuggestedQuestions(
   return questions;
 }
 
+// ── Animated typing dots ─────────────────────────────────────────────────────
+
+function TypingDots() {
+  const dots = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+
+  useEffect(() => {
+    const makeAnim = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 250, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 250, useNativeDriver: true }),
+          Animated.delay(750 - delay),
+        ])
+      );
+
+    const anims = [makeAnim(dots[0], 0), makeAnim(dots[1], 200), makeAnim(dots[2], 400)];
+    anims.forEach(a => a.start());
+    return () => anims.forEach(a => a.stop());
+  }, []);
+
+  return (
+    <View style={styles.typingIndicator}>
+      {dots.map((dot, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            styles.typingDot,
+            {
+              opacity: dot.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+              transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function FollowUpModal({
   visible,
   onClose,
@@ -188,6 +232,7 @@ export default function FollowUpModal({
   specificConcerns,
   existingFollowUps,
 }: FollowUpModalProps) {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [question, setQuestion] = useState('');
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
@@ -330,11 +375,7 @@ export default function FollowUpModal({
                 <View style={styles.aiIcon}>
                   <Ionicons name="sparkles" size={16} color={Colors.primary} />
                 </View>
-                <View style={styles.typingIndicator}>
-                  <View style={styles.typingDot} />
-                  <View style={[styles.typingDot, styles.typingDotDelay1]} />
-                  <View style={[styles.typingDot, styles.typingDotDelay2]} />
-                </View>
+                <TypingDots />
               </View>
             )}
           </ScrollView>
@@ -368,7 +409,7 @@ export default function FollowUpModal({
           )}
 
           {/* Input area */}
-          <View style={styles.inputSection}>
+          <View style={[styles.inputSection, { paddingBottom: Math.round(insets.bottom * 0.75) }]}>
             {!canAskMore && (
               <TouchableOpacity
                 style={styles.limitReached}
@@ -575,14 +616,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.textMuted,
-    opacity: 0.4,
     marginRight: 6,
-  },
-  typingDotDelay1: {
-    opacity: 0.6,
-  },
-  typingDotDelay2: {
-    opacity: 0.8,
   },
   suggestions: {
     paddingHorizontal: Spacing.md,

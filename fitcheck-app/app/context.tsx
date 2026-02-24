@@ -464,7 +464,7 @@ export default function ContextScreen() {
         </ScrollView>
 
         {/* Submit button */}
-        <View style={[styles.footer, { paddingBottom: Spacing.lg + Math.round(insets.bottom / 2) }]}>
+        <View style={[styles.footer, { paddingBottom: Spacing.lg + Math.round(insets.bottom * 0.75) }]}>
           {!isAtLimit && dailyChecksRemaining !== null && dailyChecksRemaining > 0 && (
             <Text style={styles.remainingText}>
               {dailyChecksRemaining} check{dailyChecksRemaining !== 1 ? 's' : ''} remaining today
