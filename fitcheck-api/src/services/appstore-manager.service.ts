@@ -374,3 +374,6 @@ export function registerExecutors(): void {
     return { posted: false, note: p.store === 'apple' ? 'manual_required_via_app_store_connect' : 'manual_required_via_play_console' };
   });
 }
+
+// Auto-register at module load time
+registerExecutors();

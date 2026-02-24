@@ -335,3 +335,7 @@ export function registerExecutors(): void {
     return { posted: false, note: 'manual_posting_required' };
   });
 }
+
+// Auto-register at module load time — ensures executor is available even if
+// initScheduler() hasn't been called yet (e.g. ENABLE_CRON=false on Railway)
+registerExecutors();

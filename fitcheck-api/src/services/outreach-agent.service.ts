@@ -201,6 +201,7 @@ export async function runOutreachAgent(): Promise<void> {
 
 /** Register executors at startup so processApprovedActions works after a server restart. */
 export function registerExecutors(): void {
+  // Also called at module load time below
   registerExecutor('outreach-agent', 'outreach_draft', async (payload) => {
     const p = payload as { type: string; label: string; subject: string; body: string };
     const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -223,3 +224,6 @@ export function registerExecutors(): void {
     return { type: p.type, sent: true, preview: p.body.slice(0, 100) };
   });
 }
+
+// Auto-register at module load time
+registerExecutors();
