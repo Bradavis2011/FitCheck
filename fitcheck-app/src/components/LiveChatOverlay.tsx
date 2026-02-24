@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spacing } from '../constants/theme';
 import { LiveChatMessage } from './LiveChatMessage';
 import { LiveChatInput } from './LiveChatInput';
@@ -15,6 +16,7 @@ const { height } = Dimensions.get('window');
 
 export function LiveChatOverlay({ messages, onSendMessage, onTyping }: Props) {
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -34,7 +36,7 @@ export function LiveChatOverlay({ messages, onSendMessage, onTyping }: Props) {
         ))}
       </ScrollView>
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: insets.bottom + Spacing.lg }]}>
         <LiveChatInput onSend={onSendMessage} onTyping={onTyping} />
       </View>
     </View>
@@ -62,7 +64,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.lg,
     pointerEvents: 'box-none',
   },
 });

@@ -15,7 +15,7 @@ export default function TabsLayout() {
           borderTopColor: 'rgba(0,0,0,0.12)',
           borderTopWidth: 1,
           height: 85 + insets.bottom,
-          paddingBottom: 20 + insets.bottom,
+          paddingBottom: insets.bottom + 4,
           paddingTop: 8,
           // sharp top border — no rounding per editorial spec
           borderTopLeftRadius: 0,

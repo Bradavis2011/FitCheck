@@ -324,7 +324,7 @@ export default function FeedbackScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* Minimal header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoHome}>

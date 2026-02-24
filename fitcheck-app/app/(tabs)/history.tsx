@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../../src/constants/theme';
@@ -14,6 +14,7 @@ const FILTERS = ['All', 'Favorites', 'Work', 'Casual', 'Date Night', 'Event', 'I
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('All');
 
   const filters: any = {};
@@ -191,7 +192,7 @@ export default function HistoryScreen() {
 
       {/* Compare FAB */}
       <TouchableOpacity
-        style={styles.compareFab}
+        style={[styles.compareFab, { bottom: Spacing.xl + insets.bottom }]}
         onPress={() => router.push('/compare' as any)}
         activeOpacity={0.9}
       >
