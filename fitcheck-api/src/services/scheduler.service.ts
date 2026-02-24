@@ -595,10 +595,12 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Community manager weekly failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── Social Media Manager: Draft posts — Monday + Thursday 8:30am UTC ────────
-  // Note: replaces content-calendar (Agent 10) for post drafting; Agent 10 still runs for email calendar
-  // 2x/week × 7 posts = 14 drafts/week — enough to post ~2/day with backlog
-  cron.schedule('30 8 * * 1,4', async () => {
+  // ── Social Media Manager: Content engine — Mon/Wed/Fri 8:30am UTC ────────────
+  // 3x/week × 3 generators × 1-2 posts each ≈ 9 posts/week (~1-2/day with approval backlog)
+  // Mon: Founder Story + Fashion News + Community Spotlight
+  // Wed: Style Data Drop + Conversation Starter + Wardrobe Insight
+  // Fri: Behind the Scenes + Fashion News + Community Spotlight
+  cron.schedule('30 8 * * 1,3,5', async () => {
     console.log('📱 [Scheduler] Running social media manager...');
     try { await runSocialMediaManager(); }
     catch (err) { console.error('[Scheduler] Social media manager failed:', err); }

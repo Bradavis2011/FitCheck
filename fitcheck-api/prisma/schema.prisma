@@ -702,10 +702,13 @@ model SocialPost {
   postedAt     DateTime? @map("posted_at")
   externalId   String?   @map("external_id")
   engagement   Json?
+  contentType  String?   @map("content_type")  // "founder_story" | "fashion_news" | "community_spotlight" | "style_data_drop" | "wardrobe_insight" | "conversation_starter" | "behind_the_scenes"
+  sourceData   Json?     @map("source_data")   // Raw data that generated the post (commits, headlines, stats)
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@map("social_posts")
   @@index([status, scheduledFor])
+  @@index([contentType, createdAt])
 }
 
 model AppReview {
