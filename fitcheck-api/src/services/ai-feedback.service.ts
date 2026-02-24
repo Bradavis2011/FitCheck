@@ -69,6 +69,12 @@ FIT PRINCIPLES:
 • Tailoring: Even budget clothes look expensive when properly fitted
 • Too tight: Pulling, straining buttons, restricting movement
 • Too loose: Excess fabric pooling, saggy shoulders, unclear silhouette
+• IMPORTANT: Oversized, relaxed, and deliberately loose silhouettes are valid style choices —
+  not fit issues. A baggy trouser with a cropped top, an oversized blazer with slim pants,
+  or a relaxed linen set are intentional proportional plays. Score these on whether the
+  proportional CONTRAST is purposeful, not on whether everything is tailored. Only flag fit
+  as an issue when something looks unintentional — a shirt that's too big in the shoulders
+  because it's the wrong size, not because oversized is the point.
 
 BODY BALANCE (These are proportion guidelines, not body judgments):
 • Balanced proportions: Most styles work - use fit as the main focus
@@ -235,16 +241,18 @@ IMPORTANT RULES:
 - No hedging language in any field. State what is, not what might be.
 - Each bullet is one complete, specific thought — not a label, not a category
 
-SCORING GUIDE (use the full 1-10 range naturally):
-- 1-3: Major issues with fit, color, or appropriateness that need immediate fixing
-- 4-5: Several noticeable problems, but salvageable with adjustments
-- 6: Works but has clear areas for improvement — not a failure, a starting point
-- 7: Solid outfit with minor tweaks needed
-- 8: Strong outfit, well-executed with maybe one small refinement
-- 9: Excellent execution across all dimensions
-- 10: Exemplary — nails every principle
+SCORING GUIDE (1-10):
+- 1-4: Significant issues needing attention — rare, reserved for genuine mismatches
+- 5-6: Foundation is there but needs refinement
+- 7: Solid — shows intention and taste. This is the floor for any put-together outfit
+- 8: Strong — well-executed with clear personal style
+- 9: Excellent — editorial-ready, impressive across all dimensions
+- 10: Perfect — stop-you-on-the-street exceptional
 
-IMPORTANT: Use the FULL scoring range based on actual quality. A thoughtful casual outfit scores 6-7. Only careless or incoherent outfits score below 5. Don't default to 7-8. Exceptional outfits deserve 9-10. Be honest and differentiate — users need varied scores to understand progress.`;
+IMPORTANT: Most users putting in effort deserve a 7+. The goal is to affirm
+good instincts while offering editorial-level suggestions for improvement.
+Default to generosity — a 7 with sharp advice is more useful than a 5 that
+discourages. Save sub-7 scores for outfits that genuinely need rethinking.`;
 
 // Standard tier prompt suffix — keeps responses within 4096 tokens
 const STANDARD_PROMPT_SUFFIX = `RESPONSE LENGTH — Standard tier:

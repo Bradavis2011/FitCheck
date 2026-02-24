@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 // react-native-view-shot requires native binary — guard so Expo Go loads safely
@@ -80,6 +80,7 @@ export default function FeedbackScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const wasAnalyzingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
   const interstitialRef = useRef<any>(null);
   const viewShotRef = useRef<any>(null);
 
@@ -105,50 +106,59 @@ export default function FeedbackScreen() {
     return () => { interstitialRef.current = null; };
   }, []);
 
-  useEffect(() => {
-    if (!outfitId) {
-      router.replace('/(tabs)' as any);
-      return;
-    }
-
-    const fetchOutfit = async () => {
-      try {
-        const data = await outfitService.getOutfit(outfitId);
-        setOutfit(data);
-        setIsFavorite(data.isFavorite);
-        setIsPublic(data.isPublic);
-
-        if (data.aiProcessedAt) {
-          if (wasAnalyzingRef.current && limits?.hasAds && recordOutfitCheck()) {
-            setTimeout(() => {
-              try {
-                if (interstitialRef.current?.loaded) interstitialRef.current.show();
-              } catch { /* ignore */ }
-            }, 1500);
-          }
-          wasAnalyzingRef.current = false;
-          if (data.aiScore != null) {
-            track('outfit_check_completed', { score: data.aiScore, occasion: data.occasions?.[0] });
-          }
-          setIsLoading(false);
-          if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
-          setTimeout(() => {
-            setShowHelpful(true);
-            Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-          }, 3000);
-        } else {
-          wasAnalyzingRef.current = true;
-        }
-      } catch (error) {
-        console.error('Failed to fetch outfit:', error);
-        setIsLoading(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!outfitId) {
+        router.replace('/(tabs)' as any);
+        return;
       }
-    };
 
-    fetchOutfit();
-    pollInterval.current = setInterval(fetchOutfit, 2000);
-    return () => { if (pollInterval.current) clearInterval(pollInterval.current); };
-  }, [outfitId]);
+      // Don't restart polling if already loaded (screen refocused after back navigation)
+      if (hasLoadedRef.current) return;
+
+      const fetchOutfit = async () => {
+        try {
+          const data = await outfitService.getOutfit(outfitId);
+          setOutfit(data);
+          setIsFavorite(data.isFavorite);
+          setIsPublic(data.isPublic);
+
+          if (data.aiProcessedAt) {
+            hasLoadedRef.current = true;
+            if (wasAnalyzingRef.current && limits?.hasAds && recordOutfitCheck()) {
+              setTimeout(() => {
+                try {
+                  if (interstitialRef.current?.loaded) interstitialRef.current.show();
+                } catch { /* ignore */ }
+              }, 1500);
+            }
+            wasAnalyzingRef.current = false;
+            if (data.aiScore != null) {
+              track('outfit_check_completed', { score: data.aiScore, occasion: data.occasions?.[0] });
+            }
+            setIsLoading(false);
+            if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
+            setTimeout(() => {
+              setShowHelpful(true);
+              Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+            }, 3000);
+          } else {
+            wasAnalyzingRef.current = true;
+          }
+        } catch (error) {
+          console.error('Failed to fetch outfit:', error);
+          setIsLoading(false);
+        }
+      };
+
+      fetchOutfit();
+      pollInterval.current = setInterval(fetchOutfit, 2000);
+
+      return () => {
+        if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
+      };
+    }, [outfitId])
+  );
 
   const handleToggleFavorite = async () => {
     if (!outfit) return;
@@ -257,6 +267,7 @@ export default function FeedbackScreen() {
       setIsReanalyzing(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await outfitService.reanalyzeOutfit(outfit.id);
+      hasLoadedRef.current = false;
       setOutfit((prev) => prev ? { ...prev, aiFeedback: undefined, aiScore: undefined, aiProcessedAt: undefined } : prev);
       setIsLoading(true);
       pollInterval.current = setInterval(async () => {
@@ -264,9 +275,10 @@ export default function FeedbackScreen() {
           const data = await outfitService.getOutfit(outfit.id);
           setOutfit(data);
           if (data.aiProcessedAt) {
+            hasLoadedRef.current = true;
             setIsLoading(false);
             setIsReanalyzing(false);
-            if (pollInterval.current) clearInterval(pollInterval.current);
+            if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
           }
         } catch (e) {
           console.error('Poll error during reanalyze:', e);
@@ -281,6 +293,15 @@ export default function FeedbackScreen() {
   if (isLoading || !outfit?.aiFeedback) {
     return (
       <View style={styles.loadingContainer}>
+        <TouchableOpacity
+          style={styles.loadingBackButton}
+          onPress={() => {
+            if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
+            router.back();
+          }}
+        >
+          <Ionicons name="arrow-back" size={20} color={Colors.text} />
+        </TouchableOpacity>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Analyzing your outfit...</Text>
         <Text style={styles.loadingSubtext}>This usually takes 10–15 seconds</Text>
@@ -578,6 +599,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.background,
     gap: Spacing.md,
+  },
+  loadingBackButton: {
+    position: 'absolute',
+    top: 56,
+    left: Spacing.md,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingText: {
     fontFamily: Fonts.sansSemiBold,

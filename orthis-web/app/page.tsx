@@ -11,7 +11,7 @@ import posthog from "posthog-js";
 import illustrationDuo from "../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-unsplash.jpg";
 import illustrationBlue from "../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg";
 import illustrationTan from "../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg";
-import illustrationPurple from "../assets/images/artby-hensi-ELsHxUox7OU-unsplash.jpg";
+import illustrationPurple from "../assets/images/fabian-kunzel-zeller-Ir7tmdZ6dWU-unsplash.jpg";
 
 /* ─────────────────────────────────────────────
    HOOKS
@@ -248,13 +248,25 @@ function WaitlistPage() {
             >
               <Image
                 src={illustrationPurple}
-                alt="Fashion illustration — woman with sunglasses"
+                alt="Fashion illustration — woman in editorial style"
                 fill
                 className="object-cover object-top"
                 sizes="(max-width: 640px) 100vw, 50vw"
               />
             </div>
           </div>
+          <p className="text-xs text-center mt-4" style={{ color: "rgba(26,26,26,0.3)" }}>
+            Photos by{" "}
+            <a
+              href="https://www.instagram.com/kuenzelzeller"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: "rgba(26,26,26,0.4)" }}
+            >
+              Fabian Künzel-Zeller
+            </a>
+          </p>
         </div>
       </section>
 
@@ -616,7 +628,7 @@ function WaitlistForm({ refCode, variant = "light" }: { refCode: string; variant
 
 function Logo() {
   return (
-    <span className="text-xl font-medium select-none">
+    <span className="pull-quote text-xl select-none">
       <span className="text-clarity">Or </span>
       <span className="font-display italic text-coral">This?</span>
     </span>

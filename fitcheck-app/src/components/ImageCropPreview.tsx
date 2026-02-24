@@ -74,18 +74,15 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
         setNaturalWidth(w);
         setNaturalHeight(h);
 
-        // Compute min scale so that the image always fills the crop frame.
+        // Start at the scale where the full image fits on screen (no clipping).
         // At scale=1 the image is rendered at SCREEN_WIDTH wide.
-        const minScaleX = CROP_FRAME_W / SCREEN_WIDTH; // always 1
+        // fitScaleY = scale needed so image height fits within SCREEN_HEIGHT.
         const imageHeightAtScale1 = (h / w) * SCREEN_WIDTH;
-        const minScaleY = CROP_FRAME_H / imageHeightAtScale1;
-        const minScale = Math.max(minScaleX, minScaleY);
-
-        // If the image is naturally narrower than the frame, start zoomed in.
-        if (minScale > 1) {
-          scale.value = minScale;
-          savedScale.value = minScale;
-        }
+        const fitScaleY = SCREEN_HEIGHT / imageHeightAtScale1;
+        // Use fit scale only if image would overflow the screen, otherwise start at 1
+        const startScale = Math.min(1, fitScaleY);
+        scale.value = startScale;
+        savedScale.value = startScale;
       },
       () => {
         setSizeError(true);
@@ -95,9 +92,9 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
 
   // ── Clamp helpers ────────────────────────────────────────────────────────
 
-  // Given a scale and translation, clamp translation so the image never shows
-  // gaps around the crop frame edges.
-  // This runs on the UI thread inside worklets — no closures over React state.
+  // Loose clamp: image can float freely but can't fly completely off screen.
+  // Allows gaps around the frame (black shows through) so user can zoom out
+  // to fit their full body. Prevents accidental off-screen panning.
   const clampTranslation = (
     tx: number,
     ty: number,
@@ -106,43 +103,18 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
     natH: number
   ): [number, number] => {
     'worklet';
-    // Rendered image size at this scale
     const renderedW = SCREEN_WIDTH * s;
     const renderedH = (natH / natW) * SCREEN_WIDTH * s;
 
-    // Image centre relative to screen centre (accounting for translation)
-    // Left edge of image in screen coords:
-    const imgLeft = (SCREEN_WIDTH - renderedW) / 2 + tx;
-    const imgTop = (SCREEN_HEIGHT - renderedH) / 2 + ty;
-    const imgRight = imgLeft + renderedW;
-    const imgBottom = imgTop + renderedH;
+    // Allow the image to move at most 60% of its rendered size in each direction
+    // from centre — ensures it stays meaningfully on screen while allowing gaps.
+    const maxTx = renderedW * 0.6 + SCREEN_WIDTH * 0.3;
+    const maxTy = renderedH * 0.6 + SCREEN_HEIGHT * 0.3;
 
-    // Crop frame bounds
-    const frameLeft = 0;
-    const frameRight = CROP_FRAME_W;
-    const frameTop = FRAME_TOP;
-    const frameBottom = FRAME_BOTTOM;
-
-    let clampedTx = tx;
-    let clampedTy = ty;
-
-    // Don't let the image right edge retreat past the frame's right edge
-    if (imgRight < frameRight) {
-      clampedTx += frameRight - imgRight;
-    }
-    // Don't let the image left edge advance past the frame's left edge
-    if (imgLeft > frameLeft) {
-      clampedTx -= imgLeft - frameLeft;
-    }
-    // Same for vertical
-    if (imgBottom < frameBottom) {
-      clampedTy += frameBottom - imgBottom;
-    }
-    if (imgTop > frameTop) {
-      clampedTy -= imgTop - frameTop;
-    }
-
-    return [clampedTx, clampedTy];
+    return [
+      Math.min(Math.max(tx, -maxTx), maxTx),
+      Math.min(Math.max(ty, -maxTy), maxTy),
+    ];
   };
 
   // ── Gestures ─────────────────────────────────────────────────────────────
@@ -150,24 +122,17 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
       'worklet';
-      // We need naturalWidth/naturalHeight for clamp but they come from React
-      // state (JS thread). We can't read them safely in a worklet, so we use
-      // a conservative clamp based on what we know structurally (the image
-      // always starts at SCREEN_WIDTH) and accept that the hard floor is 1.
-      // The JS-side init already set scale.value = minScale when > 1.
+      // Allow zoom from 0.15 (very zoomed out) to 4x (zoomed in).
+      // No minimum fill constraint — black shows behind if image is smaller than frame.
       const raw = savedScale.value * e.scale;
-      const minS = savedScale.value < 1.01 ? savedScale.value : 1;
-      const newScale = Math.min(Math.max(raw, minS), 4);
+      const newScale = Math.min(Math.max(raw, 0.15), 4);
       scale.value = newScale;
 
-      // Re-clamp translation for new scale (use last saved natural dims via
-      // shared values — we pass 0/0 sentinel if not known yet, which is
-      // harmless because scale.value is still 1 then).
       const [cx, cy] = clampTranslation(
         savedTranslateX.value,
         savedTranslateY.value,
         newScale,
-        SCREEN_WIDTH,   // approximation — actual natW used in onAccept
+        SCREEN_WIDTH,
         SCREEN_WIDTH * 1.33
       );
       translateX.value = cx;
@@ -332,7 +297,7 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
         pointerEvents="none"
         style={[styles.guideCaptionWrapper, { top: FRAME_BOTTOM + Spacing.sm }]}
       >
-        <Text style={styles.guideCaption}>Pinch to zoom · Drag to reframe</Text>
+        <Text style={styles.guideCaption}>Pinch to zoom in or out · Drag to reframe</Text>
       </View>
 
       {/* ── Bottom action bar ── */}

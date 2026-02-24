@@ -37,8 +37,11 @@ export default function CameraScreen() {
   const isAtLimit = dailyChecksRemaining !== null && dailyChecksRemaining <= 0;
 
   useEffect(() => {
-    // Check permission on mount
-    if (permission && !permission.granted && permission.canAskAgain === false) {
+    if (!permission) return;
+    if (permission.granted) {
+      // Reset to camera if user just granted permission from Settings
+      setMode((prev) => (prev === 'permission-denied' ? 'camera' : prev));
+    } else if (!permission.canAskAgain) {
       setMode('permission-denied');
     }
   }, [permission]);
@@ -159,6 +162,7 @@ export default function CameraScreen() {
   }
 
   if (!permission.granted) {
+    const canAsk = permission.canAskAgain !== false;
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.centerContent}>
@@ -166,10 +170,17 @@ export default function CameraScreen() {
             <Ionicons name="camera-outline" size={64} color={Colors.textMuted} />
             <Text style={styles.permissionTitle}>Camera Permission</Text>
             <Text style={styles.permissionText}>
-              We need your permission to use the camera.
+              {canAsk
+                ? 'We need your permission to use the camera.'
+                : 'Camera access is disabled. Enable it in Settings to take outfit photos.'}
             </Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={requestPermission}>
-              <Text style={styles.settingsButtonText}>Grant Permission</Text>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={canAsk ? requestPermission : handleOpenSettings}
+            >
+              <Text style={styles.settingsButtonText}>
+                {canAsk ? 'Grant Permission' : 'Open Settings'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.galleryFallback} onPress={handleGalleryPick}>
               <Text style={styles.galleryFallbackText}>Or choose from gallery</Text>

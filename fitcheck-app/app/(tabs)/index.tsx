@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 const EDITORIAL_IMAGES = [
   require('../../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg'),
   require('../../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg'),
-  require('../../assets/images/artby-hensi-ELsHxUox7OU-unsplash.jpg'),
+  require('../../assets/images/fabian-kunzel-zeller-Ir7tmdZ6dWU-unsplash.jpg'),
   require('../../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-unsplash.jpg'),
 ];
 import { useAuthStore } from '../../src/stores/authStore';
@@ -123,6 +123,9 @@ export default function HomeScreen() {
               <Image key={i} source={src} style={styles.lookbookImage} resizeMode="cover" />
             ))}
           </ScrollView>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/kuenzelzeller')}>
+            <Text style={styles.photoCredit}>Photos by Fabian Künzel-Zeller · @kuenzelzeller</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Editorial rule divider */}
@@ -292,6 +295,14 @@ const styles = StyleSheet.create({
     width: 140,
     height: 200,
     borderRadius: 4,
+  },
+  photoCredit: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: Spacing.lg,
   },
   // Section divider
   sectionDivider: {

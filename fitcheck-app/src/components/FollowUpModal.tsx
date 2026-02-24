@@ -11,15 +11,13 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Markdown from 'react-native-markdown-display';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 import { useSubmitFollowUp } from '../hooks/useApi';
 import { OutfitFeedback } from '../services/api.service';
 import { normalizeFeedback } from '../utils/feedbackAdapter';
@@ -48,20 +46,6 @@ type QuestionCategory =
   | 'shoes' | 'accessories' | 'color' | 'fit' | 'occasion'
   | 'layering' | 'casual' | 'formal' | 'styling' | 'general';
 
-// Unsplash images for each category (400x300, fit=crop)
-const CATEGORY_IMAGES: Record<QuestionCategory, string> = {
-  shoes: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=300&fit=crop',
-  accessories: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=400&h=300&fit=crop',
-  color: 'https://images.unsplash.com/photo-1558769132-cb1aea17c9f8?w=400&h=300&fit=crop',
-  fit: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=300&fit=crop',
-  occasion: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=300&fit=crop',
-  layering: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=300&fit=crop',
-  casual: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop',
-  formal: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400&h=300&fit=crop',
-  styling: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop',
-  general: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop',
-};
-
 // Ionicons for each category
 const CATEGORY_ICONS: Record<QuestionCategory, keyof typeof Ionicons.glyphMap> = {
   shoes: 'footsteps',
@@ -74,20 +58,6 @@ const CATEGORY_ICONS: Record<QuestionCategory, keyof typeof Ionicons.glyphMap> =
   formal: 'sparkles',
   styling: 'shirt',
   general: 'help-circle',
-};
-
-// Semi-transparent gradients (0.65 opacity to see image through)
-const CATEGORY_GRADIENTS: Record<QuestionCategory, readonly [string, string]> = {
-  shoes: ['rgba(139, 92, 246, 0.65)', 'rgba(99, 102, 241, 0.65)'] as const,
-  accessories: ['rgba(245, 158, 11, 0.65)', 'rgba(249, 115, 22, 0.65)'] as const,
-  color: ['rgba(236, 72, 153, 0.65)', 'rgba(244, 63, 94, 0.65)'] as const,
-  fit: ['rgba(59, 130, 246, 0.65)', 'rgba(139, 92, 246, 0.65)'] as const,
-  occasion: ['rgba(168, 85, 247, 0.65)', 'rgba(192, 132, 252, 0.65)'] as const,
-  layering: ['rgba(20, 184, 166, 0.65)', 'rgba(6, 182, 212, 0.65)'] as const,
-  casual: ['rgba(251, 146, 60, 0.65)', 'rgba(251, 191, 36, 0.65)'] as const,
-  formal: ['rgba(79, 70, 229, 0.65)', 'rgba(99, 102, 241, 0.65)'] as const,
-  styling: ['rgba(236, 72, 153, 0.65)', 'rgba(168, 85, 247, 0.65)'] as const,
-  general: ['rgba(100, 116, 139, 0.65)', 'rgba(148, 163, 184, 0.65)'] as const,
 };
 
 // Fallback questions when no feedback data is available
@@ -306,10 +276,7 @@ export default function FollowUpModal({
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Ionicons name="chatbubbles" size={24} color={Colors.primary} />
-              <Text style={styles.headerTitle}>Follow-up Questions</Text>
-            </View>
+            <Text style={styles.headerTitle}>Follow Up</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text} />
             </TouchableOpacity>
@@ -317,7 +284,7 @@ export default function FollowUpModal({
 
           {/* Context */}
           <View style={styles.contextSection}>
-            <Text style={styles.contextLabel}>Original feedback:</Text>
+            <Text style={styles.contextLabel}>Original feedback</Text>
             <Text style={styles.contextText} numberOfLines={2}>
               {feedbackSummary}
             </Text>
@@ -332,10 +299,9 @@ export default function FollowUpModal({
           >
             {followUps.length === 0 && !isLoading && (
               <View style={styles.emptyState}>
-                <Ionicons name="help-circle-outline" size={48} color={Colors.primary} />
-                <Text style={styles.emptyTitle}>Ask me anything!</Text>
+                <Text style={styles.emptyTitle}>Ask your stylist anything</Text>
                 <Text style={styles.emptySubtitle}>
-                  I can help with styling tips, accessory suggestions, or outfit adjustments.
+                  Styling tips, accessory suggestions, outfit adjustments — no question is too small.
                 </Text>
               </View>
             )}
@@ -381,36 +347,22 @@ export default function FollowUpModal({
               contentContainerStyle={styles.suggestions}
             >
               {suggestedQuestions.map((suggested, index) => (
-                <ImageBackground
+                <TouchableOpacity
                   key={index}
-                  source={{ uri: CATEGORY_IMAGES[suggested.category] }}
-                  style={styles.suggestionChipContainer}
-                  imageStyle={styles.suggestionChipImage}
+                  style={styles.suggestionChip}
+                  onPress={() => handleSuggestedQuestion(suggested.text)}
+                  activeOpacity={0.8}
                 >
-                  <TouchableOpacity
-                    style={styles.suggestionChip}
-                    onPress={() => handleSuggestedQuestion(suggested.text)}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={CATEGORY_GRADIENTS[suggested.category]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.suggestionChipOverlay}
-                    >
-                      <View style={styles.suggestionIcon}>
-                        <Ionicons
-                          name={CATEGORY_ICONS[suggested.category]}
-                          size={20}
-                          color={Colors.white}
-                        />
-                      </View>
-                      <Text style={styles.suggestionText}>
-                        {suggested.text}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </ImageBackground>
+                  <Ionicons
+                    name={CATEGORY_ICONS[suggested.category]}
+                    size={14}
+                    color={Colors.primary}
+                    style={styles.suggestionIcon}
+                  />
+                  <Text style={styles.suggestionText}>
+                    {suggested.text}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </ScrollView>
           )}
@@ -451,6 +403,7 @@ export default function FollowUpModal({
                     multiline
                     maxLength={200}
                     editable={!isLoading}
+                    fontFamily={Fonts.sans}
                   />
                   <TouchableOpacity
                     style={[
@@ -463,7 +416,7 @@ export default function FollowUpModal({
                     {isLoading ? (
                       <ActivityIndicator size="small" color={Colors.white} />
                     ) : (
-                      <Ionicons name="send" size={20} color={Colors.white} />
+                      <Ionicons name="arrow-up" size={18} color={Colors.white} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -494,15 +447,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   headerTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
-    marginLeft: Spacing.sm,
   },
   closeButton: {
     width: 40,
@@ -517,13 +465,15 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   contextLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    color: Colors.textMuted,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 6,
   },
   contextText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.text,
     lineHeight: 20,
@@ -544,14 +494,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   emptyTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: FontSize.md,
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
@@ -563,11 +514,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     maxWidth: '80%',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
   userText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.white,
     lineHeight: 20,
@@ -579,8 +531,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   aiIcon: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
@@ -591,11 +543,14 @@ const styles = StyleSheet.create({
   aiContent: {
     flex: 1,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   aiText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.text,
     lineHeight: 20,
@@ -608,7 +563,9 @@ const styles = StyleSheet.create({
   typingIndicator: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     alignItems: 'center',
@@ -629,51 +586,30 @@ const styles = StyleSheet.create({
   },
   suggestions: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  suggestionChipContainer: {
-    marginRight: Spacing.md,
-    borderRadius: 28,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  suggestionChipImage: {
-    borderRadius: 28,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
   },
   suggestionChip: {
-    width: 280,
-  },
-  suggestionChipOverlay: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 12,
-    paddingRight: 16,
-    paddingVertical: 12,
-    minHeight: 64,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    backgroundColor: Colors.surface,
+    maxWidth: 260,
   },
   suggestionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-    flexShrink: 0,
+    marginRight: 8,
   },
   suggestionText: {
-    fontSize: FontSize.md,
-    color: Colors.white,
-    fontWeight: '700',
-    flex: 1,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    color: Colors.text,
     flexShrink: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   inputSection: {
     borderTopWidth: 1,
@@ -697,6 +633,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   remainingText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     textAlign: 'center',
@@ -709,7 +646,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     fontSize: FontSize.md,
@@ -720,7 +659,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 44,
     height: 44,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sharp,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
