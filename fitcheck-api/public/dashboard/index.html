@@ -23,28 +23,23 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="/dashboard/styles.css">
+  <link rel="stylesheet" href="/dashboard/styles.css?v=3">
 </head>
 <body class="bg-cream font-sans antialiased">
 
-  <!-- ─── Login Page ──────────────────────────────────────────────── -->
+  <!-- ─── Login Page ──────────────────────────────────────────────────── -->
   <div id="page-login" class="login-split">
 
     <!-- Editorial illustration panel (desktop only) -->
     <div class="login-editorial-panel">
-      <!-- Brand mark -->
       <div class="login-editorial-brand">
         <div class="logo-icon">?</div>
         <span class="login-editorial-brand-name">Or This?</span>
       </div>
-
-      <!-- Editorial photograph -->
       <div class="login-figure-wrap">
         <img src="/dashboard/images/editorial-orange.jpg" alt="" class="login-editorial-img">
         <div class="login-editorial-img-overlay"></div>
       </div>
-
-      <!-- Quote -->
       <div class="login-editorial-footer">
         <p class="login-editorial-quote">Style is a way to say who you are without having to speak.</p>
         <p class="login-editorial-sub">Confidence in every choice.</p>
@@ -92,154 +87,103 @@
 
   </div>
 
-  <!-- ─── App Shell ───────────────────────────────────────────────── -->
-  <div id="app-shell" class="hidden h-screen flex overflow-hidden">
+  <!-- ─── App Shell (no sidebar) ─────────────────────────────────────── -->
+  <div id="app-shell" class="hidden">
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col shadow-sm z-10">
-      <!-- Logo -->
-      <div class="px-5 py-5 border-b border-gray-100">
-        <div class="flex items-center gap-3">
-          <div class="logo-icon">?</div>
-          <div>
-            <div class="font-semibold text-gray-900 text-sm leading-tight">Or This?</div>
-            <div class="text-xs text-gray-400">Agent Console</div>
+    <!-- Floating logo mark — top-left, navigates to overview -->
+    <a href="#overview" id="logo-home" class="logo-mark-fixed">?</a>
+
+    <!-- Dot page indicators — right edge -->
+    <nav id="dot-nav" class="dot-nav">
+      <button class="dot" data-dot="overview">
+        <span class="dot-tooltip">Overview</span>
+      </button>
+      <button class="dot" data-dot="social">
+        <span class="dot-tooltip">Social Posts</span>
+      </button>
+      <button class="dot" data-dot="queue">
+        <span class="dot-tooltip">Approval Queue</span>
+      </button>
+      <button class="dot" data-dot="log">
+        <span class="dot-tooltip">Action Log</span>
+      </button>
+    </nav>
+
+    <!-- Scrollable page container -->
+    <div id="page-container" class="page-container">
+
+      <!-- ── Overview ─────────────────────────────────────────────── -->
+      <section data-page="overview" class="magazine-page hidden">
+        <!-- Populated by loadOverview() -->
+      </section>
+
+      <!-- ── Social Posts ──────────────────────────────────────────── -->
+      <section data-page="social" class="magazine-page hidden">
+        <!-- Editorial split header -->
+        <div class="split-hero">
+          <div class="split-hero-img">
+            <img src="/dashboard/images/editorial-teal.jpg" alt="">
           </div>
-        </div>
-      </div>
-
-      <!-- Nav -->
-      <nav class="flex-1 p-3 overflow-y-auto space-y-0.5">
-        <a href="#overview" data-nav="overview" class="nav-item">
-          <span>📊</span><span>Overview</span>
-        </a>
-        <a href="#social" data-nav="social" class="nav-item">
-          <span>📱</span><span>Social Posts</span>
-          <span id="social-badge" class="ml-auto hidden text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"></span>
-        </a>
-        <a href="#queue" data-nav="queue" class="nav-item">
-          <span>⏳</span><span>Approval Queue</span>
-          <span id="queue-badge" class="ml-auto hidden text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"></span>
-        </a>
-        <a href="#log" data-nav="log" class="nav-item">
-          <span>📋</span><span>Action Log</span>
-        </a>
-
-        <div class="px-3 pt-5 pb-1">
-          <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Agents</p>
-        </div>
-        <div id="agent-nav-links"></div>
-      </nav>
-
-      <!-- Bottom -->
-      <div class="p-3 border-t border-gray-100 space-y-1">
-        <!-- Editorial fashion accent -->
-        <div class="sidebar-editorial-rule" aria-hidden="true"><span class="sidebar-editorial-mark"></span></div>
-        <button id="kill-all-btn" class="btn-danger w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium">
-          🛑 Kill All Agents
-        </button>
-        <button id="logout-btn" class="btn-ghost w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm">
-          ↩ Sign Out
-        </button>
-      </div>
-      <div class="sidebar-editorial-accent" aria-hidden="true">
-        <img src="/dashboard/images/editorial-sketches.jpg" alt="" class="sidebar-accent-img">
-      </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main id="main-content" class="flex-1 overflow-y-auto">
-      <div class="max-w-6xl mx-auto p-8">
-
-        <!-- ── Overview ─────────────────────────────────────────── -->
-        <div data-page="overview" class="hidden">
-          <div class="page-hero" style="background-image:url('/dashboard/images/editorial-duo.jpg')">
-            <div class="page-hero-overlay"></div>
-            <div class="page-hero-content">
-              <p class="section-label" style="color:rgba(255,255,255,0.5);margin-bottom:12px;">Or This? Operator Console</p>
-              <h1 class="page-hero-title">Agent Dashboard</h1>
+          <div class="split-hero-content">
+            <span class="editorial-rule" style="margin:0 0 24px 0;display:block;"></span>
+            <p class="section-label" style="margin-bottom:12px;">Content Engine</p>
+            <h1 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:400;font-size:3rem;color:var(--black);letter-spacing:-0.02em;line-height:1.15;margin-bottom:16px;">The Content Studio</h1>
+            <p style="color:var(--muted);font-size:0.9375rem;margin-bottom:28px;max-width:360px;line-height:1.6;">Review, approve, and publish content to social channels</p>
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+              <button onclick="handleForceTrigger(this)" class="btn-coral" style="padding:14px 28px;">▶ Generate Posts Now</button>
+              <p class="section-label">Mon · Wed · Fri at 8:30am UTC</p>
             </div>
-          </div>
-          <div id="stat-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4" style="padding:32px 0;margin-bottom:0;"></div>
-          <span class="editorial-rule"></span>
-          <div class="page-section page-section-white">
-            <p class="section-label" style="margin-bottom:20px;">Operator Agents</p>
-            <div id="agent-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-          </div>
-          <span class="editorial-rule"></span>
-          <div class="page-section page-section-cream">
-            <p class="section-label" style="margin-bottom:20px;">Reporting &amp; Intelligence</p>
-            <div id="reporting-agents" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-          </div>
-          <span class="editorial-rule"></span>
-          <div class="page-section page-section-white">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-              <p class="section-label">Pending Approval</p>
-              <a href="#queue" style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--coral);text-decoration:none;">View all</a>
-            </div>
-            <div id="pending-preview"></div>
           </div>
         </div>
 
-        <!-- ── Social Posts ────────────────────────────────────── -->
-        <div data-page="social" class="hidden">
-          <div class="page-split">
-            <div class="page-split-img">
-              <img src="/dashboard/images/editorial-teal.jpg" alt="" class="page-split-photo">
-            </div>
-            <div class="page-split-content">
-              <span class="editorial-rule" style="margin-bottom:24px;margin-left:0;"></span>
-              <p class="section-label" style="margin-bottom:12px;">Content Engine</p>
-              <h1 class="page-hero-title" style="color:var(--black);font-size:2.25rem;margin-bottom:16px;">Social Posts</h1>
-              <p style="color:var(--muted);font-size:0.875rem;margin-bottom:24px;">Review, approve, and publish content to social channels</p>
-              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                <button onclick="handleForceTrigger(this)" class="btn-coral" style="padding:14px 28px;">▶ Generate Posts Now</button>
-                <p class="section-label">Mon · Wed · Fri at 8:30am UTC</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <p class="section-label" style="margin-bottom:12px;">Pending Review</p>
-            <div id="social-queue-content"></div>
-          </div>
-          <div style="margin-top:32px;">
-            <p class="section-label" style="margin-bottom:12px;">Recent Posts</p>
-            <div id="social-history-content"></div>
-          </div>
-        </div>
+        <!-- Pending + history content -->
+        <div class="page-content">
+          <p class="section-label" style="margin-bottom:20px;">Pending Review</p>
+          <div id="social-queue-content"></div>
 
-        <!-- ── Approval Queue ──────────────────────────────────── -->
-        <div data-page="queue" class="hidden">
-          <div class="page-hero" style="background-image:url('/dashboard/images/editorial-blue.jpg')">
-            <div class="page-hero-overlay"></div>
-            <div class="page-hero-content">
-              <p class="section-label" style="color:rgba(255,255,255,0.5);margin-bottom:12px;">High-risk actions</p>
-              <h1 class="page-hero-title">Approval Queue</h1>
-            </div>
+          <p class="section-label" style="margin-top:48px;margin-bottom:20px;">Recent Posts</p>
+          <div id="social-history-content"></div>
+        </div>
+      </section>
+
+      <!-- ── Approval Queue ─────────────────────────────────────────── -->
+      <section data-page="queue" class="magazine-page hidden">
+        <div class="typo-hero">
+          <span class="editorial-rule" style="margin:0 0 24px 0;display:block;"></span>
+          <p class="section-label" style="margin-bottom:12px;">High-risk actions</p>
+          <h1 class="typo-hero-title">The Editor's Desk</h1>
+          <div style="margin-bottom:16px;">
+            <div id="queue-hero-count" class="typo-hero-count">—</div>
+            <p class="section-label">Awaiting Decision</p>
           </div>
+          <p style="color:var(--muted);font-size:0.9375rem;max-width:480px;line-height:1.6;">Review and approve high-risk agent actions before they execute.</p>
+        </div>
+        <div class="page-content">
           <div id="queue-content"></div>
-          <div id="queue-pagination" class="mt-6"></div>
+          <div id="queue-pagination" style="margin-top:24px;"></div>
         </div>
+      </section>
 
-        <!-- ── Agent Detail ────────────────────────────────────── -->
-        <div data-page="agent" class="hidden">
-          <div id="agent-detail-content"></div>
+      <!-- ── Agent Detail ────────────────────────────────────────────── -->
+      <section data-page="agent" class="magazine-page hidden">
+        <div id="agent-detail-content"></div>
+      </section>
+
+      <!-- ── Action Log ──────────────────────────────────────────────── -->
+      <section data-page="log" class="magazine-page hidden">
+        <div class="typo-hero">
+          <span class="editorial-rule" style="margin:0 0 24px 0;display:block;"></span>
+          <p class="section-label" style="margin-bottom:12px;">Full audit trail</p>
+          <h1 class="typo-hero-title">The Archive</h1>
+          <p style="color:var(--muted);font-size:0.9375rem;max-width:480px;line-height:1.6;">Full audit trail of all agent actions and decisions.</p>
         </div>
-
-        <!-- ── Action Log ──────────────────────────────────────── -->
-        <div data-page="log" class="hidden">
-          <div class="page-hero" style="background-image:url('/dashboard/images/editorial-tan.jpg')">
-            <div class="page-hero-overlay"></div>
-            <div class="page-hero-content">
-              <p class="section-label" style="color:rgba(255,255,255,0.5);margin-bottom:12px;">Full audit trail</p>
-              <h1 class="page-hero-title">Action Log</h1>
-            </div>
-          </div>
-          <div class="flex flex-wrap gap-3 mb-6" style="margin-top:32px;">
-            <select id="log-filter-agent" class="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none">
+        <div class="page-content">
+          <!-- Filter bar -->
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px;">
+            <select id="log-filter-agent" style="padding:10px 16px;border:1px solid var(--border-solid);border-radius:0;font-family:'DM Sans',sans-serif;font-size:0.875rem;background:white;color:var(--charcoal);">
               <option value="">All Agents</option>
             </select>
-            <select id="log-filter-status" class="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none">
+            <select id="log-filter-status" style="padding:10px 16px;border:1px solid var(--border-solid);border-radius:0;font-family:'DM Sans',sans-serif;font-size:0.875rem;background:white;color:var(--charcoal);">
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
@@ -247,28 +191,34 @@
               <option value="failed">Failed</option>
               <option value="rejected">Rejected</option>
             </select>
-            <select id="log-filter-risk" class="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none">
+            <select id="log-filter-risk" style="padding:10px 16px;border:1px solid var(--border-solid);border-radius:0;font-family:'DM Sans',sans-serif;font-size:0.875rem;background:white;color:var(--charcoal);">
               <option value="">All Risk Levels</option>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
-            <button id="log-filter-btn" class="btn-coral px-4 py-2 rounded-xl text-sm font-medium">Apply Filter</button>
+            <button id="log-filter-btn" class="btn-coral" style="padding:10px 20px;">Filter</button>
           </div>
           <div id="log-content"></div>
-          <div id="log-pagination" class="mt-6"></div>
+          <div id="log-pagination" style="margin-top:24px;"></div>
         </div>
+      </section>
 
-      </div>
-      <div class="photo-credit">Photography by Fabian Kunzel-Zeller &amp; Charlota Blunarova via Unsplash</div>
-    </main>
-  </div>
+    </div><!-- /page-container -->
+
+    <!-- Footer actions (floating bottom-left) -->
+    <div class="footer-actions">
+      <button id="kill-all-btn" class="btn-danger" style="padding:8px 16px;">Kill All</button>
+      <button id="logout-btn" class="btn-ghost" style="padding:8px 16px;">Sign Out</button>
+    </div>
+
+  </div><!-- /app-shell -->
 
   <!-- Toast -->
   <div id="toast" class="hidden">
     <div class="toast-inner toast-success"></div>
   </div>
 
-  <script src="/dashboard/app.js"></script>
+  <script src="/dashboard/app.js?v=3"></script>
 </body>
 </html>

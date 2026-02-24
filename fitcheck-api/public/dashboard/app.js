@@ -46,7 +46,6 @@ const REPORTING_AGENTS = [
   { name: 'founder-brief',            icon: '📝', label: 'Founder Brief' },
 ];
 
-function agentIcon(name)  { return AGENT_META[name]?.icon  || '🤖'; }
 function agentLabel(name) { return AGENT_META[name]?.label || name; }
 
 // ─── Social post metadata ─────────────────────────────────────────────────────
@@ -65,6 +64,18 @@ const PLATFORM_META = {
   tiktok:    { icon: '♪', label: 'TikTok',  limit: null, cls: 'platform-tiktok'  },
   pinterest: { icon: '📌', label: 'Pinterest', limit: null, cls: 'platform-pinterest' },
 };
+
+// ─── New: image assignments and page order ─────────────────────────────────────
+const AGENT_IMAGES = {
+  'lifecycle-email':         'editorial-blue.jpg',
+  'conversion-intelligence': 'editorial-purple.jpg',
+  'community-manager':       'editorial-tan.jpg',
+  'social-media-manager':    'editorial-orange.jpg',
+  'appstore-manager':        'editorial-teal.jpg',
+  'outreach-agent':          'editorial-sketches.jpg',
+};
+
+const PAGE_ORDER = ['overview', 'social', 'queue', 'log'];
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 const getToken  = () => sessionStorage.getItem('dashboard_token');
@@ -138,16 +149,18 @@ function routePage() {
 
   if (isLogin) { initLogin(); return; }
 
-  // Show the correct sub-page
-  document.querySelectorAll('[data-page]').forEach(el => {
-    el.classList.toggle('hidden', el.dataset.page !== page);
-  });
+  // Find and transition to target page
+  const targetPage = document.querySelector(`[data-page="${page}"]`);
+  if (!targetPage) { navigate('overview'); return; }
 
-  // Update nav active states
-  document.querySelectorAll('[data-nav]').forEach(el => {
-    const nav = el.dataset.nav;
-    const active = nav === page || (page === 'agent' && nav === `agent/${param}`);
-    el.classList.toggle('nav-active', active);
+  transitionToPage(targetPage);
+
+  // Update dot nav active state
+  // For agent detail, keep the overview dot active (it's a drill-down)
+  document.querySelectorAll('[data-dot]').forEach(dot => {
+    const isActive = dot.dataset.dot === page ||
+                     (page === 'agent' && dot.dataset.dot === 'overview');
+    dot.classList.toggle('active', isActive);
   });
 
   switch (page) {
@@ -158,6 +171,77 @@ function routePage() {
     case 'log':      loadLog(1);           break;
     default:         navigate('overview'); break;
   }
+}
+
+// ─── Page transition (crossfade + slide) ─────────────────────────────────────
+let _isTransitioning = false;
+
+function transitionToPage(newPageEl) {
+  const currentPage = document.querySelector('.magazine-page:not(.hidden)');
+
+  // No transition needed (same page or first load)
+  if (!currentPage || currentPage === newPageEl) {
+    document.querySelectorAll('.magazine-page').forEach(p => p.classList.add('hidden'));
+    newPageEl.classList.remove('hidden');
+    return;
+  }
+
+  // If mid-transition, jump immediately
+  if (_isTransitioning) {
+    document.querySelectorAll('.magazine-page').forEach(p => {
+      p.classList.add('hidden');
+      p.style.cssText = '';
+    });
+    newPageEl.classList.remove('hidden');
+    _isTransitioning = false;
+
+    const container = document.getElementById('page-container');
+    if (container) container.scrollTop = 0;
+    return;
+  }
+
+  _isTransitioning = true;
+
+  const container = document.getElementById('page-container');
+  if (container) container.scrollTop = 0;
+
+  // Animate out current page
+  const ease = 'cubic-bezier(0.25,0.46,0.45,0.94)';
+  currentPage.style.transition = `opacity 0.4s ${ease}, transform 0.4s ${ease}`;
+  currentPage.style.opacity    = '0';
+  currentPage.style.transform  = 'translateX(-30px)';
+
+  setTimeout(() => {
+    if (!_isTransitioning) return;
+
+    currentPage.classList.add('hidden');
+    currentPage.style.cssText = '';
+
+    // Stage new page off-screen
+    newPageEl.style.opacity   = '0';
+    newPageEl.style.transform = 'translateX(30px)';
+    newPageEl.classList.remove('hidden');
+
+    // Force reflow before animating in
+    void newPageEl.offsetHeight;
+
+    newPageEl.style.transition = `opacity 0.4s ${ease}, transform 0.4s ${ease}`;
+    newPageEl.style.opacity    = '1';
+    newPageEl.style.transform  = 'translateX(0)';
+
+    setTimeout(() => {
+      if (!_isTransitioning) return;
+      newPageEl.style.cssText = '';
+      _isTransitioning = false;
+    }, 400);
+  }, 400);
+}
+
+// ─── Dot nav init ─────────────────────────────────────────────────────────────
+function initDotNav() {
+  document.querySelectorAll('[data-dot]').forEach(dot => {
+    dot.addEventListener('click', () => navigate(dot.dataset.dot));
+  });
 }
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
@@ -283,30 +367,58 @@ function initLogin() {
   });
 }
 
-// ─── Queue Badge ─────────────────────────────────────────────────────────────
-function setQueueBadge(count) {
-  const el = document.getElementById('queue-badge');
-  if (!el) return;
-  if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
-  else           { el.classList.add('hidden'); }
+// ─── Count-up animation ───────────────────────────────────────────────────────
+function countUp(el, target, duration) {
+  if (target === 0) { el.textContent = '0'; return; }
+  const start = performance.now();
+  function tick(now) {
+    const elapsed  = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease-out cubic: 1 - (1-t)^3
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.floor(eased * target);
+    if (progress < 1) requestAnimationFrame(tick);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(tick);
 }
 
-async function refreshQueueBadge() {
-  try {
-    const s = await apiGet('/api/admin/agents/summary');
-    setQueueBadge(s.pendingCount);
-  } catch (_) {}
+// ─── Scroll-reveal ────────────────────────────────────────────────────────────
+let _scrollObserver = null;
+
+function initScrollReveal() {
+  const container = document.getElementById('page-container');
+  if (!container) return;
+
+  if (_scrollObserver) _scrollObserver.disconnect();
+
+  _scrollObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          // Stagger via inline transition-delay
+          entry.target.style.transitionDelay = `${i * 80}ms`;
+          entry.target.classList.add('revealed');
+          _scrollObserver.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.15, root: container }
+  );
+
+  document.querySelectorAll('.reveal').forEach(el => {
+    if (!el.classList.contains('revealed')) {
+      _scrollObserver.observe(el);
+    }
+  });
 }
 
 // ─── Overview ────────────────────────────────────────────────────────────────
 async function loadOverview() {
-  const statEl    = document.getElementById('stat-cards');
-  const gridEl    = document.getElementById('agent-grid');
-  const pendingEl = document.getElementById('pending-preview');
+  const sectionEl = document.querySelector('[data-page="overview"]');
+  if (!sectionEl) return;
 
-  statEl.innerHTML    = loadingHTML();
-  gridEl.innerHTML    = loadingHTML();
-  pendingEl.innerHTML = loadingHTML();
+  sectionEl.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">${loadingHTML()}</div>`;
 
   try {
     const [summary, dash] = await Promise.all([
@@ -314,118 +426,136 @@ async function loadOverview() {
       apiGet('/api/admin/agents'),
     ]);
 
-    setQueueBadge(summary.pendingCount);
-
-    // ── Stat cards ──
-    const cards = [
-      { label: 'Actions Today',    value: summary.totalToday,    accent: 'var(--black)',  click: null },
-      { label: 'Pending Approval', value: summary.pendingCount,  accent: 'var(--coral)',  click: 'queue' },
-      { label: 'Executed Today',   value: summary.executedToday, accent: '#059669',       click: null },
-      { label: 'Failed Today',     value: summary.failedToday,   accent: '#DC2626',       click: null },
-    ];
-    statEl.innerHTML = cards.map(c => `
-      <div class="card stat-card ${c.click ? 'clickable' : ''}" style="padding:28px 24px;"
-           ${c.click ? `onclick="navigate('${c.click}')"` : ''}>
-        <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:2.5rem;font-weight:400;color:${c.accent};line-height:1;margin-bottom:10px;">${c.value}</div>
-        <p class="section-label">${esc(c.label)}</p>
-      </div>
-    `).join('');
-
-    // ── Agent grid ──
-    const cfgMap  = Object.fromEntries((dash.configs || []).map(c => [c.agent, c]));
     const statMap = dash.agentStats || {};
-    gridEl.innerHTML = AGENT_NAMES.map(name => {
-      const cfg   = cfgMap[name];
-      const stats = statMap[name] || {};
-      const enabled   = cfg ? cfg.enabled : true;
-      const executed  = stats.executed || 0;
-      const failed    = stats.failed   || 0;
-      const pending   = stats.pending  || 0;
-      const hasErrors = failed > 0;
+
+    // Stat definitions for hero
+    const heroStats = [
+      { label: 'Actions Today',    value: summary.totalToday    || 0 },
+      { label: 'Pending Approval', value: summary.pendingCount  || 0 },
+      { label: 'Executed Today',   value: summary.executedToday || 0 },
+      { label: 'Failed Today',     value: summary.failedToday   || 0 },
+    ];
+
+    // Portrait cards for horizontal strip
+    const stripCards = AGENT_NAMES.map(name => {
+      const agentStats = statMap[name] || {};
+      const executed   = agentStats.executed || 0;
+      const pending    = agentStats.pending  || 0;
+      const imgFile    = AGENT_IMAGES[name]  || 'editorial-blue.jpg';
+      const label      = agentLabel(name);
+      const isSketch   = imgFile === 'editorial-sketches.jpg';
 
       return `
-        <div class="card agent-card" style="padding:24px;${hasErrors ? 'border-color:#FECACA;' : ''}">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
-            <div>
-              <span style="font-size:1.25rem;display:block;margin-bottom:4px;">${agentIcon(name)}</span>
-              <span style="font-weight:600;font-size:0.9375rem;color:var(--black);">${esc(agentLabel(name))}</span>
-            </div>
-            <label class="toggle-switch" title="${enabled ? 'Disable' : 'Enable'} agent">
-              <input type="checkbox" ${enabled ? 'checked' : ''} data-agent="${esc(name)}" onchange="handleToggle(this)">
-              <span class="toggle-slider"></span>
-            </label>
+        <div class="portrait-card reveal" onclick="navigate('agent', '${esc(name)}')">
+          <div class="portrait-card-img">
+            <img src="/dashboard/images/${esc(imgFile)}" alt="${esc(label)}"
+                 style="${isSketch
+                   ? 'object-fit:contain;object-position:center;background:var(--cream-dark);'
+                   : 'object-fit:cover;object-position:center 20%;'}">
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px 0;border-top:1px solid rgba(0,0,0,0.06);border-bottom:1px solid rgba(0,0,0,0.06);margin-bottom:16px;">
+          <div class="portrait-card-info">
             <div>
-              <div style="font-size:1.25rem;font-weight:700;color:var(--black);">${executed}</div>
-              <p class="section-label" style="margin-top:2px;">Done</p>
+              <div style="font-family:'Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:1.125rem;color:var(--black);line-height:1.2;margin-bottom:8px;">${esc(label)}</div>
+              <div style="font-size:0.8125rem;color:var(--muted);">${executed} actions · ${pending} pending</div>
             </div>
-            <div>
-              <div style="font-size:1.25rem;font-weight:700;color:${pending > 0 ? '#D97706' : 'var(--muted)'};">${pending}</div>
-              <p class="section-label" style="margin-top:2px;">Pending</p>
-            </div>
-            <div>
-              <div style="font-size:1.25rem;font-weight:700;color:${hasErrors ? '#DC2626' : 'var(--muted)'};">${failed}</div>
-              <p class="section-label" style="margin-top:2px;">Failed</p>
-            </div>
+            <div style="font-size:0.6875rem;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:var(--coral);">View Story →</div>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button onclick="handleTrigger('${esc(AGENT_TRIGGER_NAME[name] || name)}', this)"
-                    class="btn-coral" style="flex:1;padding:10px 0;">
-              Run Now
-            </button>
-            <a href="#agent/${encodeURIComponent(name)}"
-               class="btn-outline" style="flex:1;padding:10px 0;text-decoration:none;font-size:0.75rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;">
-              Details
-            </a>
-          </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
 
-    // ── Pending preview header ──
-    document.querySelectorAll('#pending-preview').forEach(el => {
-      const label = el.previousElementSibling?.querySelector('h2');
-      if (label) { label.className = 'section-label'; label.style.marginBottom = '16px'; }
-    });
+    // Reporting masthead
+    const mastheadItems = REPORTING_AGENTS.map(a => `
+      <div class="masthead-item reveal">
+        <span style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.9375rem;color:var(--black);">${esc(a.label)}</span>
+        <button onclick="handleTrigger('${esc(a.name)}', this)"
+                class="btn-coral" style="padding:6px 14px;font-size:0.6875rem;flex-shrink:0;">Run ▶</button>
+      </div>`).join('');
 
-    // ── Reporting agents (run-on-demand, no action queue) ──
-    const reportingEl = document.getElementById('reporting-agents');
-    if (reportingEl) {
-      reportingEl.innerHTML = REPORTING_AGENTS.map(a => `
-        <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-            <span style="font-size:1.1rem;">${a.icon}</span>
-            <span style="font-weight:500;font-size:0.9375rem;color:var(--black);white-space:nowrap;">${esc(a.label)}</span>
+    // Pending preview
+    const pending = (dash.recentActions || []).filter(a => a.status === 'pending').slice(0, 5);
+    const pendingHTML = pending.length === 0
+      ? emptyHTML('Queue is clear — no actions pending')
+      : `<div class="card" style="overflow:hidden;">${pending.map(a => queueItemHTML(a)).join('')}</div>`;
+
+    sectionEl.innerHTML = `
+      <!-- Full-bleed hero -->
+      <div class="hero-fullbleed">
+        <img src="/dashboard/images/editorial-duo.jpg" alt="" class="hero-img">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <p class="section-label" style="color:rgba(255,255,255,0.65);margin-bottom:20px;">The Issue</p>
+          <span class="editorial-rule" style="margin:0 0 20px 0;display:block;"></span>
+          <h1 style="font-family:'Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:clamp(3.5rem,8vw,6rem);color:white;line-height:0.95;letter-spacing:-0.03em;margin-bottom:40px;">Your Agents.</h1>
+          <div class="hero-stats">
+            ${heroStats.map((s, i) => `
+              <div>
+                <div class="hero-stat-number" data-count-target="${s.value}" data-count-delay="${i * 150}">0</div>
+                <p class="hero-stat-label">${esc(s.label)}</p>
+              </div>`).join('')}
           </div>
-          <button onclick="handleTrigger('${esc(a.name)}', this)"
-                  class="btn-coral" style="padding:8px 16px;white-space:nowrap;flex-shrink:0;">
-            Run Now
+          <div style="margin-top:48px;">
+            <span style="font-size:0.625rem;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:rgba(255,255,255,0.45);">Scroll for Agents ↓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operator agent strip -->
+      <div style="background:var(--cream);padding:56px 0 48px;">
+        <div style="padding:0 40px;display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;">
+          <div>
+            <span class="editorial-rule" style="margin:0 0 12px 0;display:block;"></span>
+            <p class="section-label">Operator Agents</p>
+          </div>
+          <button onclick="document.getElementById('reporting-section').scrollIntoView({behavior:'smooth'})"
+                  style="font-size:0.6875rem;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:var(--coral);background:none;border:none;cursor:pointer;padding:0;">
+            11 Reporting Agents ↓
           </button>
         </div>
-      `).join('');
-    }
-
-    // ── Pending preview ──
-    const pending = (dash.recentActions || []).filter(a => a.status === 'pending').slice(0, 5);
-    if (pending.length === 0) {
-      pendingEl.innerHTML = emptyHTML('No actions pending — queue is clear');
-    } else {
-      pendingEl.innerHTML = `<div class="card" style="overflow:hidden;">
-        <div style="divide-y:1px solid #F9FAFB;">
-          ${pending.map(a => queueItemHTML(a)).join('')}
+        <div class="h-scroll-strip" id="agent-strip">
+          ${stripCards}
         </div>
-      </div>`;
-    }
+      </div>
+
+      <!-- Reporting masthead -->
+      <div id="reporting-section" style="background:white;padding:56px 64px;">
+        <span class="editorial-rule" style="margin:0 0 12px 0;display:block;"></span>
+        <p class="section-label" style="margin-bottom:32px;">Reporting &amp; Intelligence</p>
+        <div class="masthead-grid" id="reporting-agents">
+          ${mastheadItems}
+        </div>
+      </div>
+
+      <!-- Pending preview -->
+      <div style="background:var(--cream);padding:56px 64px;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;">
+          <div>
+            <span class="editorial-rule" style="margin:0 0 12px 0;display:block;"></span>
+            <p class="section-label">Pending Approval</p>
+          </div>
+          <a href="#queue" style="font-size:0.6875rem;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:var(--coral);text-decoration:none;">View All →</a>
+        </div>
+        <div id="pending-preview">${pendingHTML}</div>
+      </div>
+
+      <div class="photo-credit">Photography by Fabian Kunzel-Zeller &amp; Charlota Blunarova via Unsplash</div>
+    `;
+
+    // Trigger count-up on stat numbers
+    sectionEl.querySelectorAll('[data-count-target]').forEach(el => {
+      const target = parseInt(el.dataset.countTarget, 10) || 0;
+      const delay  = parseInt(el.dataset.countDelay,  10) || 0;
+      setTimeout(() => countUp(el, target, 800), delay);
+    });
+
+    // Set up scroll-reveal
+    initScrollReveal();
+
   } catch (err) {
-    statEl.innerHTML    = errorHTML(err.message);
-    gridEl.innerHTML    = '';
-    pendingEl.innerHTML = '';
+    sectionEl.innerHTML = `<div style="padding:80px;">${errorHTML(err.message)}</div>`;
   }
 }
 
 // ─── Social Posts Page ────────────────────────────────────────────────────────
-
 async function loadSocialPosts() {
   const queueEl   = document.getElementById('social-queue-content');
   const historyEl = document.getElementById('social-history-content');
@@ -440,29 +570,15 @@ async function loadSocialPosts() {
       apiGet('/api/admin/agents/actions?agent=social-media-manager&limit=30'),
     ]);
 
-    // Filter pending queue to social posts only
+    // Pending social posts only
     const pendingPosts = (queueData.actions || []).filter(
       a => a.agent === 'social-media-manager' && a.actionType === 'post_social'
     );
 
-    // Update social badge
-    const socialBadge = document.getElementById('social-badge');
-    if (socialBadge) {
-      if (pendingPosts.length > 0) {
-        socialBadge.textContent = pendingPosts.length;
-        socialBadge.classList.remove('hidden');
-      } else {
-        socialBadge.classList.add('hidden');
-      }
-    }
-
     if (pendingPosts.length === 0) {
-      queueEl.innerHTML = `<div class="card">${emptyHTML('No posts awaiting review')}</div>`;
+      queueEl.innerHTML = emptyHTML('No posts awaiting review');
     } else {
-      queueEl.innerHTML = `
-        <div class="card" style="overflow:hidden;">
-          ${pendingPosts.map(a => socialPostCardHTML(a)).join('')}
-        </div>`;
+      queueEl.innerHTML = pendingPosts.map(a => socialPostCardHTML(a)).join('');
     }
 
     // History — non-pending social posts
@@ -471,12 +587,9 @@ async function loadSocialPosts() {
     );
 
     if (historyPosts.length === 0) {
-      historyEl.innerHTML = `<div class="card">${emptyHTML('No post history yet')}</div>`;
+      historyEl.innerHTML = emptyHTML('No post history yet');
     } else {
-      historyEl.innerHTML = `
-        <div class="card" style="overflow:hidden;">
-          ${historyPosts.map(a => socialPostCardHTML(a, { showActions: false, showHistory: true })).join('')}
-        </div>`;
+      historyEl.innerHTML = historyPosts.map(a => socialPostCardHTML(a, { showActions: false, showHistory: true })).join('');
     }
   } catch (err) {
     queueEl.innerHTML   = errorHTML(err.message);
@@ -503,45 +616,41 @@ async function handleForceTrigger(btn) {
 // ─── Approval Queue ──────────────────────────────────────────────────────────
 async function loadQueue(page) {
   page = page || 1;
-  const contentEl = document.getElementById('queue-content');
-  const paginEl   = document.getElementById('queue-pagination');
+  const contentEl  = document.getElementById('queue-content');
+  const paginEl    = document.getElementById('queue-pagination');
+  const heroCount  = document.getElementById('queue-hero-count');
+  if (!contentEl) return;
+
   contentEl.innerHTML = loadingHTML();
-  paginEl.innerHTML   = '';
+  if (paginEl) paginEl.innerHTML = '';
 
   try {
     const data = await apiGet(`/api/admin/agents/queue?page=${page}&limit=20`);
-    setQueueBadge(data.total);
+
+    if (heroCount) heroCount.textContent = data.total;
 
     if (data.actions.length === 0) {
-      contentEl.innerHTML = `<div class="card">${emptyHTML('Queue is empty — no actions awaiting approval')}</div>`;
+      contentEl.innerHTML = emptyHTML('Queue is empty — no actions awaiting approval');
       return;
     }
 
-    contentEl.innerHTML = `
-      <div class="card" style="overflow:hidden;">
-        <div style="padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;">
-          <p class="section-label">${data.total} action${data.total !== 1 ? 's' : ''} awaiting approval</p>
-        </div>
-        <div>
-          ${data.actions.map(a => queueItemHTML(a)).join('')}
-        </div>
-      </div>
-    `;
-    paginEl.innerHTML = paginationHTML(page, data.total, 20, 'loadQueue');
+    contentEl.innerHTML = data.actions.map(a => queueItemHTML(a)).join('');
+    if (paginEl) paginEl.innerHTML = paginationHTML(page, data.total, 20, 'loadQueue');
   } catch (err) {
     contentEl.innerHTML = errorHTML(err.message);
   }
 }
 
+// ─── Social post card ─────────────────────────────────────────────────────────
 function socialPostCardHTML(action, opts = {}) {
   const id      = esc(action.id);
   const p       = action.payload || {};
   const content = p.content || '';
-  const hashtags= Array.isArray(p.hashtags) ? p.hashtags : [];
-  const platform= (p.platform || 'twitter').toLowerCase();
-  const ctLabel = CONTENT_TYPE_LABELS[p.contentType] || p.contentType || '';
-  const imgHint = p.imageDescription || '';
-  const pmeta   = PLATFORM_META[platform] || PLATFORM_META.twitter;
+  const hashtags = Array.isArray(p.hashtags) ? p.hashtags : [];
+  const platform = (p.platform || 'twitter').toLowerCase();
+  const ctLabel  = CONTENT_TYPE_LABELS[p.contentType] || p.contentType || '';
+  const imgHint  = p.imageDescription || '';
+  const pmeta    = PLATFORM_META[platform] || PLATFORM_META.twitter;
 
   const fullText = content + (hashtags.length ? ' ' + hashtags.map(h => `#${h}`).join(' ') : '');
   const charLen  = fullText.length;
@@ -557,40 +666,29 @@ function socialPostCardHTML(action, opts = {}) {
   const hashtagHTML = hashtags.map(h => `<span class="hashtag-chip">#${esc(h)}</span>`).join('');
 
   return `
-    <div id="qi-${id}" style="padding:20px 24px;border-bottom:1px solid #F3F4F6;">
-      <!-- Header row -->
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <span class="pill ${pmeta.cls}" style="font-size:0.75rem;font-weight:600;">
-          ${pmeta.icon} ${esc(pmeta.label)}
-        </span>
+    <div id="qi-${id}" style="background:white;border:1px solid var(--border-solid);border-radius:8px;padding:32px 36px;margin-bottom:24px;${showHistory ? 'opacity:0.85;' : ''}">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <span class="pill ${pmeta.cls}" style="font-size:0.75rem;font-weight:600;">${pmeta.icon} ${esc(pmeta.label)}</span>
         ${ctLabel ? `<span class="content-type-chip">${esc(ctLabel)}</span>` : ''}
         ${riskBadge(action.riskLevel)}
-        <span style="margin-left:auto;font-size:0.75rem;color:#9CA3AF;">${fmtRelative(action.createdAt)}</span>
+        <span style="margin-left:auto;font-size:0.8125rem;color:var(--muted);">${fmtRelative(action.createdAt)}</span>
         ${showHistory ? statusPill(action.status) : ''}
       </div>
-
-      <!-- Post text -->
-      <div class="post-text" style="margin-bottom:10px;">${esc(content)}</div>
-
-      <!-- Hashtags + char count -->
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+      <div class="post-text" style="margin-bottom:16px;">${esc(content)}</div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:${imgHint ? '12px' : '0'};">
         ${hashtagHTML}
         ${pmeta.limit ? `<span class="char-count ${charCls}" style="margin-left:auto;">${charLen}/${pmeta.limit}</span>` : ''}
       </div>
-
-      <!-- Image hint -->
-      ${imgHint ? `<p class="image-hint" style="margin-bottom:12px;">📷 ${esc(imgHint)}</p>` : ''}
-
-      <!-- Actions -->
+      ${imgHint ? `<p class="image-hint" style="margin-bottom:16px;">📷 ${esc(imgHint)}</p>` : ''}
       ${showActions ? `
-      <div style="display:flex;gap:8px;padding-top:4px;">
-        <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:8px 20px;font-size:0.8125rem;">✓ Approve &amp; Schedule</button>
-        <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:8px 16px;font-size:0.8125rem;">✕ Reject</button>
-      </div>` : ''}
-    </div>
-  `;
+        <div style="display:flex;gap:10px;padding-top:16px;border-top:1px solid var(--border-solid);">
+          <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:10px 24px;">Approve ✓</button>
+          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:10px 18px;">Reject ✕</button>
+        </div>` : ''}
+    </div>`;
 }
 
+// ─── Queue item ───────────────────────────────────────────────────────────────
 function queueItemHTML(action) {
   // Social media posts get a rich preview card
   if (action.agent === 'social-media-manager' && action.actionType === 'post_social') {
@@ -599,33 +697,26 @@ function queueItemHTML(action) {
 
   const id      = esc(action.id);
   const payload = prettyJSON(action.payload);
+
   return `
-    <div id="qi-${id}" style="padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.06);">
-      <div style="display:flex;align-items:flex-start;gap:16px;">
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-            <span style="font-weight:600;font-size:0.9375rem;color:var(--black);">
-              ${agentIcon(action.agent)} ${esc(agentLabel(action.agent))}
-            </span>
-            <span style="color:var(--muted);font-size:0.75rem;">·</span>
-            <span style="color:var(--charcoal);font-size:0.875rem;">${esc(action.actionType)}</span>
-            ${riskBadge(action.riskLevel)}
-          </div>
-          <p style="font-size:0.8125rem;color:var(--muted);margin-bottom:10px;">${fmtRelative(action.createdAt)}</p>
-          <details>
-            <summary style="font-size:0.75rem;color:var(--coral);cursor:pointer;font-weight:500;user-select:none;letter-spacing:0.04em;text-transform:uppercase;">
-              Payload ▾
-            </summary>
-            <pre style="margin-top:8px;padding:12px;background:var(--cream);font-size:0.72rem;color:var(--charcoal);overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
-          </details>
-        </div>
-        <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px;">
-          <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:8px 16px;">Approve</button>
-          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:8px 12px;">Reject</button>
-        </div>
+    <div id="qi-${id}" style="background:white;border:1px solid var(--border-solid);border-radius:8px;padding:28px 32px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        ${riskBadge(action.riskLevel)}
+        <span style="font-weight:600;font-size:0.875rem;color:var(--black);">${esc(agentLabel(action.agent))}</span>
+        <span style="margin-left:auto;font-size:0.8125rem;color:var(--muted);">${fmtRelative(action.createdAt)}</span>
       </div>
-    </div>
-  `;
+      <p style="font-size:1.0625rem;color:var(--black);line-height:1.6;margin-bottom:16px;">${esc(action.actionType)}</p>
+      <details style="margin-bottom:16px;">
+        <summary style="font-size:0.75rem;color:var(--coral);cursor:pointer;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;user-select:none;">
+          View Details ▾
+        </summary>
+        <pre style="margin-top:10px;padding:12px 16px;background:var(--cream-dark);font-size:0.72rem;color:var(--charcoal);overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
+      </details>
+      <div style="display:flex;gap:10px;">
+        <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:10px 24px;">Approve</button>
+        <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:10px 18px;">Reject</button>
+      </div>
+    </div>`;
 }
 
 // ─── Agent Detail ────────────────────────────────────────────────────────────
@@ -636,91 +727,99 @@ async function loadAgent(name) {
   _currentAgent = name;
 
   const el = document.getElementById('agent-detail-content');
+  if (!el) return;
   el.innerHTML = loadingHTML();
 
   try {
-    const [dash, actions] = await Promise.all([
+    const [dash, actionsData] = await Promise.all([
       apiGet('/api/admin/agents'),
       apiGet(`/api/admin/agents/${encodeURIComponent(name)}/actions?page=1&limit=20`),
     ]);
 
-    const cfg     = (dash.configs || []).find(c => c.agent === name);
-    const stats   = (dash.agentStats || {})[name] || {};
-    const enabled = cfg ? cfg.enabled : true;
+    const cfg      = (dash.configs || []).find(c => c.agent === name);
+    const stats    = (dash.agentStats || {})[name] || {};
+    const enabled  = cfg ? cfg.enabled : true;
+    const imgFile  = AGENT_IMAGES[name] || 'editorial-blue.jpg';
+    const label    = agentLabel(name);
+    const isSketch = imgFile === 'editorial-sketches.jpg';
 
     el.innerHTML = `
-      <div class="page-hero" style="background-image:url('/dashboard/images/editorial-purple.jpg');min-height:200px;">
-        <div class="page-hero-overlay"></div>
-        <div class="page-hero-content">
-          <a href="#overview" style="color:rgba(255,255,255,0.6);font-size:0.875rem;text-decoration:none;display:block;margin-bottom:12px;">← Overview</a>
-          <h1 class="page-hero-title" style="font-size:2rem;">${agentIcon(name)} ${esc(agentLabel(name))}</h1>
+      <!-- Agent hero -->
+      <div class="agent-hero">
+        <img src="/dashboard/images/${esc(imgFile)}" alt="${esc(label)}"
+             style="${isSketch
+               ? 'object-fit:contain;object-position:center;background:var(--cream-dark);'
+               : 'object-fit:cover;object-position:center 30%;'}">
+        <div class="agent-hero-overlay"></div>
+        <div class="agent-hero-text">
+          <span class="editorial-rule" style="margin:0 0 12px 0;display:block;width:40px;"></span>
+          <p class="section-label" style="color:rgba(255,255,255,0.65);margin-bottom:8px;">${esc(name)}</p>
+          <h1 style="font-family:'Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:3.5rem;color:white;line-height:1.1;letter-spacing:-0.02em;">${esc(label)}</h1>
         </div>
       </div>
 
-      <!-- Config Card -->
-      <div class="card p-6" style="margin-bottom:20px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <!-- Fact sheet -->
+      <div style="background:var(--cream);padding:56px 64px;">
+        <a href="#overview" style="font-size:0.75rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--coral);text-decoration:none;display:inline-block;margin-bottom:40px;">← Overview</a>
+
+        <div style="display:grid;grid-template-columns:60% 40%;gap:56px;">
+          <!-- Left: narrative -->
           <div>
-            <h2 style="font-weight:600;color:#1A1A1A;margin-bottom:4px;">Agent Configuration</h2>
-            <code style="font-size:0.8125rem;color:#9CA3AF;">${esc(name)}</code>
-          </div>
-          <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+            <p class="section-label" style="margin-bottom:16px;">About This Agent</p>
+            <p style="font-size:1rem;color:var(--charcoal);line-height:1.7;max-width:560px;margin-bottom:32px;">
+              ${esc(cfg?.description || `The ${label} agent manages automated tasks and actions on your behalf.`)}
+            </p>
+
+            <div style="display:flex;align-items:center;gap:16px;padding:20px 0;border-top:1px solid var(--border-solid);border-bottom:1px solid var(--border-solid);margin-bottom:28px;">
+              <p class="section-label">Agent Status</p>
+              <label class="toggle-switch">
+                <input type="checkbox" ${enabled ? 'checked' : ''} data-agent="${esc(name)}" onchange="handleToggle(this)">
+                <span class="toggle-slider"></span>
+              </label>
+              <span style="font-size:0.875rem;color:var(--charcoal);">${enabled ? 'Enabled' : 'Paused'}</span>
+            </div>
+
             <button onclick="handleTrigger('${esc(AGENT_TRIGGER_NAME[name] || name)}', this)"
-                    class="btn-coral" style="padding:7px 16px;border-radius:8px;font-size:0.875rem;font-weight:500;">
+                    class="btn-coral" style="padding:14px 28px;">
               ▶ Run Now
             </button>
-            <label class="toggle-switch">
-              <input type="checkbox" ${enabled ? 'checked' : ''} data-agent="${esc(name)}" onchange="handleToggle(this)">
-              <span class="toggle-slider"></span>
-            </label>
           </div>
-        </div>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F3F4F6;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+
+          <!-- Right: stats sidebar -->
           <div>
-            <p style="font-size:0.75rem;color:#9CA3AF;margin-bottom:6px;">Status</p>
-            <span class="pill ${enabled ? 'pill-executed' : 'pill-rejected'}">${enabled ? 'Enabled' : 'Disabled'}</span>
-          </div>
-          <div>
-            <p style="font-size:0.75rem;color:#9CA3AF;margin-bottom:4px;">Max / Day</p>
-            <p style="font-weight:600;color:#1A1A1A;">${cfg?.maxActionsPerDay ?? 50}</p>
-          </div>
-          <div>
-            <p style="font-size:0.75rem;color:#9CA3AF;margin-bottom:4px;">Auto-approve up to</p>
-            <p style="font-weight:600;color:#1A1A1A;">${cfg?.autoApproveRisk ?? 'medium'} risk</p>
+            <span class="editorial-rule" style="margin:0 0 24px 0;width:30px;display:block;"></span>
+            <div style="display:flex;flex-direction:column;gap:0;">
+              ${[
+                { label: 'Actions Today', value: stats.executed || 0 },
+                { label: 'Failed Today',  value: stats.failed   || 0 },
+                { label: 'Pending',       value: stats.pending  || 0 },
+                { label: 'Max / Day',     value: cfg?.maxActionsPerDay ?? 50 },
+              ].map(s => `
+                <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
+                  <p class="section-label">${esc(s.label)}</p>
+                  <span style="font-family:'Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:2rem;color:var(--black);">${s.value}</span>
+                </div>`).join('')}
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Stats Row -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
-        ${[
-          { label: 'Executed Today', value: stats.executed || 0, color: '#059669' },
-          { label: 'Failed Today',   value: stats.failed   || 0, color: '#DC2626' },
-          { label: 'Pending',        value: stats.pending  || 0, color: '#D97706' },
-          { label: 'Rejected Today', value: stats.rejected || 0, color: '#9CA3AF' },
-        ].map(s => `
-          <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:1.75rem;font-weight:700;color:${s.color};">${s.value}</div>
-            <div style="font-size:0.75rem;color:#9CA3AF;margin-top:4px;">${s.label}</div>
+      <!-- Action history -->
+      <div style="background:white;padding:48px 64px 64px;">
+        <span class="editorial-rule" style="margin:0 0 12px 0;display:block;"></span>
+        <p class="section-label" style="margin-bottom:24px;">Recent Actions</p>
+        <div class="card" style="overflow:hidden;">
+          <div id="agent-actions-table">
+            ${actionsTableHTML(actionsData.actions)}
           </div>
-        `).join('')}
-      </div>
-
-      <!-- Action History -->
-      <div class="card" style="overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #F3F4F6;">
-          <h2 style="font-weight:600;color:#1A1A1A;">Action History</h2>
-        </div>
-        <div id="agent-actions-table">
-          ${actionsTableHTML(actions.actions)}
-        </div>
-        <div style="padding:16px 20px;border-top:1px solid #F3F4F6;">
-          ${paginationHTML(1, actions.total, 20, 'loadAgentPage')}
+          <div style="padding:16px 20px;border-top:1px solid rgba(0,0,0,0.06);">
+            ${paginationHTML(1, actionsData.total, 20, 'loadAgentPage')}
+          </div>
         </div>
       </div>
     `;
   } catch (err) {
-    el.innerHTML = errorHTML(err.message);
+    el.innerHTML = `<div style="padding:80px;">${errorHTML(err.message)}</div>`;
   }
 }
 
@@ -762,8 +861,7 @@ function actionsTableHTML(actions) {
           </tr>
         `).join('')}
       </tbody>
-    </table>
-  `;
+    </table>`;
 }
 
 // ─── Action Log ──────────────────────────────────────────────────────────────
@@ -771,8 +869,10 @@ async function loadLog(page) {
   page = page || 1;
   const contentEl = document.getElementById('log-content');
   const paginEl   = document.getElementById('log-pagination');
+  if (!contentEl) return;
+
   contentEl.innerHTML = loadingHTML();
-  paginEl.innerHTML   = '';
+  if (paginEl) paginEl.innerHTML = '';
 
   // Populate agent filter once
   const agentSel = document.getElementById('log-filter-agent');
@@ -800,16 +900,15 @@ async function loadLog(page) {
     const data = await apiGet(`/api/admin/agents/actions?${params}`);
 
     if (data.actions.length === 0) {
-      contentEl.innerHTML = `<div class="card">${emptyHTML('No actions match the current filters')}</div>`;
+      contentEl.innerHTML = emptyHTML('No actions match the current filters');
       return;
     }
 
     contentEl.innerHTML = `
       <div class="card" style="overflow:hidden;">
         ${data.actions.map(a => logRowHTML(a)).join('')}
-      </div>
-    `;
-    paginEl.innerHTML = paginationHTML(page, data.total, 50, 'loadLog');
+      </div>`;
+    if (paginEl) paginEl.innerHTML = paginationHTML(page, data.total, 50, 'loadLog');
   } catch (err) {
     contentEl.innerHTML = errorHTML(err.message);
   }
@@ -819,30 +918,27 @@ function logRowHTML(action) {
   const payload = prettyJSON(action.payload);
   const result  = action.result ? prettyJSON(action.result) : null;
   return `
-    <details style="border-bottom:1px solid #F9FAFB;">
-      <summary style="padding:14px 20px;cursor:pointer;user-select:none;list-style:none;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span>${agentIcon(action.agent)}</span>
-          <span style="font-weight:600;font-size:0.875rem;color:#1A1A1A;">${esc(agentLabel(action.agent))}</span>
-          <span style="color:#9CA3AF;font-size:0.75rem;">·</span>
-          <span style="color:#6B7280;font-size:0.875rem;">${esc(action.actionType)}</span>
+    <details style="border-bottom:1px solid rgba(0,0,0,0.06);">
+      <summary style="padding:16px 24px;cursor:pointer;user-select:none;list-style:none;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:0.75rem;color:var(--muted);">▶</span>
           ${statusPill(action.status)}
           ${riskBadge(action.riskLevel)}
-          <span style="margin-left:auto;font-size:0.75rem;color:#9CA3AF;">${fmtDate(action.createdAt)}</span>
+          <span style="font-weight:600;font-size:0.875rem;color:var(--black);">${esc(agentLabel(action.agent))}</span>
+          <span style="color:var(--charcoal);font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;">${esc(action.actionType)}</span>
+          <span style="margin-left:auto;font-size:0.75rem;color:var(--muted);white-space:nowrap;">${fmtDate(action.createdAt)}</span>
         </div>
       </summary>
-      <div style="padding:0 20px 16px;background:#FAFAFA;border-top:1px solid #F3F4F6;">
-        <p style="font-size:0.75rem;font-weight:500;color:#9CA3AF;margin:12px 0 4px;">Payload</p>
-        <pre style="padding:10px;background:white;border:1px solid #F3F4F6;border-radius:8px;font-size:0.72rem;color:#4B5563;overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
+      <div style="padding:16px 24px 20px;background:var(--cream-dark);border-top:1px solid rgba(0,0,0,0.06);">
+        <p class="section-label" style="margin-bottom:8px;">Payload</p>
+        <pre style="padding:12px 16px;background:white;border:1px solid var(--border-solid);font-size:0.72rem;color:var(--charcoal);overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
         ${result ? `
-          <p style="font-size:0.75rem;font-weight:500;color:#9CA3AF;margin:10px 0 4px;">Result</p>
-          <pre style="padding:10px;background:white;border:1px solid #F3F4F6;border-radius:8px;font-size:0.72rem;color:#4B5563;overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(result)}</pre>
-        ` : ''}
-        ${action.executedAt ? `<p style="font-size:0.75rem;color:#9CA3AF;margin-top:8px;">Executed: ${fmtDate(action.executedAt)}</p>` : ''}
-        ${action.reviewedBy ? `<p style="font-size:0.75rem;color:#9CA3AF;margin-top:4px;">Reviewed by: ${esc(action.reviewedBy)}</p>` : ''}
+          <p class="section-label" style="margin-top:12px;margin-bottom:8px;">Result</p>
+          <pre style="padding:12px 16px;background:white;border:1px solid var(--border-solid);font-size:0.72rem;color:var(--charcoal);overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(result)}</pre>` : ''}
+        ${action.executedAt ? `<p style="font-size:0.75rem;color:var(--muted);margin-top:10px;">Executed: ${fmtDate(action.executedAt)}</p>` : ''}
+        ${action.reviewedBy ? `<p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">Reviewed by: ${esc(action.reviewedBy)}</p>` : ''}
       </div>
-    </details>
-  `;
+    </details>`;
 }
 
 // ─── Action Handlers ─────────────────────────────────────────────────────────
@@ -868,7 +964,6 @@ async function handleApprove(actionId) {
     await apiPost(`/api/admin/agents/actions/${actionId}/approve`);
     showToast('Action approved — executing now');
     removeQueueItem(actionId);
-    refreshQueueBadge();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -879,7 +974,6 @@ async function handleReject(actionId) {
     await apiPost(`/api/admin/agents/actions/${actionId}/reject`);
     showToast('Action rejected', 'warning');
     removeQueueItem(actionId);
-    refreshQueueBadge();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -912,7 +1006,7 @@ async function handleToggle(checkbox) {
 
 async function handleKillAll() {
   const confirmed = confirm(
-    '⚠️ Kill all 6 operator agents?\n\n' +
+    'Kill all 6 operator agents?\n\n' +
     'All agents will stop running until individually re-enabled. ' +
     'This does NOT affect already-queued actions.'
   );
@@ -926,23 +1020,9 @@ async function handleKillAll() {
   }
 }
 
-// ─── Sidebar agent nav ───────────────────────────────────────────────────────
-function buildAgentNav() {
-  const el = document.getElementById('agent-nav-links');
-  if (!el) return;
-  el.innerHTML = AGENT_NAMES.map(name => `
-    <a href="#agent/${encodeURIComponent(name)}"
-       data-nav="agent/${encodeURIComponent(name)}"
-       class="nav-item" style="font-size:0.8125rem;">
-      <span>${agentIcon(name)}</span>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(agentLabel(name))}</span>
-    </a>
-  `).join('');
-}
-
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  buildAgentNav();
+  initDotNav();
 
   document.getElementById('kill-all-btn')?.addEventListener('click', handleKillAll);
   document.getElementById('logout-btn')?.addEventListener('click', () => {
