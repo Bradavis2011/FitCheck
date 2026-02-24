@@ -63,6 +63,14 @@ const PORT = process.env.PORT || 3000;
 
 // Serve dashboard static files BEFORE helmet so CDN resources aren't blocked by CSP
 // __dirname is the compiled dist/ directory, so ../public = fitcheck-api/public/
+// Dashboard HTML/CSS/JS: no-store so browser always fetches fresh files on every request
+app.use('/dashboard', express.static(path.join(__dirname, '..', 'public', 'dashboard'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.set('Cache-Control', 'no-store');
+    }
+  },
+}));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Trust proxy - 1 hop (Railway's load balancer). Using true is too permissive for rate limiting.
