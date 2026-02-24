@@ -18,19 +18,23 @@ body {
 }
 
 /* ─── Editorial Typography ─────────────────────────────────────────── */
+/* Playfair Regular — screen titles and display headlines only          */
+/* Playfair Italic  — ONLY for the logo "?" mark (matches orthis.app)   */
 .editorial-heading {
   font-family: 'Playfair Display', Georgia, serif;
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   color: #1A1A1A;
 }
 
+/* Matches Editorial.sectionLabel from theme.ts exactly */
 .section-label {
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #9CA3AF;
+  color: #9B9B9B;
 }
 
 /* ─── Toggle Switch ────────────────────────────────────────────────── */
@@ -300,6 +304,7 @@ details > summary::-webkit-details-marker { display: none; }
 ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
 /* ─── Logo icon ────────────────────────────────────────────────────── */
+/* Uses Playfair Italic — correct, this is the brand "?" mark          */
 .logo-icon {
   width: 36px;
   height: 36px;
