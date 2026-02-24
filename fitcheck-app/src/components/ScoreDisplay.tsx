@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Colors, FontSize, Spacing, getScoreColor } from '../constants/theme';
+import { Colors, Spacing, Fonts, getScoreColor } from '../constants/theme';
 
 type Props = {
   score: number;
@@ -13,13 +12,8 @@ export default function ScoreDisplay({ score }: Props) {
   const scale = useSharedValue(0);
 
   useEffect(() => {
-    // Animate scale
-    scale.value = withSpring(1, {
-      damping: 12,
-      stiffness: 100,
-    });
+    scale.value = withSpring(1, { damping: 12, stiffness: 100 });
 
-    // Count up score
     const duration = 1200;
     const steps = 60;
     const increment = score / steps;
@@ -42,24 +36,16 @@ export default function ScoreDisplay({ score }: Props) {
     transform: [{ scale: scale.value }],
   }));
 
-  const filledStars = Math.round((score / 10) * 5);
+  const scoreColor = getScoreColor(score);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.scoreCircle, animatedStyle]}>
-        <Text style={styles.score}>{displayScore.toFixed(1)}</Text>
+      <Animated.View style={[styles.scoreRow, animatedStyle]}>
+        <Text style={[styles.score, { color: scoreColor }]}>
+          {displayScore.toFixed(1)}
+        </Text>
         <Text style={styles.outOf}>/10</Text>
       </Animated.View>
-      <View style={styles.stars}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Ionicons
-            key={i}
-            name="star"
-            size={20}
-            color={i < filledStars ? Colors.warning : Colors.border}
-          />
-        ))}
-      </View>
     </View>
   );
 }
@@ -67,24 +53,21 @@ export default function ScoreDisplay({ score }: Props) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
-  scoreCircle: {
+  scoreRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   score: {
+    fontFamily: Fonts.serif,
     fontSize: 56,
-    fontWeight: '700',
-    color: Colors.text,
+    lineHeight: 62,
   },
   outOf: {
-    fontSize: FontSize.xl,
+    fontFamily: Fonts.sans,
+    fontSize: 18,
     color: Colors.textMuted,
     marginLeft: 4,
-  },
-  stars: {
-    flexDirection: 'row',
-    gap: 4,
   },
 });

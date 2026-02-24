@@ -1,36 +1,38 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Share } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
+import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
-import AdBanner from '../../src/components/AdBanner';
+import OrThisLogo from '../../src/components/OrThisLogo';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
-import { getTimeGreeting } from '../../src/lib/mockData';
+
+const EDITORIAL_IMAGES = [
+  require('../../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg'),
+  require('../../assets/images/fabian-kunzel-zeller-xZokPso8xys-unsplash.jpg'),
+  require('../../assets/images/artby-hensi-ELsHxUox7OU-unsplash.jpg'),
+  require('../../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-unsplash.jpg'),
+];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useDailyGoals } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite } from '../../src/hooks/useApi';
 
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { tier } = useSubscriptionStore();
-  const { data: outfitsData, isError: outfitsError, refetch: refetchOutfits } = useOutfits({ limit: 5 });
-  const { data: stats, isError: statsError, refetch: refetchStats } = useUserStats();
-  const { data: dailyGoals, refetch: refetchGoals } = useDailyGoals();
+  const { data: outfitsData, refetch: refetchOutfits } = useOutfits({ limit: 5 });
+  const { data: stats, refetch: refetchStats } = useUserStats();
   const toggleFavoriteMutation = useToggleFavorite();
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = outfitsData?.outfits || [];
-  const firstName = user?.name?.split(' ')[0] || 'there';
-  const greeting = getTimeGreeting();
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchOutfits(), refetchStats(), refetchGoals()]);
+      await Promise.all([refetchOutfits(), refetchStats()]);
     } finally {
       setRefreshing(false);
     }
@@ -39,21 +41,8 @@ export default function HomeScreen() {
   const getInitials = () => {
     const name = user?.name || user?.email?.split('@')[0] || 'User';
     const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return parts[0][0] + parts[1][0];
-    }
+    if (parts.length >= 2) return parts[0][0] + parts[1][0];
     return name.slice(0, 2).toUpperCase();
-  };
-
-  const handleInvite = async () => {
-    try {
-      await Share.share({
-        message: "Check out Or This? — the AI-powered outfit feedback app that tells you exactly what works and what doesn't. Try it free: https://orthis.app",
-        url: 'https://orthis.app',
-      });
-    } catch {
-      // user dismissed share sheet — no action needed
-    }
   };
 
   const handleToggleFavorite = async (outfitId: string) => {
@@ -61,6 +50,17 @@ export default function HomeScreen() {
       await toggleFavoriteMutation.mutateAsync(outfitId);
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+    }
+  };
+
+  const handleInvite = async () => {
+    try {
+      await Share.share({
+        message: "Check out Or This? — AI outfit feedback that tells you exactly what works and what doesn't. Try it free: https://orthis.app",
+        url: 'https://orthis.app',
+      });
+    } catch {
+      // user dismissed — no action needed
     }
   };
 
@@ -78,12 +78,9 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header */}
+        {/* Header — logo left, avatar right */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{greeting}, {firstName}</Text>
-            <Text style={styles.subtitle}>Ready for your outfit check?</Text>
-          </View>
+          <OrThisLogo size={26} />
           <TouchableOpacity
             style={styles.avatar}
             onPress={() => router.push('/(tabs)/profile')}
@@ -92,104 +89,52 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Main CTA */}
-        <TouchableOpacity
-          style={styles.ctaCard}
-          activeOpacity={0.95}
-          onPress={() => router.push('/(tabs)/camera')}
-        >
-          <LinearGradient
-            colors={[Colors.primary, Colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaIcon}
-          >
-            <Ionicons name="camera" size={28} color={Colors.white} />
-          </LinearGradient>
-          <View style={styles.ctaText}>
-            <View style={styles.ctaTitleRow}>
-              <Text style={styles.ctaTitle}>Ready to check your outfit?</Text>
-              <Ionicons name="sparkles" size={16} color={Colors.primary} />
-            </View>
-            <Text style={styles.ctaSubtitle}>Take a photo and get instant AI feedback</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-        </TouchableOpacity>
+        {/* Editorial prompt area */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroPrompt}>What are you{'\n'}wearing today?</Text>
+          <Text style={styles.heroSub}>No sugarcoating. Honest AI feedback.</Text>
 
-        {/* Daily checks counter */}
-        <View style={styles.dailyChecks}>
-          {statsError ? (
-            <Text style={[styles.dailyChecksText, { color: Colors.textMuted }]}>
-              Couldn't load check count
-            </Text>
-          ) : (
-            <Text style={styles.dailyChecksText}>
-              Today's checks: {stats ? `${stats.dailyChecksRemaining}/${stats.dailyChecksLimit}` : '3/3'} remaining
+          {/* Primary CTA — sharp corners, coral, uppercase */}
+          <TouchableOpacity
+            style={styles.ctaButton}
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/camera')}
+          >
+            <Ionicons name="camera" size={18} color={Colors.white} />
+            <Text style={styles.ctaButtonText}>Check an outfit</Text>
+          </TouchableOpacity>
+
+          {/* Daily checks counter — minimal */}
+          {stats && (
+            <Text style={styles.checksRemaining}>
+              {stats.dailyChecksRemaining}/{stats.dailyChecksLimit} checks remaining today
             </Text>
           )}
         </View>
 
-        {/* Streak & Daily Goals widget */}
-        {dailyGoals && (dailyGoals.currentStreak > 0 || dailyGoals.feedbacksGiven > 0) && (
-          <View style={styles.goalsRow}>
-            {dailyGoals.currentStreak > 0 && (
-              <View style={styles.goalChip}>
-                <Ionicons name="flame" size={14} color={Colors.warning} />
-                <Text style={styles.goalChipText}>
-                  {dailyGoals.currentStreak}-day streak
-                </Text>
-              </View>
-            )}
-            {dailyGoals.feedbacksGiven > 0 && (
-              <View style={styles.goalChip}>
-                <Ionicons name="chatbubble" size={14} color={Colors.primary} />
-                <Text style={styles.goalChipText}>
-                  {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal} feedbacks today
-                  {dailyGoals.feedbacksGiven >= dailyGoals.feedbacksGoal ? ' ✓' : ''}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.95}
-            onPress={() => router.push('/(tabs)/history')}
+        {/* Editorial image strip — horizontal lookbook */}
+        <View style={styles.lookbookSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.lookbookScroll}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: Colors.primaryAlpha10 }]}>
-              <Ionicons name="grid" size={20} color={Colors.primary} />
-            </View>
-            <Text style={styles.quickActionText}>View History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.95}
-            onPress={() => router.push('/(tabs)/history?filter=favorites')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: Colors.secondaryAlpha10 }]}>
-              <Ionicons name="heart" size={20} color={Colors.secondary} />
-            </View>
-            <Text style={styles.quickActionText}>Favorites</Text>
-          </TouchableOpacity>
+            {EDITORIAL_IMAGES.map((src, i) => (
+              <Image key={i} source={src} style={styles.lookbookImage} resizeMode="cover" />
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Wardrobe Progress */}
-        <WardrobeProgressCard />
+        {/* Editorial rule divider */}
+        <View style={styles.sectionDivider} />
 
-        {/* Recent Checks */}
+        {/* Recent section */}
         {outfits.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Checks</Text>
-              <TouchableOpacity
-                style={styles.seeAllButton}
-                onPress={() => router.push('/(tabs)/history')}
-              >
-                <Text style={styles.seeAllText}>See all</Text>
-                <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+              <Text style={styles.sectionLabel}>Recent</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
+                <Text style={styles.seeAll}>See archive</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -198,7 +143,6 @@ export default function HomeScreen() {
               contentContainerStyle={styles.recentScroll}
             >
               {outfits.map((outfit) => {
-                // Format image URI properly - add base64 prefix if needed
                 let imageUri = '';
                 if (outfit.thumbnailData || outfit.imageData) {
                   const base64Data = outfit.thumbnailData || outfit.imageData;
@@ -226,37 +170,34 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Upgrade Card (only for free tier) */}
+        {/* Wardrobe Progress */}
+        <View style={styles.wardrobeSection}>
+          <WardrobeProgressCard />
+        </View>
+
+        {/* Upgrade — editorial style (free tier only) */}
         {tier === 'free' && (
-          <TouchableOpacity onPress={() => router.push('/upgrade' as any)}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.upgradeCard}
-            >
-              <Text style={styles.upgradeTitle}>Upgrade to Plus</Text>
-              <Text style={styles.upgradeDesc}>Unlimited checks, ad-free experience, and more</Text>
-              <View style={styles.upgradeButton}>
+          <View style={styles.upgradeSection}>
+            <View style={styles.sectionDivider} />
+            <View style={styles.upgradeBlock}>
+              <Text style={styles.upgradeSectionLabel}>Plus</Text>
+              <View style={styles.rule} />
+              <Text style={styles.upgradeTitle}>Unlimited checks. Zero limits.</Text>
+              <Text style={styles.upgradeSubtitle}>Ad-free, full history, premium feedback.</Text>
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={() => router.push('/upgrade' as any)}
+              >
                 <Text style={styles.upgradeButtonText}>See Plans</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
-        {/* Ad banner for free users */}
-        <AdBanner />
-
-        {/* Invite Friends */}
-        <TouchableOpacity style={styles.inviteCard} onPress={handleInvite} activeOpacity={0.85}>
-          <View style={styles.inviteIcon}>
-            <Ionicons name="person-add" size={22} color={Colors.sage} />
-          </View>
-          <View style={styles.inviteText}>
-            <Text style={styles.inviteTitle}>Invite your friends</Text>
-            <Text style={styles.inviteSubtitle}>Share Or This? and help them dress with confidence</Text>
-          </View>
-          <Ionicons name="share-outline" size={20} color={Colors.sage} />
+        {/* Invite — minimal text link */}
+        <TouchableOpacity style={styles.inviteRow} onPress={handleInvite}>
+          <Ionicons name="share-outline" size={16} color={Colors.textMuted} />
+          <Text style={styles.inviteText}>Share Or This? with a friend</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -269,232 +210,192 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   scroll: {
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.xxl,
   },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  greeting: {
-    fontSize: FontSize.xl,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  subtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
+    width: 36,
+    height: 36,
+    borderRadius: 9999,
     backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primaryAlpha30,
   },
   avatarText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13,
     color: Colors.primary,
   },
-  ctaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
+  // Hero editorial prompt
+  heroSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxl,
   },
-  ctaIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  ctaText: {
-    flex: 1,
-  },
-  ctaTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  ctaTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
+  heroPrompt: {
+    fontFamily: Fonts.serif,
+    fontSize: 36,
     color: Colors.text,
+    lineHeight: 44,
+    marginBottom: Spacing.sm,
   },
-  ctaSubtitle: {
-    fontSize: FontSize.sm,
+  heroSub: {
+    fontFamily: Fonts.sans,
+    fontSize: 15,
     color: Colors.textMuted,
-    marginTop: 2,
+    marginBottom: Spacing.xl,
   },
-  dailyChecks: {
-    alignItems: 'center',
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  dailyChecksText: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-  },
-  goalsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  goalChip: {
+  ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  goalChipText: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  quickAction: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  quickActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: 0, // sharp — editorial spec
+    paddingVertical: 16,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
-  quickActionText: {
-    fontSize: FontSize.sm,
-    fontWeight: '500',
-    color: Colors.text,
+  ctaButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.white,
   },
+  checksRemaining: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  // Editorial lookbook strip
+  lookbookSection: {
+    marginBottom: Spacing.xl,
+  },
+  lookbookScroll: {
+    paddingHorizontal: Spacing.lg,
+    gap: 6,
+  },
+  lookbookImage: {
+    width: 140,
+    height: 200,
+    borderRadius: 4,
+  },
+  // Section divider
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  // Recent section
   section: {
-    marginTop: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-    color: Colors.text,
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
   },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  seeAllText: {
-    fontSize: FontSize.sm,
-    fontWeight: '500',
+  seeAll: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
     color: Colors.primary,
   },
   recentScroll: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
   },
   recentCard: {
-    width: 144,
+    width: 160,
   },
-  upgradeCard: {
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+  // Wardrobe
+  wardrobeSection: {
+    marginBottom: Spacing.md,
+  },
+  // Upgrade block
+  upgradeSection: {
+    marginBottom: Spacing.lg,
+  },
+  upgradeBlock: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+  },
+  upgradeSectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    marginBottom: Spacing.md,
   },
   upgradeTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-    color: Colors.white,
+    fontFamily: Fonts.serif,
+    fontSize: 24,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
   },
-  upgradeDesc: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: Spacing.xs,
+  upgradeSubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginBottom: Spacing.lg,
   },
   upgradeButton: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.full,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
     alignSelf: 'flex-start',
-    marginTop: Spacing.md,
   },
   upgradeButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.primary,
-    fontWeight: '600',
-    fontSize: FontSize.sm,
   },
-  inviteCard: {
+  // Invite
+  inviteRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.sageLight,
-    gap: Spacing.md,
-  },
-  inviteIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.sageAlpha10,
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
   },
   inviteText: {
-    flex: 1,
-  },
-  inviteTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  inviteSubtitle: {
-    fontSize: FontSize.sm,
+    fontFamily: Fonts.sans,
+    fontSize: 13,
     color: Colors.textMuted,
-    marginTop: 2,
   },
 });

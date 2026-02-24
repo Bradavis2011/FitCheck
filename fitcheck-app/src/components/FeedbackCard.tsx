@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, Fonts } from '../constants/theme';
 
 type Props = {
   title: string;
@@ -10,7 +10,8 @@ type Props = {
   delay?: number;
 };
 
-export default function FeedbackCard({ title, icon, iconColor, children, delay = 0 }: Props) {
+// Editorial section card — section label (11px uppercase DM Sans) + 60px rule divider
+export default function FeedbackCard({ title, icon: _icon, iconColor, children, delay = 0 }: Props) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -24,15 +25,12 @@ export default function FeedbackCard({ title, icon, iconColor, children, delay =
 
   return (
     <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-      <View style={[styles.leftBorder, { backgroundColor: iconColor }]} />
-      <View style={styles.contentContainer}>
-        <View style={styles.header}>
-          <Text style={styles.emoji}>{icon}</Text>
-          <Text style={styles.title}>{title}</Text>
-        </View>
-        <View style={styles.content}>
-          {children}
-        </View>
+      {/* Editorial section label */}
+      <Text style={[styles.sectionLabel, { color: iconColor }]}>{title}</Text>
+      {/* 60px editorial rule */}
+      <View style={styles.rule} />
+      <View style={styles.content}>
+        {children}
       </View>
     </Animated.View>
   );
@@ -41,37 +39,29 @@ export default function FeedbackCard({ title, icon, iconColor, children, delay =
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 8,
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: 'row',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
-  leftBorder: {
-    width: 4,
-    alignSelf: 'stretch',
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    marginBottom: 8,
   },
-  contentContainer: {
-    flex: 1,
-    padding: Spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
     marginBottom: Spacing.md,
-  },
-  emoji: {
-    fontSize: 20,
-  },
-  title: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
   },
   content: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
 });

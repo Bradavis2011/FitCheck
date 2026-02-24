@@ -1,28 +1,31 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, BorderRadius, Spacing } from '../../src/constants/theme';
+import { Colors, Fonts } from '../../src/constants/theme';
 
 export default function TabsLayout() {
-  const router = useRouter();
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: Colors.white,
-          borderTopColor: Colors.border,
+          borderTopColor: 'rgba(0,0,0,0.12)',
           borderTopWidth: 1,
           height: 85,
           paddingBottom: 20,
           paddingTop: 8,
+          // sharp top border — no rounding per editorial spec
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontFamily: Fonts.sansMedium,
+          fontSize: 10,
+          letterSpacing: 0.8,
+          textTransform: 'uppercase',
         },
       }}
     >
@@ -31,7 +34,7 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
@@ -48,20 +51,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="community"
-        options={{
-          title: 'Community',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: 'Archive',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
+            <Ionicons name="grid-outline" size={size} color={color} />
           ),
         }}
       />
@@ -70,8 +64,15 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
+        }}
+      />
+      {/* Community tab hidden — underbuilt at launch */}
+      <Tabs.Screen
+        name="community"
+        options={{
+          href: null, // exclude from tab bar
         }}
       />
     </Tabs>
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   cameraButton: {
     width: 56,
     height: 56,
-    borderRadius: BorderRadius.full,
+    borderRadius: 9999,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',

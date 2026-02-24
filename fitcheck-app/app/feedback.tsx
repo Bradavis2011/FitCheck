@@ -12,11 +12,11 @@ import {
   BackHandler,
   Alert,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 // react-native-view-shot requires native binary — guard so Expo Go loads safely
 let ViewShot: any = null;
@@ -27,23 +27,18 @@ let Sharing: any = null;
 try { Sharing = require('expo-sharing'); } catch { /* unavailable in Expo Go */ }
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, Fonts, getScoreColor } from '../src/constants/theme';
 import AdBanner from '../src/components/AdBanner';
 import { recordOutfitCheck } from '../src/lib/adManager';
-import ScoreDisplay from '../src/components/ScoreDisplay';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import ShareableScoreCard from '../src/components/ShareableScoreCard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-// LAUNCH: useOutfitExpertReview removed — expert reviews disabled at launch
 import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
 
-// react-native-google-mobile-ads calls TurboModuleRegistry.getEnforcing() at module
-// level — guard with require() so the app loads safely without a rebuilt dev binary.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 let _ads: any = null;
 try { _ads = require('react-native-google-mobile-ads'); } catch { /* native module unavailable */ }
 const InterstitialAd = _ads?.InterstitialAd;
@@ -57,6 +52,9 @@ const INTERSTITIAL_UNIT_ID = __DEV__
       default: _TestIds?.INTERSTITIAL ?? '',
     })!;
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const HERO_HEIGHT = Math.round(SCREEN_WIDTH * 1.1); // ~portrait aspect
+
 export default function FeedbackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -65,7 +63,6 @@ export default function FeedbackScreen() {
   const { resetCheckFlow } = useAppStore();
   const { limits, tier } = useSubscriptionStore();
   const togglePublicMutation = useTogglePublic();
-
   const user = useAuthStore((s) => s.user);
 
   const [outfit, setOutfit] = useState<OutfitCheck | null>(null);
@@ -85,22 +82,16 @@ export default function FeedbackScreen() {
   const interstitialRef = useRef<any>(null);
   const viewShotRef = useRef<any>(null);
 
-  // Fetch community feedback if outfit is public
   const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
-  // LAUNCH: expert reviews disabled — re-enable when stylist marketplace is live
-  // const { data: expertReviewData } = useOutfitExpertReview(outfitId);
 
-  // Handle hardware back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       handleGoHome();
-      return true; // Prevent default back behavior
+      return true;
     });
-
     return () => backHandler.remove();
   }, []);
 
-  // Load interstitial ad for free-tier users
   useEffect(() => {
     if (!limits?.hasAds || !InterstitialAd) return;
     try {
@@ -109,15 +100,10 @@ export default function FeedbackScreen() {
       });
       ad.load();
       interstitialRef.current = ad;
-    } catch {
-      // Native ads module not available in this environment (e.g. Expo Go)
-    }
-    return () => {
-      interstitialRef.current = null;
-    };
+    } catch { /* Native ads unavailable */ }
+    return () => { interstitialRef.current = null; };
   }, []);
 
-  // Poll for feedback
   useEffect(() => {
     if (!outfitId) {
       router.replace('/(tabs)' as any);
@@ -131,45 +117,25 @@ export default function FeedbackScreen() {
         setIsFavorite(data.isFavorite);
         setIsPublic(data.isPublic);
 
-        // Stop polling if feedback is ready
         if (data.aiProcessedAt) {
-          // Show interstitial for new analysis completions (free users, every 2nd check)
           if (wasAnalyzingRef.current && limits?.hasAds && recordOutfitCheck()) {
             setTimeout(() => {
               try {
-                if (interstitialRef.current?.loaded) {
-                  interstitialRef.current.show();
-                }
-              } catch {
-                // Ignore if ad cannot be shown
-              }
+                if (interstitialRef.current?.loaded) interstitialRef.current.show();
+              } catch { /* ignore */ }
             }, 1500);
           }
           wasAnalyzingRef.current = false;
           if (data.aiScore != null) {
-            track('outfit_check_completed', {
-              score: data.aiScore,
-              occasion: data.occasions?.[0],
-            });
+            track('outfit_check_completed', { score: data.aiScore, occasion: data.occasions?.[0] });
           }
-
           setIsLoading(false);
-          if (pollInterval.current) {
-            clearInterval(pollInterval.current);
-            pollInterval.current = null;
-          }
-
-          // Show "Was this helpful?" after 3 seconds
+          if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
           setTimeout(() => {
             setShowHelpful(true);
-            Animated.timing(fadeAnim, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }).start();
+            Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
           }, 3000);
         } else {
-          // outfit is still being analyzed
           wasAnalyzingRef.current = true;
         }
       } catch (error) {
@@ -178,35 +144,24 @@ export default function FeedbackScreen() {
       }
     };
 
-    // Initial fetch
     fetchOutfit();
-
-    // Poll every 2 seconds until feedback is ready
     pollInterval.current = setInterval(fetchOutfit, 2000);
-
-    return () => {
-      if (pollInterval.current) {
-        clearInterval(pollInterval.current);
-      }
-    };
+    return () => { if (pollInterval.current) clearInterval(pollInterval.current); };
   }, [outfitId]);
 
   const handleToggleFavorite = async () => {
     if (!outfit) return;
-
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsFavorite(!isFavorite);
       await outfitService.toggleFavorite(outfit.id);
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-      setIsFavorite(isFavorite); // Revert on error
+    } catch {
+      setIsFavorite(isFavorite);
     }
   };
 
   const handleHelpfulResponse = async (response: boolean) => {
     if (!outfit) return;
-
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setHelpfulResponse(response);
@@ -218,25 +173,19 @@ export default function FeedbackScreen() {
 
   const handleTogglePublic = async () => {
     if (!outfit) return;
-
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const newPublicState = !isPublic;
       setIsPublic(newPublicState);
       await togglePublicMutation.mutateAsync(outfit.id);
-
       if (newPublicState) {
-        Alert.alert(
-          '🎉 Shared to Community!',
-          'Your outfit is now visible in the Community feed.',
-          [{ text: 'View Community', onPress: () => router.push('/(tabs)/community' as any) }]
-        );
+        Alert.alert('Shared to Community', 'Your outfit is now visible in the Community feed.', [
+          { text: 'OK' },
+        ]);
       }
     } catch (error: any) {
       console.error('Failed to toggle public:', error);
-      setIsPublic(isPublic); // Revert on error
-
-      // Show error message if provided by backend
+      setIsPublic(isPublic);
       if (error?.response?.data?.error) {
         Alert.alert('Cannot Share', error.response.data.error);
       } else {
@@ -247,7 +196,6 @@ export default function FeedbackScreen() {
 
   const handleShareScore = async () => {
     if (!outfit) return;
-
     try {
       setIsGeneratingShare(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -256,42 +204,27 @@ export default function FeedbackScreen() {
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
       const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`;
 
-      // Try image capture first (requires EAS production build with react-native-view-shot)
       let imageShared = false;
       if (viewShotRef.current?.capture) {
         try {
-          // Small delay to ensure the off-screen card is fully rendered
           await new Promise(resolve => setTimeout(resolve, 150));
           const uri = await viewShotRef.current.capture();
-
           if (uri) {
             const fileUri = `${FileSystem.cacheDirectory}outfit-score-${Date.now()}.png`;
             await FileSystem.copyAsync({ from: uri, to: fileUri });
-
             const canShare = await Sharing.isAvailableAsync();
             if (canShare) {
-              await Sharing.shareAsync(fileUri, {
-                mimeType: 'image/png',
-                dialogTitle: `My Or This? Score: ${score}/10`,
-              });
+              await Sharing.shareAsync(fileUri, { mimeType: 'image/png', dialogTitle: `My Or This? Score: ${score}/10` });
               imageShared = true;
             }
           }
-        } catch (imgError) {
-          // Native module not available (e.g. Expo Go) — fall through to text share
-          console.warn('Image capture unavailable, using text share:', imgError);
-        }
+        } catch { /* fall through to text share */ }
       }
 
-      // Fallback: text-only share
       if (!imageShared) {
-        await Share.share({
-          message: shareMessage,
-          title: `My Or This? Score: ${score}/10`,
-        });
+        await Share.share({ message: shareMessage, title: `My Or This? Score: ${score}/10` });
       }
     } catch (error: any) {
-      console.error('Failed to share score:', error);
       if (error.message !== 'User cancelled' && !error.message?.includes('cancelled')) {
         Alert.alert('Error', 'Failed to share. Please try again.');
       }
@@ -304,10 +237,6 @@ export default function FeedbackScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     track('follow_up_asked', { outfit_id: outfitId, question_number: 1 });
     setShowFollowUp(true);
-  };
-
-  const handleCloseFollowUp = () => {
-    setShowFollowUp(false);
   };
 
   const handleGoHome = () => {
@@ -326,10 +255,8 @@ export default function FeedbackScreen() {
       setIsReanalyzing(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await outfitService.reanalyzeOutfit(outfit.id);
-      // Reset local state so polling loop restarts
       setOutfit((prev) => prev ? { ...prev, aiFeedback: undefined, aiScore: undefined, aiProcessedAt: undefined } : prev);
       setIsLoading(true);
-      // Re-start polling
       pollInterval.current = setInterval(async () => {
         try {
           const data = await outfitService.getOutfit(outfit.id);
@@ -344,16 +271,9 @@ export default function FeedbackScreen() {
         }
       }, 2000);
     } catch (error) {
-      console.error('Failed to reanalyze:', error);
       Alert.alert('Error', 'Failed to start re-analysis. Please try again.');
       setIsReanalyzing(false);
     }
-  };
-
-  const getScoreColor = (value: number) => {
-    if (value >= 8) return Colors.success;
-    if (value >= 6) return Colors.warning;
-    return Colors.error;
   };
 
   if (isLoading || !outfit?.aiFeedback) {
@@ -361,7 +281,7 @@ export default function FeedbackScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Analyzing your outfit...</Text>
-        <Text style={styles.loadingSubtext}>This usually takes 10-15 seconds</Text>
+        <Text style={styles.loadingSubtext}>This usually takes 10–15 seconds</Text>
       </View>
     );
   }
@@ -369,32 +289,42 @@ export default function FeedbackScreen() {
   const feedback = outfit.aiFeedback;
   const score = outfit.aiScore || 7;
   const imageUri = outfit.imageData ? `data:image/jpeg;base64,${outfit.imageData}` : outfit.imageUrl;
-  const isFallbackResponse = feedback?.summary?.includes("trouble analyzing");
+  const scoreColor = getScoreColor(score);
+  const isFallbackResponse = feedback?.summary?.includes('trouble analyzing');
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
+        {/* Minimal header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoHome}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Your Feedback</Text>
           <TouchableOpacity style={styles.followUpHeaderButton} onPress={handleFollowUp}>
-            <Ionicons name="chatbubble-outline" size={20} color={Colors.primary} />
+            <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Image and Score */}
-          <View style={styles.topSection}>
-            {imageUri && (
-              <View style={styles.imageContainer}>
-                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+          {/* Full-bleed hero image with score overlay */}
+          {imageUri && (
+            <View style={styles.heroContainer}>
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.heroImage}
+                resizeMode="cover"
+              />
+              {/* Dark gradient overlay at bottom */}
+              <View style={styles.heroOverlay} />
+              {/* Score overlaid on image */}
+              <View style={styles.scoreOverlay}>
+                <Text style={[styles.scoreNumber, { color: scoreColor }]}>
+                  {score.toFixed(1)}
+                </Text>
+                <Text style={styles.scoreOut}>/10</Text>
               </View>
-            )}
-            <ScoreDisplay score={score} />
-          </View>
+            </View>
+          )}
 
           {/* Summary */}
           <View style={styles.summarySection}>
@@ -404,7 +334,7 @@ export default function FeedbackScreen() {
           {/* Retry Analysis Banner */}
           {isFallbackResponse && (
             <View style={styles.retryBanner}>
-              <Ionicons name="alert-circle-outline" size={20} color={Colors.warning} />
+              <Ionicons name="alert-circle-outline" size={18} color={Colors.warning} />
               <Text style={styles.retryBannerText}>Analysis didn't complete fully</Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -420,10 +350,10 @@ export default function FeedbackScreen() {
             </View>
           )}
 
-          {/* What's Working */}
+          {/* Working */}
           {feedback.whatsWorking && feedback.whatsWorking.length > 0 && (
             <FeedbackCard
-              title="What's Working"
+              title="Working"
               icon="✅"
               iconColor={Colors.success}
               delay={0}
@@ -454,12 +384,12 @@ export default function FeedbackScreen() {
             </FeedbackCard>
           )}
 
-          {/* Quick Fixes */}
+          {/* Quick Fix */}
           {feedback.quickFixes && feedback.quickFixes.length > 0 && (
             <FeedbackCard
-              title="Quick Fixes"
+              title="Quick Fix"
               icon="💡"
-              iconColor={Colors.info}
+              iconColor={Colors.primary}
               delay={400}
             >
               {feedback.quickFixes.map((fix, index) => (
@@ -476,16 +406,16 @@ export default function FeedbackScreen() {
             <StyleDNACard styleDNA={feedback.styleDNA} delay={600} />
           )}
 
-          {/* Follow-up Questions */}
+          {/* Follow-up — sharp-corner input area */}
           <View style={styles.followUpSection}>
             <TouchableOpacity style={styles.followUpButton} onPress={handleFollowUp}>
-              <Ionicons name="chatbubble-outline" size={20} color={Colors.primary} />
-              <Text style={styles.followUpButtonText}>Ask a Follow-up Question</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+              <Ionicons name="chatbubble-outline" size={18} color={Colors.primary} />
+              <Text style={styles.followUpButtonText}>Ask a follow-up question</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
             </TouchableOpacity>
           </View>
 
-          {/* Helpful prompt */}
+          {/* Was this helpful? */}
           {showHelpful && helpfulResponse === null && (
             <Animated.View style={[styles.helpfulSection, { opacity: fadeAnim }]}>
               <Text style={styles.helpfulText}>Was this helpful?</Text>
@@ -494,13 +424,13 @@ export default function FeedbackScreen() {
                   style={[styles.helpfulButton, styles.helpfulButtonPositive]}
                   onPress={() => handleHelpfulResponse(true)}
                 >
-                  <Ionicons name="thumbs-up-outline" size={24} color={Colors.success} />
+                  <Ionicons name="thumbs-up-outline" size={22} color={Colors.success} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.helpfulButton, styles.helpfulButtonNegative]}
                   onPress={() => handleHelpfulResponse(false)}
                 >
-                  <Ionicons name="thumbs-down-outline" size={24} color={Colors.textMuted} />
+                  <Ionicons name="thumbs-down-outline" size={22} color={Colors.textMuted} />
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -508,67 +438,42 @@ export default function FeedbackScreen() {
 
           {helpfulResponse !== null && (
             <View style={styles.thankYouSection}>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
               <Text style={styles.thankYouText}>Thanks for your feedback!</Text>
             </View>
           )}
 
-          {/* Community Feedback Section */}
+          {/* Community feedback */}
           {isPublic && communityFeedbackData?.feedback && communityFeedbackData.feedback.length > 0 && (
-            <View style={styles.communityFeedbackSection}>
-              <View style={styles.communityFeedbackHeader}>
-                <Text style={styles.communityFeedbackTitle}>Community Feedback</Text>
-                <View style={styles.communityScoreBadge}>
-                  <Ionicons name="people" size={16} color={Colors.primary} />
-                  <Text style={styles.communityScoreText}>
-                    {(outfit.communityAvgScore || 0).toFixed(1)}/10
-                  </Text>
-                  <Text style={styles.communityCountText}>
-                    ({communityFeedbackData.feedback.length})
-                  </Text>
-                </View>
+            <View style={styles.communitySection}>
+              <View style={styles.communityHeader}>
+                <Text style={styles.communitySectionLabel}>Community</Text>
+                <View style={styles.communityRule} />
+                <Text style={styles.communityScore}>
+                  {(outfit.communityAvgScore || 0).toFixed(1)}/10 avg
+                  {' '}({communityFeedbackData.feedback.length})
+                </Text>
               </View>
-
               {showCommunityFeedback ? (
                 <>
-                  {communityFeedbackData.feedback.map((feedback) => (
-                    <View key={feedback.id} style={styles.communityFeedbackItem}>
+                  {communityFeedbackData.feedback.map((fb) => (
+                    <View key={fb.id} style={styles.communityFeedbackItem}>
                       <View style={styles.communityFeedbackItemHeader}>
-                        <View style={styles.communityFeedbackUser}>
-                          {feedback.user.profileImageUrl ? (
-                            <Image
-                              source={{ uri: feedback.user.profileImageUrl }}
-                              style={styles.communityFeedbackUserAvatar}
-                            />
-                          ) : (
-                            <View style={[styles.communityFeedbackUserAvatar, styles.communityFeedbackUserAvatarPlaceholder]}>
-                              <Text style={styles.communityFeedbackUserAvatarText}>
-                                {(feedback.user.username || feedback.user.name || 'A')[0].toUpperCase()}
-                              </Text>
-                            </View>
-                          )}
-                          <Text style={styles.communityFeedbackUsername}>
-                            {feedback.user.username || feedback.user.name || 'Anonymous'}
-                          </Text>
-                        </View>
-                        <View style={styles.communityFeedbackScore}>
-                          <Text style={[styles.communityFeedbackScoreText, { color: getScoreColor(feedback.score) }]}>
-                            {feedback.score}/10
-                          </Text>
-                        </View>
+                        <Text style={styles.communityUsername}>
+                          {fb.user.username || fb.user.name || 'Anonymous'}
+                        </Text>
+                        <Text style={[styles.communityItemScore, { color: getScoreColor(fb.score) }]}>
+                          {fb.score}/10
+                        </Text>
                       </View>
-                      <Text style={styles.communityFeedbackComment}>{feedback.comment}</Text>
-                      <Text style={styles.communityFeedbackTime}>
-                        {new Date(feedback.createdAt).toLocaleDateString()}
-                      </Text>
+                      <Text style={styles.communityComment}>{fb.comment}</Text>
                     </View>
                   ))}
                   <TouchableOpacity
                     style={styles.showLessButton}
                     onPress={() => setShowCommunityFeedback(false)}
                   >
-                    <Text style={styles.showLessButtonText}>Show Less</Text>
-                    <Ionicons name="chevron-up" size={16} color={Colors.primary} />
+                    <Text style={styles.showLessText}>Show Less</Text>
                   </TouchableOpacity>
                 </>
               ) : (
@@ -576,80 +481,41 @@ export default function FeedbackScreen() {
                   style={styles.showMoreButton}
                   onPress={() => setShowCommunityFeedback(true)}
                 >
-                  <Text style={styles.showMoreButtonText}>
+                  <Text style={styles.showMoreText}>
                     View {communityFeedbackData.feedback.length} feedback{communityFeedbackData.feedback.length !== 1 ? 's' : ''}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color={Colors.primary} />
                 </TouchableOpacity>
               )}
             </View>
           )}
 
-          {/* LAUNCH: Expert review section disabled — re-enable when stylist marketplace is live */}
-
-          {/* Share to Community */}
-          {score >= 7 ? (
-            // High score: Prominent CTA
-            <View style={styles.shareProminentContainer}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.shareProminentCard}
-              >
-                <View style={styles.shareProminentContent}>
-                  <Text style={styles.shareProminentTitle}>🔥 Great score!</Text>
-                  <Text style={styles.shareProminentDesc}>
-                    Share with the community for feedback
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.shareToggleButton, isPublic && styles.shareToggleButtonActive]}
-                  onPress={handleTogglePublic}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name={isPublic ? 'checkmark-circle' : 'people-outline'}
-                    size={20}
-                    color={isPublic ? Colors.white : Colors.primary}
-                  />
-                  <Text style={[styles.shareToggleText, isPublic && styles.shareToggleTextActive]}>
-                    {isPublic ? 'Shared' : 'Share'}
-                  </Text>
-                </TouchableOpacity>
-              </LinearGradient>
-            </View>
-          ) : (
-            // Lower score: Secondary option
-            <View style={styles.shareSecondaryContainer}>
-              <View style={styles.shareSecondaryRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.shareSecondaryTitle}>Community Feed</Text>
-                  <Text style={styles.shareSecondaryDesc}>
-                    Get feedback from others
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.shareSecondaryToggle, isPublic && styles.shareSecondaryToggleActive]}
-                  onPress={handleTogglePublic}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.shareSecondaryThumb, isPublic && styles.shareSecondaryThumbActive]} />
-                </TouchableOpacity>
+          {/* Share to community — editorial style */}
+          <View style={styles.shareSection}>
+            <View style={styles.shareRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.shareSectionLabel}>Community</Text>
+                <Text style={styles.shareDesc}>
+                  {isPublic ? 'Visible in community feed' : 'Share for peer feedback'}
+                </Text>
               </View>
+              <TouchableOpacity
+                style={[styles.shareToggle, isPublic && styles.shareToggleActive]}
+                onPress={handleTogglePublic}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.shareThumb, isPublic && styles.shareThumbActive]} />
+              </TouchableOpacity>
             </View>
-          )}
+          </View>
 
-          {/* Ad banner for free users */}
           <AdBanner />
-
           <View style={{ height: 120 }} />
         </ScrollView>
 
-        {/* Action bar */}
+        {/* Sharp-corner action bar */}
         <View style={styles.actionBar}>
           <TouchableOpacity
-            style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
+            style={[styles.iconButton, isFavorite && styles.iconButtonActive]}
             onPress={handleToggleFavorite}
           >
             <Ionicons
@@ -659,7 +525,7 @@ export default function FeedbackScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.shareButtonLarge}
+            style={styles.shareButton}
             onPress={handleShareScore}
             disabled={isGeneratingShare}
           >
@@ -667,21 +533,20 @@ export default function FeedbackScreen() {
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
               <>
-                <Ionicons name="share-social" size={20} color={Colors.white} />
+                <Ionicons name="share-social" size={18} color={Colors.white} />
                 <Text style={styles.shareButtonText}>Share Score</Text>
               </>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.newCheckButton} onPress={handleNewCheck}>
-            <Ionicons name="camera" size={20} color={Colors.text} />
+          <TouchableOpacity style={styles.iconButton} onPress={handleNewCheck}>
+            <Ionicons name="camera-outline" size={20} color={Colors.text} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
 
-      {/* Follow-up modal */}
       <FollowUpModal
         visible={showFollowUp}
-        onClose={handleCloseFollowUp}
+        onClose={() => setShowFollowUp(false)}
         feedbackSummary={feedback.summary}
         outfitId={outfit.id}
         maxFollowUps={limits?.followUpsPerCheck ?? 3}
@@ -691,7 +556,6 @@ export default function FeedbackScreen() {
         existingFollowUps={outfit.followUps}
       />
 
-      {/* Off-screen share card — captured by react-native-view-shot for image sharing */}
       {ViewShot && (
         <View style={styles.hiddenShareCard} pointerEvents="none">
           <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.95 }}>
@@ -722,105 +586,90 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 17,
     color: Colors.text,
     marginTop: Spacing.md,
   },
   loadingSubtext: {
-    fontSize: FontSize.sm,
+    fontFamily: Fonts.sans,
+    fontSize: 14,
     color: Colors.textMuted,
   },
   safeArea: {
     flex: 1,
   },
+  // Minimal header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 9999,
   },
   followUpHeaderButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 9999,
-  },
-  headerTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
   },
   scrollView: {
     flex: 1,
   },
-  topSection: {
-    alignItems: 'center',
-    paddingTop: Spacing.lg,
+  // Full-bleed hero image
+  heroContainer: {
+    width: SCREEN_WIDTH,
+    height: Math.min(HERO_HEIGHT, 480),
+    position: 'relative',
   },
-  imageContainer: {
-    width: 160,
-    height: 200,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    marginBottom: Spacing.lg,
-  },
-  image: {
+  heroImage: {
     width: '100%',
     height: '100%',
   },
+  heroOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  scoreOverlay: {
+    position: 'absolute',
+    bottom: 20,
+    left: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  scoreNumber: {
+    fontFamily: Fonts.serif,
+    fontSize: 56,
+    lineHeight: 60,
+  },
+  scoreOut: {
+    fontFamily: Fonts.sans,
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 4,
+  },
+  // Summary
   summarySection: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
   summaryText: {
-    fontSize: FontSize.lg,
+    fontFamily: Fonts.sans,
+    fontSize: 16,
     lineHeight: 26,
     color: Colors.text,
-    fontWeight: '500',
-    textAlign: 'center',
   },
-  matchBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: BorderRadius.full,
-  },
-  matchText: {
-    fontSize: FontSize.sm,
-    color: Colors.success,
-    fontWeight: '600',
-  },
-  feedbackItem: {
-    gap: 4,
-  },
-  feedbackItemTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  feedbackItemDetail: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
+  // Retry banner
   retryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -828,66 +677,82 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     padding: Spacing.md,
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 4,
     gap: Spacing.sm,
   },
   retryBannerText: {
     flex: 1,
-    fontSize: FontSize.sm,
+    fontFamily: Fonts.sans,
+    fontSize: 14,
     color: Colors.warning,
-    fontWeight: '500',
   },
   retryButton: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     backgroundColor: Colors.warning,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     minWidth: 56,
     alignItems: 'center',
   },
   retryButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
+    fontSize: 13,
     color: Colors.white,
   },
+  // Feedback items within FeedbackCard
+  feedbackItem: {
+    gap: 4,
+  },
+  feedbackItemTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  feedbackItemDetail: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  // Follow-up
   followUpSection: {
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   followUpButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.sm,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 0, // sharp
   },
   followUpButtonText: {
     flex: 1,
-    marginLeft: Spacing.sm,
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sans,
+    fontSize: 15,
     color: Colors.text,
   },
+  // Helpful
   helpfulSection: {
     alignItems: 'center',
     marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
     gap: Spacing.sm,
   },
   helpfulText: {
-    fontSize: FontSize.md,
+    fontFamily: Fonts.sans,
+    fontSize: 15,
     color: Colors.text,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   helpfulButtons: {
     flexDirection: 'row',
@@ -896,12 +761,14 @@ const styles = StyleSheet.create({
   helpfulButton: {
     width: 48,
     height: 48,
-    borderRadius: 9999,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   helpfulButtonPositive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
   },
   helpfulButtonNegative: {
     backgroundColor: Colors.surface,
@@ -914,343 +781,173 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.md,
   },
   thankYouText: {
-    fontSize: FontSize.md,
+    fontFamily: Fonts.sans,
+    fontSize: 14,
     color: Colors.success,
-    fontWeight: '600',
   },
+  // Community section
+  communitySection: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  communityHeader: {
+    marginBottom: Spacing.md,
+  },
+  communitySectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  communityRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    marginBottom: Spacing.sm,
+  },
+  communityScore: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+  communityFeedbackItem: {
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+  },
+  communityFeedbackItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  communityUsername: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  communityItemScore: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 14,
+  },
+  communityComment: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  showMoreButton: {
+    paddingVertical: Spacing.sm,
+  },
+  showMoreText: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.primary,
+  },
+  showLessButton: {
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  showLessText: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.primary,
+  },
+  // Share to community
+  shareSection: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 4,
+  },
+  shareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  shareSectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
+  shareDesc: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+  shareToggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 9999,
+    backgroundColor: Colors.surfaceLight,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  shareToggleActive: {
+    backgroundColor: Colors.primary,
+  },
+  shareThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 9999,
+    backgroundColor: Colors.white,
+    alignSelf: 'flex-start',
+  },
+  shareThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  // Action bar — sharp corners
   actionBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: 'rgba(0,0,0,0.1)',
     backgroundColor: Colors.background,
   },
-  favoriteButton: {
+  iconButton: {
     width: 48,
     height: 48,
-    borderRadius: 9999,
-    backgroundColor: Colors.surface,
+    borderRadius: 0, // sharp
+    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(0,0,0,0.12)',
   },
-  favoriteButtonActive: {
-    backgroundColor: Colors.secondary,
-    borderColor: Colors.secondary,
+  iconButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  shareButtonLarge: {
+  shareButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0, // sharp — editorial spec
     backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   shareButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
   },
-  newCheckButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 9999,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  // Share to Community - Prominent (high scores)
-  shareProminentContainer: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-  },
-  shareProminentCard: {
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  shareProminentContent: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  shareProminentTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.white,
-    marginBottom: 4,
-  },
-  shareProminentDesc: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  shareToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.full,
-  },
-  shareToggleButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  shareToggleText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  shareToggleTextActive: {
-    color: Colors.white,
-  },
-  // Share to Community - Secondary (lower scores)
-  shareSecondaryContainer: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-  },
-  shareSecondaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  shareSecondaryTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  shareSecondaryDesc: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  shareSecondaryToggle: {
-    width: 48,
-    height: 28,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceLight,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  shareSecondaryToggleActive: {
-    backgroundColor: Colors.primary,
-  },
-  shareSecondaryThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
-    alignSelf: 'flex-start',
-  },
-  shareSecondaryThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  // Community Feedback Section
-  communityFeedbackSection: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    padding: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  communityFeedbackHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  communityFeedbackTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  communityScoreBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.full,
-  },
-  communityScoreText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  communityCountText: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    fontWeight: '600',
-  },
-  communityFeedbackItem: {
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  communityFeedbackItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  communityFeedbackUser: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  communityFeedbackUserAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.full,
-  },
-  communityFeedbackUserAvatarPlaceholder: {
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  communityFeedbackUserAvatarText: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  communityFeedbackUsername: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  communityFeedbackScore: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-  },
-  communityFeedbackScoreText: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-  },
-  communityFeedbackComment: {
-    fontSize: FontSize.md,
-    color: Colors.text,
-    lineHeight: 20,
-    marginBottom: Spacing.xs,
-  },
-  communityFeedbackTime: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-  },
-  showMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm,
-  },
-  showMoreButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  showLessButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  showLessButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  // Off-screen share card (captured by react-native-view-shot)
+  // Off-screen share card
   hiddenShareCard: {
     position: 'absolute',
     left: -1000,
     top: 0,
-    // Not opacity:0 — some platforms skip rendering transparent views
-  },
-  // Expert Review Section
-  expertReviewSection: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    padding: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.primary + '30',
-  },
-  expertReviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: 4,
-  },
-  expertReviewTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
-    flex: 1,
-  },
-  expertScoreBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-  },
-  expertScoreText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  expertReviewerName: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginBottom: Spacing.sm,
-  },
-  expertReviewText: {
-    fontSize: FontSize.md,
-    color: Colors.text,
-    lineHeight: 22,
-  },
-  expertReviewCTA: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.primary + '40',
-  },
-  expertReviewCTATitle: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  expertReviewCTASubtitle: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginTop: 2,
   },
 });

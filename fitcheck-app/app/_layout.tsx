@@ -5,6 +5,18 @@ import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_400Regular_Italic,
+} from '@expo-google-fonts/playfair-display';
 import * as Sentry from '@sentry/react-native';
 import { tokenCache } from '../src/lib/clerk';
 import { initAnalytics, identify, track, reset } from '../src/lib/analytics';
@@ -14,6 +26,9 @@ import { useAuthStore } from '../src/stores/authStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+
+// Keep splash screen visible until fonts are loaded
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Initialize PostHog analytics
 initAnalytics();
@@ -107,6 +122,29 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_400Regular_Italic,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   if (!CLERK_PUBLISHABLE_KEY) {
     throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in .env');
   }

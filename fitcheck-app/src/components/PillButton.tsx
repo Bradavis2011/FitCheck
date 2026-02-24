@@ -1,6 +1,6 @@
 import { Text, StyleSheet, Pressable } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Colors, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, FontSize, Fonts } from '../constants/theme';
 
 type Props = {
   label: string;
@@ -9,9 +9,8 @@ type Props = {
   small?: boolean;
 };
 
+// Editorial chip — sharp corners (0px), uppercase DM Sans, 1px border
 export default function PillButton({ label, selected = false, onPress, small = false }: Props) {
-  const size = small ? 'sm' : 'md';
-  const sizeStyle = size === 'sm' ? styles.sm : styles.md;
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -33,9 +32,18 @@ export default function PillButton({ label, selected = false, onPress, small = f
       onPressOut={handlePressOut}
     >
       <Animated.View
-        style={[styles.base, sizeStyle, selected ? styles.selected : styles.unselected, animatedStyle]}
+        style={[
+          styles.base,
+          small ? styles.sm : styles.md,
+          selected ? styles.selected : styles.unselected,
+          animatedStyle,
+        ]}
       >
-        <Text style={[styles.text, selected ? styles.selectedText : styles.unselectedText]}>
+        <Text style={[
+          styles.text,
+          small ? styles.textSm : styles.textMd,
+          selected ? styles.selectedText : styles.unselectedText,
+        ]}>
           {label}
         </Text>
       </Animated.View>
@@ -45,7 +53,7 @@ export default function PillButton({ label, selected = false, onPress, small = f
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: BorderRadius.full,
+    borderRadius: 0, // sharp corners — editorial spec
   },
   sm: {
     paddingHorizontal: 12,
@@ -57,21 +65,29 @@ const styles = StyleSheet.create({
   },
   selected: {
     backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
   unselected: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(0,0,0,0.2)',
   },
   text: {
-    fontWeight: '500',
+    fontFamily: Fonts.sansMedium,
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+  },
+  textSm: {
+    fontSize: 11,
+  },
+  textMd: {
+    fontSize: 12,
   },
   selectedText: {
     color: Colors.white,
-    fontSize: FontSize.sm,
   },
   unselectedText: {
     color: Colors.textMuted,
-    fontSize: FontSize.sm,
   },
 });

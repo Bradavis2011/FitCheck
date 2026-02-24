@@ -3,10 +3,9 @@ import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Refresh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
+import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
 import AdBanner from '../../src/components/AdBanner';
-import PillButton from '../../src/components/PillButton';
 import { HistoryGridSkeleton } from '../../src/components/SkeletonLoader';
 import ErrorState from '../../src/components/ErrorState';
 import { useOutfits, useToggleFavorite, useDeleteOutfit, useReanalyzeOutfit } from '../../src/hooks/useApi';
@@ -17,7 +16,6 @@ export default function HistoryScreen() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All');
 
-  // Build API filters
   const filters: any = {};
   if (activeFilter === 'Favorites') {
     filters.isFavorite = true;
@@ -35,11 +33,7 @@ export default function HistoryScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try {
-      await refetch();
-    } finally {
-      setRefreshing(false);
-    }
+    try { await refetch(); } finally { setRefreshing(false); }
   };
 
   const handleToggleFavorite = async (outfitId: string) => {
@@ -50,7 +44,7 @@ export default function HistoryScreen() {
     }
   };
 
-  const handleLongPress = (outfitId: string, imageUri: string) => {
+  const handleLongPress = (outfitId: string) => {
     Alert.alert('Outfit Options', '', [
       {
         text: 'Re-analyze',
@@ -61,10 +55,7 @@ export default function HistoryScreen() {
           });
         },
       },
-      {
-        text: 'Compare Outfits',
-        onPress: () => router.push('/compare' as any),
-      },
+      { text: 'Compare Outfits', onPress: () => router.push('/compare' as any) },
       {
         text: 'Delete',
         style: 'destructive',
@@ -89,12 +80,12 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {/* Header — Playfair Display italic title */}
       <View style={styles.header}>
-        <Text style={styles.title}>Your Outfits</Text>
+        <Text style={styles.title}>Archive</Text>
       </View>
 
-      {/* Filter tabs */}
+      {/* Filter chips — sharp corners (0px), uppercase */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -102,15 +93,21 @@ export default function HistoryScreen() {
         style={styles.filtersContainer}
       >
         {FILTERS.map((f) => (
-          <PillButton
+          <TouchableOpacity
             key={f}
-            label={f}
-            selected={activeFilter === f}
+            style={[styles.chip, activeFilter === f && styles.chipActive]}
             onPress={() => setActiveFilter(f)}
-            small
-          />
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
+              {f}
+            </Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Editorial rule below filters */}
+      <View style={styles.filterDivider} />
 
       {/* Grid */}
       {isLoading && !refreshing ? (
@@ -139,7 +136,6 @@ export default function HistoryScreen() {
             />
           }
           renderItem={({ item }) => {
-            // Format image URI properly - add base64 prefix if needed
             let imageUri = '';
             if (item.thumbnailData || item.imageData) {
               const base64Data = item.thumbnailData || item.imageData;
@@ -158,7 +154,7 @@ export default function HistoryScreen() {
                   occasions={item.occasions || []}
                   isFavorite={item.isFavorite}
                   onPress={() => router.push(`/feedback?outfitId=${item.id}` as any)}
-                  onLongPress={() => handleLongPress(item.id, imageUri)}
+                  onLongPress={() => handleLongPress(item.id)}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
                 />
               </View>
@@ -167,15 +163,13 @@ export default function HistoryScreen() {
         />
       ) : (
         <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="shirt-outline" size={40} color={Colors.textMuted} />
-          </View>
+          <Ionicons name="shirt-outline" size={40} color={Colors.textMuted} />
           <Text style={styles.emptyTitle}>
             {activeFilter === 'All'
               ? 'No outfit checks yet'
               : activeFilter === 'Favorites'
               ? 'No favorites yet'
-              : `No ${activeFilter.toLowerCase()} outfits found`}
+              : `No ${activeFilter.toLowerCase()} outfits`}
           </Text>
           <Text style={styles.emptySubtitle}>
             {activeFilter === 'All'
@@ -189,8 +183,7 @@ export default function HistoryScreen() {
               style={styles.emptyButton}
               onPress={() => router.push('/(tabs)/camera')}
             >
-              <Ionicons name="camera" size={20} color={Colors.white} />
-              <Text style={styles.emptyButtonText}>Start your first check</Text>
+              <Text style={styles.emptyButtonText}>Check an outfit</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -202,7 +195,7 @@ export default function HistoryScreen() {
         onPress={() => router.push('/compare' as any)}
         activeOpacity={0.9}
       >
-        <Ionicons name="git-compare-outline" size={24} color={Colors.white} />
+        <Ionicons name="git-compare-outline" size={22} color={Colors.white} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -214,25 +207,54 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
   },
   title: {
-    fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.serif,
+    fontSize: 30,
     color: Colors.text,
+    lineHeight: 38,
   },
   filtersContainer: {
     flexGrow: 0,
     flexShrink: 0,
   },
   filters: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
     gap: Spacing.sm,
     alignItems: 'center',
+  },
+  // Sharp-corner editorial chips
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.2)',
+  },
+  chipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  chipText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+    color: Colors.textMuted,
+  },
+  chipTextActive: {
+    color: Colors.white,
+  },
+  filterDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   grid: {
     paddingHorizontal: Spacing.md,
@@ -245,66 +267,53 @@ const styles = StyleSheet.create({
   gridItem: {
     flex: 1,
   },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   empty: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-  },
-  emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   emptyTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 17,
     color: Colors.text,
-    marginBottom: Spacing.xs,
+    marginTop: Spacing.md,
   },
   emptySubtitle: {
-    fontSize: FontSize.sm,
+    fontFamily: Fonts.sans,
+    fontSize: 14,
     color: Colors.textMuted,
     textAlign: 'center',
-    marginBottom: Spacing.md,
   },
   emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 24,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.primary,
     paddingVertical: 12,
+    paddingHorizontal: Spacing.xl,
     marginTop: Spacing.sm,
   },
   emptyButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.white,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.primary,
   },
   compareFab: {
     position: 'absolute',
     bottom: Spacing.xl,
     right: Spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.full,
+    width: 52,
+    height: 52,
+    borderRadius: 0, // sharp — editorial spec
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
   },

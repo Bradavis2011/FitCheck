@@ -1,30 +1,27 @@
 import { Text, StyleSheet } from 'react-native';
-import { Colors } from '../constants/theme';
+import { Colors, Fonts } from '../constants/theme';
 
 interface Props {
   size?: number;
 }
 
-export default function OrThisLogo({ size = 36 }: Props) {
+// "Or" in DM Sans Medium (black) + "This?" in Playfair Display Italic (coral)
+export default function OrThisLogo({ size = 28 }: Props) {
   return (
-    <Text style={[styles.base, { fontSize: size }]}>
-      <Text style={styles.or}>Or </Text>
+    <Text style={{ fontSize: size }}>
+      <Text style={[styles.or, { fontSize: size }]}>Or </Text>
       <Text style={[styles.this, { fontSize: size }]}>This?</Text>
     </Text>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    fontWeight: '700',
-  },
   or: {
-    color: '#1A1A1A',
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    color: Colors.text,
   },
   this: {
+    fontFamily: Fonts.serifItalic,
     color: Colors.primary,
-    fontStyle: 'italic',
-    fontWeight: '700',
   },
 });
