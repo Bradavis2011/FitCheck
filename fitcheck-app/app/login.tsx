@@ -108,7 +108,12 @@ export default function LoginScreen() {
       setPendingVerification(true);
     } catch (error: any) {
       console.error('Sign up error:', error);
-      Alert.alert('Sign Up Error', error.errors?.[0]?.message || error.message || 'Failed to sign up');
+      const clerkCode = error.errors?.[0]?.code;
+      const message =
+        clerkCode === 'form_password_pwned'
+          ? 'That password appears in a known data breach. Try a longer or more unique password (e.g. 3 random words + a number).'
+          : error.errors?.[0]?.message || error.message || 'Failed to sign up';
+      Alert.alert('Sign Up Error', message);
     } finally {
       setLoading(false);
     }
@@ -182,7 +187,12 @@ export default function LoginScreen() {
         Alert.alert('Error', 'Reset failed. Please try again.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.errors?.[0]?.message || 'Failed to reset password');
+      const clerkCode = error.errors?.[0]?.code;
+      const message =
+        clerkCode === 'form_password_pwned'
+          ? 'That password appears in a known data breach. Try a longer or more unique password (e.g. 3 random words + a number).'
+          : error.errors?.[0]?.message || 'Failed to reset password';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
