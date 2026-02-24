@@ -312,17 +312,16 @@ async function loadOverview() {
 
     // ── Stat cards ──
     const cards = [
-      { label: 'Actions Today',    value: summary.totalToday,    icon: '📊', color: '#1A1A1A',  click: null },
-      { label: 'Pending Approval', value: summary.pendingCount,  icon: '⏳', color: '#D97706',  click: 'queue' },
-      { label: 'Executed Today',   value: summary.executedToday, icon: '✅', color: '#059669',  click: null },
-      { label: 'Failed Today',     value: summary.failedToday,   icon: '❌', color: '#DC2626',  click: null },
+      { label: 'Actions Today',    value: summary.totalToday,    accent: 'var(--black)',  click: null },
+      { label: 'Pending Approval', value: summary.pendingCount,  accent: 'var(--coral)',  click: 'queue' },
+      { label: 'Executed Today',   value: summary.executedToday, accent: '#059669',       click: null },
+      { label: 'Failed Today',     value: summary.failedToday,   accent: '#DC2626',       click: null },
     ];
     statEl.innerHTML = cards.map(c => `
-      <div class="card stat-card p-6 ${c.click ? 'cursor-pointer' : ''}"
+      <div class="card stat-card ${c.click ? 'clickable' : ''}" style="padding:28px 24px;"
            ${c.click ? `onclick="navigate('${c.click}')"` : ''}>
-        <div style="font-size:1.5rem;margin-bottom:8px;">${c.icon}</div>
-        <div style="font-size:2rem;font-weight:700;color:${c.color};">${c.value}</div>
-        <div style="font-size:0.8125rem;color:#9CA3AF;margin-top:4px;">${c.label}</div>
+        <div style="font-size:2.5rem;font-weight:700;color:${c.accent};line-height:1;margin-bottom:10px;">${c.value}</div>
+        <p class="section-label">${esc(c.label)}</p>
       </div>
     `).join('');
 
@@ -339,52 +338,63 @@ async function loadOverview() {
       const hasErrors = failed > 0;
 
       return `
-        <div class="card agent-card p-5" style="${hasErrors ? 'border-color:#FECACA;' : ''}">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:1.25rem;">${agentIcon(name)}</span>
-              <span style="font-weight:600;font-size:0.875rem;color:#1A1A1A;">${esc(agentLabel(name))}</span>
+        <div class="card agent-card" style="padding:24px;${hasErrors ? 'border-color:#FECACA;' : ''}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+            <div>
+              <span style="font-size:1.25rem;display:block;margin-bottom:4px;">${agentIcon(name)}</span>
+              <span style="font-weight:600;font-size:0.9375rem;color:var(--black);">${esc(agentLabel(name))}</span>
             </div>
             <label class="toggle-switch" title="${enabled ? 'Disable' : 'Enable'} agent">
               <input type="checkbox" ${enabled ? 'checked' : ''} data-agent="${esc(name)}" onchange="handleToggle(this)">
               <span class="toggle-slider"></span>
             </label>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-            <span class="pill ${enabled ? 'pill-executed' : 'pill-rejected'}">${enabled ? 'Enabled' : 'Disabled'}</span>
-            ${pending  > 0 ? `<span class="pill pill-pending">${pending} pending</span>` : ''}
-            ${hasErrors    ? `<span class="pill pill-failed">⚠ ${failed} failed</span>` : ''}
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px 0;border-top:1px solid rgba(0,0,0,0.06);border-bottom:1px solid rgba(0,0,0,0.06);margin-bottom:16px;">
+            <div>
+              <div style="font-size:1.25rem;font-weight:700;color:var(--black);">${executed}</div>
+              <p class="section-label" style="margin-top:2px;">Done</p>
+            </div>
+            <div>
+              <div style="font-size:1.25rem;font-weight:700;color:${pending > 0 ? '#D97706' : 'var(--muted)'};">${pending}</div>
+              <p class="section-label" style="margin-top:2px;">Pending</p>
+            </div>
+            <div>
+              <div style="font-size:1.25rem;font-weight:700;color:${hasErrors ? '#DC2626' : 'var(--muted)'};">${failed}</div>
+              <p class="section-label" style="margin-top:2px;">Failed</p>
+            </div>
           </div>
-          <div style="border-top:1px solid #F9FAFB;padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.75rem;color:#9CA3AF;">
-            <div><span style="font-weight:600;color:#1A1A1A;">${executed}</span> executed</div>
-            <div><span style="font-weight:600;color:${hasErrors ? '#DC2626' : '#1A1A1A'};">${failed}</span> failed</div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
+          <div style="display:flex;gap:8px;">
             <button onclick="handleTrigger('${esc(AGENT_TRIGGER_NAME[name] || name)}', this)"
-                    class="btn-coral" style="flex:1;padding:6px 0;border-radius:8px;font-size:0.75rem;font-weight:500;">
-              ▶ Run Now
+                    class="btn-coral" style="flex:1;padding:10px 0;">
+              Run Now
             </button>
             <a href="#agent/${encodeURIComponent(name)}"
-               style="flex:1;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--coral);font-weight:500;text-decoration:none;border:1px solid var(--coral);border-radius:8px;padding:6px 0;">
-              Details →
+               class="btn-outline" style="flex:1;padding:10px 0;text-decoration:none;font-size:0.75rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;">
+              Details
             </a>
           </div>
         </div>
       `;
     }).join('');
 
+    // ── Pending preview header ──
+    document.querySelectorAll('#pending-preview').forEach(el => {
+      const label = el.previousElementSibling?.querySelector('h2');
+      if (label) { label.className = 'section-label'; label.style.marginBottom = '16px'; }
+    });
+
     // ── Reporting agents (run-on-demand, no action queue) ──
     const reportingEl = document.getElementById('reporting-agents');
     if (reportingEl) {
       reportingEl.innerHTML = REPORTING_AGENTS.map(a => `
-        <div class="card" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-            <span style="font-size:1.125rem;">${a.icon}</span>
-            <span style="font-weight:500;font-size:0.875rem;color:#1A1A1A;white-space:nowrap;">${esc(a.label)}</span>
+        <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span style="font-size:1.1rem;">${a.icon}</span>
+            <span style="font-weight:500;font-size:0.9375rem;color:var(--black);white-space:nowrap;">${esc(a.label)}</span>
           </div>
           <button onclick="handleTrigger('${esc(a.name)}', this)"
-                  class="btn-coral" style="padding:5px 14px;border-radius:8px;font-size:0.8125rem;font-weight:500;white-space:nowrap;flex-shrink:0;">
-            ▶ Run Now
+                  class="btn-coral" style="padding:8px 16px;white-space:nowrap;flex-shrink:0;">
+            Run Now
           </button>
         </div>
       `).join('');
@@ -503,8 +513,8 @@ async function loadQueue(page) {
 
     contentEl.innerHTML = `
       <div class="card" style="overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #F3F4F6;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:600;font-size:0.9375rem;">${data.total} action${data.total !== 1 ? 's' : ''} awaiting approval</span>
+        <div style="padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;">
+          <p class="section-label">${data.total} action${data.total !== 1 ? 's' : ''} awaiting approval</p>
         </div>
         <div>
           ${data.actions.map(a => queueItemHTML(a)).join('')}
@@ -584,28 +594,28 @@ function queueItemHTML(action) {
   const id      = esc(action.id);
   const payload = prettyJSON(action.payload);
   return `
-    <div id="qi-${id}" style="padding:16px 20px;border-bottom:1px solid #F9FAFB;">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div id="qi-${id}" style="padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.06);">
+      <div style="display:flex;align-items:flex-start;gap:16px;">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-            <span style="font-weight:600;font-size:0.875rem;">
+            <span style="font-weight:600;font-size:0.9375rem;color:var(--black);">
               ${agentIcon(action.agent)} ${esc(agentLabel(action.agent))}
             </span>
-            <span style="color:#9CA3AF;font-size:0.75rem;">·</span>
-            <span style="color:#6B7280;font-size:0.875rem;">${esc(action.actionType)}</span>
+            <span style="color:var(--muted);font-size:0.75rem;">·</span>
+            <span style="color:var(--charcoal);font-size:0.875rem;">${esc(action.actionType)}</span>
             ${riskBadge(action.riskLevel)}
           </div>
-          <div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">${fmtRelative(action.createdAt)}</div>
+          <p style="font-size:0.8125rem;color:var(--muted);margin-bottom:10px;">${fmtRelative(action.createdAt)}</p>
           <details>
-            <summary style="font-size:0.75rem;color:var(--coral);cursor:pointer;font-weight:500;user-select:none;">
-              View payload ▾
+            <summary style="font-size:0.75rem;color:var(--coral);cursor:pointer;font-weight:500;user-select:none;letter-spacing:0.04em;text-transform:uppercase;">
+              Payload ▾
             </summary>
-            <pre style="margin-top:8px;padding:10px;background:#F9FAFB;font-size:0.72rem;color:#4B5563;overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
+            <pre style="margin-top:8px;padding:12px;background:var(--cream);font-size:0.72rem;color:var(--charcoal);overflow:auto;max-height:160px;white-space:pre-wrap;word-break:break-all;">${esc(payload)}</pre>
           </details>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px;">
-          <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:6px 12px;font-size:0.8125rem;">✓ Approve</button>
-          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:6px 12px;font-size:0.8125rem;">✕ Reject</button>
+          <button onclick="handleApprove('${id}')" class="btn-approve" style="padding:8px 16px;">Approve</button>
+          <button onclick="handleReject('${id}')"  class="btn-reject"  style="padding:8px 12px;">Reject</button>
         </div>
       </div>
     </div>

@@ -115,22 +115,22 @@
         <!-- ── Overview ─────────────────────────────────────────── -->
         <div data-page="overview" class="hidden">
           <div class="mb-8">
-            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Agent Dashboard</h1>
-            <p class="text-gray-400 text-sm mt-1">Autonomous agent workforce at a glance</p>
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:6px;">Agent Dashboard</h1>
+            <p style="color:var(--muted);font-size:0.875rem;">Autonomous agent workforce at a glance</p>
           </div>
-          <div id="stat-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
-          <div class="mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Operator Agents</h2>
+          <div id="stat-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4" style="margin-bottom:40px;"></div>
+          <div style="margin-bottom:40px;">
+            <p class="section-label" style="margin-bottom:20px;">Operator Agents</p>
             <div id="agent-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
           </div>
-          <div class="mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Reporting &amp; Intelligence Agents</h2>
+          <div style="margin-bottom:40px;">
+            <p class="section-label" style="margin-bottom:20px;">Reporting &amp; Intelligence</p>
             <div id="reporting-agents" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-gray-900">Pending Approval</h2>
-              <a href="#queue" class="text-sm font-medium" style="color: var(--coral);">View all →</a>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+              <p class="section-label">Pending Approval</p>
+              <a href="#queue" style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--coral);text-decoration:none;">View all</a>
             </div>
             <div id="pending-preview"></div>
           </div>
@@ -164,8 +164,8 @@
         <!-- ── Approval Queue ──────────────────────────────────── -->
         <div data-page="queue" class="hidden">
           <div class="mb-8">
-            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Approval Queue</h1>
-            <p class="text-gray-400 text-sm mt-1">Review and approve high-risk agent actions</p>
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:6px;">Approval Queue</h1>
+            <p style="color:var(--muted);font-size:0.875rem;">Review and approve high-risk agent actions</p>
           </div>
           <div id="queue-content"></div>
           <div id="queue-pagination" class="mt-6"></div>
@@ -179,8 +179,8 @@
         <!-- ── Action Log ──────────────────────────────────────── -->
         <div data-page="log" class="hidden">
           <div class="mb-8">
-            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Action Log</h1>
-            <p class="text-gray-400 text-sm mt-1">Full audit trail of every agent action</p>
+            <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:6px;">Action Log</h1>
+            <p style="color:var(--muted);font-size:0.875rem;">Full audit trail of every agent action</p>
           </div>
           <div class="flex flex-wrap gap-3 mb-6">
             <select id="log-filter-agent" class="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none">
