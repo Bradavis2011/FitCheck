@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 
 interface ComparisonCardProps {
   id: string;
@@ -192,7 +191,7 @@ export default function ComparisonCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
     marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
@@ -202,10 +201,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   userAvatar: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
@@ -218,45 +219,45 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   avatarText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.primary,
   },
   userInfo: {
     flex: 1,
   },
   username: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
     color: Colors.text,
   },
   timestamp: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     marginTop: 2,
   },
   orBadgeSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: BorderRadius.sharp,
   },
   orTextSmall: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontSize: 10,
+    fontFamily: Fonts.serif,
     color: Colors.white,
-    fontStyle: 'italic',
+    letterSpacing: 0.5,
   },
   questionContainer: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
   },
   question: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.md,
     color: Colors.text,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   imagesRow: {
     flexDirection: 'row',
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     flex: 1,
     aspectRatio: 3 / 4,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sharp,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
     position: 'relative',
@@ -285,21 +286,22 @@ const styles = StyleSheet.create({
     top: Spacing.sm,
     right: Spacing.sm,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sharp,
   },
   optionLabel: {
     position: 'absolute',
     top: Spacing.sm,
     left: Spacing.sm,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.sharp,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
   },
   optionLabelText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.xs,
-    fontWeight: '700',
     color: Colors.white,
+    letterSpacing: 1,
   },
   resultsOverlay: {
     position: 'absolute',
@@ -311,11 +313,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   percentage: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.white,
   },
   voteCount: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.white,
     marginTop: 2,
@@ -325,9 +328,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   resultsBarTrack: {
-    height: 6,
+    height: 2,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sharp,
     overflow: 'hidden',
   },
   resultsBarFillA: {
@@ -335,6 +338,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   totalVotesText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     textAlign: 'center',
@@ -342,6 +346,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
   occasions: {
     flexDirection: 'row',
@@ -349,17 +355,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   occasionPill: {
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
   },
   occasionText: {
-    fontSize: FontSize.xs,
-    fontWeight: '500',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
     color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   moreOccasions: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },

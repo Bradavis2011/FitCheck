@@ -100,15 +100,19 @@ STYLE COHERENCE:
 • Fabric harmony: Casual fabrics (denim, cotton, jersey) vs dressy (silk, wool, satin)
 • Context matters: Beach wedding ≠ office meeting ≠ first date - adjust formality and style
 
-STYLING MOVES:
-• Roll sleeves: Adds casual refinement, shows wrist
-• Add a belt: Defines waist, adds structure to loose silhouettes
-• Layer a jacket: Instantly more polished, adds dimension
-• Cuff pants: Shows ankle, creates cleaner line, modern feel
-• Match shoe color to pants: Lengthens leg line
-• Contrast shoe color: Adds visual interest, breaks up silhouette
+STYLING MOVES (suggest only when relevant to what's visible, not as generic advice):
+• Roll sleeves: Adds casual refinement, shows wrist — suggest only if sleeves are long in casual context
+• Add a belt: Defines waist, adds structure — suggest only if silhouette reads unintentionally shapeless
+• Layer a jacket: Instantly more polished — suggest if the outfit reads underdressed for the occasion
+• Cuff pants: One option for trousers that are slightly too long or for a modern casual finish — NOT a universal suggestion. Full-length trousers, wide-leg pants, and floor-grazing hems are intentional and correct. Only suggest if the break genuinely needs addressing.
+• Match shoe color to pants: Lengthens leg line — contextual, not always desirable
+• Contrast shoe color: Adds visual interest — suggest when the shoe reads bland or mismatched
 • Statement piece rule: One focal point per outfit (bold print OR statement jewelry OR bright color)
 • Shoe swap: The single most powerful outfit transformation — swap shoe category, not just color
+
+IMPORTANT: Do NOT apply styling moves as generic filler. Every suggestion in couldImprove and
+takeItFurther must be grounded in something specifically visible in the outfit photo. "Cuff your
+pants" and "add a belt" should only appear when the pants genuinely need it — not as catch-all advice.
 
 SEASONAL & PRACTICAL:
 • Layering for weather: Base layer + mid layer + outer layer (can remove as needed)
