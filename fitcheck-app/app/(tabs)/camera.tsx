@@ -7,7 +7,6 @@ import {
   Alert,
   Platform,
   Linking,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +17,7 @@ import { useAppStore } from '../../src/stores/auth';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
 import { useUserStats } from '../../src/hooks/useApi';
 import { track } from '../../src/lib/analytics';
+import ImageCropPreview from '../../src/components/ImageCropPreview';
 
 type CameraMode = 'camera' | 'preview' | 'permission-denied';
 
@@ -95,25 +95,6 @@ export default function CameraScreen() {
     setMode('camera');
   };
 
-  const handleUsePhoto = () => {
-    if (!capturedUri) return;
-
-    // Check daily limit before proceeding
-    if (isAtLimit) {
-      Alert.alert(
-        'Daily Limit Reached',
-        'Free accounts get 3 outfit checks per day. Upgrade to Plus for unlimited checks!',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    track('outfit_check_started', { source: 'camera' });
-    setCapturedImage(capturedUri);
-    // Navigate to context screen
-    router.push('/context' as any);
-  };
-
   const handleOpenSettings = () => {
     Linking.openSettings();
   };
@@ -141,31 +122,28 @@ export default function CameraScreen() {
     );
   }
 
-  // Preview mode
+  // Preview mode — pinch-to-zoom crop step
   if (mode === 'preview' && capturedUri) {
     return (
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.previewContainer}>
-            <Image
-              source={{ uri: capturedUri }}
-              style={styles.previewImage}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={styles.previewActions}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleRetake}>
-              <Text style={styles.actionButtonText}>Retake</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.actionButtonPrimary]}
-              onPress={handleUsePhoto}
-            >
-              <Text style={styles.actionButtonTextPrimary}>Use This Photo</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </View>
+      <ImageCropPreview
+        uri={capturedUri}
+        onAccept={(croppedUri) => {
+          // Check daily limit before proceeding
+          if (isAtLimit) {
+            Alert.alert(
+              'Daily Limit Reached',
+              'Free accounts get 3 outfit checks per day. Upgrade to Plus for unlimited checks!',
+              [{ text: 'OK' }]
+            );
+            return;
+          }
+
+          track('outfit_check_started', { source: 'camera' });
+          setCapturedImage(croppedUri);
+          router.push('/context' as any);
+        }}
+        onRetake={handleRetake}
+      />
     );
   }
 
@@ -389,43 +367,6 @@ const styles = StyleSheet.create({
   galleryFallbackText: {
     color: Colors.primary,
     fontSize: FontSize.md,
-    fontWeight: '600',
-  },
-  // Preview mode
-  previewContainer: {
-    flex: 1,
-    backgroundColor: Colors.black,
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  previewActions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    backgroundColor: 'transparent',
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  actionButtonPrimary: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-  },
-  actionButtonTextPrimary: {
-    color: Colors.white,
-    fontSize: FontSize.lg,
     fontWeight: '600',
   },
 });
