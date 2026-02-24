@@ -17,9 +17,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
 import PillButton from '../src/components/PillButton';
+import * as FileSystem from 'expo-file-system/legacy';
 import { comparisonService } from '../src/services/api.service';
-import { imageToBase64 } from '../src/services/image-upload.service';
 import { track } from '../src/lib/analytics';
+
+const toBase64 = async (uri: string): Promise<string> => {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return `data:image/jpeg;base64,${base64}`;
+};
 
 const OCCASIONS = ['Work', 'Casual', 'Date Night', 'Event', 'Interview', 'Party'];
 
@@ -159,7 +166,7 @@ export default function CompareScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [3, 4],
-        quality: 0.8,
+        quality: 0.5,
       });
       if (!result.canceled && result.assets[0]) {
         slot === 'A' ? setImageA(result.assets[0].uri) : setImageB(result.assets[0].uri);
@@ -179,7 +186,7 @@ export default function CompareScreen() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [3, 4],
-        quality: 0.8,
+        quality: 0.5,
       });
       if (!result.canceled && result.assets[0]) {
         slot === 'A' ? setImageA(result.assets[0].uri) : setImageB(result.assets[0].uri);
@@ -208,8 +215,8 @@ export default function CompareScreen() {
     setScreenState('analyzing');
     try {
       const [imageAData, imageBData] = await Promise.all([
-        imageToBase64(imageA),
-        imageToBase64(imageB),
+        toBase64(imageA),
+        toBase64(imageB),
       ]);
       const result = await comparisonService.analyze({
         imageAData,
@@ -222,6 +229,12 @@ export default function CompareScreen() {
       track('ai_comparison_complete', { winner: result.winner });
     } catch (error: any) {
       setScreenState('selecting');
+      console.error('[Compare] Analysis error:', {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: error?.message,
+        code: error?.code,
+      });
       const msg =
         error?.response?.data?.error ||
         error?.message ||
@@ -239,8 +252,8 @@ export default function CompareScreen() {
     setIsSharing(true);
     try {
       const [imageAData, imageBData] = await Promise.all([
-        imageToBase64(imageA),
-        imageToBase64(imageB),
+        toBase64(imageA),
+        toBase64(imageB),
       ]);
       await comparisonService.createPost({
         imageAData,

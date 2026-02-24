@@ -131,6 +131,9 @@ model OutfitCheck {
   eventFollowUps       EventFollowUp[]
 
   @@map("outfit_checks")
+  @@index([userId, createdAt])
+  @@index([userId, isDeleted])
+  @@index([isPublic, createdAt])
 }
 
 model FollowUp {
@@ -144,6 +147,7 @@ model FollowUp {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("follow_ups")
+  @@index([outfitCheckId])
 }
 
 model UserStats {
@@ -204,7 +208,7 @@ model CommunityFeedback {
 model Report {
   id         String   @id @default(uuid())
   reporterId String   @map("reporter_id")
-  reporter   User     @relation(fields: [reporterId], references: [id])
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
   targetType String   @map("target_type") // "outfit" or "user"
   targetId   String   @map("target_id")
   reason     String   // "inappropriate", "spam", "other"

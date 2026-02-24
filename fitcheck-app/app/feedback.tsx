@@ -21,8 +21,10 @@ import * as Haptics from 'expo-haptics';
 // react-native-view-shot requires native binary — guard so Expo Go loads safely
 let ViewShot: any = null;
 try { ViewShot = require('react-native-view-shot').default; } catch { /* unavailable in Expo Go */ }
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+// expo-sharing requires native module — guard so Expo Go loads safely
+let Sharing: any = null;
+try { Sharing = require('expo-sharing'); } catch { /* unavailable in Expo Go */ }
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';

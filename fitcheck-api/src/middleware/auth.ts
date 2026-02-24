@@ -1,11 +1,15 @@
 import { Response, NextFunction } from 'express';
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import { verifyToken, createClerkClient } from '@clerk/express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 
-// Clerk secret key - loaded at runtime from .env
-function getClerkSecretKey(): string | undefined {
-  return process.env.CLERK_SECRET_KEY;
+// Lazy Clerk client — created on first use so CLERK_SECRET_KEY is read at runtime
+let _clerk: ReturnType<typeof createClerkClient> | null = null;
+function getClerk() {
+  if (!_clerk) {
+    _clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  }
+  return _clerk;
 }
 
 
@@ -39,7 +43,7 @@ export async function authenticateToken(
     // Verify Clerk token - no fallbacks
     let clerkUserId: string;
     try {
-      const sessionClaims = await clerkClient.verifyToken(token);
+      const sessionClaims = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
       clerkUserId = sessionClaims.sub; // Clerk user ID
     } catch (clerkError) {
       console.error('Clerk token verification failed:', clerkError);
@@ -56,7 +60,7 @@ export async function authenticateToken(
     if (!user) {
       // User exists in Clerk but not in our DB - sync them
       try {
-        const clerkUser = await clerkClient.users.getUser(clerkUserId);
+        const clerkUser = await getClerk().users.getUser(clerkUserId);
         const email = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress;
 
         if (!email) {

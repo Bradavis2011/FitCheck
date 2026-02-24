@@ -123,7 +123,7 @@ Data:
 
 Write ONLY the observation. Example: "You've been gravitating toward navy and earth tones lately — it's creating a quietly confident look." or "Lots of smart-casual lately, and your scores show it's working."`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await model.generateContent(prompt);
   const narrative = result.response.text().trim().replace(/^["']|["']$/g, '');
 

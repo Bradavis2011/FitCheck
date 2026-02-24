@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
@@ -609,13 +609,13 @@ export async function getLeaderboard(req: AuthenticatedRequest, res: Response) {
           profileImageUrl: string | null;
           total_feedback: bigint;
         }>>`
-          SELECT u.id as "userId", u.username, u.name, u."profileImageUrl",
+          SELECT u.id as "userId", u.username, u.name, u.profile_image_url as "profileImageUrl",
                  COUNT(cf.id) as total_feedback
-          FROM "User" u
-          JOIN "OutfitCheck" oc ON oc."userId" = u.id AND oc."isPublic" = true AND oc."isDeleted" = false
-          JOIN "CommunityFeedback" cf ON cf."outfitId" = oc.id
-          WHERE u."isPublic" = true
-          GROUP BY u.id, u.username, u.name, u."profileImageUrl"
+          FROM users u
+          JOIN outfit_checks oc ON oc.user_id = u.id AND oc.is_public = true AND oc.is_deleted = false
+          JOIN community_feedback cf ON cf.outfit_id = oc.id
+          WHERE u.is_public = true
+          GROUP BY u.id, u.username, u.name, u.profile_image_url
           ORDER BY total_feedback DESC
           LIMIT ${limitNum}
         `;

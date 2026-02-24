@@ -1,8 +1,8 @@
-// @ts-nocheck
+
 import { Response } from 'express';
 import { z } from 'zod';
 // sharp is lazy-loaded inside functions to prevent startup crash if native binary is incompatible
-import { AuthenticatedRequest } from '../types/index.js';
+import { AuthenticatedRequest, OutfitCheckInput } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { analyzeOutfit, handleFollowUpQuestion } from '../services/ai-feedback.service.js';
@@ -399,7 +399,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
 
     // Trigger AI analysis asynchronously (pass user for personalization + priority tier)
     const tierLimits = getTierLimits(user.tier);
-    analyzeOutfit(outfitCheck.id, aiData, user, tierLimits.hasPriorityProcessing).catch((error) => {
+    analyzeOutfit(outfitCheck.id, aiData as OutfitCheckInput, user, tierLimits.hasPriorityProcessing).catch((error) => {
       console.error('Background AI analysis failed:', error);
     });
 
