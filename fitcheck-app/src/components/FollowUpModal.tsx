@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
 import { useSubmitFollowUp } from '../hooks/useApi';
 import { OutfitFeedback } from '../services/api.service';
+import { normalizeFeedback } from '../utils/feedbackAdapter';
 
 interface FollowUp {
   question: string;
@@ -131,7 +132,7 @@ function detectCategory(text: string): QuestionCategory {
   return 'general';
 }
 
-// Generate suggested questions from feedback data
+// Generate suggested questions from feedback data (supports v1/v2 and v3.0 formats)
 function generateSuggestedQuestions(
   feedback?: OutfitFeedback,
   occasions?: string[],
@@ -140,6 +141,9 @@ function generateSuggestedQuestions(
   if (!feedback) {
     return FALLBACK_QUESTIONS;
   }
+
+  // Normalize to unified format so this works with both v1/v2 and v3.0 responses
+  const normalized = normalizeFeedback(feedback);
 
   const questions: SuggestedQuestion[] = [];
   const usedCategories = new Set<QuestionCategory>();
@@ -154,17 +158,20 @@ function generateSuggestedQuestions(
     }
   };
 
-  // Priority 1: Consider items (most actionable)
-  if (feedback.consider && feedback.consider.length > 0) {
-    feedback.consider.slice(0, 2).forEach(item => {
-      addQuestion(`How can I improve my ${item.point.toLowerCase()}?`);
+  // Priority 1: couldImprove items (most actionable — maps from consider+quickFixes in v1/v2,
+  //             or couldImprove directly in v3.0)
+  if (normalized.couldImprove.length > 0) {
+    normalized.couldImprove.slice(0, 2).forEach(item => {
+      // Extract a short label from the bullet string for a natural-sounding question
+      const label = item.split(' — ')[0].toLowerCase();
+      addQuestion(`How can I improve my ${label}?`);
     });
   }
 
-  // Priority 2: Quick fixes (specific tips)
-  if (feedback.quickFixes && feedback.quickFixes.length > 0 && questions.length < 4) {
-    feedback.quickFixes.slice(0, 2).forEach(fix => {
-      addQuestion(`Tell me more about: ${fix.suggestion}`);
+  // Priority 2: takeItFurther items (v3.0 only — filler for styling questions)
+  if (normalized.takeItFurther.length > 0 && questions.length < 4) {
+    normalized.takeItFurther.slice(0, 2).forEach(item => {
+      addQuestion(`Tell me more: ${item}`);
     });
   }
 
@@ -179,10 +186,11 @@ function generateSuggestedQuestions(
     addQuestion(`More about my concern: ${specificConcerns}`);
   }
 
-  // Priority 5: What's working (filler if < 3 questions)
-  if (feedback.whatsWorking && feedback.whatsWorking.length > 0 && questions.length < 3) {
-    feedback.whatsWorking.slice(0, 1).forEach(item => {
-      addQuestion(`How can I build on my ${item.point.toLowerCase()}?`);
+  // Priority 5: whatsRight items (filler if < 3 questions)
+  if (normalized.whatsRight.length > 0 && questions.length < 3) {
+    normalized.whatsRight.slice(0, 1).forEach(item => {
+      const label = item.split(' — ')[0].toLowerCase();
+      addQuestion(`How can I build on my ${label}?`);
     });
   }
 

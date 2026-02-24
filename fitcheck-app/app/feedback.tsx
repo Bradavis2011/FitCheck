@@ -38,6 +38,7 @@ import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
+import { normalizeFeedback, type NormalizedFeedback } from '../src/utils/feedbackAdapter';
 
 let _ads: any = null;
 try { _ads = require('react-native-google-mobile-ads'); } catch { /* native module unavailable */ }
@@ -202,7 +203,8 @@ export default function FeedbackScreen() {
       track('share_tapped', { score: outfit.aiScore ?? 0, method: 'native_share' });
 
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
-      const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${feedback.summary}\n\nGet your outfit scored at OrThis.app!`;
+      const shareText = normalized?.editorialSummary || `I got a ${normalized?.overallScore}/10 on Or This?`;
+      const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${shareText}\n\nGet your outfit scored at OrThis.app!`;
 
       let imageShared = false;
       if (viewShotRef.current?.capture) {
@@ -287,10 +289,13 @@ export default function FeedbackScreen() {
   }
 
   const feedback = outfit.aiFeedback;
+  const normalized = feedback ? normalizeFeedback(feedback) : null;
   const score = outfit.aiScore || 7;
   const imageUri = outfit.imageData ? `data:image/jpeg;base64,${outfit.imageData}` : outfit.imageUrl;
   const scoreColor = getScoreColor(score);
-  const isFallbackResponse = feedback?.summary?.includes('trouble analyzing');
+  const isFallbackResponse =
+    normalized?.editorialSummary?.includes('trouble analyzing') ||
+    (feedback as any)?.summary?.includes('trouble analyzing');
 
   return (
     <View style={styles.container}>
@@ -326,11 +331,6 @@ export default function FeedbackScreen() {
             </View>
           )}
 
-          {/* Summary */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryText}>{feedback.summary}</Text>
-          </View>
-
           {/* Retry Analysis Banner */}
           {isFallbackResponse && (
             <View style={styles.retryBanner}>
@@ -350,60 +350,54 @@ export default function FeedbackScreen() {
             </View>
           )}
 
-          {/* Working */}
-          {feedback.whatsWorking && feedback.whatsWorking.length > 0 && (
-            <FeedbackCard
-              title="Working"
-              icon="✅"
-              iconColor={Colors.success}
-              delay={0}
-            >
-              {feedback.whatsWorking.map((item, index) => (
-                <View key={index} style={styles.feedbackItem}>
-                  <Text style={styles.feedbackItemTitle}>{item.point}</Text>
-                  <Text style={styles.feedbackItemDetail}>{item.detail}</Text>
+          {/* What's Right */}
+          {normalized && normalized.whatsRight.length > 0 && (
+            <FeedbackCard title="What's Right" icon="" iconColor={Colors.success} delay={0}>
+              {normalized.whatsRight.map((bullet, i) => (
+                <View key={i} style={styles.bulletRow}>
+                  <Text style={styles.bulletSymbol}>+</Text>
+                  <Text style={styles.bulletText}>{bullet}</Text>
                 </View>
               ))}
             </FeedbackCard>
           )}
 
-          {/* Consider */}
-          {feedback.consider && feedback.consider.length > 0 && (
-            <FeedbackCard
-              title="Consider"
-              icon="💭"
-              iconColor={Colors.warning}
-              delay={200}
-            >
-              {feedback.consider.map((item, index) => (
-                <View key={index} style={styles.feedbackItem}>
-                  <Text style={styles.feedbackItemTitle}>{item.point}</Text>
-                  <Text style={styles.feedbackItemDetail}>{item.detail}</Text>
+          {/* Could Improve */}
+          {normalized && normalized.couldImprove.length > 0 && (
+            <FeedbackCard title="Could Improve" icon="" iconColor={Colors.warning} delay={200}>
+              {normalized.couldImprove.map((bullet, i) => (
+                <View key={i} style={styles.bulletRow}>
+                  <Text style={styles.bulletSymbol}>–</Text>
+                  <Text style={styles.bulletText}>{bullet}</Text>
                 </View>
               ))}
             </FeedbackCard>
           )}
 
-          {/* Quick Fix */}
-          {feedback.quickFixes && feedback.quickFixes.length > 0 && (
-            <FeedbackCard
-              title="Quick Fix"
-              icon="💡"
-              iconColor={Colors.primary}
-              delay={400}
-            >
-              {feedback.quickFixes.map((fix, index) => (
-                <View key={index} style={styles.feedbackItem}>
-                  <Text style={styles.feedbackItemTitle}>{fix.suggestion}</Text>
-                  <Text style={styles.feedbackItemDetail}>{fix.impact}</Text>
+          {/* Take It Further */}
+          {normalized && normalized.takeItFurther.length > 0 && (
+            <FeedbackCard title="Take It Further" icon="" iconColor={Colors.primary} delay={400}>
+              {normalized.takeItFurther.map((bullet, i) => (
+                <View key={i} style={styles.bulletRow}>
+                  <Text style={styles.bulletSymbol}>↑</Text>
+                  <Text style={styles.bulletText}>{bullet}</Text>
                 </View>
               ))}
             </FeedbackCard>
           )}
+
+          {/* Editorial Summary — Vogue pull quote, shown last */}
+          {normalized?.editorialSummary ? (
+            <View style={styles.editorialCard}>
+              <View style={styles.editorialRule} />
+              <Text style={styles.editorialText}>{normalized.editorialSummary}</Text>
+              <View style={styles.editorialRule} />
+            </View>
+          ) : null}
 
           {/* Style DNA */}
-          {feedback.styleDNA && (
-            <StyleDNACard styleDNA={feedback.styleDNA} delay={600} />
+          {normalized?.styleDNA && (
+            <StyleDNACard styleDNA={normalized.styleDNA} delay={600} />
           )}
 
           {/* Follow-up — sharp-corner input area */}
@@ -547,7 +541,7 @@ export default function FeedbackScreen() {
       <FollowUpModal
         visible={showFollowUp}
         onClose={() => setShowFollowUp(false)}
-        feedbackSummary={feedback.summary}
+        feedbackSummary={normalized?.editorialSummary || (feedback as any)?.summary || ''}
         outfitId={outfit.id}
         maxFollowUps={limits?.followUpsPerCheck ?? 3}
         feedback={feedback}
@@ -562,7 +556,7 @@ export default function FeedbackScreen() {
             <ShareableScoreCard
               score={score}
               imageUri={imageUri}
-              summary={feedback.summary}
+              summary={normalized?.editorialSummary || (feedback as any)?.summary || ''}
               occasion={outfit.occasions?.[0]}
               username={user?.name || undefined}
             />
@@ -943,6 +937,46 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.65,
     color: Colors.white,
+  },
+  // Bullet rows for v3.0 feedback sections
+  bulletRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  bulletSymbol: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.textMuted,
+    width: 16,
+    lineHeight: 22,
+  },
+  bulletText: {
+    flex: 1,
+    fontFamily: Fonts.sans,
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  // Editorial summary — pull-quote block
+  editorialCard: {
+    marginHorizontal: 24,
+    marginBottom: 32,
+    alignItems: 'center',
+    gap: 20,
+  },
+  editorialRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+  },
+  editorialText: {
+    fontFamily: Fonts.serifItalic,
+    fontSize: 17,
+    lineHeight: 28,
+    color: Colors.text,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
   // Off-screen share card
   hiddenShareCard: {
