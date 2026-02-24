@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { checkContent } from './brand-guard.service.js';
+import { postToTwitter } from './twitter.service.js';
 
 // Helper: cast unknown objects to Prisma's JSON value type
 function toJson(v: unknown): Prisma.InputJsonValue {
@@ -196,24 +197,18 @@ export async function executeOrQueue(
   }
 }
 
-// ─── Executor Resolver (dynamic import fallback) ──────────────────────────────
+// ─── Built-in Executor Registration ──────────────────────────────────────────
+// Register known high-risk executors directly here so processApprovedActions
+// always has them available, regardless of cron init order.
 
-// Maps agent:actionType → the service module path and its registerExecutors export.
-// Using dynamic import avoids circular dependencies at compile time.
-async function resolveExecutor(agent: string, actionType: string): Promise<Executor | undefined> {
-  const key = `${agent}:${actionType}`;
-  // Attempt to load the relevant service module, which will call its module-level
-  // registerExecutors() and populate the registry as a side effect.
-  const serviceMap: Record<string, string> = {
-    'social-media-manager:post_social': './social-media-manager.service.js',
-    'appstore-manager:reply_review': './appstore-manager.service.js',
-    'outreach-agent:outreach_draft': './outreach-agent.service.js',
-  };
-  const modulePath = serviceMap[key];
-  if (!modulePath) return undefined;
-  await import(modulePath);
-  return executorRegistry.get(key);
-}
+executorRegistry.set('social-media-manager:post_social', async (payload) => {
+  const p = payload as { socialPostId: string; platform: string };
+  if (p.platform === 'twitter') {
+    return await postToTwitter(p.socialPostId);
+  }
+  console.log(`[AgentManager] Platform "${p.platform}" requires manual posting`);
+  return { posted: false, note: 'manual_posting_required' };
+});
 
 // ─── Process Approved Actions (cron every 5 min) ──────────────────────────────
 
@@ -231,15 +226,7 @@ export async function processApprovedActions(): Promise<void> {
   for (const action of approved) {
     const key = `${action.agent}:${action.actionType}`;
 
-    // Resolve executor: prefer in-memory registry, fall back to direct module import
-    let executor = executorRegistry.get(key);
-    if (!executor) {
-      try {
-        executor = await resolveExecutor(action.agent, action.actionType);
-      } catch {
-        // resolveExecutor throws if agent is unknown
-      }
-    }
+    const executor = executorRegistry.get(key);
 
     if (!executor) {
       await prisma.agentAction.update({
