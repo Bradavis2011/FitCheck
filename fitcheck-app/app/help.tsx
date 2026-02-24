@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 
 export default function HelpScreen() {
   const router = useRouter();
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   content: {
@@ -172,12 +172,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
     marginBottom: Spacing.md,
   },
   sectionText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     lineHeight: 22,
@@ -185,8 +188,10 @@ const styles = StyleSheet.create({
   },
   faqCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
     overflow: 'hidden',
   },
   faqHeader: {
@@ -196,8 +201,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   faqQuestion: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
     flex: 1,
     marginRight: Spacing.sm,
@@ -205,8 +210,12 @@ const styles = StyleSheet.create({
   faqAnswer: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: Spacing.sm,
   },
   faqAnswerText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     lineHeight: 22,
@@ -217,7 +226,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.md,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   contactButtonLeft: {
     flexDirection: 'row',
@@ -226,19 +237,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactButtonTitle: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: 2,
   },
   contactButtonSubtitle: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
   },
   infoCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
     padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   infoRow: {
     flexDirection: 'row',
@@ -247,12 +261,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   infoLabel: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.textSecondary,
   },
   infoValue: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
   divider: {
@@ -265,10 +280,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    marginBottom: 1,
   },
   linkButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
     color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    flex: 1,
   },
 });

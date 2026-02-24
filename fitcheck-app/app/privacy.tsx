@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 
 export default function PrivacyScreen() {
   const router = useRouter();
@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   content: {
@@ -148,12 +148,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
     marginBottom: Spacing.md,
   },
   sectionText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     lineHeight: 22,
@@ -164,6 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   listItem: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     lineHeight: 22,
@@ -174,8 +178,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.md,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   actionButtonLeft: {
     flexDirection: 'row',
@@ -187,12 +193,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   actionButtonTitle: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: 2,
   },
   actionButtonSubtitle: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
   },
@@ -203,8 +210,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   linkButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
     color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });

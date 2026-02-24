@@ -302,8 +302,12 @@ export default function FeedbackScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={Colors.text} />
         </TouchableOpacity>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Analyzing your outfit...</Text>
+        <View style={styles.loadingDots}>
+          <View style={[styles.loadingDot, { backgroundColor: Colors.primary }]} />
+          <View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: 0.5 }]} />
+          <View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: 0.2 }]} />
+        </View>
+        <Text style={styles.loadingText}>Reading your look...</Text>
         <Text style={styles.loadingSubtext}>This usually takes 10–15 seconds</Text>
       </View>
     );
@@ -598,7 +602,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   loadingBackButton: {
     position: 'absolute',
@@ -609,16 +613,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingDots: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
+  loadingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   loadingText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 17,
+    fontFamily: Fonts.serif,
+    fontSize: 20,
     color: Colors.text,
-    marginTop: Spacing.md,
   },
   loadingSubtext: {
     fontFamily: Fonts.sans,
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textMuted,
+    letterSpacing: 0.3,
   },
   safeArea: {
     flex: 1,

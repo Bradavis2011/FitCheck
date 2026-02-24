@@ -65,6 +65,11 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
+  // Natural dimensions shared to worklets so clamping is accurate for any
+  // image aspect ratio (not hardcoded to 3:4).
+  const natW = useSharedValue(1);
+  const natH = useSharedValue(1);
+
   // ── Load natural image size ──────────────────────────────────────────────
 
   useEffect(() => {
@@ -73,14 +78,16 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
       (w, h) => {
         setNaturalWidth(w);
         setNaturalHeight(h);
+        natW.value = w;
+        natH.value = h;
 
-        // Start at the scale where the full image fits on screen (no clipping).
-        // At scale=1 the image is rendered at SCREEN_WIDTH wide.
-        // fitScaleY = scale needed so image height fits within SCREEN_HEIGHT.
+        // The image wrapper is rendered at SCREEN_WIDTH wide.
+        // Start at a scale where the FULL image fits inside the crop frame
+        // so the user can see their complete outfit (head to toe) immediately.
+        // For 3:4 portraits this is scale=1; for taller/9:16 images this
+        // zooms out to reveal feet.
         const imageHeightAtScale1 = (h / w) * SCREEN_WIDTH;
-        const fitScaleY = SCREEN_HEIGHT / imageHeightAtScale1;
-        // Use fit scale only if image would overflow the screen, otherwise start at 1
-        const startScale = Math.min(1, fitScaleY);
+        const startScale = Math.min(1, CROP_FRAME_H / imageHeightAtScale1);
         scale.value = startScale;
         savedScale.value = startScale;
       },
@@ -92,22 +99,21 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
 
   // ── Clamp helpers ────────────────────────────────────────────────────────
 
-  // Loose clamp: image can float freely but can't fly completely off screen.
-  // Allows gaps around the frame (black shows through) so user can zoom out
-  // to fit their full body. Prevents accidental off-screen panning.
+  // Loose clamp using actual image dimensions.
+  // Image can float freely but can't fly completely off screen.
+  // Allows gaps around the frame (black shows through) so the user can
+  // zoom out to fit their full body.
   const clampTranslation = (
     tx: number,
     ty: number,
     s: number,
-    natW: number,
-    natH: number
+    imageNatW: number,
+    imageNatH: number
   ): [number, number] => {
     'worklet';
     const renderedW = SCREEN_WIDTH * s;
-    const renderedH = (natH / natW) * SCREEN_WIDTH * s;
+    const renderedH = (imageNatH / imageNatW) * SCREEN_WIDTH * s;
 
-    // Allow the image to move at most 60% of its rendered size in each direction
-    // from centre — ensures it stays meaningfully on screen while allowing gaps.
     const maxTx = renderedW * 0.6 + SCREEN_WIDTH * 0.3;
     const maxTy = renderedH * 0.6 + SCREEN_HEIGHT * 0.3;
 
@@ -120,51 +126,50 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
   // ── Gestures ─────────────────────────────────────────────────────────────
 
   const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      'worklet';
+      // Capture the current transform at gesture start so e.scale (which is
+      // relative to this gesture's own start) computes correctly. Without
+      // onStart, savedScale is only set onEnd and stale values cause
+      // direction inversion when gestures chain quickly.
+      savedScale.value = scale.value;
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    })
     .onUpdate((e) => {
       'worklet';
-      // Allow zoom from 0.15 (very zoomed out) to 4x (zoomed in).
-      // No minimum fill constraint — black shows behind if image is smaller than frame.
-      const raw = savedScale.value * e.scale;
-      const newScale = Math.min(Math.max(raw, 0.15), 4);
+      // Allow zoom from 0.1 (very zoomed out) to 4x.
+      const newScale = Math.min(Math.max(savedScale.value * e.scale, 0.1), 4);
       scale.value = newScale;
 
       const [cx, cy] = clampTranslation(
         savedTranslateX.value,
         savedTranslateY.value,
         newScale,
-        SCREEN_WIDTH,
-        SCREEN_WIDTH * 1.33
+        natW.value,
+        natH.value
       );
       translateX.value = cx;
       translateY.value = cy;
-    })
-    .onEnd(() => {
-      'worklet';
-      savedScale.value = scale.value;
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
     });
 
   const panGesture = Gesture.Pan()
+    .onStart(() => {
+      'worklet';
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    })
     .onUpdate((e) => {
       'worklet';
-      const rawTx = savedTranslateX.value + e.translationX;
-      const rawTy = savedTranslateY.value + e.translationY;
       const [cx, cy] = clampTranslation(
-        rawTx,
-        rawTy,
+        savedTranslateX.value + e.translationX,
+        savedTranslateY.value + e.translationY,
         scale.value,
-        SCREEN_WIDTH,
-        SCREEN_WIDTH * 1.33
+        natW.value,
+        natH.value
       );
       translateX.value = cx;
       translateY.value = cy;
-    })
-    .onEnd(() => {
-      'worklet';
-      savedScale.value = scale.value;
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
     });
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
@@ -186,21 +191,24 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
     setIsCropping(true);
 
     try {
-      const currentScale = scale.value;      // read from shared value on JS thread
+      const currentScale = scale.value;
       const currentTx = translateX.value;
       const currentTy = translateY.value;
 
-      // Scale at which the natural image is displayed on screen.
-      // At scale=1 the image is rendered at SCREEN_WIDTH wide.
+      // The image wrapper is positioned at its natural aspect ratio, centered
+      // on screen. At scale=1 the wrapper is SCREEN_WIDTH × imageNaturalH,
+      // with its center at (SCREEN_WIDTH/2, SCREEN_HEIGHT/2).
+      //
+      // displayScale: how many screen pixels map to one natural pixel in X.
       const displayScale = (SCREEN_WIDTH * currentScale) / naturalWidth;
 
-      // Top-left corner of the rendered image in screen coordinates.
+      // Visual top-left corner of the (scaled) image in screen coordinates.
       const renderedW = naturalWidth * displayScale;
       const renderedH = naturalHeight * displayScale;
       const imgScreenX = (SCREEN_WIDTH - renderedW) / 2 + currentTx;
       const imgScreenY = (SCREEN_HEIGHT - renderedH) / 2 + currentTy;
 
-      // Crop frame position in screen coordinates.
+      // Crop frame in screen coordinates.
       const frameScreenX = 0;
       const frameScreenY = FRAME_TOP;
 
@@ -216,7 +224,6 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
       const cropW = Math.min(rawCropW, naturalWidth - originX);
       const cropH = Math.min(rawCropH, naturalHeight - originY);
 
-      // Ensure non-zero dimensions (safety guard).
       const safeW = Math.max(1, Math.round(cropW));
       const safeH = Math.max(1, Math.round(cropH));
       const safeOriginX = Math.round(originX);
@@ -240,7 +247,6 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
 
   // ── Render states ─────────────────────────────────────────────────────────
 
-  // Still loading natural size
   if (!naturalWidth || !naturalHeight) {
     return (
       <View style={styles.loadingContainer}>
@@ -258,16 +264,26 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
     );
   }
 
+  // Render the image at its natural aspect ratio, centered vertically on screen.
+  // This ensures the crop math is pixel-accurate: the image is exactly
+  // SCREEN_WIDTH wide at scale=1, with its center pinned to the screen center.
+  // Using resizeMode="cover" on a fixed SCREEN_HEIGHT wrapper pre-crops the image
+  // and breaks the coordinate math — this approach avoids that entirely.
+  const imageNaturalH = (naturalHeight / naturalWidth) * SCREEN_WIDTH;
+  const wrapperTop = (SCREEN_HEIGHT - imageNaturalH) / 2;
+
   return (
     <View style={styles.root}>
-      {/* ── Full-bleed animated image ── */}
+      {/* ── Image at natural aspect ratio, centered on screen ── */}
       <GestureDetector gesture={composedGesture}>
-        <Animated.View style={[styles.imageWrapper, animatedImageStyle]}>
-          <Image
-            source={{ uri }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+        <Animated.View
+          style={[
+            styles.imageWrapperBase,
+            { height: imageNaturalH, top: wrapperTop },
+            animatedImageStyle,
+          ]}
+        >
+          <Image source={{ uri }} style={styles.image} />
         </Animated.View>
       </GestureDetector>
 
@@ -297,7 +313,7 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
         pointerEvents="none"
         style={[styles.guideCaptionWrapper, { top: FRAME_BOTTOM + Spacing.sm }]}
       >
-        <Text style={styles.guideCaption}>Pinch to zoom in or out · Drag to reframe</Text>
+        <Text style={styles.guideCaption}>Pinch to zoom · Drag to reframe</Text>
       </View>
 
       {/* ── Bottom action bar ── */}
@@ -350,16 +366,15 @@ const styles = StyleSheet.create({
   },
 
   // ── Image layer ──────────────────────────────────────────────────────────
-  imageWrapper: {
+  // height and top are set dynamically in render based on natural image size.
+  imageWrapperBase: {
     position: 'absolute',
-    top: 0,
     left: 0,
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
   },
   image: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    width: '100%',
+    height: '100%',
   },
 
   // ── Dim masks ────────────────────────────────────────────────────────────

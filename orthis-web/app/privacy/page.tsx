@@ -18,8 +18,8 @@ export default function PrivacyPage() {
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-bold mb-2" style={{ color: "#1A1A1A" }}>Privacy Policy</h1>
-        <p className="text-sm mb-10" style={{ color: "#9B9B9B" }}>Effective date: {EFFECTIVE_DATE}</p>
+        <h1 className="text-4xl font-display italic mb-2" style={{ color: "#1A1A1A" }}>Privacy Policy</h1>
+        <p className="text-xs uppercase tracking-widest mb-10" style={{ color: "#9B9B9B" }}>Effective {EFFECTIVE_DATE}</p>
 
         <div className="prose-custom space-y-8">
           <Section title="1. Overview">
@@ -91,8 +91,8 @@ export default function PrivacyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-3" style={{ color: "#1A1A1A" }}>{title}</h2>
+    <div className="border-t pt-6" style={{ borderColor: "#E8E8E8" }}>
+      <h2 className="text-xs font-medium uppercase tracking-widest mb-4" style={{ color: "#9B9B9B" }}>{title}</h2>
       <div className="space-y-3 text-base leading-relaxed" style={{ color: "#2D2D2D" }}>
         {children}
       </div>

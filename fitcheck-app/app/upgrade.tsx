@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { PurchasesPackage } from 'react-native-purchases';
 import { track } from '../src/lib/analytics';
@@ -294,8 +293,8 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   headerTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   content: {
@@ -305,14 +304,16 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xs / 2,
+    borderRadius: BorderRadius.sharp,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   toggleButton: {
     flex: 1,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sharp,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -321,9 +322,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   toggleText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   toggleTextActive: {
     color: Colors.white,
@@ -335,23 +338,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.sharp,
   },
   saveBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 9,
     color: Colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   planCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
     padding: Spacing.lg,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border,
     position: 'relative',
   },
   planCardHighlighted: {
     borderColor: Colors.primary,
+    borderWidth: 2,
   },
   popularBadge: {
     position: 'absolute',
@@ -359,14 +365,15 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: BorderRadius.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sharp,
   },
   popularBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 9,
     color: Colors.white,
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   proBadge: {
     position: 'absolute',
@@ -374,28 +381,30 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     backgroundColor: Colors.secondary,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: BorderRadius.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sharp,
   },
   proBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 9,
     color: Colors.white,
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   planName: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
   planPrice: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontFamily: Fonts.serif,
+    fontSize: 36,
     color: Colors.text,
     marginBottom: Spacing.xs / 2,
   },
   planPeriod: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     marginBottom: Spacing.lg,
@@ -410,6 +419,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   featureText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.text,
     flex: 1,
@@ -419,36 +429,40 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   planButton: {
-    backgroundColor: Colors.surface,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sharp,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
   },
   currentPlanText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   purchaseButton: {
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: BorderRadius.sharp,
     alignItems: 'center',
   },
   purchaseButtonText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.md,
-    fontWeight: '700',
     color: Colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   loadingButton: {
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: BorderRadius.sharp,
     alignItems: 'center',
   },
   trialNote: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     textAlign: 'center',
@@ -459,9 +473,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   restoreLinkText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
     color: Colors.primary,
-    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   footer: {
     flexDirection: 'row',
@@ -471,27 +487,32 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
   },
   footerLink: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },
   footerDivider: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },
   currentPlanCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.sharp,
     padding: Spacing.xl,
     alignItems: 'center',
     marginTop: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   currentPlanTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
   currentPlanSubtitle: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',
@@ -503,13 +524,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sharp,
     borderWidth: 1,
     borderColor: Colors.primary,
   },
   manageButtonText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });
