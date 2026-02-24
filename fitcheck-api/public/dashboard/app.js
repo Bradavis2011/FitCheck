@@ -222,13 +222,15 @@ function errorHTML(msg) {
 }
 
 function emptyHTML(msg) {
-  return `<div style="text-align:center;padding:56px 24px;">
-    <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;">
-      <span style="flex:1;max-width:48px;height:1px;background:var(--border-solid);display:block;"></span>
-      <span style="width:5px;height:5px;background:var(--coral);transform:rotate(45deg);opacity:0.4;display:block;flex-shrink:0;"></span>
-      <span style="flex:1;max-width:48px;height:1px;background:var(--border-solid);display:block;"></span>
+  const imgs = ['/dashboard/images/editorial-purple.jpg','/dashboard/images/editorial-tan.jpg','/dashboard/images/editorial-teal.jpg'];
+  const img = imgs[Math.floor(Math.random() * imgs.length)];
+  return `<div style="position:relative;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center;">
+    <img src="${img}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.06;pointer-events:none;">
+    <div style="position:relative;text-align:center;padding:56px 24px;">
+      <span class="editorial-rule" style="margin:0 auto 20px;"></span>
+      <p style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1rem;color:var(--muted);margin-bottom:6px;">Nothing here yet</p>
+      <p class="section-label">${esc(msg)}</p>
     </div>
-    <p style="font-size:0.6875rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);">${esc(msg)}</p>
   </div>`;
 }
 
@@ -324,7 +326,7 @@ async function loadOverview() {
     statEl.innerHTML = cards.map(c => `
       <div class="card stat-card ${c.click ? 'clickable' : ''}" style="padding:28px 24px;"
            ${c.click ? `onclick="navigate('${c.click}')"` : ''}>
-        <div style="font-size:2.5rem;font-weight:700;color:${c.accent};line-height:1;margin-bottom:10px;">${c.value}</div>
+        <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:2.5rem;font-weight:400;color:${c.accent};line-height:1;margin-bottom:10px;">${c.value}</div>
         <p class="section-label">${esc(c.label)}</p>
       </div>
     `).join('');
@@ -647,12 +649,12 @@ async function loadAgent(name) {
     const enabled = cfg ? cfg.enabled : true;
 
     el.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
-        <a href="#overview" style="color:#9CA3AF;font-size:0.875rem;text-decoration:none;">← Overview</a>
-        <span style="color:#D1D5DB;">/</span>
-        <h1 style="font-size:1.375rem;font-weight:600;color:#1A1A1A;">
-          ${agentIcon(name)} ${esc(agentLabel(name))}
-        </h1>
+      <div class="page-hero" style="background-image:url('/dashboard/images/editorial-purple.jpg');min-height:200px;">
+        <div class="page-hero-overlay"></div>
+        <div class="page-hero-content">
+          <a href="#overview" style="color:rgba(255,255,255,0.6);font-size:0.875rem;text-decoration:none;display:block;margin-bottom:12px;">← Overview</a>
+          <h1 class="page-hero-title" style="font-size:2rem;">${agentIcon(name)} ${esc(agentLabel(name))}</h1>
+        </div>
       </div>
 
       <!-- Config Card -->

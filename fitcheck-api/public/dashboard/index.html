@@ -38,54 +38,10 @@
         <span class="login-editorial-brand-name">Or This?</span>
       </div>
 
-      <!-- Fashion illustration -->
+      <!-- Editorial photograph -->
       <div class="login-figure-wrap">
-        <svg viewBox="0 0 280 540" fill="none" xmlns="http://www.w3.org/2000/svg" class="login-fashion-svg">
-          <!-- Watermark ? -->
-          <text x="-22" y="430" font-family="Georgia,serif" font-style="italic" font-size="440" fill="rgba(255,255,255,0.038)">?</text>
-          <!-- Editorial horizontal rules at waist level -->
-          <line x1="16" y1="192" x2="58" y2="192" stroke="rgba(232,93,76,0.45)" stroke-width="0.75"/>
-          <line x1="222" y1="192" x2="264" y2="192" stroke="rgba(232,93,76,0.45)" stroke-width="0.75"/>
-          <!-- HEAD -->
-          <ellipse cx="140" cy="62" rx="18" ry="22" fill="rgba(255,255,255,0.93)"/>
-          <!-- Hair (abstract) -->
-          <path d="M124 50 Q131 32 140 39 Q149 27 158 48" stroke="rgba(255,255,255,0.38)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-          <!-- NECK -->
-          <rect x="135" y="83" width="10" height="18" fill="rgba(255,255,255,0.90)"/>
-          <!-- COAT body -->
-          <path d="M135 99 L68 123 L60 263 L80 269 L108 269 L126 230 L132 216 L140 213 L148 216 L154 230 L172 269 L200 269 L220 263 L212 123 L145 99 Z" fill="rgba(255,255,255,0.88)"/>
-          <!-- LAPELS in coral -->
-          <path d="M135 99 L122 113 L137 124 L140 133 L143 124 L158 113 L145 99 Z" fill="#E85D4C"/>
-          <!-- BELT in coral -->
-          <rect x="96" y="218" width="88" height="4" fill="#E85D4C"/>
-          <!-- Center button detail -->
-          <circle cx="140" cy="160" r="1.6" fill="rgba(232,93,76,0.5)"/>
-          <circle cx="140" cy="176" r="1.6" fill="rgba(232,93,76,0.5)"/>
-          <circle cx="140" cy="193" r="1.6" fill="rgba(232,93,76,0.5)"/>
-          <!-- LEFT ARM -->
-          <path d="M71 127 L52 208 L61 213 L78 132 Z" fill="rgba(255,255,255,0.76)"/>
-          <!-- RIGHT ARM -->
-          <path d="M209 127 L226 203 L217 208 L202 132 Z" fill="rgba(255,255,255,0.70)"/>
-          <!-- Clutch bag in coral -->
-          <rect x="220" y="193" width="22" height="14" rx="1" fill="#E85D4C" opacity="0.82"/>
-          <!-- BACK LEG -->
-          <rect x="150" y="267" width="16" height="200" fill="rgba(255,255,255,0.66)"/>
-          <!-- FRONT LEG -->
-          <rect x="114" y="267" width="16" height="200" fill="rgba(255,255,255,0.87)"/>
-          <!-- FRONT SHOE (toe box + heel post) -->
-          <path d="M105 466 L130 466 L130 472 Q130 479 124 481 L108 481 Q100 478 100 471 Q100 466 105 466 Z" fill="rgba(255,255,255,0.87)"/>
-          <rect x="127" y="481" width="3" height="13" fill="rgba(255,255,255,0.70)"/>
-          <!-- BACK SHOE -->
-          <path d="M150 466 L166 466 L166 472 Q166 479 162 481 L152 481 Q146 478 146 471 Q146 466 150 466 Z" fill="rgba(255,255,255,0.66)"/>
-          <rect x="163" y="481" width="3" height="13" fill="rgba(255,255,255,0.52)"/>
-          <!-- Dot column accents (editorial) -->
-          <circle cx="32" cy="308" r="1.5" fill="rgba(232,93,76,0.32)"/>
-          <circle cx="32" cy="321" r="1.5" fill="rgba(232,93,76,0.32)"/>
-          <circle cx="32" cy="334" r="1.5" fill="rgba(232,93,76,0.32)"/>
-          <circle cx="248" cy="308" r="1.5" fill="rgba(232,93,76,0.32)"/>
-          <circle cx="248" cy="321" r="1.5" fill="rgba(232,93,76,0.32)"/>
-          <circle cx="248" cy="334" r="1.5" fill="rgba(232,93,76,0.32)"/>
-        </svg>
+        <img src="/dashboard/images/editorial-orange.jpg" alt="" class="login-editorial-img">
+        <div class="login-editorial-img-overlay"></div>
       </div>
 
       <!-- Quote -->
@@ -186,6 +142,9 @@
           ↩ Sign Out
         </button>
       </div>
+      <div class="sidebar-editorial-accent" aria-hidden="true">
+        <img src="/dashboard/images/editorial-sketches.jpg" alt="" class="sidebar-accent-img">
+      </div>
     </aside>
 
     <!-- Main Content -->
@@ -194,51 +153,26 @@
 
         <!-- ── Overview ─────────────────────────────────────────── -->
         <div data-page="overview" class="hidden">
-          <div class="page-ed-header">
-            <div class="page-ed-header-text">
-              <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:6px;">Agent Dashboard</h1>
-              <p style="color:var(--muted);font-size:0.875rem;">Autonomous agent workforce at a glance</p>
+          <div class="page-hero" style="background-image:url('/dashboard/images/editorial-duo.jpg')">
+            <div class="page-hero-overlay"></div>
+            <div class="page-hero-content">
+              <p class="section-label" style="color:rgba(255,255,255,0.5);margin-bottom:12px;">Or This? Operator Console</p>
+              <h1 class="page-hero-title">Agent Dashboard</h1>
             </div>
-            <!-- Two figures: the agent workforce -->
-            <svg viewBox="0 0 180 88" fill="none" xmlns="http://www.w3.org/2000/svg" class="page-ed-fig" aria-hidden="true">
-              <text x="96" y="100" font-family="Georgia,serif" font-style="italic" font-size="120" fill="rgba(232,93,76,0.04)">?</text>
-              <!-- Figure 1: blazer + trousers, holding tablet -->
-              <ellipse cx="52" cy="14" rx="7" ry="8" fill="rgba(45,45,45,0.82)"/>
-              <rect x="49" y="21" width="6" height="5" fill="rgba(45,45,45,0.75)"/>
-              <path d="M49 26 L30 34 L28 66 L44 66 L52 52 L60 66 L76 66 L74 34 L55 26 Z" fill="rgba(45,45,45,0.72)"/>
-              <path d="M49 26 L45 32 L52 36 L59 32 L55 26 Z" fill="#E85D4C"/>
-              <rect x="44" y="66" width="8" height="20" fill="rgba(45,45,45,0.58)"/>
-              <rect x="52" y="66" width="8" height="20" fill="rgba(45,45,45,0.46)"/>
-              <rect x="26" y="42" width="14" height="10" rx="1" fill="rgba(232,93,76,0.18)" stroke="rgba(232,93,76,0.5)" stroke-width="0.75"/>
-              <line x1="29" y1="45" x2="37" y2="45" stroke="rgba(232,93,76,0.4)" stroke-width="0.6"/>
-              <line x1="29" y1="48" x2="35" y2="48" stroke="rgba(232,93,76,0.25)" stroke-width="0.6"/>
-              <!-- Figure 2: structured coat with belt -->
-              <ellipse cx="118" cy="12" rx="6.5" ry="7.5" fill="rgba(45,45,45,0.78)"/>
-              <rect x="115" y="19" width="6" height="4" fill="rgba(45,45,45,0.72)"/>
-              <path d="M115 23 L98 30 L96 68 L114 68 L118 55 L122 68 L140 68 L138 30 L121 23 Z" fill="rgba(45,45,45,0.58)"/>
-              <path d="M115 23 L111 30 L118 33.5 L125 30 L121 23 Z" fill="#E85D4C"/>
-              <rect x="98" y="50" width="40" height="2.5" fill="#E85D4C" opacity="0.65"/>
-              <circle cx="118" cy="40" r="1.4" fill="rgba(232,93,76,0.4)"/>
-              <circle cx="118" cy="46" r="1.4" fill="rgba(232,93,76,0.4)"/>
-              <rect x="111" y="68" width="7" height="18" fill="rgba(45,45,45,0.46)"/>
-              <rect x="118" y="68" width="7" height="18" fill="rgba(45,45,45,0.36)"/>
-              <!-- Editorial rules flanking -->
-              <line x1="4" y1="40" x2="18" y2="40" stroke="rgba(232,93,76,0.3)" stroke-width="0.65"/>
-              <line x1="4" y1="45" x2="12" y2="45" stroke="rgba(232,93,76,0.18)" stroke-width="0.65"/>
-              <line x1="158" y1="40" x2="176" y2="40" stroke="rgba(232,93,76,0.3)" stroke-width="0.65"/>
-              <line x1="164" y1="45" x2="176" y2="45" stroke="rgba(232,93,76,0.18)" stroke-width="0.65"/>
-            </svg>
           </div>
-          <div id="stat-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4" style="margin-bottom:40px;"></div>
-          <div style="margin-bottom:40px;">
+          <div id="stat-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4" style="padding:32px 0;margin-bottom:0;"></div>
+          <span class="editorial-rule"></span>
+          <div class="page-section page-section-white">
             <p class="section-label" style="margin-bottom:20px;">Operator Agents</p>
             <div id="agent-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
           </div>
-          <div style="margin-bottom:40px;">
+          <span class="editorial-rule"></span>
+          <div class="page-section page-section-cream">
             <p class="section-label" style="margin-bottom:20px;">Reporting &amp; Intelligence</p>
             <div id="reporting-agents" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
-          <div>
+          <span class="editorial-rule"></span>
+          <div class="page-section page-section-white">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
               <p class="section-label">Pending Approval</p>
               <a href="#queue" style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--coral);text-decoration:none;">View all</a>
@@ -249,49 +183,20 @@
 
         <!-- ── Social Posts ────────────────────────────────────── -->
         <div data-page="social" class="hidden">
-          <div class="page-ed-header">
-            <div class="page-ed-header-text">
-              <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:4px;">Social Posts</h1>
-              <p style="color:var(--muted);font-size:0.875rem;">Review, approve, and publish content to social channels</p>
+          <div class="page-split">
+            <div class="page-split-img">
+              <img src="/dashboard/images/editorial-teal.jpg" alt="" class="page-split-photo">
             </div>
-            <!-- Figure with phone + floating post cards -->
-            <svg viewBox="0 0 180 88" fill="none" xmlns="http://www.w3.org/2000/svg" class="page-ed-fig" aria-hidden="true">
-              <!-- Floating post cards (left) -->
-              <rect x="8" y="18" width="36" height="24" rx="1" fill="white" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
-              <rect x="13" y="23" width="20" height="2" fill="rgba(45,45,45,0.18)"/>
-              <rect x="13" y="27.5" width="26" height="1.5" fill="rgba(45,45,45,0.10)"/>
-              <rect x="13" y="31" width="22" height="1.5" fill="rgba(45,45,45,0.10)"/>
-              <rect x="13" y="35" width="10" height="2.5" fill="#E85D4C" opacity="0.4"/>
-              <rect x="4" y="52" width="32" height="20" rx="1" fill="white" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
-              <rect x="9" y="57" width="18" height="1.5" fill="rgba(45,45,45,0.15)"/>
-              <rect x="9" y="61" width="22" height="1.5" fill="rgba(45,45,45,0.10)"/>
-              <rect x="9" y="65" width="16" height="1.5" fill="rgba(45,45,45,0.10)"/>
-              <!-- Central figure -->
-              <ellipse cx="94" cy="13" rx="7" ry="8" fill="rgba(45,45,45,0.82)"/>
-              <rect x="91" y="20" width="6" height="4" fill="rgba(45,45,45,0.75)"/>
-              <path d="M91 24 L74 32 L72 66 L90 66 L94 54 L98 66 L116 66 L114 32 L97 24 Z" fill="rgba(45,45,45,0.62)"/>
-              <path d="M91 24 L88 30 L94 32 L100 30 L97 24 Z" fill="rgba(45,45,45,0.85)"/>
-              <!-- Right arm raised holding phone -->
-              <path d="M114 35 L132 22 L135 27 L117 41 Z" fill="rgba(45,45,45,0.52)"/>
-              <rect x="132" y="14" width="11" height="17" rx="1.5" fill="#E85D4C" opacity="0.88"/>
-              <rect x="134" y="16" width="7" height="11" fill="rgba(255,255,255,0.22)"/>
-              <!-- Skirt -->
-              <path d="M74 66 L90 66 L94 86 L98 66 L114 66 L109 88 L79 88 Z" fill="rgba(45,45,45,0.46)"/>
-              <!-- Editorial accent dots right -->
-              <circle cx="168" cy="28" r="1.5" fill="rgba(232,93,76,0.38)"/>
-              <circle cx="168" cy="36" r="1.5" fill="rgba(232,93,76,0.38)"/>
-              <circle cx="168" cy="44" r="1.5" fill="rgba(232,93,76,0.38)"/>
-              <circle cx="168" cy="52" r="1.5" fill="rgba(232,93,76,0.22)"/>
-            </svg>
-          </div>
-          <div id="social-run-bar" class="card p-4 mb-6" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-            <div>
-              <p style="font-weight:600;font-size:0.875rem;color:#1A1A1A;">Content Engine</p>
-              <p class="section-label" style="margin-top:2px;">Mon · Wed · Fri at 8:30am UTC — or run now</p>
+            <div class="page-split-content">
+              <span class="editorial-rule" style="margin-bottom:24px;margin-left:0;"></span>
+              <p class="section-label" style="margin-bottom:12px;">Content Engine</p>
+              <h1 class="page-hero-title" style="color:var(--black);font-size:2.25rem;margin-bottom:16px;">Social Posts</h1>
+              <p style="color:var(--muted);font-size:0.875rem;margin-bottom:24px;">Review, approve, and publish content to social channels</p>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                <button onclick="handleForceTrigger(this)" class="btn-coral" style="padding:14px 28px;">▶ Generate Posts Now</button>
+                <p class="section-label">Mon · Wed · Fri at 8:30am UTC</p>
+              </div>
             </div>
-            <button onclick="handleForceTrigger(this)" class="btn-coral" style="padding:10px 20px;font-size:0.875rem;font-weight:600;white-space:nowrap;">
-              ▶ Generate Posts Now
-            </button>
           </div>
           <div>
             <p class="section-label" style="margin-bottom:12px;">Pending Review</p>
@@ -305,42 +210,12 @@
 
         <!-- ── Approval Queue ──────────────────────────────────── -->
         <div data-page="queue" class="hidden">
-          <div class="page-ed-header">
-            <div class="page-ed-header-text">
-              <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:6px;">Approval Queue</h1>
-              <p style="color:var(--muted);font-size:0.875rem;">Review and approve high-risk agent actions</p>
+          <div class="page-hero" style="background-image:url('/dashboard/images/editorial-blue.jpg')">
+            <div class="page-hero-overlay"></div>
+            <div class="page-hero-content">
+              <p class="section-label" style="color:rgba(255,255,255,0.5);margin-bottom:12px;">High-risk actions</p>
+              <h1 class="page-hero-title">Approval Queue</h1>
             </div>
-            <!-- Figure with clipboard and checklist -->
-            <svg viewBox="0 0 180 88" fill="none" xmlns="http://www.w3.org/2000/svg" class="page-ed-fig" aria-hidden="true">
-              <!-- Clipboard (left, held out) -->
-              <rect x="22" y="30" width="26" height="36" rx="1" fill="white" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
-              <rect x="30" y="27" width="10" height="6" rx="1" fill="#E85D4C" opacity="0.82"/>
-              <!-- Checklist lines -->
-              <line x1="30" y1="42" x2="44" y2="42" stroke="rgba(45,45,45,0.14)" stroke-width="1"/>
-              <line x1="30" y1="50" x2="44" y2="50" stroke="rgba(45,45,45,0.14)" stroke-width="1"/>
-              <line x1="30" y1="58" x2="40" y2="58" stroke="rgba(45,45,45,0.14)" stroke-width="1"/>
-              <!-- Check marks in coral -->
-              <path d="M26 41 L28.5 43.5 L33 38.5" stroke="#E85D4C" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              <path d="M26 49 L28.5 51.5 L33 46.5" stroke="#E85D4C" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              <!-- Figure: structured jacket -->
-              <ellipse cx="104" cy="13" rx="7" ry="8" fill="rgba(45,45,45,0.82)"/>
-              <path d="M100 8 Q104 2 108 7" stroke="rgba(45,45,45,0.3)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-              <rect x="101" y="20" width="6" height="4" fill="rgba(45,45,45,0.75)"/>
-              <path d="M101 24 L84 32 L82 68 L102 68 L104 56 L106 68 L126 68 L124 32 L107 24 Z" fill="rgba(45,45,45,0.60)"/>
-              <path d="M101 24 L97 30 L104 33 L111 30 L107 24 Z" fill="#E85D4C"/>
-              <rect x="84" y="50" width="40" height="2.5" fill="#E85D4C" opacity="0.62"/>
-              <!-- Left arm reaching out to clipboard -->
-              <path d="M84 35 L56 40 L54 52 L60 52 L60 43 L86 39 Z" fill="rgba(45,45,45,0.48)"/>
-              <!-- Legs -->
-              <rect x="97" y="68" width="7" height="18" fill="rgba(45,45,45,0.50)"/>
-              <rect x="104" y="68" width="7" height="18" fill="rgba(45,45,45,0.40)"/>
-              <!-- Right arm relaxed -->
-              <path d="M124 34 L140 40 L138 47 L122 40 Z" fill="rgba(45,45,45,0.42)"/>
-              <!-- Editorial lines right -->
-              <line x1="152" y1="26" x2="174" y2="26" stroke="rgba(232,93,76,0.3)" stroke-width="0.65"/>
-              <line x1="152" y1="32" x2="168" y2="32" stroke="rgba(232,93,76,0.18)" stroke-width="0.65"/>
-              <line x1="152" y1="38" x2="174" y2="38" stroke="rgba(232,93,76,0.3)" stroke-width="0.65"/>
-            </svg>
           </div>
           <div id="queue-content"></div>
           <div id="queue-pagination" class="mt-6"></div>
@@ -353,42 +228,14 @@
 
         <!-- ── Action Log ──────────────────────────────────────── -->
         <div data-page="log" class="hidden">
-          <div class="page-ed-header">
-            <div class="page-ed-header-text">
-              <h1 class="editorial-heading" style="font-size:1.75rem;margin-bottom:6px;">Action Log</h1>
-              <p style="color:var(--muted);font-size:0.875rem;">Full audit trail of every agent action</p>
+          <div class="page-hero" style="background-image:url('/dashboard/images/editorial-tan.jpg')">
+            <div class="page-hero-overlay"></div>
+            <div class="page-hero-content">
+              <p class="section-label" style="color:rgba(255,255,255,0.5);margin-bottom:12px;">Full audit trail</p>
+              <h1 class="page-hero-title">Action Log</h1>
             </div>
-            <!-- Slim figure + timeline log lines -->
-            <svg viewBox="0 0 180 88" fill="none" xmlns="http://www.w3.org/2000/svg" class="page-ed-fig" aria-hidden="true">
-              <text x="92" y="100" font-family="Georgia,serif" font-style="italic" font-size="120" fill="rgba(232,93,76,0.04)">?</text>
-              <!-- Timeline log entries (left) -->
-              <line x1="18" y1="16" x2="18" y2="72" stroke="rgba(232,93,76,0.18)" stroke-width="1"/>
-              <circle cx="18" cy="22" r="3" fill="#E85D4C" opacity="0.72"/>
-              <line x1="24" y1="22" x2="82" y2="22" stroke="rgba(45,45,45,0.12)" stroke-width="1"/>
-              <line x1="24" y1="25" x2="72" y2="25" stroke="rgba(45,45,45,0.07)" stroke-width="1"/>
-              <circle cx="18" cy="36" r="2.5" fill="rgba(45,45,45,0.22)"/>
-              <line x1="24" y1="36" x2="78" y2="36" stroke="rgba(45,45,45,0.10)" stroke-width="1"/>
-              <line x1="24" y1="39" x2="66" y2="39" stroke="rgba(45,45,45,0.07)" stroke-width="1"/>
-              <circle cx="18" cy="50" r="3" fill="#E85D4C" opacity="0.45"/>
-              <line x1="24" y1="50" x2="74" y2="50" stroke="rgba(45,45,45,0.10)" stroke-width="1"/>
-              <line x1="24" y1="53" x2="60" y2="53" stroke="rgba(45,45,45,0.07)" stroke-width="1"/>
-              <circle cx="18" cy="64" r="2.5" fill="rgba(45,45,45,0.16)"/>
-              <line x1="24" y1="64" x2="70" y2="64" stroke="rgba(45,45,45,0.08)" stroke-width="1"/>
-              <!-- Slim silhouette figure (right side) -->
-              <ellipse cx="136" cy="14" rx="6.5" ry="7.5" fill="rgba(45,45,45,0.75)"/>
-              <rect x="133" y="20" width="6" height="4" fill="rgba(45,45,45,0.68)"/>
-              <path d="M133 24 L118 30 L116 68 L134 68 L136 55 L138 68 L156 68 L154 30 L139 24 Z" fill="rgba(45,45,45,0.55)"/>
-              <path d="M133 24 L129 30 L136 33.5 L143 30 L139 24 Z" fill="#E85D4C"/>
-              <rect x="118" y="50" width="36" height="2" fill="#E85D4C" opacity="0.55"/>
-              <rect x="130" y="68" width="6" height="18" fill="rgba(45,45,45,0.44)"/>
-              <rect x="136" y="68" width="6" height="18" fill="rgba(45,45,45,0.34)"/>
-              <!-- Editorial dots right margin -->
-              <circle cx="170" cy="32" r="1.5" fill="rgba(232,93,76,0.32)"/>
-              <circle cx="170" cy="42" r="1.5" fill="rgba(232,93,76,0.20)"/>
-              <circle cx="170" cy="52" r="1.5" fill="rgba(232,93,76,0.32)"/>
-            </svg>
           </div>
-          <div class="flex flex-wrap gap-3 mb-6">
+          <div class="flex flex-wrap gap-3 mb-6" style="margin-top:32px;">
             <select id="log-filter-agent" class="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none">
               <option value="">All Agents</option>
             </select>
@@ -413,6 +260,7 @@
         </div>
 
       </div>
+      <div class="photo-credit">Photography by Fabian Kunzel-Zeller &amp; Charlota Blunarova via Unsplash</div>
     </main>
   </div>
 
