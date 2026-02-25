@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   avatar: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 9999,
     backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontFamily: Fonts.sansMedium,
-    fontSize: 13,
+    fontSize: 15,
     color: Colors.primary,
   },
   // Hero editorial prompt
