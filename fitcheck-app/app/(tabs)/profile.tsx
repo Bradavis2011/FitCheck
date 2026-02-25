@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput, Modal, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/clerk-expo';
@@ -14,6 +16,7 @@ import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals, useC
 import PillButton from '../../src/components/PillButton';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 import ReferralCard from '../../src/components/ReferralCard';
+import UserAvatar from '../../src/components/UserAvatar';
 import { styles as styleOptions } from '../../src/lib/mockData';
 
 const PENDING_REFERRAL_KEY = 'orthis_pending_referral_code';
@@ -33,6 +36,7 @@ export default function ProfileScreen() {
 
   const claimReferral = useClaimReferral();
 
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showStyles, setShowStyles] = useState(false);
   const selectedStyles = (userProfile?.stylePreferences?.styles as string[]) || [];
   const [showSettings, setShowSettings] = useState(false);
@@ -141,6 +145,36 @@ export default function ProfileScreen() {
     }
   };
 
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to set a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    try {
+      setIsUploadingAvatar(true);
+      // Compress to 256×256 avatar
+      const compressed = await manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 256, height: 256 } }],
+        { compress: 0.8, format: SaveFormat.JPEG, base64: true }
+      );
+      const dataUri = `data:image/jpeg;base64,${compressed.base64}`;
+      await updateProfile.mutateAsync({ profileImageUrl: dataUri } as any);
+    } catch {
+      Alert.alert('Error', 'Failed to update profile picture. Please try again.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const getInitials = () => {
     const name = user?.name || user?.email?.split('@')[0] || 'User';
     const parts = name.split(' ');
@@ -156,9 +190,18 @@ export default function ProfileScreen() {
 
         {/* Editorial profile header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials()}</Text>
-          </View>
+          <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.8}>
+            <UserAvatar
+              imageUri={userProfile?.profileImageUrl}
+              initials={getInitials()}
+              size={72}
+            />
+            <View style={styles.avatarEditBadge}>
+              {isUploadingAvatar
+                ? <ActivityIndicator size="small" color={Colors.white} />
+                : <Ionicons name="camera" size={12} color={Colors.white} />}
+            </View>
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
             <Text style={styles.name}>{displayName}</Text>
             {userProfile?.username && (
@@ -471,20 +514,18 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
     gap: Spacing.md,
   },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 9999,
-    backgroundColor: Colors.primaryAlpha10,
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primaryAlpha30,
-  },
-  avatarText: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 24,
-    color: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
   profileInfo: {
     flex: 1,

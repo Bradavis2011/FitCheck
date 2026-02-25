@@ -14,7 +14,7 @@ const UpdateProfileSchema = z.object({
     .optional(),
   bio: z.string().max(150, 'Bio must be at most 150 characters').optional(),
   isPublic: z.boolean().optional(),
-  profileImageUrl: z.string().url().optional(),
+  profileImageUrl: z.string().optional(), // accepts https URLs and data: URIs
   stylePreferences: z.record(z.any()).optional(),
   bodyType: z.string().optional(),
   colorSeason: z.string().optional(),

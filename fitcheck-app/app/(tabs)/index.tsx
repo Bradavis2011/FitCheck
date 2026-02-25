@@ -19,7 +19,8 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser } from '../../src/hooks/useApi';
+import UserAvatar from '../../src/components/UserAvatar';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const { data: communityData, refetch: refetchCommunity } = useCommunityFeed({ filter: 'recent', limit: 3 });
   const toggleFavoriteMutation = useToggleFavorite();
   const { data: referralStats } = useReferralStats();
+  const { data: userProfile } = useUser();
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = outfitsData?.outfits || [];
@@ -99,11 +101,12 @@ export default function HomeScreen() {
         {/* Header — logo left, avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <TouchableOpacity
-            style={styles.avatar}
-            onPress={() => navigation.dispatch(TabActions.jumpTo('profile'))}
-          >
-            <Text style={styles.avatarText}>{getInitials()}</Text>
+          <TouchableOpacity onPress={() => navigation.dispatch(TabActions.jumpTo('profile'))} activeOpacity={0.8}>
+            <UserAvatar
+              imageUri={userProfile?.profileImageUrl}
+              initials={getInitials()}
+              size={44}
+            />
           </TouchableOpacity>
         </View>
 
@@ -289,21 +292,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 9999,
-    backgroundColor: Colors.primaryAlpha10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primaryAlpha30,
-  },
-  avatarText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 15,
-    color: Colors.primary,
   },
   // Hero editorial prompt
   heroSection: {
