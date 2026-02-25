@@ -208,6 +208,27 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Or This? — feature promo module */}
+        <View style={styles.orThisSection}>
+          <View style={styles.sectionDivider} />
+          <View style={styles.orThisBlock}>
+            <Text style={styles.sectionLabel}>Or This?</Text>
+            <View style={styles.rule} />
+            <Text style={styles.orThisTitle}>
+              <Text style={{ fontFamily: Fonts.serif }}>Or </Text>
+              <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
+            </Text>
+            <Text style={styles.orThisSubtitle}>Can't decide between two looks? Get an honest verdict.</Text>
+            <TouchableOpacity
+              style={styles.orThisButton}
+              onPress={() => router.push('/compare' as any)}
+            >
+              <Ionicons name="git-compare-outline" size={16} color={Colors.primary} />
+              <Text style={styles.orThisButtonText}>Compare Two Outfits</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Upgrade — editorial style (free tier only) */}
         {tier === 'free' && (
           <View style={styles.upgradeSection}>
@@ -398,6 +419,44 @@ const styles = StyleSheet.create({
   // Wardrobe
   wardrobeSection: {
     marginBottom: Spacing.md,
+  },
+  // Or This? promo
+  orThisSection: {
+    marginBottom: Spacing.lg,
+  },
+  orThisBlock: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+  },
+  orThisTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 24,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  orThisSubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginBottom: Spacing.lg,
+  },
+  orThisButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    alignSelf: 'flex-start',
+  },
+  orThisButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.primary,
   },
   // Upgrade block
   upgradeSection: {
