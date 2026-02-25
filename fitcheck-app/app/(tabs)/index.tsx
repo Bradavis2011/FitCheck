@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Link } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { TabActions } from '@react-navigation/core';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
@@ -21,6 +23,7 @@ import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useRefer
 
 export default function HomeScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const user = useAuthStore((s) => s.user);
   const { tier } = useSubscriptionStore();
   const { data: outfitsData, refetch: refetchOutfits } = useOutfits({ limit: 5 });
@@ -96,11 +99,12 @@ export default function HomeScreen() {
         {/* Header — logo left, avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <Link href="/profile" asChild>
-            <TouchableOpacity style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials()}</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            style={styles.avatar}
+            onPress={() => navigation.dispatch(TabActions.jumpTo('profile'))}
+          >
+            <Text style={styles.avatarText}>{getInitials()}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Editorial prompt area */}
