@@ -30,7 +30,16 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = outfitsData?.outfits || [];
-  const communityOutfits = communityData?.outfits || [];
+  const communityOutfits = (communityData?.outfits || []).map((outfit) => ({
+    id: outfit.id,
+    imageUrl: outfit.thumbnailUrl || outfit.imageUrl || '',
+    thumbnailData: outfit.thumbnailData,
+    score: outfit.aiScore,
+    occasions: outfit.occasions,
+    feedbackCount: outfit._count.communityFeedback,
+    username: outfit.user.username || outfit.user.name || 'Anonymous',
+    createdAt: outfit.createdAt,
+  }));
 
   const handleRefresh = async () => {
     setRefreshing(true);
