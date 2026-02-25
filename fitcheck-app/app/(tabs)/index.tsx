@@ -25,7 +25,7 @@ export default function HomeScreen() {
   const { tier } = useSubscriptionStore();
   const { data: outfitsData, refetch: refetchOutfits } = useOutfits({ limit: 5 });
   const { data: stats, refetch: refetchStats } = useUserStats();
-  const { data: comparisonData } = useComparisonFeed({ limit: 1 });
+  const { data: comparisonData, refetch: refetchComparisons } = useComparisonFeed({ limit: 1 });
   const voteMutation = useVoteOnComparison();
   const toggleFavoriteMutation = useToggleFavorite();
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +36,7 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchOutfits(), refetchStats()]);
+      await Promise.all([refetchOutfits(), refetchStats(), refetchComparisons()]);
     } finally {
       setRefreshing(false);
     }

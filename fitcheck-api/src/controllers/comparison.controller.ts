@@ -26,10 +26,6 @@ const VoteSchema = z.object({
 export async function createComparison(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
 
-  if (!req.user || req.user.tier === 'free') {
-    throw new AppError(403, '"Or This?" comparisons require a Plus or Pro subscription.');
-  }
-
   const data = CreateComparisonSchema.parse(req.body);
 
   if (!data.imageAData && !data.imageAUrl) {
