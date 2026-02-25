@@ -96,7 +96,7 @@ export default function HomeScreen() {
         {/* Header — logo left, avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <Link href="/(tabs)/profile" asChild>
+          <Link href="/profile" asChild>
             <TouchableOpacity style={styles.avatar}>
               <Text style={styles.avatarText}>{getInitials()}</Text>
             </TouchableOpacity>

@@ -220,7 +220,9 @@ export default function PublicOutfitScreen() {
             <>
               <View style={styles.summarySection}>
                 <Text style={styles.sectionTitle}>AI Feedback</Text>
-                <Text style={styles.summaryText}>{outfit.aiFeedback.summary}</Text>
+                <Text style={styles.summaryText}>
+                  {outfit.aiFeedback.summary || outfit.aiFeedback.editorialSummary}
+                </Text>
               </View>
 
               {outfit.aiFeedback.whatsWorking?.length > 0 && (
