@@ -208,6 +208,8 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
           effectiveDailyLimit = limits.dailyChecks + bonusChecks;
         }
       }
+      // Referral bonus: +1 per referred user who completed first outfit check (max 3)
+      effectiveDailyLimit += Math.min(3, (user as any).bonusDailyChecks || 0);
     }
     if (effectiveDailyLimit !== Infinity && user.dailyChecksUsed >= effectiveDailyLimit) {
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
@@ -386,6 +388,24 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
             console.error('Milestone check failed:', err);
           }),
         ]);
+
+        // Referral reward: first outfit check by a referred user earns their referrer +1 bonus daily check
+        if (outfitCount === 1 && (user as any).referredById) {
+          try {
+            const referrer = await prisma.user.findUnique({
+              where: { id: (user as any).referredById },
+              select: { bonusDailyChecks: true },
+            });
+            if (referrer && referrer.bonusDailyChecks < 3) {
+              await prisma.user.update({
+                where: { id: (user as any).referredById },
+                data: { bonusDailyChecks: { increment: 1 } },
+              });
+            }
+          } catch (err) {
+            console.error('Referral reward failed:', err);
+          }
+        }
       } catch (err) {
         console.error('Post-submit checks failed:', err);
       }

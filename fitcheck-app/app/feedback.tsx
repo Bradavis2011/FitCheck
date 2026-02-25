@@ -211,7 +211,7 @@ export default function FeedbackScreen() {
     try {
       setIsGeneratingShare(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      track('share_tapped', { score: outfit.aiScore ?? 0, method: 'native_share' });
+      track('score_card_shared', { score: outfit.aiScore ?? 0, method: 'native_share' });
 
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
       const shareText = normalized?.editorialSummary || `I got a ${normalized?.overallScore}/10 on Or This?`;

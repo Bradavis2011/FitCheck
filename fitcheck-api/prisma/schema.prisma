@@ -42,6 +42,13 @@ model User {
   dailyChecksUsed   Int      @default(0) @map("daily_checks_used")
   dailyChecksResetAt DateTime @default(now()) @map("daily_checks_reset_at") @db.Date
 
+  // Referral system
+  referralCode      String?  @unique @map("referral_code")
+  referredById      String?  @map("referred_by_id")
+  referredBy        User?    @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referredUsers     User[]   @relation("UserReferrals")
+  bonusDailyChecks  Int      @default(0) @map("bonus_daily_checks")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

@@ -10,10 +10,13 @@ import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { logOutPurchases } from '../../src/services/purchases.service';
-import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals } from '../../src/hooks/useApi';
+import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals, useClaimReferral } from '../../src/hooks/useApi';
 import PillButton from '../../src/components/PillButton';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
+import ReferralCard from '../../src/components/ReferralCard';
 import { styles as styleOptions } from '../../src/lib/mockData';
+
+const PENDING_REFERRAL_KEY = 'orthis_pending_referral_code';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -27,6 +30,8 @@ export default function ProfileScreen() {
   const { data: badgesData } = useBadges();
   const { data: dailyGoals } = useDailyGoals();
   const updateProfile = useUpdateProfile();
+
+  const claimReferral = useClaimReferral();
 
   const [showStyles, setShowStyles] = useState(false);
   const selectedStyles = (userProfile?.stylePreferences?.styles as string[]) || [];
@@ -50,6 +55,22 @@ export default function ProfileScreen() {
       }
     };
     loadSettings();
+  }, []);
+
+  // Claim any pending referral code stored during deep link / invite flow
+  useEffect(() => {
+    const claimPendingReferral = async () => {
+      try {
+        const code = await SecureStore.getItemAsync(PENDING_REFERRAL_KEY);
+        if (code) {
+          await claimReferral.mutateAsync(code);
+          await SecureStore.deleteItemAsync(PENDING_REFERRAL_KEY);
+        }
+      } catch {
+        // Non-fatal — silently ignore if claim fails (invalid code, already claimed, etc.)
+      }
+    };
+    claimPendingReferral();
   }, []);
 
   const toggleStyle = (style: string) => {
@@ -284,6 +305,9 @@ export default function ProfileScreen() {
         <View style={styles.wardrobeSection}>
           <WardrobeProgressCard />
         </View>
+
+        {/* Referral */}
+        <ReferralCard />
 
         {/* Upgrade — editorial style */}
         {tier === 'free' && (

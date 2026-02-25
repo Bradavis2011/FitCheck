@@ -1024,3 +1024,32 @@ export const eventService = {
     return response.data;
   },
 };
+
+// Referral service
+export interface ReferralStats {
+  referralCode: string;
+  link: string;
+  referralCount: number;
+  bonusDailyChecks: number;
+  maxBonusChecks: number;
+}
+
+export const referralService = {
+  async getStats(): Promise<ReferralStats> {
+    const response = await api.get<ReferralStats>('/api/referral/stats');
+    return response.data;
+  },
+
+  async getLink(): Promise<{ code: string; link: string }> {
+    const response = await api.get<{ code: string; link: string }>('/api/referral/link');
+    return response.data;
+  },
+
+  async claimReferral(referralCode: string): Promise<{ ok: boolean; alreadyClaimed?: boolean }> {
+    const response = await api.post<{ ok: boolean; alreadyClaimed?: boolean }>(
+      '/api/referral/claim',
+      { referralCode }
+    );
+    return response.data;
+  },
+};

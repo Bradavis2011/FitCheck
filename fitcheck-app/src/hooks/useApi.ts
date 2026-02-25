@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, referralService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -648,6 +648,24 @@ export function useCompareEventOutfits() {
     mutationFn: (eventId: string) => eventService.compareOutfits(eventId),
     onSuccess: (_data, eventId) => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
+}
+
+// Referral hooks
+export function useReferralStats() {
+  return useQuery({
+    queryKey: ['referral', 'stats'],
+    queryFn: () => referralService.getStats(),
+  });
+}
+
+export function useClaimReferral() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (referralCode: string) => referralService.claimReferral(referralCode),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['referral'] });
     },
   });
 }

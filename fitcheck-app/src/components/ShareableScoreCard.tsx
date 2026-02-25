@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, Spacing, BorderRadius, getScoreColor } from '../constants/theme';
+import { Colors, FontSize, Spacing, BorderRadius, getScoreColor, Fonts } from '../constants/theme';
 
 type Props = {
   score: number;
@@ -12,43 +12,41 @@ type Props = {
 };
 
 /**
- * ShareableScoreCard - A beautiful branded card for sharing outfit scores
- * This component is captured as an image using react-native-view-shot
+ * ShareableScoreCard — 400×600px branded PNG for social sharing.
+ * Captured via react-native-view-shot (off-screen rendering).
+ * Every share is a branded ad: "Or This? · orthis.app" in the footer.
  */
 export default function ShareableScoreCard({ score, imageUri, summary, occasion, username }: Props) {
   const scoreColor = getScoreColor(score);
-  const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
 
-  // Ensure we have a valid image URI
   const validImageUri = imageUri && imageUri.trim().length > 0 ? imageUri : null;
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[Colors.primary, Colors.secondary]}
+        colors={[Colors.primary, Colors.primaryLight]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        {/* Header */}
+        {/* Header — editorial logo */}
         <View style={styles.header}>
           <Text style={styles.logo}>
             <Text style={styles.logoOr}>Or </Text>
             <Text style={styles.logoThis}>This?</Text>
           </Text>
-          <Text style={styles.tagline}>Confidence in every choice</Text>
+          <Text style={styles.tagline}>CONFIDENCE IN EVERY CHOICE</Text>
         </View>
 
-        {/* Main Content */}
+        {/* Outfit image */}
         <View style={styles.content}>
-          {/* Outfit Image */}
           {validImageUri ? (
             <View style={styles.imageContainer}>
               <Image
                 source={{ uri: validImageUri }}
                 style={styles.image}
                 resizeMode="cover"
-                onError={(e) => console.error('ShareableScoreCard image load error:', e.nativeEvent.error)}
+                onError={(e) => console.error('ShareableScoreCard image error:', e.nativeEvent.error)}
               />
             </View>
           ) : (
@@ -57,10 +55,9 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
             </View>
           )}
 
-          {/* Score Display */}
-          <View style={[styles.scoreContainer, { backgroundColor: scoreColor }]}>
-            <Text style={styles.scoreEmoji}>{scoreEmoji}</Text>
-            <Text style={styles.scoreValue}>{score.toFixed(1)}</Text>
+          {/* Score — editorial style */}
+          <View style={[styles.scoreContainer, { borderColor: scoreColor }]}>
+            <Text style={[styles.scoreValue, { color: scoreColor }]}>{score.toFixed(1)}</Text>
             <Text style={styles.scoreOutOf}>/10</Text>
           </View>
 
@@ -71,20 +68,26 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
             </Text>
           </View>
 
-          {/* Occasion Badge */}
+          {/* Occasion */}
           {occasion && (
             <View style={styles.occasionBadge}>
-              <Text style={styles.occasionText}>{occasion}</Text>
+              <Text style={styles.occasionText}>{occasion.toUpperCase()}</Text>
             </View>
           )}
         </View>
 
-        {/* Footer */}
+        {/* Branded footer — the watermark / ad unit */}
         <View style={styles.footer}>
-          <Text style={styles.cta}>Get your style scored at</Text>
-          <Text style={styles.url}>OrThis.app</Text>
+          <View style={styles.footerRule} />
+          <View style={styles.footerContent}>
+            <Text style={styles.footerLogo}>
+              <Text style={styles.footerLogoOr}>Or </Text>
+              <Text style={styles.footerLogoThis}>This?</Text>
+            </Text>
+            <Text style={styles.footerUrl}>ORTHIS.APP</Text>
+          </View>
           {username && (
-            <Text style={styles.username}>Shared by @{username}</Text>
+            <Text style={styles.username}>shared by @{username}</Text>
           )}
         </View>
       </LinearGradient>
@@ -96,135 +99,147 @@ const styles = StyleSheet.create({
   container: {
     width: 400,
     height: 600,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.primary,
   },
   gradient: {
     flex: 1,
     padding: Spacing.lg,
+    justifyContent: 'space-between',
   },
+  // Header
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   logo: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 36,
   },
   logoOr: {
     color: Colors.white,
-    fontFamily: 'System',
+    fontFamily: Fonts.sansMedium,
   },
   logoThis: {
     color: Colors.white,
-    fontFamily: 'System',
-    fontStyle: 'italic',
+    fontFamily: Fonts.serifItalic,
   },
   tagline: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.9)',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 9,
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.75)',
     marginTop: 4,
   },
+  // Content
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.md,
   },
   imageContainer: {
     width: 200,
-    height: 250,
-    borderRadius: BorderRadius.lg,
+    height: 240,
+    borderRadius: BorderRadius.sm, // 4px — barely rounded per editorial spec
     overflow: 'hidden',
-    marginBottom: Spacing.lg,
-    borderWidth: 3,
-    borderColor: Colors.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
   },
   image: {
     width: '100%',
     height: '100%',
   },
   placeholderImageContainer: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Score — editorial: white box, colored score number
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  scoreEmoji: {
-    fontSize: 28,
-    marginRight: 8,
+    paddingVertical: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 0, // sharp — editorial
+    borderLeftWidth: 3,
   },
   scoreValue: {
+    fontFamily: Fonts.serif,
     fontSize: 48,
-    fontWeight: '700',
-    color: Colors.white,
+    lineHeight: 52,
   },
   scoreOutOf: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
+    fontFamily: Fonts.sans,
+    fontSize: 20,
+    color: Colors.textMuted,
     marginLeft: 4,
   },
+  // Summary
   summaryContainer: {
     backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
+    borderRadius: 0, // sharp
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     maxWidth: 320,
   },
   summary: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     lineHeight: 22,
     color: Colors.text,
     textAlign: 'center',
   },
+  // Occasion
   occasionBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
+    paddingVertical: 5,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 0, // sharp
   },
   occasionText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
     color: Colors.white,
   },
+  // Branded footer watermark
   footer: {
     alignItems: 'center',
-    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
   },
-  cta: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 4,
+  footerRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginBottom: Spacing.sm,
   },
-  url: {
-    fontSize: FontSize.xl,
-    fontWeight: '700',
+  footerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  footerLogo: {
+    fontSize: 18,
+  },
+  footerLogoOr: {
+    fontFamily: Fonts.sansMedium,
     color: Colors.white,
-    letterSpacing: 1,
+  },
+  footerLogoThis: {
+    fontFamily: Fonts.serifItalic,
+    color: Colors.white,
+  },
+  footerUrl: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.8)',
   },
   username: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 8,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
   },
 });

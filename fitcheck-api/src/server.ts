@@ -34,6 +34,7 @@ import { shutdownPostHog } from './lib/posthog.js';
 import adminRoutes from './routes/admin.routes.js';
 import agentAdminRoutes from './routes/agent-admin.routes.js';
 import trendsRoutes from './routes/trends.routes.js';
+import referralRoutes from './routes/referral.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
@@ -160,6 +161,7 @@ app.use('/api', subscriptionRoutes);
 app.use('/api/admin/agents', agentAdminRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/trends', trendsRoutes);
+app.use('/api/referral', referralRoutes);
 
 // 404 handler
 app.use((req, res) => {
