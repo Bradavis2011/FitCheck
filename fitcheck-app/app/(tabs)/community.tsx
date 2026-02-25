@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,13 +15,11 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/the
 import OutfitFeedCard from '../../src/components/OutfitFeedCard';
 import ComparisonCard from '../../src/components/ComparisonCard';
 import { useCommunityFeed, useComparisonFeed, useVoteOnComparison } from '../../src/hooks/useApi';
-import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 
 type FeedFilter = 'recent' | 'popular' | 'top-rated' | 'inner_circle';
 
 export default function CommunityScreen() {
   const router = useRouter();
-  const { tier } = useSubscriptionStore();
   const [filter, setFilter] = useState<FeedFilter>('recent');
   const [offset, setOffset] = useState(0);
 
@@ -218,20 +215,7 @@ export default function CommunityScreen() {
       {/* Floating Action Buttons */}
       <TouchableOpacity
         style={[styles.fab, styles.fabSecondary]}
-        onPress={() => {
-          if (tier === 'free') {
-            Alert.alert(
-              'Plus Feature',
-              'Giving community feedback requires a Plus or Pro subscription.',
-              [
-                { text: 'Not Now', style: 'cancel' },
-                { text: 'Upgrade', onPress: () => router.push('/upgrade' as any) },
-              ]
-            );
-            return;
-          }
-          router.push('/give-feedback' as any);
-        }}
+        onPress={() => router.push('/give-feedback' as any)}
         activeOpacity={0.9}
       >
         <Ionicons name="heart-outline" size={24} color={Colors.white} />

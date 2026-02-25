@@ -25,6 +25,8 @@ import { socialService } from '../../src/services/api.service';
 import { useCommunityFeedback, useSubmitCommunityFeedback } from '../../src/hooks/useApi';
 import { useAuthStore } from '../../src/stores/authStore';
 
+const QUICK_SUGGESTIONS = ['Great fit!', 'Love the colors', 'Try different shoes', 'Perfect for the occasion'];
+
 export default function PublicOutfitScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -42,7 +44,8 @@ export default function PublicOutfitScreen() {
   const submitFeedbackMutation = useSubmitCommunityFeedback();
 
   const communityFeedback = communityFeedbackData?.feedback || [];
-  const userHasFeedback = communityFeedback.some((f) => f.userId === user?.id);
+  const userExistingFeedback = communityFeedback.find((f: any) => f.userId === user?.id);
+  const userHasFeedback = !!userExistingFeedback;
   const isOwnOutfit = outfit?.userId === user?.id;
 
   // Calculate aggregate community score
@@ -54,6 +57,15 @@ export default function PublicOutfitScreen() {
   useEffect(() => {
     loadOutfit();
   }, [outfitId]);
+
+  // Pre-fill form when user's existing feedback loads
+  useEffect(() => {
+    if (userExistingFeedback) {
+      setFeedbackScore((userExistingFeedback as any).score);
+      setFeedbackComment((userExistingFeedback as any).comment || '');
+      setShowFeedbackForm(true);
+    }
+  }, [(userExistingFeedback as any)?.score, (userExistingFeedback as any)?.comment]);
 
   const loadOutfit = async () => {
     try {
@@ -69,15 +81,12 @@ export default function PublicOutfitScreen() {
   };
 
   const handleSubmitFeedback = async () => {
-    if (!feedbackComment.trim()) {
-      Alert.alert('Missing Comment', 'Please add a comment with your feedback');
-      return;
-    }
-
     if (feedbackComment.length > 500) {
       Alert.alert('Comment Too Long', 'Comments must be 500 characters or less');
       return;
     }
+
+    const isUpdate = userHasFeedback;
 
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -87,12 +96,14 @@ export default function PublicOutfitScreen() {
         comment: feedbackComment,
       });
 
-      setShowFeedbackForm(false);
-      setFeedbackComment('');
-      setFeedbackScore(7);
       refetchFeedback();
+      Alert.alert('Success', isUpdate ? 'Your rating has been updated!' : 'Your feedback has been submitted!');
 
-      Alert.alert('Success', 'Your feedback has been submitted!');
+      if (!isUpdate) {
+        setShowFeedbackForm(false);
+        setFeedbackComment('');
+        setFeedbackScore(7);
+      }
     } catch (error: any) {
       console.error('Failed to submit feedback:', error);
       Alert.alert(
@@ -254,7 +265,7 @@ export default function PublicOutfitScreen() {
           )}
 
           {/* Feedback Form */}
-          {!isOwnOutfit && !userHasFeedback && (
+          {!isOwnOutfit && (
             <View style={styles.feedbackFormSection}>
               {!showFeedbackForm ? (
                 <TouchableOpacity
@@ -267,15 +278,36 @@ export default function PublicOutfitScreen() {
                 </TouchableOpacity>
               ) : (
                 <View style={styles.feedbackForm}>
-                  <Text style={styles.feedbackFormTitle}>What do you think?</Text>
+                  <Text style={styles.feedbackFormTitle}>
+                    {userHasFeedback ? 'Update your rating' : 'What do you think?'}
+                  </Text>
 
                   <FeedbackScoreSlider value={feedbackScore} onChange={setFeedbackScore} />
+
+                  <View style={styles.suggestionPills}>
+                    {QUICK_SUGGESTIONS.map((s) => (
+                      <TouchableOpacity
+                        key={s}
+                        style={[
+                          styles.suggestionPill,
+                          feedbackComment === s && styles.suggestionPillActive,
+                        ]}
+                        onPress={() => setFeedbackComment(feedbackComment === s ? '' : s)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[
+                          styles.suggestionPillText,
+                          feedbackComment === s && styles.suggestionPillTextActive,
+                        ]}>{s}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
 
                   <TextInput
                     style={styles.feedbackInput}
                     value={feedbackComment}
                     onChangeText={setFeedbackComment}
-                    placeholder="Share your thoughts..."
+                    placeholder="Add a comment... (optional)"
                     placeholderTextColor={Colors.textMuted}
                     multiline
                     maxLength={500}
@@ -315,14 +347,6 @@ export default function PublicOutfitScreen() {
             <View style={styles.ownOutfitNotice}>
               <Ionicons name="information-circle" size={20} color={Colors.info} />
               <Text style={styles.ownOutfitText}>This is your outfit</Text>
-            </View>
-          )}
-
-          {/* Already Voted Notice */}
-          {userHasFeedback && !isOwnOutfit && (
-            <View style={styles.alreadyVotedNotice}>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-              <Text style={styles.alreadyVotedText}>You've already provided feedback</Text>
             </View>
           )}
 
@@ -591,19 +615,31 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.info,
   },
-  alreadyVotedNotice: {
+  suggestionPills: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.successAlpha10,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
   },
-  alreadyVotedText: {
-    fontSize: FontSize.sm,
-    color: Colors.success,
+  suggestionPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  suggestionPillActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryAlpha10,
+  },
+  suggestionPillText: {
+    fontSize: FontSize.xs,
+    color: Colors.text,
+  },
+  suggestionPillTextActive: {
+    color: Colors.primary,
   },
   feedbackListSection: {
     padding: Spacing.lg,

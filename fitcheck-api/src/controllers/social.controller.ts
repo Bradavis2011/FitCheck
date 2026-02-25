@@ -331,17 +331,12 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
 const FeedbackSchema = z.object({
   outfitId: z.string(),
   score: z.number().int().min(1).max(10),
-  comment: z.string().min(1).max(500),
+  comment: z.string().max(500).optional().default(''),
 });
 
 export async function submitCommunityFeedback(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
-
-    // Tier check: Only Plus/Pro users can submit community feedback
-    if (!req.user || req.user.tier === 'free') {
-      throw new AppError(403, 'Community feedback requires a Plus or Pro subscription.');
-    }
 
     const data = FeedbackSchema.parse(req.body);
 

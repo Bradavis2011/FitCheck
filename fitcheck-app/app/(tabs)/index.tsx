@@ -204,7 +204,7 @@ export default function HomeScreen() {
               <View key={outfit.id} style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
                 <OutfitFeedCard
                   outfit={outfit}
-                  onPress={() => router.push(`/feedback?outfitId=${outfit.id}` as any)}
+                  onPress={() => router.push(`/outfit/${outfit.id}` as any)}
                 />
               </View>
             ))}
