@@ -35,7 +35,7 @@ import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import ShareableScoreCard from '../src/components/ShareableScoreCard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-import { useTogglePublic, useCommunityFeedback } from '../src/hooks/useApi';
+import { useTogglePublic, useCommunityFeedback, useReferralStats } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
 import { normalizeFeedback, type NormalizedFeedback } from '../src/utils/feedbackAdapter';
@@ -66,6 +66,7 @@ export default function FeedbackScreen() {
   const { limits, tier } = useSubscriptionStore();
   const togglePublicMutation = useTogglePublic();
   const user = useAuthStore((s) => s.user);
+  const { data: referralStats } = useReferralStats();
 
   const [outfit, setOutfit] = useState<OutfitCheck | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -215,7 +216,10 @@ export default function FeedbackScreen() {
 
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
       const shareText = normalized?.editorialSummary || `I got a ${normalized?.overallScore}/10 on Or This?`;
-      const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${shareText}\n\nGet your outfit scored at OrThis.app!`;
+      const callToAction = referralStats?.link
+        ? `Try it yourself: ${referralStats.link}`
+        : 'Get your outfit scored at OrThis.app!';
+      const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${shareText}\n\n${callToAction}`;
 
       let imageShared = false;
       if (viewShotRef.current?.capture) {
@@ -225,10 +229,16 @@ export default function FeedbackScreen() {
           if (uri) {
             const fileUri = `${FileSystem.cacheDirectory}outfit-score-${Date.now()}.png`;
             await FileSystem.copyAsync({ from: uri, to: fileUri });
-            const canShare = await Sharing.isAvailableAsync();
-            if (canShare) {
-              await Sharing.shareAsync(fileUri, { mimeType: 'image/png', dialogTitle: `My Or This? Score: ${score}/10` });
+            if (Platform.OS === 'ios') {
+              // iOS Share.share supports url (local file) + message together — gives both image and text
+              await Share.share({ message: shareMessage, url: fileUri });
               imageShared = true;
+            } else {
+              const canShare = Sharing && await Sharing.isAvailableAsync();
+              if (canShare) {
+                await Sharing.shareAsync(fileUri, { mimeType: 'image/png', dialogTitle: `My Or This? Score: ${score}/10` });
+                imageShared = true;
+              }
             }
           }
         } catch { /* fall through to text share */ }
