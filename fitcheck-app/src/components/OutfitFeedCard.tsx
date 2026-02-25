@@ -7,7 +7,7 @@ type PublicOutfit = {
   imageUrl?: string;
   thumbnailUrl?: string;
   thumbnailData?: string;
-  score: number;
+  score: number | null;
   occasions: string[];
   feedbackCount: number;
   username: string;
@@ -20,7 +20,8 @@ type Props = {
 };
 
 export default function OutfitFeedCard({ outfit, onPress }: Props) {
-  const scoreColor = getScoreColor(outfit.score);
+  const hasScore = outfit.score != null && outfit.score > 0;
+  const scoreColor = hasScore ? getScoreColor(outfit.score) : Colors.textMuted;
   const rawThumb = outfit.thumbnailData;
   const thumbUri = rawThumb
     ? (rawThumb.startsWith('data:') ? rawThumb : `data:image/jpeg;base64,${rawThumb}`)
@@ -51,9 +52,11 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
             </View>
           )}
           {/* Score badge */}
-          <View style={[styles.scoreBadge, { backgroundColor: scoreColor }]}>
-            <Text style={styles.scoreText}>{outfit.score.toFixed(1)}</Text>
-          </View>
+          {hasScore && (
+            <View style={[styles.scoreBadge, { backgroundColor: scoreColor }]}>
+              <Text style={styles.scoreText}>{outfit.score.toFixed(1)}</Text>
+            </View>
+          )}
         </View>
 
         {/* Info */}

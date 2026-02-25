@@ -91,7 +91,7 @@ export default function CommunityScreen() {
     id: outfit.id,
     imageUrl: outfit.thumbnailUrl || outfit.imageUrl || '',
     thumbnailData: outfit.thumbnailData,
-    score: outfit.aiScore,
+    score: outfit.aiScore ?? 0,
     occasions: outfit.occasions,
     feedbackCount: outfit._count.communityFeedback,
     username: outfit.user.username || outfit.user.name || 'Anonymous',
