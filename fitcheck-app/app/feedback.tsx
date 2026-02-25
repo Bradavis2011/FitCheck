@@ -54,7 +54,7 @@ const INTERSTITIAL_UNIT_ID = __DEV__
     })!;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HERO_HEIGHT = Math.round(SCREEN_WIDTH * 1.1); // ~portrait aspect
+const HERO_HEIGHT = Math.round(SCREEN_WIDTH * (4 / 3)); // matches 3:4 crop frame
 
 export default function FeedbackScreen() {
   const insets = useSafeAreaInsets();
@@ -353,7 +353,7 @@ export default function FeedbackScreen() {
               <Image
                 source={{ uri: imageUri }}
                 style={styles.heroImage}
-                resizeMode="cover"
+                resizeMode="contain"
               />
               {/* Dark gradient overlay at bottom */}
               <View style={styles.heroOverlay} />
@@ -701,7 +701,7 @@ const styles = StyleSheet.create({
   // Full-bleed hero image
   heroContainer: {
     width: SCREEN_WIDTH,
-    height: Math.min(HERO_HEIGHT, 480),
+    height: HERO_HEIGHT,
     position: 'relative',
   },
   heroImage: {

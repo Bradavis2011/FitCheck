@@ -12,7 +12,7 @@ type PublicOutfit = {
   feedbackCount: number;
   username: string;
   createdAt: string;
-  aiFeedback?: { summary?: string } | null;
+  aiFeedback?: { summary?: string; editorialSummary?: string } | null;
 };
 
 type Props = {
@@ -76,8 +76,10 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
             <Text style={styles.occasionText}>{displayOccasion}</Text>
           </View>
 
-          {outfit.aiFeedback?.summary ? (
-            <Text style={styles.aiSummary} numberOfLines={2}>{outfit.aiFeedback.summary}</Text>
+          {(outfit.aiFeedback?.summary || outfit.aiFeedback?.editorialSummary) ? (
+            <Text style={styles.aiSummary} numberOfLines={2}>
+              {outfit.aiFeedback.summary || outfit.aiFeedback.editorialSummary}
+            </Text>
           ) : null}
 
           <View style={styles.statsRow}>
