@@ -95,7 +95,7 @@ export default function HomeScreen() {
           <OrThisLogo size={26} />
           <TouchableOpacity
             style={styles.avatar}
-            onPress={() => router.push('/(tabs)/profile')}
+            onPress={() => router.navigate('/(tabs)/profile')}
           >
             <Text style={styles.avatarText}>{getInitials()}</Text>
           </TouchableOpacity>
