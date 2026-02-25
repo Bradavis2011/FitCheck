@@ -1,10 +1,19 @@
 import { Platform } from 'react-native';
-import Purchases, {
-  CustomerInfo,
-  PurchasesOfferings,
-  PurchasesPackage,
-  LOG_LEVEL,
-} from 'react-native-purchases';
+import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
+
+// Safe runtime load — react-native-purchases requires a native build.
+// If the module isn't compiled in (e.g. Expo Go or a build missing the plugin),
+// we degrade gracefully instead of crashing the profile route.
+let Purchases: any = null;
+let LOG_LEVEL: any = { DEBUG: 4 };
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const rc = require('react-native-purchases');
+  Purchases = rc.default ?? rc;
+  if (rc.LOG_LEVEL) LOG_LEVEL = rc.LOG_LEVEL;
+} catch {
+  console.warn('[Purchases] react-native-purchases native module not available in this build — subscription features disabled');
+}
 
 const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || '';
 const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || '';
@@ -16,6 +25,7 @@ let isConfigured = false;
  * @param userId - Clerk user ID, used as RevenueCat app_user_id
  */
 export async function initializePurchases(userId: string): Promise<void> {
+  if (!Purchases) return; // native module not in this build
   if (isConfigured) {
     console.log('[Purchases] Already configured, skipping...');
     return;
