@@ -96,7 +96,7 @@ export default function HomeScreen() {
         {/* Header — logo left, avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <TouchableOpacity style={styles.avatar} onPress={() => router.push('/(tabs)/profile')}>
+          <TouchableOpacity style={styles.avatar} onPress={() => router.navigate('/(tabs)/profile' as any)}>
             <Text style={styles.avatarText}>{getInitials()}</Text>
           </TouchableOpacity>
         </View>

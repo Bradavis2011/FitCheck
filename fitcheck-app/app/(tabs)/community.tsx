@@ -96,6 +96,7 @@ export default function CommunityScreen() {
     feedbackCount: outfit._count.communityFeedback,
     username: outfit.user.username || outfit.user.name || 'Anonymous',
     createdAt: outfit.createdAt,
+    aiFeedback: (outfit as any).aiFeedback ?? null,
   }));
 
   const renderComparisonSection = () => {
