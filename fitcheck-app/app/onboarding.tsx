@@ -23,7 +23,7 @@ const slides: OnboardingSlide[] = [
   {
     id: 1,
     title: 'Welcome to Or This?',
-    subtitle: 'Get instant outfit feedback from AI and community',
+    subtitle: 'Honest AI outfit feedback in seconds',
     icon: 'camera',
     gradient: [Colors.primary, Colors.primaryLight],
   },
@@ -36,15 +36,15 @@ const slides: OnboardingSlide[] = [
   },
   {
     id: 3,
-    title: 'AI + Community',
-    subtitle: 'Get instant AI feedback, then share with the community for more perspectives',
-    icon: 'people',
+    title: 'Compare Outfits',
+    subtitle: 'Can\'t decide? Check two outfits side-by-side and let AI pick the winner.',
+    icon: 'git-compare-outline',
     gradient: [Colors.primary, Colors.primaryLight],
   },
   {
     id: 4,
     title: 'Ready to Go',
-    subtitle: 'Your supportive style community awaits. Let\'s check your first outfit!',
+    subtitle: 'Honest feedback. No sugarcoating. Let\'s check your first outfit!',
     icon: 'sparkles',
     gradient: [Colors.primaryLight, Colors.primary],
   },

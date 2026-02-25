@@ -345,16 +345,18 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.rowDivider} />
-          <TouchableOpacity style={styles.listRow} onPress={handleResetOnboarding}>
-            <Text style={[styles.listRowText, { color: Colors.warning }]}>Reset Onboarding (Test)</Text>
-          </TouchableOpacity>
+          {__DEV__ && (
+            <TouchableOpacity style={styles.listRow} onPress={handleResetOnboarding}>
+              <Text style={[styles.listRowText, { color: Colors.warning }]}>Reset Onboarding (Test)</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.rowDivider} />
           <TouchableOpacity style={styles.listRow} onPress={handleSignOut}>
             <Text style={[styles.listRowText, { color: Colors.error }]}>Log Out</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Or This? v1.0.0</Text>
+        <Text style={styles.version}>Or This? v1.1.0</Text>
       </ScrollView>
 
       {/* Edit Profile Modal */}

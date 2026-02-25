@@ -210,7 +210,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       }
     }
     if (effectiveDailyLimit !== Infinity && user.dailyChecksUsed >= effectiveDailyLimit) {
-      throw new AppError(429, 'Daily limit reached. Give community feedback to earn bonus checks, or upgrade to Plus!');
+      throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
     }
     } // end admin bypass else
 

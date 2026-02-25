@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
+import ComparisonCard from '../../src/components/ComparisonCard';
 import OrThisLogo from '../../src/components/OrThisLogo';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 
@@ -16,7 +17,7 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useComparisonFeed, useVoteOnComparison } from '../../src/hooks/useApi';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -24,10 +25,13 @@ export default function HomeScreen() {
   const { tier } = useSubscriptionStore();
   const { data: outfitsData, refetch: refetchOutfits } = useOutfits({ limit: 5 });
   const { data: stats, refetch: refetchStats } = useUserStats();
+  const { data: comparisonData } = useComparisonFeed({ limit: 1 });
+  const voteMutation = useVoteOnComparison();
   const toggleFavoriteMutation = useToggleFavorite();
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = outfitsData?.outfits || [];
+  const comparisonPosts = comparisonData?.posts || [];
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -177,6 +181,52 @@ export default function HomeScreen() {
         <View style={styles.wardrobeSection}>
           <WardrobeProgressCard />
         </View>
+
+        {/* Community — Or This? comparison preview */}
+        {comparisonPosts.length > 0 && (
+          <View style={styles.communitySection}>
+            <View style={styles.sectionDivider} />
+            <View style={styles.communityBlock}>
+              <Text style={styles.sectionLabel}>Community</Text>
+              <View style={styles.rule} />
+              <Text style={styles.communityTitle}>
+                <Text style={{ fontFamily: Fonts.serif }}>Or </Text>
+                <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
+              </Text>
+              <Text style={styles.communitySubtitle}>Help decide</Text>
+            </View>
+            {(() => {
+              const post = comparisonPosts[0];
+              const imageA = post.imageAUrl || (post.imageAData ? `data:image/jpeg;base64,${post.imageAData}` : '');
+              const imageB = post.imageBUrl || (post.imageBData ? `data:image/jpeg;base64,${post.imageBData}` : '');
+              return (
+                <View style={{ paddingHorizontal: Spacing.lg }}>
+                  <ComparisonCard
+                    id={post.id}
+                    username={post.user?.username || post.user?.name || 'Anonymous'}
+                    imageA={imageA}
+                    imageB={imageB}
+                    question={post.question}
+                    occasions={post.occasions || []}
+                    votesA={post.votesA}
+                    votesB={post.votesB}
+                    totalVotes={post.votesA + post.votesB}
+                    userVote={post.myVote}
+                    createdAt={post.createdAt}
+                    onVote={(choice) => voteMutation.mutate({ postId: post.id, choice })}
+                    onUserPress={() => {}}
+                  />
+                </View>
+              );
+            })()}
+            <TouchableOpacity
+              style={styles.seeMoreLink}
+              onPress={() => router.push('/(tabs)/community')}
+            >
+              <Text style={styles.seeAll}>See more comparisons</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Upgrade — editorial style (free tier only) */}
         {tier === 'free' && (
@@ -340,6 +390,30 @@ const styles = StyleSheet.create({
   },
   recentCard: {
     width: 160,
+  },
+  // Community
+  communitySection: {
+    marginBottom: Spacing.lg,
+  },
+  communityBlock: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  communityTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 24,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  communitySubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginBottom: Spacing.md,
+  },
+  seeMoreLink: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   // Wardrobe
   wardrobeSection: {
