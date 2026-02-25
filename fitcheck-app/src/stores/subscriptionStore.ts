@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
+import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 import * as purchasesService from '../services/purchases.service';
 import { subscriptionService } from '../services/api.service';
 

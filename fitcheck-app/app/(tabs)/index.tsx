@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
@@ -95,11 +95,9 @@ export default function HomeScreen() {
         {/* Header — logo left, avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <Link href="/(tabs)/profile" asChild>
-            <TouchableOpacity style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials()}</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity style={styles.avatar} onPress={() => router.navigate('/profile' as any)}>
+            <Text style={styles.avatarText}>{getInitials()}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Editorial prompt area */}

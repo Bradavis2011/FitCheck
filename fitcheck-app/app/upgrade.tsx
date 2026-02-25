@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
-import { PurchasesPackage } from 'react-native-purchases';
+import type { PurchasesPackage } from 'react-native-purchases';
 import { track } from '../src/lib/analytics';
 
 export default function UpgradeScreen() {
