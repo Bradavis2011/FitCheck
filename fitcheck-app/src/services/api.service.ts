@@ -309,6 +309,7 @@ export interface PublicOutfit {
   _count: {
     communityFeedback: number;
   };
+  aiFeedback?: { summary?: string; whatsWorking?: any[]; consider?: any[] } | null;
 }
 
 export interface CommunityFeedback {

@@ -12,6 +12,7 @@ type PublicOutfit = {
   feedbackCount: number;
   username: string;
   createdAt: string;
+  aiFeedback?: { summary?: string } | null;
 };
 
 type Props = {
@@ -74,6 +75,10 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
             <Ionicons name="calendar-outline" size={14} color={Colors.textMuted} />
             <Text style={styles.occasionText}>{displayOccasion}</Text>
           </View>
+
+          {outfit.aiFeedback?.summary ? (
+            <Text style={styles.aiSummary} numberOfLines={2}>{outfit.aiFeedback.summary}</Text>
+          ) : null}
 
           <View style={styles.statsRow}>
             <View style={styles.stat}>
@@ -164,6 +169,12 @@ const styles = StyleSheet.create({
   occasionText: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
+  },
+  aiSummary: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+    fontStyle: 'italic',
   },
   statsRow: {
     flexDirection: 'row',

@@ -40,6 +40,7 @@ export default function HomeScreen() {
     feedbackCount: outfit._count.communityFeedback,
     username: outfit.user.username || outfit.user.name || 'Anonymous',
     createdAt: outfit.createdAt,
+    aiFeedback: (outfit as any).aiFeedback ?? null,
   }));
 
   const handleRefresh = async () => {
@@ -95,7 +96,7 @@ export default function HomeScreen() {
         {/* Header — logo left, avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <TouchableOpacity style={styles.avatar} onPress={() => router.navigate('/profile' as any)}>
+          <TouchableOpacity style={styles.avatar} onPress={() => router.push('/(tabs)/profile')}>
             <Text style={styles.avatarText}>{getInitials()}</Text>
           </TouchableOpacity>
         </View>

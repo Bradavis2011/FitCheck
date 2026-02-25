@@ -228,7 +228,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         },
         select: {
           id: true, thumbnailUrl: true, thumbnailData: true, imageUrl: true,
-          occasions: true, aiScore: true, createdAt: true,
+          occasions: true, aiScore: true, aiFeedback: true, createdAt: true,
           user: { select: { id: true, username: true, name: true, profileImageUrl: true } },
           _count: { select: { communityFeedback: true } },
         },
@@ -295,6 +295,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         imageUrl: true,
         occasions: true,
         aiScore: true,
+        aiFeedback: true,
         createdAt: true,
         user: {
           select: {
