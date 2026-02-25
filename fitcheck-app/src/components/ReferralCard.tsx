@@ -73,14 +73,14 @@ export default function ReferralCard() {
           <Text style={styles.statLabel}>Invited</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
+        <View style={[styles.statItem, { paddingLeft: 8 }]}>
           <Text style={[styles.statNumber, bonusChecks > 0 && styles.statNumberActive]}>
             +{bonusChecks}
           </Text>
           <Text style={styles.statLabel}>Bonus Checks</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
+        <View style={[styles.statItem, { paddingLeft: 8 }]}>
           <Text style={styles.statNumber}>{maxBonus - bonusChecks}</Text>
           <Text style={styles.statLabel}>Still Available</Text>
         </View>
