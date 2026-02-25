@@ -51,7 +51,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-clipboard",
       "react-native-purchases",
       [
         "@sentry/react-native",
