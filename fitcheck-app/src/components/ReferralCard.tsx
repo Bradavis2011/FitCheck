@@ -8,7 +8,8 @@ import {
   Share,
   ActivityIndicator,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+let Clipboard: typeof import('expo-clipboard') | null = null;
+try { Clipboard = require('expo-clipboard'); } catch { /* native module unavailable in this build */ }
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../constants/theme';
 import { useReferralStats, useReferralLink } from '../hooks/useApi';
@@ -19,9 +20,13 @@ export default function ReferralCard() {
 
   const handleCopy = async () => {
     if (!stats?.link) return;
-    await Clipboard.setStringAsync(stats.link);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    if (Clipboard) {
+      await Clipboard.setStringAsync(stats.link);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } else {
+      await Share.share({ message: stats.link });
+    }
   };
 
   const handleShare = async () => {
