@@ -51,6 +51,15 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-clipboard",
+      "react-native-purchases",
+      [
+        "@sentry/react-native",
+        {
+          "organization": "outfitcheck",
+          "project": "orthis-app"
+        }
+      ],
       [
         "react-native-google-mobile-ads",
         {

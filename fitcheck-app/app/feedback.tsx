@@ -538,6 +538,33 @@ export default function FeedbackScreen() {
             </View>
           </View>
 
+          {/* Invite a friend — inline banner, shown after score moment */}
+          {referralStats?.link && (
+            <View style={styles.inviteSection}>
+              <Text style={styles.inviteSectionLabel}>Invite a Friend</Text>
+              <View style={styles.inviteRule} />
+              <Text style={styles.inviteDesc}>
+                Share your link — friends who join give you +1 bonus check
+              </Text>
+              <View style={styles.inviteLinkRow}>
+                <Text style={styles.inviteLinkText} numberOfLines={1}>{referralStats.link}</Text>
+                <TouchableOpacity
+                  style={styles.inviteShareButton}
+                  onPress={async () => {
+                    try {
+                      await Share.share({
+                        message: `Get your outfit scored on Or This? — the AI that tells you exactly what works. Join with my link: ${referralStats.link}`,
+                      });
+                    } catch { /* dismissed */ }
+                  }}
+                >
+                  <Ionicons name="share-outline" size={16} color={Colors.white} />
+                  <Text style={styles.inviteShareButtonText}>Share</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <AdBanner />
           <View style={{ height: 120 }} />
         </ScrollView>
@@ -1032,6 +1059,64 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     paddingHorizontal: 8,
+  },
+  // Invite a friend section
+  inviteSection: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 4,
+  },
+  inviteSectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  inviteRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    marginBottom: Spacing.md,
+  },
+  inviteDesc: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+    lineHeight: 20,
+  },
+  inviteLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  inviteLinkText: {
+    flex: 1,
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  inviteShareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.primary,
+    borderRadius: 0,
+  },
+  inviteShareButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: Colors.white,
   },
   // Off-screen share card
   hiddenShareCard: {

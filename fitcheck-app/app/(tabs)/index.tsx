@@ -17,7 +17,7 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats } from '../../src/hooks/useApi';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function HomeScreen() {
   const { data: stats, refetch: refetchStats } = useUserStats();
   const { data: communityData, refetch: refetchCommunity } = useCommunityFeed({ filter: 'recent', limit: 3 });
   const toggleFavoriteMutation = useToggleFavorite();
+  const { data: referralStats } = useReferralStats();
   const [refreshing, setRefreshing] = useState(false);
 
   const outfits = outfitsData?.outfits || [];
@@ -66,10 +67,11 @@ export default function HomeScreen() {
   };
 
   const handleInvite = async () => {
+    const inviteLink = referralStats?.link ?? 'https://orthis.app';
     try {
       await Share.share({
-        message: "Check out Or This? — AI outfit feedback that tells you exactly what works and what doesn't. Try it free: https://orthis.app",
-        url: 'https://orthis.app',
+        message: `Check out Or This? — AI outfit feedback that tells you exactly what works and what doesn't. Try it free: ${inviteLink}`,
+        url: inviteLink,
       });
     } catch {
       // user dismissed — no action needed
@@ -256,10 +258,10 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Invite — minimal text link */}
+        {/* Invite — text link */}
         <TouchableOpacity style={styles.inviteRow} onPress={handleInvite}>
-          <Ionicons name="share-outline" size={16} color={Colors.textMuted} />
-          <Text style={styles.inviteText}>Share Or This? with a friend</Text>
+          <Ionicons name="share-outline" size={16} color={Colors.primary} />
+          <Text style={styles.inviteText}>Invite a friend — earn bonus checks</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -526,8 +528,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   inviteText: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: Colors.textMuted,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 14,
+    color: Colors.text,
   },
 });

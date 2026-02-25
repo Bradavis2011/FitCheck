@@ -206,6 +206,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Referral */}
+        <ReferralCard />
+
         {/* Gamification — editorial, no gradient */}
         {(dailyGoals || (badgesData && badgesData.totalBadges > 0)) && (
           <View style={styles.card}>
@@ -305,9 +308,6 @@ export default function ProfileScreen() {
         <View style={styles.wardrobeSection}>
           <WardrobeProgressCard />
         </View>
-
-        {/* Referral */}
-        <ReferralCard />
 
         {/* Upgrade — editorial style */}
         {tier === 'free' && (

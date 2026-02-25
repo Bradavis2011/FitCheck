@@ -22,7 +22,7 @@ import CommunityFeedbackCard from '../../src/components/CommunityFeedbackCard';
 import FeedbackScoreSlider from '../../src/components/FeedbackScoreSlider';
 import ReportModal from '../../src/components/ReportModal';
 import { socialService } from '../../src/services/api.service';
-import { useCommunityFeedback, useSubmitCommunityFeedback } from '../../src/hooks/useApi';
+import { useCommunityFeedback, useSubmitCommunityFeedback, useReferralStats } from '../../src/hooks/useApi';
 import { useAuthStore } from '../../src/stores/authStore';
 
 const QUICK_SUGGESTIONS = ['Great fit!', 'Love the colors', 'Try different shoes', 'Perfect for the occasion'];
@@ -42,6 +42,7 @@ export default function PublicOutfitScreen() {
 
   const { data: communityFeedbackData, refetch: refetchFeedback } = useCommunityFeedback(outfitId);
   const submitFeedbackMutation = useSubmitCommunityFeedback();
+  const { data: referralStats } = useReferralStats();
 
   const communityFeedback = communityFeedbackData?.feedback || [];
   const userExistingFeedback = communityFeedback.find((f: any) => f.userId === user?.id);
@@ -122,8 +123,9 @@ export default function PublicOutfitScreen() {
       const score = outfit.aiScore || 0;
       const username = outfit.user?.username || 'someone';
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
+      const inviteLink = referralStats?.link ?? 'https://orthis.app';
       await Share.share({
-        message: `Check out ${username}'s outfit on Or This? ${scoreEmoji} ${score}/10\n\nGet your own outfit scored at OrThis.app!`,
+        message: `Check out ${username}'s outfit on Or This? ${scoreEmoji} ${score}/10\n\nGet your own outfit scored: ${inviteLink}`,
         title: `Or This? — ${score}/10`,
       });
     } catch (error: any) {
