@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
@@ -70,6 +70,14 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
     }
+  };
+
+  const handleOutfitLongPress = (outfitId: string) => {
+    Alert.alert('', '', [
+      { text: 'Compare Outfits', onPress: () => router.push(`/compare?preselectA=${outfitId}` as any) },
+      { text: 'View Feedback', onPress: () => router.push(`/feedback?outfitId=${outfitId}` as any) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleInvite = async () => {
@@ -185,6 +193,7 @@ export default function HomeScreen() {
                       occasions={outfit.occasions || []}
                       isFavorite={outfit.isFavorite}
                       onPress={() => router.push(`/feedback?outfitId=${outfit.id}` as any)}
+                      onLongPress={() => handleOutfitLongPress(outfit.id)}
                       onFavoritePress={() => handleToggleFavorite(outfit.id)}
                     />
                   </View>

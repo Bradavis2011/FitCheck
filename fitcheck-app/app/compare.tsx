@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useOutfit } from '../src/hooks/useApi';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
@@ -21,6 +22,7 @@ import { track } from '../src/lib/analytics';
 import ImageCropPreview from '../src/components/ImageCropPreview';
 
 const toBase64 = async (uri: string): Promise<string> => {
+  if (uri.startsWith('data:')) return uri; // already a data URI
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
@@ -153,6 +155,9 @@ export default function CompareScreen() {
   }, []);
 
   const router = useRouter();
+  const params = useLocalSearchParams<{ preselectA?: string }>();
+  const preselectId = params.preselectA || '';
+
   const [imageA, setImageA] = useState<string | null>(null);
   const [imageB, setImageB] = useState<string | null>(null);
   const [cropState, setCropState] = useState<CropState | null>(null);
@@ -161,6 +166,20 @@ export default function CompareScreen() {
   const [screenState, setScreenState] = useState<ScreenState>('selecting');
   const [verdict, setVerdict] = useState<VerdictResult | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+
+  // Pre-populate slot A when navigated from a long-press
+  const { data: preselectOutfit } = useOutfit(preselectId);
+  useEffect(() => {
+    if (!preselectOutfit || imageA) return;
+    let uri = '';
+    if (preselectOutfit.thumbnailData || preselectOutfit.imageData) {
+      const b64 = preselectOutfit.thumbnailData || preselectOutfit.imageData;
+      uri = b64?.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`;
+    } else if (preselectOutfit.thumbnailUrl || preselectOutfit.imageUrl) {
+      uri = preselectOutfit.thumbnailUrl || preselectOutfit.imageUrl || '';
+    }
+    if (uri) setImageA(uri);
+  }, [preselectOutfit]);
 
   const pickImage = async (slot: 'A' | 'B') => {
     try {

@@ -56,7 +56,7 @@ export default function HistoryScreen() {
           });
         },
       },
-      { text: 'Compare Outfits', onPress: () => router.push('/compare' as any) },
+      { text: 'Compare Outfits', onPress: () => router.push(`/compare?preselectA=${outfitId}` as any) },
       {
         text: 'Delete',
         style: 'destructive',
