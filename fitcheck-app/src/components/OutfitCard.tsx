@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, FontSize, BorderRadius, Spacing, getScoreColor } from '../constants/theme';
+import { Colors, FontSize, BorderRadius, Spacing, Fonts, getScoreColor } from '../constants/theme';
 
 type Props = {
   imageUrl: string;
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   scoreText: {
     color: Colors.white,
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
   },
   occasionTag: {
     position: 'absolute',
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   occasionText: {
     fontSize: FontSize.xs,
-    fontWeight: '500',
+    fontFamily: Fonts.sansMedium,
     color: Colors.black,
   },
 });

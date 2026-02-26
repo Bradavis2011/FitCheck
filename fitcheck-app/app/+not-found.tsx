@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { usePathname } from 'expo-router';
+import { Fonts } from '../src/constants/theme';
 
 export default function NotFoundScreen() {
   const path = usePathname();
@@ -19,8 +20,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 18,
-    fontWeight: '600',
     marginBottom: 8,
   },
   path: {

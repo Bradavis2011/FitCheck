@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@clerk/clerk-expo';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { logOutPurchases } from '../src/services/purchases.service';
 import { useUpdateProfile, useUser } from '../src/hooks/useApi';
 import { userService } from '../src/services/api.service';
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
   },
   scrollView: {
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     marginBottom: 4,
   },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     marginBottom: 2,
   },
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   },
   dangerButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.error,
   },
   bottomBar: {
@@ -519,21 +519,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: 16,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderRadius: 0,
   },
   saveButtonDisabled: {
     backgroundColor: Colors.surfaceLight,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   saveButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.white,
   },
 });

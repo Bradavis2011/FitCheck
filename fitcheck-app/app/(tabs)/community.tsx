@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../../src/constants/theme';
 import OutfitFeedCard from '../../src/components/OutfitFeedCard';
 import ComparisonCard from '../../src/components/ComparisonCard';
 import { useCommunityFeed, useComparisonFeed, useVoteOnComparison } from '../../src/hooks/useApi';
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
   },
   headerSubtitle: {
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
   },
   filterTextActive: {
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   innerCircleHintTitle: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     textAlign: 'center',
   },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   guidelinesLink: {
     fontSize: FontSize.sm,
     color: Colors.primary,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   fab: {
     position: 'absolute',
@@ -355,11 +355,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   fabSecondary: {
     bottom: 80,
@@ -378,16 +373,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
   },
   sectionOr: {
     color: Colors.text,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
   },
   sectionThis: {
     color: Colors.primary,
     fontStyle: 'italic',
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
   },
   sectionSubtitle: {
     fontSize: FontSize.sm,

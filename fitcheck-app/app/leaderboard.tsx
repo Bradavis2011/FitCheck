@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { api } from '../src/services/api.service';
 
 type LeaderboardType = 'weekly' | 'monthly' | 'alltime';
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
   },
   tabsContainer: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.textSecondary,
   },
   tabTextActive: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   userRankBold: {
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.primary,
     fontSize: FontSize.lg,
   },
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   rankNumber: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
   },
   userSection: {
     flex: 1,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.primary,
   },
   userInfo: {
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     marginBottom: 4,
   },
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontSize: FontSize.xs,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.secondary,
   },
   badgeCount: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   },
   badgeCountText: {
     fontSize: FontSize.xs,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.warning,
   },
   pointsSection: {
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   },
   pointsValue: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.primary,
   },
   pointsValueTopThree: {
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,

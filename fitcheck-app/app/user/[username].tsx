@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius, getScoreColor } from '../../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts, getScoreColor } from '../../src/constants/theme';
 import { usePublicUserProfile, useFollowUser, useUnfollowUser, useFollowers, useFollowing } from '../../src/hooks/useApi';
 import { useAuthStore } from '../../src/stores/authStore';
 import { socialService } from '../../src/services/api.service';
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.white,
   },
   header: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
   },
   scrollView: {
@@ -439,12 +439,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: FontSize.xxl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.primary,
   },
   username: {
     fontSize: FontSize.xl,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
   },
   bio: {
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   },
   followButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.white,
   },
   followingButtonText: {
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: FontSize.xxl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
   },
   statLabel: {
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
   },
   filterTextActive: {
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   },
   gridScoreText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.white,
   },
   emptyState: {
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     marginTop: Spacing.md,
   },

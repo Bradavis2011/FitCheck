@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useCommunityFeed, useSubmitCommunityFeedback } from '../src/hooks/useApi';
 import Slider from '@react-native-community/slider';
 import CelebrationModal from '../src/components/CelebrationModal';
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
   },
   skipButton: {
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   },
   skipButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.primary,
   },
   progressContainer: {
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   scrollView: {
     flex: 1,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   userBadgeText: {
     fontSize: FontSize.sm,
     color: Colors.white,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   contextSection: {
     paddingHorizontal: Spacing.lg,
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     marginBottom: Spacing.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   occasionTags: {
     flexDirection: 'row',
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   occasionText: {
     fontSize: FontSize.sm,
     color: Colors.text,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   scoreSection: {
     paddingHorizontal: Spacing.lg,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
@@ -558,13 +558,13 @@ const styles = StyleSheet.create({
   },
   scoreValue: {
     fontSize: 48,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     marginBottom: 4,
   },
   scoreLabel: {
     fontSize: FontSize.md,
     color: Colors.textMuted,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   slider: {
     width: '100%',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   commentSection: {
     paddingHorizontal: Spacing.lg,
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
   suggestionButtonText: {
     fontSize: FontSize.sm,
     color: Colors.primary,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   bottomBar: {
     padding: Spacing.lg,
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.white,
   },
   emptyContainer: {
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.text,
     marginBottom: Spacing.sm,
     textAlign: 'center',
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.white,
   },
 });
