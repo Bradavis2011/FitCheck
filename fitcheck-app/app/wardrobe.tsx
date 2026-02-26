@@ -11,30 +11,26 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts, Editorial } from '../src/constants/theme';
 import { useWardrobeItems, useAddWardrobeItem, useDeleteWardrobeItem, useLogWear, useWardrobeItemOutfits } from '../src/hooks/useApi';
 import type { WardrobeCategory, WardrobeItem } from '../src/services/api.service';
 import { track } from '../src/lib/analytics';
 
 type Category = WardrobeCategory | 'all';
 
-const CATEGORIES: { id: Category; label: string; icon: string }[] = [
-  { id: 'all', label: 'All', icon: 'grid' },
-  { id: 'tops', label: 'Tops', icon: 'shirt' },
-  { id: 'bottoms', label: 'Bottoms', icon: 'body' },
-  { id: 'shoes', label: 'Shoes', icon: 'footsteps' },
-  { id: 'accessories', label: 'Accessories', icon: 'bag-handle' },
-  { id: 'outerwear', label: 'Outerwear', icon: 'layers' },
+const CATEGORIES: { id: Category; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'tops', label: 'Tops' },
+  { id: 'bottoms', label: 'Bottoms' },
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'accessories', label: 'Accessories' },
+  { id: 'outerwear', label: 'Outerwear' },
 ];
 
 const WARDROBE_CATEGORIES: WardrobeCategory[] = ['tops', 'bottoms', 'shoes', 'accessories', 'outerwear'];
-
-function categoryIcon(category: WardrobeCategory): string {
-  return CATEGORIES.find((c) => c.id === category)?.icon ?? 'shirt';
-}
 
 function formatLastWorn(lastWorn: string | null): string {
   if (!lastWorn) return 'Never worn';
@@ -42,13 +38,14 @@ function formatLastWorn(lastWorn: string | null): string {
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
-  if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
-  return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`;
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }
 
 export default function WardrobeScreen() {
   useEffect(() => { track('feature_used', { feature: 'wardrobe' }); }, []);
+  const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addName, setAddName] = useState('');
@@ -119,7 +116,7 @@ export default function WardrobeScreen() {
       const outfitCount = item._count?.outfitLinks ?? item.timesWorn;
       Alert.alert(
         item.name,
-        `Category: ${item.category}\nColor: ${item.color ?? '—'}\nSeen in ${outfitCount} outfit${outfitCount !== 1 ? 's' : ''}\nLast worn: ${formatLastWorn(item.lastWorn)}\n\n✨ AI-detected`,
+        `${item.category}${item.color ? `  ·  ${item.color}` : ''}\nSeen in ${outfitCount} outfit${outfitCount !== 1 ? 's' : ''}\n${formatLastWorn(item.lastWorn)}\n\nAI-detected`,
         [
           { text: 'Log Wear', onPress: () => handleLogWear(item) },
           { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
@@ -127,125 +124,125 @@ export default function WardrobeScreen() {
         ]
       );
     } else {
-      Alert.alert(item.name, `Category: ${item.category}\nColor: ${item.color ?? '—'}\nWorn ${item.timesWorn}x\nLast worn: ${formatLastWorn(item.lastWorn)}`, [
-        { text: 'Log Wear', onPress: () => handleLogWear(item) },
-        { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
-        { text: 'Close', style: 'cancel' },
-      ]);
+      Alert.alert(
+        item.name,
+        `${item.category}${item.color ? `  ·  ${item.color}` : ''}\nWorn ${item.timesWorn}×\n${formatLastWorn(item.lastWorn)}`,
+        [
+          { text: 'Log Wear', onPress: () => handleLogWear(item) },
+          { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
+          { text: 'Close', style: 'cancel' },
+        ]
+      );
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: 'My Wardrobe',
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color={Colors.text} />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <TouchableOpacity onPress={() => setShowAddModal(true)}>
-              <Ionicons name="add-circle" size={28} color={Colors.primary} />
-            </TouchableOpacity>
-          ),
-        }}
-      />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Custom editorial header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Ionicons name="arrow-back" size={20} color={Colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.screenTitle}>The Closet</Text>
+        <TouchableOpacity onPress={() => setShowAddModal(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={styles.addLabel}>+ ADD</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Category Filter */}
+      {/* Editorial rule */}
+      <View style={styles.rule} />
+
+      {/* Category filter — text tabs, no icons */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categories}
+        style={styles.tabsContainer}
+        contentContainerStyle={styles.tabs}
       >
         {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.id}
-            style={[styles.categoryChip, selectedCategory === cat.id && styles.categoryChipActive]}
+            style={styles.tab}
             onPress={() => setSelectedCategory(cat.id)}
+            activeOpacity={0.7}
           >
-            <Ionicons
-              name={cat.icon as any}
-              size={18}
-              color={selectedCategory === cat.id ? Colors.white : Colors.text}
-            />
-            <Text style={[styles.categoryText, selectedCategory === cat.id && styles.categoryTextActive]}>
-              {cat.label}
+            <Text style={[styles.tabText, selectedCategory === cat.id && styles.tabTextActive]}>
+              {cat.label.toUpperCase()}
             </Text>
+            {selectedCategory === cat.id && <View style={styles.tabIndicator} />}
           </TouchableOpacity>
         ))}
       </ScrollView>
 
+      <View style={styles.rule} />
+
       {/* Items Grid */}
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <ActivityIndicator style={styles.loader} color={Colors.primary} />
         ) : isError ? (
           <View style={styles.empty}>
-            <Ionicons name="cloud-offline-outline" size={48} color={Colors.textMuted} />
+            <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
             <Text style={styles.emptyText}>Could not load wardrobe</Text>
             <Text style={styles.emptySubtext}>Check your connection and try again</Text>
           </View>
         ) : items.length === 0 ? (
           <View style={styles.empty}>
-            <Ionicons name="shirt-outline" size={64} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>
-              {selectedCategory === 'all' ? 'Your wardrobe is empty' : 'No items in this category'}
+            <Text style={styles.emptyHeadline}>
+              {selectedCategory === 'all' ? 'Your closet is empty' : `No ${selectedCategory} yet`}
             </Text>
             <Text style={styles.emptySubtext}>
-              Tap the + button to add your first item
+              {selectedCategory === 'all'
+                ? 'Items detected in your outfit checks appear here automatically, or add them manually.'
+                : 'Add items manually or get more outfit checks.'}
             </Text>
             <TouchableOpacity style={styles.emptyAddButton} onPress={() => setShowAddModal(true)}>
-              <Text style={styles.emptyAddButtonText}>Add Item</Text>
+              <Text style={styles.emptyAddButtonText}>ADD ITEM</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.grid}>
-            {items.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.itemCard}
-                onPress={() => handleItemPress(item)}
-                activeOpacity={0.8}
-              >
-                {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-                ) : (
-                  <View style={styles.itemPlaceholder}>
-                    <Ionicons
-                      name={categoryIcon(item.category) as any}
-                      size={32}
-                      color={Colors.textMuted}
-                    />
-                  </View>
-                )}
-                {item.source === 'ai-detected' && (
-                  <View style={styles.aiBadge}>
-                    <Text style={styles.aiBadgeText}>AI</Text>
-                  </View>
-                )}
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName} numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  {item.color ? (
-                    <Text style={styles.itemMeta}>{item.color}</Text>
-                  ) : null}
-                  {item.source === 'ai-detected' ? (
-                    <Text style={styles.itemMeta}>Seen in {item._count?.outfitLinks ?? item.timesWorn} outfit{(item._count?.outfitLinks ?? item.timesWorn) !== 1 ? 's' : ''}</Text>
+          <>
+            <Text style={styles.itemCount}>{items.length} ITEM{items.length !== 1 ? 'S' : ''}</Text>
+            <View style={styles.grid}>
+              {items.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.itemCard}
+                  onPress={() => handleItemPress(item)}
+                  activeOpacity={0.85}
+                >
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
                   ) : (
-                    <Text style={styles.itemMeta}>Worn {item.timesWorn}x</Text>
+                    <View style={styles.itemPlaceholder}>
+                      <Text style={styles.placeholderCategory}>
+                        {item.category.slice(0, 3).toUpperCase()}
+                      </Text>
+                    </View>
                   )}
-                  <Text style={styles.itemLastWorn}>{formatLastWorn(item.lastWorn)}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  {item.source === 'ai-detected' && (
+                    <View style={styles.aiBadge}>
+                      <Text style={styles.aiBadgeText}>AI</Text>
+                    </View>
+                  )}
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={styles.itemMeta} numberOfLines={1}>
+                      {item.color ? `${item.color}  ·  ` : ''}
+                      {item.source === 'ai-detected'
+                        ? `${item._count?.outfitLinks ?? item.timesWorn} outfits`
+                        : `${item.timesWorn}×`}
+                    </Text>
+                    <Text style={styles.itemLastWorn}>{formatLastWorn(item.lastWorn)}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
         )}
-
-        <View style={{ height: 40 }} />
+        <View style={{ height: 48 }} />
       </ScrollView>
 
       {/* Add Item Modal */}
@@ -258,21 +255,21 @@ export default function WardrobeScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <Ionicons name="close" size={24} color={Colors.text} />
+              <Ionicons name="close" size={22} color={Colors.text} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Item</Text>
             <TouchableOpacity onPress={handleAdd} disabled={addItem.isPending}>
               {addItem.isPending ? (
-                <ActivityIndicator color={Colors.primary} />
+                <ActivityIndicator color={Colors.primary} size="small" />
               ) : (
-                <Text style={styles.modalSave}>Save</Text>
+                <Text style={styles.modalSave}>SAVE</Text>
               )}
             </TouchableOpacity>
           </View>
+          <View style={styles.modalRule} />
 
           <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
-            {/* Name */}
-            <Text style={styles.fieldLabel}>Name *</Text>
+            <Text style={styles.fieldLabel}>NAME *</Text>
             <TextInput
               style={styles.textInput}
               value={addName}
@@ -282,8 +279,7 @@ export default function WardrobeScreen() {
               returnKeyType="done"
             />
 
-            {/* Color */}
-            <Text style={styles.fieldLabel}>Color</Text>
+            <Text style={styles.fieldLabel}>COLOR</Text>
             <TextInput
               style={styles.textInput}
               value={addColor}
@@ -293,33 +289,25 @@ export default function WardrobeScreen() {
               returnKeyType="done"
             />
 
-            {/* Category */}
-            <Text style={styles.fieldLabel}>Category</Text>
+            <Text style={styles.fieldLabel}>CATEGORY</Text>
             <View style={styles.categoryPicker}>
-              {WARDROBE_CATEGORIES.map((cat) => {
-                const meta = CATEGORIES.find((c) => c.id === cat)!;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[styles.categoryOption, addCategory === cat && styles.categoryOptionActive]}
-                    onPress={() => setAddCategory(cat)}
+              {WARDROBE_CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.categoryOption, addCategory === cat && styles.categoryOptionActive]}
+                  onPress={() => setAddCategory(cat)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.categoryOptionText,
+                      addCategory === cat && styles.categoryOptionTextActive,
+                    ]}
                   >
-                    <Ionicons
-                      name={meta.icon as any}
-                      size={20}
-                      color={addCategory === cat ? Colors.white : Colors.text}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryOptionText,
-                        addCategory === cat && styles.categoryOptionTextActive,
-                      ]}
-                    >
-                      {meta.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                    {cat.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -333,54 +321,95 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  categoriesContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  categories: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  categoryChip: {
+
+  // Header
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    paddingTop: Spacing.md,
+    paddingBottom: 14,
   },
-  categoryChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  screenTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 26,
+    color: Colors.text,
+    letterSpacing: 0.3,
   },
-  categoryText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+  addLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: Colors.primary,
+  },
+
+  // Rule
+  rule: {
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+
+  // Category tabs
+  tabsContainer: {
+    flexGrow: 0,
+  },
+  tabs: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.md,
+    gap: 0,
+  },
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  tabText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: Colors.textMuted,
+  },
+  tabTextActive: {
     color: Colors.text,
   },
-  categoryTextActive: {
-    color: Colors.white,
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 14,
+    right: 14,
+    height: 2,
+    backgroundColor: Colors.primary,
   },
+
+  // Content
   content: {
     flex: 1,
   },
   loader: {
-    marginTop: Spacing.xl * 2,
+    marginTop: 64,
   },
+
+  // Item count label
+  itemCount: {
+    ...Editorial.sectionLabel,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+
+  // Grid
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: Spacing.md,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: 12,
   },
   itemCard: {
     width: '47%',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.sm,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.border,
@@ -391,76 +420,96 @@ const styles = StyleSheet.create({
     top: 6,
     right: 6,
     backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 6,
+    borderRadius: BorderRadius.sharp,
+    paddingHorizontal: 5,
     paddingVertical: 2,
     zIndex: 1,
   },
   aiBadgeText: {
+    fontFamily: Fonts.sansBold,
     color: Colors.white,
     fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   itemImage: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.backgroundSecondary,
   },
   itemPlaceholder: {
     aspectRatio: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  placeholderCategory: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.textMuted,
+  },
   itemInfo: {
-    padding: Spacing.sm,
+    padding: 10,
+    gap: 2,
   },
   itemName: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 13,
     color: Colors.text,
-    marginBottom: 2,
   },
   itemMeta: {
-    fontSize: FontSize.xs,
+    fontFamily: Fonts.sans,
+    fontSize: 12,
     color: Colors.textMuted,
   },
   itemLastWorn: {
-    fontSize: FontSize.xs,
+    fontFamily: Fonts.sans,
+    fontSize: 11,
     color: Colors.textMuted,
-    marginTop: 2,
+    letterSpacing: 0.2,
   },
+
+  // Empty state
   empty: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
+    paddingVertical: 72,
     paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
+    gap: 10,
+  },
+  emptyHeadline: {
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    color: Colors.text,
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   emptyText: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 16,
     color: Colors.text,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: FontSize.sm,
+    fontFamily: Fonts.sans,
+    fontSize: 14,
     color: Colors.textMuted,
     textAlign: 'center',
+    lineHeight: 20,
   },
   emptyAddButton: {
     marginTop: Spacing.md,
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
+    paddingVertical: 13,
+    borderRadius: BorderRadius.sharp,
   },
   emptyAddButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
     color: Colors.white,
-    fontWeight: '700',
-    fontSize: FontSize.md,
   },
+
   // Modal
   modalContainer: {
     flex: 1,
@@ -471,18 +520,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingVertical: 14,
+  },
+  modalRule: {
+    height: 1,
+    backgroundColor: Colors.border,
   },
   modalTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.serif,
+    fontSize: 20,
     color: Colors.text,
+    letterSpacing: 0.3,
   },
   modalSave: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
     color: Colors.primary,
   },
   modalBody: {
@@ -490,19 +543,21 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   fieldLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: Colors.textMuted,
+    marginBottom: 8,
     marginTop: Spacing.md,
   },
   textInput: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sharp,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: 13,
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.text,
   },
@@ -510,26 +565,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginTop: Spacing.xs,
+    marginTop: 4,
   },
   categoryOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.sharp,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   categoryOptionActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.text,
+    borderColor: Colors.text,
   },
   categoryOptionText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
     color: Colors.text,
   },
   categoryOptionTextActive: {

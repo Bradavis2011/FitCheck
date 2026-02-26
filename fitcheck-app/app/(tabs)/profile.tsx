@@ -41,7 +41,6 @@ export default function ProfileScreen() {
   const selectedStyles = (userProfile?.stylePreferences?.styles as string[]) || [];
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState(true);
-  const [faceBlur, setFaceBlur] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
@@ -51,9 +50,7 @@ export default function ProfileScreen() {
     const loadSettings = async () => {
       try {
         const notificationsValue = await SecureStore.getItemAsync('notifications');
-        const faceBlurValue = await SecureStore.getItemAsync('faceBlur');
         if (notificationsValue !== null) setNotifications(notificationsValue === 'true');
-        if (faceBlurValue !== null) setFaceBlur(faceBlurValue === 'true');
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
@@ -88,12 +85,6 @@ export default function ProfileScreen() {
     const newValue = !notifications;
     setNotifications(newValue);
     try { await SecureStore.setItemAsync('notifications', String(newValue)); } catch { /* ignore */ }
-  };
-
-  const toggleFaceBlur = async () => {
-    const newValue = !faceBlur;
-    setFaceBlur(newValue);
-    try { await SecureStore.setItemAsync('faceBlur', String(newValue)); } catch { /* ignore */ }
   };
 
   const handleResetOnboarding = async () => {
@@ -380,17 +371,6 @@ export default function ProfileScreen() {
               activeOpacity={0.8}
             >
               <View style={[styles.toggleThumb, notifications && styles.toggleThumbActive]} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.rowDivider} />
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Face blur default</Text>
-            <TouchableOpacity
-              style={[styles.toggle, faceBlur && styles.toggleActive]}
-              onPress={toggleFaceBlur}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.toggleThumb, faceBlur && styles.toggleThumbActive]} />
             </TouchableOpacity>
           </View>
         </View>
