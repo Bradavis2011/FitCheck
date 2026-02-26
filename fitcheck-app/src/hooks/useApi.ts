@@ -274,7 +274,7 @@ export function useBadges() {
     queryKey: ['badges'] as const,
     queryFn: async () => {
       const response = await api.get('/api/user/badges');
-      return response.data as { badges: Array<{ id: string; name: string; description: string; icon: string }>; totalBadges: number };
+      return response.data as { badges: Array<{ id: string; name: string; description: string; icon: string; earned: boolean }>; earnedCount: number; totalCount: number };
     },
     staleTime: 5 * 60 * 1000,
   });

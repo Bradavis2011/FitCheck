@@ -297,19 +297,33 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            {/* Badges */}
-            {badgesData && badgesData.totalBadges > 0 && (
+            {/* Achievements */}
+            {badgesData && (
               <View style={styles.badgesSection}>
                 <View style={styles.sectionLabelRow}>
-                  <Text style={styles.sectionLabel}>Badges</Text>
-                  <Text style={styles.badgesCount}>{badgesData.totalBadges}</Text>
+                  <Text style={styles.sectionLabel}>Achievements</Text>
+                  <Text style={styles.badgesCount}>
+                    {badgesData.earnedCount} / {badgesData.totalCount}
+                  </Text>
                 </View>
                 <View style={styles.rule} />
-                <View style={styles.badgesRow}>
-                  {badgesData.badges.slice(0, 6).map((badge) => (
-                    <View key={badge.id} style={styles.badgeItem}>
-                      <Text style={styles.badgeIcon}>{badge.icon}</Text>
-                      <Text style={styles.badgeName}>{badge.name}</Text>
+                <View style={styles.badgesGrid}>
+                  {badgesData.badges.map((badge) => (
+                    <View
+                      key={badge.id}
+                      style={[styles.badgeItem, badge.earned && styles.badgeItemEarned]}
+                    >
+                      <View style={[styles.badgeIconWrap, badge.earned && styles.badgeIconWrapEarned]}>
+                        <Text style={[styles.badgeIcon, !badge.earned && styles.badgeIconLocked]}>
+                          {badge.icon}
+                        </Text>
+                      </View>
+                      <Text style={[styles.badgeName, badge.earned && styles.badgeNameEarned]}>
+                        {badge.name}
+                      </Text>
+                      <Text style={styles.badgeDesc} numberOfLines={2}>
+                        {badge.description}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -683,24 +697,61 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.06)',
   },
-  badgesRow: {
+  badgesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   badgeItem: {
+    width: '30%',
     alignItems: 'center',
-    minWidth: 52,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: Colors.background,
+  },
+  badgeItemEarned: {
+    backgroundColor: Colors.white,
+    borderColor: 'rgba(232,93,76,0.25)',
+  },
+  badgeIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    marginBottom: 5,
+  },
+  badgeIconWrapEarned: {
+    backgroundColor: 'rgba(232,93,76,0.10)',
   },
   badgeIcon: {
-    fontSize: 24,
-    marginBottom: 2,
+    fontSize: 18,
+    opacity: 1,
+  },
+  badgeIconLocked: {
+    opacity: 0.3,
   },
   badgeName: {
-    fontFamily: Fonts.sans,
-    fontSize: 11,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
     color: Colors.textMuted,
     textAlign: 'center',
+    marginBottom: 2,
+  },
+  badgeNameEarned: {
+    color: Colors.text,
+  },
+  badgeDesc: {
+    fontFamily: Fonts.sans,
+    fontSize: 9,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 13,
+    opacity: 0.7,
   },
   // Upgrade block — editorial, no gradient
   upgradeBlock: {

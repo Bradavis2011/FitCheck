@@ -392,27 +392,25 @@ export async function getDailyGoals(req: AuthenticatedRequest, res: Response) {
   }
 }
 
-// GET /api/user/badges - Get user's badges with metadata
+// GET /api/user/badges - Get all achievements with earned/locked state
 export async function getBadges(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
 
-    const stats = await prisma.userStats.findUnique({
-      where: { userId },
-    });
+    const stats = await prisma.userStats.findUnique({ where: { userId } });
+    const earnedSet = new Set(stats?.badges ?? []);
 
-    if (!stats) {
-      return res.json({ badges: [] });
-    }
-
-    const badgesWithMetadata = stats.badges.map((badgeId) => ({
-      id: badgeId,
-      ...gamificationService.BADGE_METADATA[badgeId],
+    // Return all defined badges with earned status — never hide locked achievements
+    const allBadges = Object.entries(gamificationService.BADGE_METADATA).map(([id, meta]) => ({
+      id,
+      ...meta,
+      earned: earnedSet.has(id),
     }));
 
     res.json({
-      badges: badgesWithMetadata,
-      totalBadges: stats.badges.length,
+      badges: allBadges,
+      earnedCount: earnedSet.size,
+      totalCount: allBadges.length,
     });
   } catch (error) {
     throw error;
