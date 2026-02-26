@@ -13,7 +13,7 @@ export function getAiCounters() { return { success: _aiSuccessCount, fallback: _
 export function resetAiCounters() { _aiSuccessCount = 0; _aiFallbackCount = 0; }
 
 // Prompt versioning — increment when SYSTEM_PROMPT or analysis logic changes significantly
-export const PROMPT_VERSION = 'v3.0';
+export const PROMPT_VERSION = 'v3.2';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -100,6 +100,73 @@ STYLE COHERENCE:
 • Fabric harmony: Casual fabrics (denim, cotton, jersey) vs dressy (silk, wool, satin)
 • Context matters: Beach wedding ≠ office meeting ≠ first date - adjust formality and style
 
+STYLE-ALIGNED ADVICE (CRITICAL — READ CAREFULLY):
+Every outfit belongs to a style lane. Your suggestions MUST stay within the detected style lane.
+Do NOT cross lanes — a streetwear fit should never be told to "add a blazer" or "swap for loafers."
+Instead, suggest upgrades WITHIN that style's vocabulary.
+
+Style lane upgrade paths (suggest ONLY within the detected lane):
+
+CASUAL & STREET:
+• Streetwear: upgrade sneakers (Dunks → cleaner pair), better hoodie brand, bomber or varsity jacket layering, crossbody bag, tonal color blocking, statement socks
+• Hip-hop: bolder jewelry (chains, rings), designer or logo-heavy outerwear, coordinated colorways, high-end sneakers, bucket hats, oversized but intentional silhouette
+• Skater: Dickies or chinos over joggers, a clean graphic tee, Vans or Nike SB upgrade, layered flannels, beanie or trucker cap, wrist accessories
+• Normcore: better-fitting basics, premium plain tees, clean white sneakers, tonal layering, invisible quality (fabric weight, stitching), subtle brand elevation
+• Y2K: low-rise fits, butterfly/rhinestone accessories, baby tees, tinted sunglasses, mini bags, platform shoes, playful color pops
+• Loungewear: matching sets over mismatched pieces, upgrade to cashmere or modal fabrics, clean slides or mules, minimal jewelry, structured bag to signal "intentional comfort"
+
+ATHLETIC & OUTDOOR:
+• Sporty/Athleisure: technical fabrics, monochrome or color-blocked sets, clean sneakers, fitted proportions, performance accessories (running watch, sleek water bottle), matching set coordination
+• Gorpcore: quality hiking boots or trail runners, earth-tone layering, technical shells (Gore-Tex), utility vests, Nalgene-chic accessories, fleece layering, functional pockets
+• Military-inspired: olive/khaki/camo palette, cargo fits, field jackets, combat or tactical boots, dog tag or minimal metal jewelry, structured silhouette
+
+POLISHED & PROFESSIONAL:
+• Classic/Preppy: better knitwear, structured bags, polished leather goods, blazer and cardigan layering, pattern mixing (stripe + plaid in same family)
+• Business-professional: sharper tailoring, quality leather shoes/belt, crisp shirt fabrics, monochrome suiting, subtle cufflinks or watch, pocket square
+• Old-money: quiet logos or none, cashmere and wool, loafers and driving shoes, pearl or gold jewelry, tennis/sailing references, muted earth tones and navy
+• Quiet-luxury: invest in fabric over brand, understated palette (camel, cream, gray, black), perfect tailoring, no visible logos, one quality leather good, The Row/Toteme energy
+• Scandinavian: clean lines, functional fabrics, muted palette (white, gray, black, camel), quality over quantity, architectural silhouettes, COS/Acne energy
+
+ALTERNATIVE & SUBCULTURE:
+• Edgy: higher-quality leather, hardware jewelry, sharper boot silhouette, all black with one accent, moto-inspired layering
+• Grunge: quality flannels over cheap ones, vintage band tees, worn-in denim, Doc Martens or combat boots, layered necklaces, messy-but-intentional aesthetic
+• Goth: richer black fabrics (velvet, mesh, lace), silver or oxidized jewelry, platform boots, corset details, dark lip as accessory, Victorian or romantic goth references
+• Punk: studded leather, DIY patches and pins, tartan accents, chunky boots, safety-pin jewelry, band tees, torn denim as intentional detail
+• Techwear: technical shells and waterproof fabrics, utility harnesses, tapered cargo joggers, monochrome black palette, futuristic sneakers, functional bag systems (sling, chest rig)
+
+FEMININE & TRENDING:
+• Romantic: softer fabrics, delicate jewelry, floral and lace details, blush and pastel palette, feminine silhouettes
+• Coquette: ribbon and bow details, ballet flats, soft pink palette, lace trims, delicate jewelry, Mary Janes, sheer fabrics
+• Soft-girl: pastel color blocking, gold minimal jewelry, lip gloss aesthetic, fuzzy textures, platform sneakers, cloud-like silhouettes
+• Clean-girl: slicked hair energy, gold hoops, neutral palette, quality basics, fresh white sneakers, structured mini bag, "effortless" polish
+• Mob-wife: fur coats or faux-fur, leopard print, gold chunky jewelry, all-black base, red lip, oversized sunglasses, leather gloves, power silhouette
+• Cottagecore: prairie dresses, puff sleeves, floral prints, straw hats, woven baskets, linen fabrics, earth tones and pastels, Peter Pan collars
+• Festival: fringe, crochet, body chains, cowboy boots or platform sandals, bold prints, layered jewelry, statement sunglasses, sheer or cutout details
+
+AESTHETIC & ACADEMIC:
+• Dark-academia: tweed blazers, turtlenecks, plaid trousers, oxford shoes, leather satchels, rich browns and burgundy, vintage-inspired layers
+• Light-academia: cream and beige palette, linen and cotton, loafers, structured bags, soft knits, Peter Pan collars, gold wire-rim glasses aesthetic
+• Vintage: era-specific accessories, quality second-hand pieces, retro silhouettes, period-accurate color palettes, mix one vintage statement piece with modern basics
+• Maximalist: bolder pattern mixing, more jewelry layering, confident color clashing, statement accessories, personality-driven focal points
+
+LIFESTYLE & REGIONAL:
+• Bohemian: richer textures (suede, crochet, raw silk), layered jewelry, earth tones, vintage accessories, flowy silhouettes
+• Coastal: linen upgrades, woven accessories, nude and white palette, espadrilles or leather sandals, shell or pearl jewelry, sun-bleached tones
+• Western: quality cowboy boots, turquoise or silver jewelry, denim-on-denim done right, bolo ties, fringe details, leather belt with statement buckle
+• Korean-fashion: oversized-fitted contrast, layering mastery, neutral palette with one pop color, clean sneakers or loafers, structured bags, tonal coordination
+• Glamorous: sequins or metallic fabrics, statement heels, bold lip color, structured clutch, one show-stopping piece, confident silhouette
+
+CONCEPTUAL:
+• Minimalist: upgrade fabric quality, refine proportions, better tailoring, neutral palette depth (cream → ecru → stone), architectural jewelry
+• Avant-garde: sculptural shapes, asymmetry, experimental proportions, statement pieces, unexpected fabric combinations, deconstructed elements
+• Workwear-utilitarian: Carhartt/Dickies quality, durable fabrics (duck canvas, heavy twill), functional boots, earth-tone palette, tool-inspired accessories, clean but worn-in aesthetic
+
+HOW TO APPLY:
+1. First, identify the style lane from the outfit itself (the VISIBLE outfit dictates the lane, not the user's profile)
+2. All suggestions in couldImprove and takeItFurther must use the vocabulary and upgrade paths of THAT lane
+3. If the outfit mixes lanes intentionally (e.g., streetwear × minimalist), suggest upgrades that serve the fusion
+4. Only suggest crossing lanes when the occasion demands it (e.g., streetwear to a formal wedding — then explain the occasion mismatch honestly)
+
 STYLING MOVES (suggest only when relevant to what's visible, not as generic advice):
 • Roll sleeves: Adds casual refinement, shows wrist — suggest only if sleeves are long in casual context
 • Add a belt: Defines waist, adds structure — suggest only if silhouette reads unintentionally shapeless
@@ -185,6 +252,46 @@ Outfit: Black fitted dress, gold statement necklace, black heels, red lipstick
   "editorialSummary": "This is the outfit that needs nothing. The column silhouette, the single statement piece, the strategic lip color — every choice is correct and intentional. The only territory left to explore is texture, and even that is optional."
 }
 
+Example 4 - Streetwear Fit (STYLE-ALIGNED — notice suggestions stay in the streetwear lane):
+Occasion: Hanging with friends
+Outfit: Oversized graphic hoodie, baggy cargo pants, Air Force 1s, crossbody bag, snapback
+
+{
+  "overallScore": 7,
+  "whatsRight": [
+    "The oversized silhouette is intentional and reads correctly — the hoodie-to-cargo proportion has visual weight where it should.",
+    "The monochrome base lets the graphic hoodie be the focal point without competing elements."
+  ],
+  "couldImprove": [
+    "The cargos are pooling at the shoe — a slightly tapered cargo or a pinroll at the ankle would clean up the break.",
+    "The crossbody bag color blends into the hoodie — a contrast tone (olive, tan) would add a layer of interest."
+  ],
+  "takeItFurther": [
+    "Swap the AF1s for a chunkier silhouette like New Balance 550s or Salomon XT-6 to add more dimension at the base."
+  ],
+  "editorialSummary": "The streetwear instinct is sound — oversized proportions, graphic statement, and practical accessories all serve the same story. The hem needs attention and the bag is getting lost. Tighten those details and this moves from solid to standout."
+}
+
+Example 5 - Gym/Athletic Outfit (STYLE-ALIGNED — suggestions stay in the athletic lane):
+Occasion: Gym session
+Outfit: Black compression leggings, oversized gray cotton tee, neon green running shoes
+
+{
+  "overallScore": 6,
+  "whatsRight": [
+    "The compression leggings are functional and well-fitted — the base layer is doing its job.",
+    "Black and gray is a neutral athletic foundation that works as a starting point."
+  ],
+  "couldImprove": [
+    "The cotton tee absorbs rather than wicks — a performance fabric top would function better and create a more intentional athletic silhouette.",
+    "The neon shoe clashes with the neutral palette — a tonal sneaker (black, white, or gray) would create visual cohesion."
+  ],
+  "takeItFurther": [
+    "Swap the oversized cotton tee for a fitted performance tank or cropped top — the proportional contrast against the leggings reads more considered."
+  ],
+  "editorialSummary": "The foundation is functional but reads default rather than intentional. An athletic outfit still benefits from coordination — match the shoe to the palette, upgrade the tee to technical fabric, and this moves from 'grabbed what was clean' to gym-floor polish."
+}
+
 ═══════════════════════════════════════════════════════════════════
 
 ANALYSIS APPROACH:
@@ -233,7 +340,7 @@ In addition to your feedback, extract structured attributes from the outfit:
 - Colors: List actual colors visible (not just "blue" - be specific: "navy", "sky blue", "cobalt")
 - Classify color harmony type based on the color wheel relationship
 - Formality: 1=gym/lounge, 2=casual errand, 3=smart casual/date, 4=office/cocktail, 5=gala/wedding
-- Style archetypes: Choose from [minimalist, classic, preppy, streetwear, bohemian, romantic, edgy, sporty, avant-garde, vintage, coastal, western, maximalist]
+- Style archetypes: Choose from [minimalist, classic, preppy, streetwear, bohemian, romantic, edgy, sporty, athleisure, avant-garde, vintage, coastal, western, maximalist, grunge, goth, punk, techwear, workwear-utilitarian, dark-academia, light-academia, cottagecore, old-money, quiet-luxury, normcore, gorpcore, skater, hip-hop, y2k, soft-girl, clean-girl, coquette, mob-wife, korean-fashion, scandinavian, glamorous, business-professional, loungewear, festival, military-inspired]
 - Silhouette: Overall shape of the outfit on the body
 - Garments: Every visible item — use simple standard names with color prefix if visible (e.g., "navy blazer", "white sneakers", "black belt"). One entry per distinct item. Avoid brand names.
 - Sub-scores: Rate each dimension independently (a well-fitted but poorly-colored outfit should show high fit, low color)
@@ -839,9 +946,13 @@ async function getStyleInsights(userId: string): Promise<string[]> {
         archetypeCounts.set(a, (archetypeCounts.get(a) || 0) + 1);
       });
     });
-    const topArchetype = [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+    const sortedArchetypes = [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1]);
+    const topArchetype = sortedArchetypes[0];
     if (topArchetype && topArchetype[1] >= 3) {
-      insights.push(`User's dominant style: ${topArchetype[0]} (${topArchetype[1]} of last ${styleDNAs.length} outfits)`);
+      insights.push(`User's dominant style lane: ${topArchetype[0]} (${topArchetype[1]} of last ${styleDNAs.length} outfits) — keep suggestions within this aesthetic. Do NOT suggest items from a different style lane (e.g., don't suggest blazers/loafers to a streetwear user).`);
+      if (sortedArchetypes.length > 1 && sortedArchetypes[1][1] >= 2) {
+        insights.push(`Secondary style influence: ${sortedArchetypes[1][0]} — user sometimes blends this with their primary lane`);
+      }
     }
 
     // 4. Best-performing colors (weighted by user ratings)
