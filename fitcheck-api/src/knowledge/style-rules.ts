@@ -246,42 +246,49 @@ export const STYLE_AESTHETICS = {
     pieces: ['white button-down', 'trench coat', 'loafers', 'structured bag', 'simple jewelry'],
     colors: ['navy', 'black', 'white', 'camel', 'gray'],
     icons: ['Audrey Hepburn', 'Grace Kelly'],
+    upgradePaths: ['better knitwear', 'structured bags', 'polished leather goods', 'layering with blazers and cardigans'],
   },
 
   romantic: {
     characteristics: ['soft', 'feminine', 'flowing fabrics', 'details'],
     pieces: ['floral dresses', 'ruffles', 'lace', 'soft cardigans', 'delicate jewelry'],
     colors: ['blush', 'soft pink', 'cream', 'lavender', 'pastels'],
+    upgradePaths: ['softer fabrics', 'delicate jewelry', 'floral and lace details', 'feminine silhouettes'],
   },
 
   bohemian: {
     characteristics: ['free-spirited', 'layered', 'mixed patterns', 'earthy'],
     pieces: ['maxi dresses', 'wide-brim hats', 'layered jewelry', 'fringe', 'suede'],
     colors: ['earth tones', 'rust', 'olive', 'mustard', 'turquoise'],
+    upgradePaths: ['richer textures (suede, crochet, raw silk)', 'layered jewelry', 'vintage-inspired accessories', 'flowy silhouettes'],
   },
 
   minimalist: {
     characteristics: ['less is more', 'monochromatic', 'clean', 'quality basics'],
     pieces: ['simple silhouettes', 'neutral basics', 'minimal jewelry', 'sleek bags'],
     colors: ['black', 'white', 'gray', 'beige', 'navy'],
+    upgradePaths: ['upgrade fabric quality', 'refine proportions', 'better tailoring', 'architectural jewelry'],
   },
 
   edgy: {
     characteristics: ['bold', 'leather', 'black', 'unconventional', 'attitude'],
     pieces: ['moto jacket', 'combat boots', 'dark denim', 'statement pieces'],
     colors: ['black', 'charcoal', 'burgundy', 'dark green'],
+    upgradePaths: ['higher-quality leather', 'hardware jewelry', 'sharper boot silhouette', 'moto or biker-inspired layering'],
   },
 
   preppy: {
     characteristics: ['polished', 'collegiate', 'classic patterns', 'nautical'],
     pieces: ['polo shirts', 'cable knits', 'blazers', 'loafers', 'pearls'],
     colors: ['navy', 'white', 'red', 'pink', 'green'],
+    upgradePaths: ['better knitwear', 'quality loafers', 'pattern mixing within family', 'structured accessories'],
   },
 
   streetwear: {
     characteristics: ['urban', 'comfortable', 'sneakers', 'logos', 'casual'],
     pieces: ['hoodies', 'sneakers', 'joggers', 'oversized fits', 'caps'],
     colors: ['varied', 'bold colors', 'black', 'graphic prints'],
+    upgradePaths: ['upgrade sneakers', 'better hoodie/brand', 'bomber or varsity jacket layering', 'tonal color blocking', 'crossbody bag or cap'],
   },
 };
 

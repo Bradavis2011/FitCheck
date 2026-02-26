@@ -363,6 +363,129 @@ export const FEW_SHOT_EXAMPLES: FewShotExample[] = [
       ],
     },
   },
+  // EXAMPLE 9: Streetwear - Style-Aligned Feedback (suggestions stay in the streetwear lane)
+  {
+    id: 'streetwear-casual-hangout',
+    occasion: 'casual hangout',
+    context: {
+      occasion: 'hanging with friends',
+      weather: 'cool evening',
+      setting: 'downtown',
+      vibe: 'relaxed, confident',
+    },
+    outfit: {
+      description: 'Oversized graphic hoodie, baggy cargo pants, Air Force 1s, crossbody bag, snapback',
+      items: ['graphic hoodie', 'cargo pants', 'Air Force 1s', 'crossbody bag', 'snapback'],
+    },
+    exemplaryFeedback: {
+      overallScore: 7.5,
+      criteriaScores: {
+        fit: 7,
+        color: 8,
+        occasion: 8,
+        cohesion: 8,
+        confidence: 7,
+      },
+      summary: 'The streetwear foundation is solid—oversized proportions and a graphic statement piece that works.',
+      whatsWorking: [
+        'The oversized hoodie-to-cargo proportion is intentional and reads correctly—visual weight is distributed well',
+        'Monochrome base lets the graphic hoodie be the focal point without competing elements',
+        'The crossbody bag is practical and on-trend for the streetwear aesthetic',
+      ],
+      consider: [
+        'The cargos are pooling at the shoe—a slightly tapered cargo or a pinroll at the ankle would clean up the break',
+        'The crossbody bag color blends into the hoodie—a contrast tone like olive or tan would add visual interest',
+      ],
+      quickFixes: [
+        'Swap the AF1s for a chunkier silhouette like New Balance 550s to add more dimension at the base',
+        'Layer a bomber jacket or vest over the hoodie for a more considered streetwear stack',
+        'Try a beanie instead of the snapback to shift the vibe from sporty to elevated street',
+        'Add a simple chain or bracelet—one piece of hardware elevates the whole read',
+      ],
+    },
+  },
+
+  // EXAMPLE 10: Edgy/Alt - Style-Aligned Feedback (suggestions stay in the edgy lane)
+  {
+    id: 'edgy-concert-night',
+    occasion: 'concert night out',
+    context: {
+      occasion: 'concert',
+      weather: 'cool night',
+      setting: 'music venue',
+      vibe: 'bold, edgy',
+    },
+    outfit: {
+      description: 'Black moto jacket, band tee, ripped black skinny jeans, combat boots, silver chain necklace',
+      items: ['moto jacket', 'band tee', 'black skinny jeans', 'combat boots', 'chain necklace'],
+    },
+    exemplaryFeedback: {
+      overallScore: 8.2,
+      criteriaScores: {
+        fit: 8,
+        color: 8,
+        occasion: 9,
+        cohesion: 9,
+        confidence: 8,
+      },
+      summary: 'The all-black palette with leather and hardware reads like you were born for this venue.',
+      whatsWorking: [
+        'The moto jacket is doing the heavy lifting—it creates structure over the relaxed band tee and anchors the entire look',
+        'All-black creates an unbroken silhouette that reads intentional and confident',
+        'The silver chain adds the right amount of edge without overdoing it—one focal accessory, correctly placed',
+      ],
+      consider: [
+        'The band tee is slightly long under the jacket—a half-tuck or a cropped fit would create a better waist break',
+      ],
+      quickFixes: [
+        'Add silver rings or a studded bracelet to build on the hardware theme you started with the chain',
+        'Swap to a sharper boot silhouette like Chelsea boots for a sleeker version of the same energy',
+        'A dark red or burgundy lip (any gender) would add a single warm accent to the monochrome palette',
+        'Try a slimmer combat boot to avoid visual heaviness at the base',
+      ],
+    },
+  },
+
+  // EXAMPLE 11: Bohemian - Style-Aligned Feedback (suggestions stay in the boho lane)
+  {
+    id: 'boho-farmers-market',
+    occasion: 'farmers market',
+    context: {
+      occasion: 'weekend farmers market',
+      weather: 'warm morning',
+      setting: 'outdoor market',
+      vibe: 'relaxed, earthy',
+    },
+    outfit: {
+      description: 'Flowy midi skirt in rust, cream crochet top, brown leather sandals, woven tote bag, layered necklaces',
+      items: ['midi skirt', 'crochet top', 'leather sandals', 'woven tote', 'layered necklaces'],
+    },
+    exemplaryFeedback: {
+      overallScore: 8.0,
+      criteriaScores: {
+        fit: 8,
+        color: 9,
+        occasion: 9,
+        cohesion: 8,
+        confidence: 7,
+      },
+      summary: 'Earth tones and natural textures—this is bohemian done with intention, not costume.',
+      whatsWorking: [
+        'The rust-and-cream palette is warm, cohesive, and reads beautifully in natural light',
+        'Mixing crochet with a flowing skirt creates textural depth—two natural fabrics in conversation',
+        'The layered necklaces are the right finishing touch and follow the boho jewelry code: more is more, but keep it delicate',
+      ],
+      consider: [
+        'The sandals are blending in—a sandal with woven or braided detail would echo the crochet top and create more visual story',
+      ],
+      quickFixes: [
+        'Add a wide-brim straw hat to complete the bohemian silhouette and add sun protection',
+        'Swap the tote for a fringe or macramé crossbody for a more polished boho look',
+        'Layer a lightweight kimono or linen duster for a third texture layer when the breeze picks up',
+        'Add a wrist stack—mixed metals and natural materials like wood or shell beads',
+      ],
+    },
+  },
 ];
 
 // Export examples by category for easy retrieval
@@ -379,4 +502,13 @@ export const EXAMPLES_BY_SCORE_RANGE = {
   high: FEW_SHOT_EXAMPLES.filter(ex => ex.exemplaryFeedback.overallScore >= 8),
   medium: FEW_SHOT_EXAMPLES.filter(ex => ex.exemplaryFeedback.overallScore >= 6 && ex.exemplaryFeedback.overallScore < 8),
   low: FEW_SHOT_EXAMPLES.filter(ex => ex.exemplaryFeedback.overallScore < 6),
+};
+
+// Style-lane-aligned examples for reference
+export const EXAMPLES_BY_STYLE_LANE = {
+  streetwear: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('streetwear')),
+  edgy: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('edgy') || ex.id.includes('concert')),
+  bohemian: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('boho') || ex.id.includes('farmers')),
+  classic: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('business') || ex.id.includes('interview')),
+  casual: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('casual') || ex.id.includes('weekend') || ex.id.includes('athleisure')),
 };

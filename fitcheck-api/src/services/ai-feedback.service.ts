@@ -13,7 +13,7 @@ export function getAiCounters() { return { success: _aiSuccessCount, fallback: _
 export function resetAiCounters() { _aiSuccessCount = 0; _aiFallbackCount = 0; }
 
 // Prompt versioning — increment when SYSTEM_PROMPT or analysis logic changes significantly
-export const PROMPT_VERSION = 'v3.0';
+export const PROMPT_VERSION = 'v3.1';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -100,6 +100,27 @@ STYLE COHERENCE:
 • Fabric harmony: Casual fabrics (denim, cotton, jersey) vs dressy (silk, wool, satin)
 • Context matters: Beach wedding ≠ office meeting ≠ first date - adjust formality and style
 
+STYLE-ALIGNED ADVICE (CRITICAL — READ CAREFULLY):
+Every outfit belongs to a style lane. Your suggestions MUST stay within the detected style lane.
+Do NOT cross lanes — a streetwear fit should never be told to "add a blazer" or "swap for loafers."
+Instead, suggest upgrades WITHIN that style's vocabulary.
+
+Style lane upgrade paths:
+• Streetwear: upgrade sneakers (e.g., Dunks → cleaner pair), better hoodie brand, layering with a bomber or varsity jacket, accessorize with a cap or crossbody bag, tonal color blocking
+• Edgy: swap for higher-quality leather, add hardware jewelry, sharper boot silhouette, tighter color palette (all black with one accent), moto or biker-inspired layering
+• Minimalist: upgrade fabric quality, refine proportions, invest in better tailoring, neutral palette depth (cream → ecru → stone), architectural jewelry
+• Classic/Preppy: better knitwear, structured bags, polished leather goods, layering with blazers and cardigans, pattern mixing (stripe + plaid in same color family)
+• Bohemian: richer textures (suede, crochet, raw silk), layered jewelry, earth tones, vintage-inspired accessories, flowy silhouettes
+• Romantic: softer fabrics, delicate jewelry, floral and lace details, blush and pastel palette, feminine silhouettes
+• Sporty/Athleisure: technical fabrics, monochrome sets, clean sneakers, fitted proportions, performance-inspired accessories
+• Avant-garde: sculptural shapes, asymmetry, experimental proportions, statement pieces, unexpected fabric combinations
+
+HOW TO APPLY:
+1. First, identify the style lane from the outfit itself (the VISIBLE outfit dictates the lane, not the user's profile)
+2. All suggestions in couldImprove and takeItFurther must use the vocabulary and upgrade paths of THAT lane
+3. If the outfit mixes lanes intentionally (e.g., streetwear × minimalist), suggest upgrades that serve the fusion
+4. Only suggest crossing lanes when the occasion demands it (e.g., streetwear to a formal wedding — then explain the occasion mismatch honestly)
+
 STYLING MOVES (suggest only when relevant to what's visible, not as generic advice):
 • Roll sleeves: Adds casual refinement, shows wrist — suggest only if sleeves are long in casual context
 • Add a belt: Defines waist, adds structure — suggest only if silhouette reads unintentionally shapeless
@@ -183,6 +204,26 @@ Outfit: Black fitted dress, gold statement necklace, black heels, red lipstick
     "Small gold ear studs would complete the triangle of visual interest: neckline, ears, lip — a standard editorial composition."
   ],
   "editorialSummary": "This is the outfit that needs nothing. The column silhouette, the single statement piece, the strategic lip color — every choice is correct and intentional. The only territory left to explore is texture, and even that is optional."
+}
+
+Example 4 - Streetwear Fit (STYLE-ALIGNED — notice suggestions stay in the streetwear lane):
+Occasion: Hanging with friends
+Outfit: Oversized graphic hoodie, baggy cargo pants, Air Force 1s, crossbody bag, snapback
+
+{
+  "overallScore": 7,
+  "whatsRight": [
+    "The oversized silhouette is intentional and reads correctly — the hoodie-to-cargo proportion has visual weight where it should.",
+    "The monochrome base lets the graphic hoodie be the focal point without competing elements."
+  ],
+  "couldImprove": [
+    "The cargos are pooling at the shoe — a slightly tapered cargo or a pinroll at the ankle would clean up the break.",
+    "The crossbody bag color blends into the hoodie — a contrast tone (olive, tan) would add a layer of interest."
+  ],
+  "takeItFurther": [
+    "Swap the AF1s for a chunkier silhouette like New Balance 550s or Salomon XT-6 to add more dimension at the base."
+  ],
+  "editorialSummary": "The streetwear instinct is sound — oversized proportions, graphic statement, and practical accessories all serve the same story. The hem needs attention and the bag is getting lost. Tighten those details and this moves from solid to standout."
 }
 
 ═══════════════════════════════════════════════════════════════════
@@ -839,9 +880,13 @@ async function getStyleInsights(userId: string): Promise<string[]> {
         archetypeCounts.set(a, (archetypeCounts.get(a) || 0) + 1);
       });
     });
-    const topArchetype = [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+    const sortedArchetypes = [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1]);
+    const topArchetype = sortedArchetypes[0];
     if (topArchetype && topArchetype[1] >= 3) {
-      insights.push(`User's dominant style: ${topArchetype[0]} (${topArchetype[1]} of last ${styleDNAs.length} outfits)`);
+      insights.push(`User's dominant style lane: ${topArchetype[0]} (${topArchetype[1]} of last ${styleDNAs.length} outfits) — keep suggestions within this aesthetic. Do NOT suggest items from a different style lane (e.g., don't suggest blazers/loafers to a streetwear user).`);
+      if (sortedArchetypes.length > 1 && sortedArchetypes[1][1] >= 2) {
+        insights.push(`Secondary style influence: ${sortedArchetypes[1][0]} — user sometimes blends this with their primary lane`);
+      }
     }
 
     // 4. Best-performing colors (weighted by user ratings)
