@@ -360,6 +360,9 @@ const ALL_AGENT_NAMES = [
   'event-followup',
   'style-narrative',
   'milestone-scanner',
+  // Ops Learning Loops
+  'ops-learning',
+  'nudge',
   // Self-Improving StyleDNA Engine
   'piggyback-judge',
   'critic-agent',

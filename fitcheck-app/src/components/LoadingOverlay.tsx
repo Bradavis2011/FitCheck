@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
-import { loadingMessages } from '../lib/mockData';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
+import { Colors, Spacing, BorderRadius, Fonts } from '../constants/theme';
+
+const STAGES = [
+  { label: 'SCANNING', description: 'Reading your look' },
+  { label: 'COLOUR', description: 'Checking colour harmony' },
+  { label: 'SILHOUETTE', description: 'Evaluating proportion' },
+  { label: 'STYLING', description: 'Refining the details' },
+  { label: 'RESULTS', description: 'Preparing your report' },
+];
 
 type Props = {
   messages?: string[];
@@ -12,88 +25,82 @@ type Props = {
 };
 
 export default function LoadingOverlay({
-  messages = loadingMessages,
-  showEstimatedTime = true,
-  estimatedSeconds = 15
+  messages,
+  showEstimatedTime,
+  estimatedSeconds = 15,
 }: Props) {
-  const [messageIndex, setMessageIndex] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
-  // Spinning ring animation
   const rotation = useSharedValue(0);
-
-  // Pulse animation
-  const scale = useSharedValue(1);
+  const stageFade = useSharedValue(1);
 
   useEffect(() => {
-    // Start rotation animation
     rotation.value = withRepeat(
-      withTiming(360, { duration: 2000 }),
+      withTiming(360, { duration: 2000, easing: Easing.linear }),
       -1,
-      false
-    );
-
-    // Start pulse animation
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: 1000 }),
-        withTiming(1, { duration: 1000 })
-      ),
-      -1,
-      false
+      false,
     );
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % messages.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [messages]);
+    const timer = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
-    if (!showEstimatedTime) return;
-    const timer = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [showEstimatedTime]);
+    const next = Math.min(
+      STAGES.length - 1,
+      Math.floor((elapsed / estimatedSeconds) * STAGES.length),
+    );
+    if (next !== stageIndex) {
+      stageFade.value = withSequence(
+        withTiming(0, { duration: 180 }),
+        withTiming(1, { duration: 280 }),
+      );
+      setStageIndex(next);
+    }
+  }, [elapsed]);
 
-  const rotationStyle = useAnimatedStyle(() => ({
+  const progress = Math.min(100, (elapsed / estimatedSeconds) * 100);
+
+  const ringStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const remainingSeconds = Math.max(0, estimatedSeconds - elapsedSeconds);
-  const progressPercentage = Math.min(100, (elapsedSeconds / estimatedSeconds) * 100);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: stageFade.value }));
 
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <View style={styles.spinnerContainer}>
-            <Animated.View style={[styles.spinningRing, rotationStyle]} />
-            <Animated.View style={pulseStyle}>
-              <Ionicons name="sparkles" size={28} color={Colors.primary} />
-            </Animated.View>
+          {/* Brand mark: coral spinning ring + italic ? */}
+          <View style={styles.markContainer}>
+            <Animated.View style={[styles.ring, ringStyle]} />
+            <Text style={styles.questionMark}>?</Text>
           </View>
-          <Text style={styles.message}>{messages[messageIndex]}</Text>
-          {showEstimatedTime && (
-            <>
-              <View style={styles.progressBarContainer}>
-                <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
-              </View>
-              <Text style={styles.timeEstimate}>
-                {remainingSeconds > 0
-                  ? `About ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''} remaining...`
-                  : 'Almost there...'
-                }
-              </Text>
-            </>
-          )}
+
+          {/* Stage section label */}
+          <Text style={styles.stageLabel}>{STAGES[stageIndex].label}</Text>
+
+          {/* Stage description — fades on stage change */}
+          <Animated.Text style={[styles.stageDescription, fadeStyle]}>
+            {STAGES[stageIndex].description}
+          </Animated.Text>
+
+          {/* Progress bar — editorial sharp edges */}
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress}%` as any }]} />
+          </View>
+
+          {/* Stage dots */}
+          <View style={styles.stageDots}>
+            {STAGES.map((_, i) => (
+              <View
+                key={i}
+                style={[styles.stageDot, i <= stageIndex && styles.stageDotActive]}
+              />
+            ))}
+          </View>
         </View>
       </View>
     </Modal>
@@ -103,63 +110,88 @@ export default function LoadingOverlay({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(251, 247, 244, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   card: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
     alignItems: 'center',
-    maxWidth: 280,
-    width: '80%',
+    maxWidth: 300,
+    width: '82%',
     borderWidth: 1,
     borderColor: Colors.border,
+    gap: Spacing.sm,
   },
-  spinnerContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryAlpha10,
+  markContainer: {
+    width: 72,
+    height: 72,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xs,
     position: 'relative',
   },
-  spinningRing: {
+  ring: {
     position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryAlpha30,
     borderTopColor: Colors.primary,
   },
-  message: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    fontWeight: '500',
+  questionMark: {
+    fontFamily: Fonts.serifItalic,
+    fontSize: 32,
+    color: Colors.primary,
+    lineHeight: 36,
   },
-  progressBarContainer: {
+  stageLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    marginTop: Spacing.xs,
+  },
+  stageDescription: {
+    fontFamily: Fonts.serif,
+    fontSize: 20,
+    color: Colors.text,
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  progressTrack: {
     width: '100%',
-    height: 4,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    height: 2,
+    backgroundColor: Colors.primaryAlpha10,
+    borderRadius: BorderRadius.sharp,
     marginTop: Spacing.md,
     overflow: 'hidden',
   },
-  progressBar: {
+  progressFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sharp,
   },
-  timeEstimate: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    textAlign: 'center',
+  stageDots: {
+    flexDirection: 'row',
+    gap: 6,
     marginTop: Spacing.sm,
-    fontWeight: '500',
+  },
+  stageDot: {
+    width: 5,
+    height: 5,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primaryAlpha10,
+    borderWidth: 1,
+    borderColor: Colors.primaryAlpha30,
+  },
+  stageDotActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
 });

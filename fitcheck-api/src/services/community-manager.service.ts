@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '../utils/prisma.js';
 import { executeOrQueue } from './agent-manager.service.js';
 import { pushService } from './push.service.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -270,11 +271,60 @@ async function welcomeNewPublicMembers(): Promise<void> {
   console.log(`[CommunityManager] Welcomed ${welcomedCount} new public member(s)`);
 }
 
+// ─── Post-Challenge Measurement ───────────────────────────────────────────────
+
+async function measureRecentlyChallenges(): Promise<void> {
+  const recentlyEnded = await prisma.challenge.findMany({
+    where: {
+      status: 'ended',
+      endsAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    },
+    include: {
+      submissions: {
+        include: { voters: true },
+      },
+    },
+  });
+
+  if (recentlyEnded.length === 0) return;
+
+  const challengeMetrics = recentlyEnded.map(c => {
+    const totalSubmissions = c.submissions.length;
+    const totalVotes = c.submissions.reduce((sum, s) => sum + s.voters.length, 0);
+    const avgVotesPerSubmission = totalSubmissions > 0 ? totalVotes / totalSubmissions : 0;
+
+    return {
+      challengeId: c.id,
+      title: c.title,
+      theme: c.theme,
+      submissions: totalSubmissions,
+      totalVotes,
+      avgVotesPerSubmission,
+      participationScore: totalSubmissions * 2 + totalVotes,
+    };
+  });
+
+  const best = challengeMetrics.sort((a, b) => b.participationScore - a.participationScore)[0];
+  const worst = challengeMetrics.sort((a, b) => a.participationScore - b.participationScore)[0];
+
+  await publishToIntelligenceBus('community-manager', 'nudge_metrics', {
+    measuredAt: new Date().toISOString(),
+    recentChallenges: challengeMetrics,
+    bestTheme: best?.theme,
+    worstTheme: worst?.theme,
+    avgSubmissions: challengeMetrics.reduce((s, m) => s + m.submissions, 0) / challengeMetrics.length,
+  });
+
+  console.log(`[CommunityManager] Challenge metrics published (${recentlyEnded.length} challenges)`);
+}
+
 // ─── Main Entry Points ────────────────────────────────────────────────────────
 
 export async function runCommunityManagerDaily(): Promise<void> {
   console.log('[CommunityManager] Daily run starting...');
   await highlightTopOutfits();
   await welcomeNewPublicMembers();
+  // Measure recently ended challenges (cheap, DB-only)
+  await measureRecentlyChallenges().catch(err => console.error('[CommunityManager] Challenge metrics failed:', err));
   console.log('[CommunityManager] Daily run complete');
 }

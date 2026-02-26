@@ -19,7 +19,14 @@ export type BusEntryType =
   | 'meta_insight'
   | 'budget_skip'
   | 'token_usage'
-  | 'calibration_drift';
+  | 'calibration_drift'
+  // Ops Learning Loop entry types
+  | 'email_metrics'
+  | 'nudge_metrics'
+  | 'social_metrics'
+  | 'conversion_metrics'
+  | 'ops_critique'
+  | 'ops_improvement';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

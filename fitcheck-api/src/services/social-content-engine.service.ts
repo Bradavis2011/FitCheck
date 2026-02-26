@@ -41,6 +41,23 @@ async function callGemini(prompt: string): Promise<string> {
   return result.response.text().trim();
 }
 
+/**
+ * Like callGemini but checks for a DB-stored prompt variant for this content type.
+ * If a variant exists, it appends additional style guidance from the variant.
+ */
+async function callGeminiWithVariant(contentType: string, basePrompt: string): Promise<string> {
+  const variantPrompt = await getPromptVariant(contentType);
+  if (!variantPrompt) return callGemini(basePrompt);
+
+  // Inject variant guidance as additional context at the end of the base prompt
+  const augmentedPrompt = `${basePrompt}
+
+ADDITIONAL STYLE GUIDANCE (learned from high-performing posts):
+${variantPrompt}`;
+
+  return callGemini(augmentedPrompt);
+}
+
 // ─── Brand Voice ──────────────────────────────────────────────────────────────
 
 const BRAND_VOICE = `Voice & Personality of "Or This?":
@@ -51,6 +68,17 @@ const BRAND_VOICE = `Voice & Personality of "Or This?":
 - NEVER: ask people to download, sign up, or visit a link. No CTAs.
 - First person plural ("we") or first person singular ("I") from the founder.
 - End with something that invites engagement — a question, a hot take, a vulnerable admission.`;
+
+// ─── Prompt Variant Loader ────────────────────────────────────────────────────
+
+/** Load an improved prompt for this content type from DB if available, else return null. */
+async function getPromptVariant(contentType: string): Promise<string | null> {
+  const variant = await prisma.socialPromptVariant.findFirst({
+    where: { contentType, isActive: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  return variant?.promptText || null;
+}
 
 // ─── Deduplication Helpers ────────────────────────────────────────────────────
 
@@ -450,7 +478,7 @@ Rules:
 
 Return ONLY the tweet text, nothing else.`;
 
-  const twitterText = await callGemini(twitterPrompt);
+  const twitterText = await callGeminiWithVariant('founder_story', twitterPrompt);
 
   // Pick best PR or first commit as TikTok hook
   const tiktokHook = ctx.mergedPRs.length > 0
@@ -610,7 +638,7 @@ Rules:
 
 Return ONLY the tweet text, nothing else.`;
 
-  const tweetText = await callGemini(tweetPrompt);
+  const tweetText = await callGeminiWithVariant('fashion_news', tweetPrompt);
 
   const tiktokPrompt = `You run "Or This?", an AI outfit feedback app. React to this fashion headline in a TikTok format — be opinionated, relatable, real.
 
@@ -706,7 +734,7 @@ Rules:
 
 Return ONLY the tweet text.`;
 
-  const tweetText = await callGemini(tweetPrompt);
+  const tweetText = await callGeminiWithVariant('community_spotlight', tweetPrompt);
 
   return [
     {
@@ -810,7 +838,7 @@ Rules:
 
 Return ONLY the tweet text.`;
 
-  const tweetText = await callGemini(tweetPrompt);
+  const tweetText = await callGeminiWithVariant('style_data_drop', tweetPrompt);
 
   const sourceData = {
     totalChecks,
@@ -901,7 +929,7 @@ Rules:
 
 Return ONLY the tweet text.`;
 
-  const tweetText = await callGemini(tweetPrompt);
+  const tweetText = await callGeminiWithVariant('wardrobe_insight', tweetPrompt);
 
   return [
     {
@@ -946,7 +974,7 @@ Rules:
 
 Return ONLY the post text.`;
 
-  const tweetText = await callGemini(prompt);
+  const tweetText = await callGeminiWithVariant('conversation_starter', prompt);
 
   return [
     {
@@ -1023,7 +1051,7 @@ Rules:
 
 Return ONLY the tweet text.`;
 
-  const tweetText = await callGemini(tweetPrompt);
+  const tweetText = await callGeminiWithVariant('behind_the_scenes', tweetPrompt);
 
   // TikTok prompt with real commit/PR details
   const tiktokCommitContext = ctx.commits.length > 0

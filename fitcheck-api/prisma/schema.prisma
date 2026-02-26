@@ -690,12 +690,14 @@ model EmailEvent {
 }
 
 model ConversionSignal {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  signalType String   @map("signal_type") // "hit_daily_limit", "used_follow_up", "high_engagement", "loyal_free"
-  strength   Float
-  actedOn    Boolean  @default(false) @map("acted_on")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  signalType  String    @map("signal_type") // "hit_daily_limit", "used_follow_up", "high_engagement", "loyal_free"
+  strength    Float
+  actedOn     Boolean   @default(false) @map("acted_on")
+  convertedAt DateTime? @map("converted_at") // when user actually upgraded
+  outcome     String?                         // "converted", "ignored", "pending"
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("conversion_signals")
   @@index([userId, actedOn])
@@ -1055,3 +1057,66 @@ model DailyTokenUsage {
 }
 
 // ─── End Self-Improving StyleDNA Engine Models ───────────────────────────────
+
+// ─── Ops Learning Loop Models ────────────────────────────────────────────────
+
+model EmailTemplateVariant {
+  id          String   @id @default(uuid())
+  sequence    String                        // "welcome", "reengagement", etc.
+  step        Int                           // which step in the sequence
+  field       String                        // "subject", "headline", "ctaText"
+  variant     String   @db.Text            // the variant content
+  isControl   Boolean  @default(false)     // is this the original?
+  impressions Int      @default(0)
+  opens       Int      @default(0)         // times opened (for subject variants)
+  clicks      Int      @default(0)         // times clicked (for CTA variants)
+  conversions Int      @default(0)         // outfit checks within 48h
+  isWinner    Boolean? @map("is_winner")   // null=testing, true=promoted, false=retired
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([sequence, step, field, isControl])
+  @@map("email_template_variants")
+}
+
+model NudgeVariant {
+  id          String   @id @default(uuid())
+  segment     String                       // "new_no_outfit", "inactive_3d", etc.
+  title       String
+  body        String
+  isControl   Boolean  @default(false)
+  impressions Int      @default(0)
+  conversions Int      @default(0)        // outfit checks within 6h
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("nudge_variants")
+  @@index([segment, isActive])
+}
+
+model SocialPromptVariant {
+  id            String   @id @default(uuid())
+  contentType   String   @unique @map("content_type") // "founder_story", etc.
+  promptText    String   @db.Text @map("prompt_text")
+  parentPrompt  String?  @db.Text @map("parent_prompt")
+  avgEngagement Float?   @map("avg_engagement")
+  sampleSize    Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("social_prompt_variants")
+}
+
+model ConversionCalibration {
+  id             String   @id @default(uuid())
+  signalType     String   @map("signal_type")
+  strength       Float
+  conversionRate Float    @map("conversion_rate")
+  sampleSize     Int      @default(0) @map("sample_size")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("conversion_calibrations")
+  @@index([signalType, isActive])
+}
+
+// ─── End Ops Learning Loop Models ────────────────────────────────────────────

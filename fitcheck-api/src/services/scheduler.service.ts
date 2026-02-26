@@ -3,7 +3,8 @@ import { sendDailyDigest, sendWeeklyDigest } from './email-report.service.js';
 import { resetWeeklyPoints, resetMonthlyPoints } from './gamification.service.js';
 import { prisma } from '../utils/prisma.js';
 import { Resend } from 'resend';
-import { pushService } from './push.service.js';
+import { runEngagementNudger, measureNudgeMetrics } from './nudge.service.js';
+import { runOpsLearning, pollTwitterEngagement } from './ops-learning.service.js';
 import { runContentCalendar } from './content-calendar.service.js';
 import { runGrowthDashboard } from './growth-dashboard.service.js';
 import { runBetaRecruiter } from './beta-recruiter.service.js';
@@ -187,199 +188,6 @@ function buildStaleReportEmail(reports: any[]): string {
       <p style="color:#6B7280;font-size:12px;margin-top:24px;">Or This? · Safety Monitor · ${new Date().toISOString()}</p>
     </div>
   </body></html>`;
-}
-
-// ─── Engagement Nudger ────────────────────────────────────────────────────────
-
-async function hasReceivedNudgeToday(userId: string): Promise<boolean> {
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-
-  const existing = await prisma.notification.findFirst({
-    where: {
-      userId,
-      type: 'nudge_push',
-      createdAt: { gte: todayStart },
-    },
-  });
-
-  return existing !== null;
-}
-
-async function sendNudge(
-  userId: string,
-  title: string,
-  body: string,
-  data?: Record<string, unknown>
-): Promise<void> {
-  // Guard: max 1 nudge per user per day
-  if (await hasReceivedNudgeToday(userId)) return;
-
-  // Send push notification
-  await pushService.sendPushNotification(userId, { title, body, data });
-
-  // Record the nudge in notifications table to enforce daily limit
-  await prisma.notification.create({
-    data: {
-      userId,
-      type: 'nudge_push',
-      title,
-      body,
-    },
-  });
-}
-
-async function runEngagementNudger(isEveningRun: boolean): Promise<void> {
-  const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setUTCHours(0, 0, 0, 0);
-
-  const hoursAgo24 = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const hoursAgo48 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-  const hoursAgo72 = new Date(now.getTime() - 72 * 60 * 60 * 1000);
-  const daysAgo5 = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
-
-  let nudgeCount = 0;
-
-  if (!isEveningRun) {
-    // ── Segment 1: New users with no outfit check (24-48h after signup) ──
-    try {
-      const newUsersWithoutOutfit = await prisma.user.findMany({
-        where: {
-          createdAt: { gte: hoursAgo48, lt: hoursAgo24 },
-          outfitChecks: { none: {} },
-        },
-        select: { id: true },
-      });
-
-      for (const { id } of newUsersWithoutOutfit) {
-        await sendNudge(
-          id,
-          'Ready for your first outfit check? 👗',
-          "Get personalized style feedback from our AI stylist. It only takes 30 seconds!",
-          { type: 'nudge', segment: 'new_no_outfit' }
-        );
-        nudgeCount++;
-      }
-      console.log(`[Nudger] Segment 1 (new, no outfit): ${newUsersWithoutOutfit.length} users, ${nudgeCount} nudges sent`);
-    } catch (err) {
-      console.error('[Nudger] Segment 1 failed:', err);
-    }
-
-    // ── Segment 2: Users inactive for 3 days ──
-    try {
-      // Users who checked at some point but not in the last 72h
-      const activeBeforeWindow = await prisma.outfitCheck.findMany({
-        where: {
-          isDeleted: false,
-          createdAt: { lt: hoursAgo72 },
-        },
-        select: { userId: true },
-        distinct: ['userId'],
-      });
-
-      const potentialIds = activeBeforeWindow.map(u => u.userId);
-
-      // Filter to those who haven't checked in the last 72h
-      const recentlyActive = await prisma.outfitCheck.findMany({
-        where: {
-          userId: { in: potentialIds },
-          isDeleted: false,
-          createdAt: { gte: hoursAgo72 },
-        },
-        select: { userId: true },
-        distinct: ['userId'],
-      });
-
-      const recentIds = new Set(recentlyActive.map(u => u.userId));
-      const inactiveIds = potentialIds.filter(id => !recentIds.has(id));
-
-      let seg2Count = 0;
-      for (const userId of inactiveIds) {
-        await sendNudge(
-          userId,
-          'Your style is evolving! ✨',
-          "It's been a few days. Share your current look and get AI feedback.",
-          { type: 'nudge', segment: 'inactive_3d' }
-        );
-        seg2Count++;
-      }
-      console.log(`[Nudger] Segment 2 (inactive 3d): ${inactiveIds.length} users, ${seg2Count} nudges sent`);
-    } catch (err) {
-      console.error('[Nudger] Segment 2 failed:', err);
-    }
-
-    // ── Segment 4: Churning Plus/Pro users (inactive 5+ days) ──
-    try {
-      const payingInactive = await prisma.user.findMany({
-        where: {
-          tier: { in: ['plus', 'pro'] },
-          outfitChecks: {
-            none: {
-              isDeleted: false,
-              createdAt: { gte: daysAgo5 },
-            },
-          },
-        },
-        select: { id: true, tier: true },
-      });
-
-      let seg4Count = 0;
-      for (const { id, tier } of payingInactive) {
-        await sendNudge(
-          id,
-          `We miss you! Your ${tier === 'pro' ? 'Pro' : 'Plus'} benefits are waiting 💎`,
-          "You haven't checked in for 5 days. Your subscription perks are ready to use!",
-          { type: 'nudge', segment: 'churning_paid' }
-        );
-        seg4Count++;
-      }
-      console.log(`[Nudger] Segment 4 (churning paid): ${payingInactive.length} users, ${seg4Count} nudges sent`);
-    } catch (err) {
-      console.error('[Nudger] Segment 4 failed:', err);
-    }
-  }
-
-  // ── Segment 3: Streak at risk (evening only — 10pm UTC) ──
-  if (isEveningRun) {
-    try {
-      // Users with an active streak who haven't checked in today
-      const streakUsers = await prisma.userStats.findMany({
-        where: { currentStreak: { gt: 0 } },
-        select: { userId: true, currentStreak: true },
-      });
-
-      const streakUserIds = streakUsers.map(u => u.userId);
-
-      // Find which of those checked today
-      const checkedToday = await prisma.outfitCheck.findMany({
-        where: {
-          userId: { in: streakUserIds },
-          isDeleted: false,
-          createdAt: { gte: todayStart },
-        },
-        select: { userId: true },
-        distinct: ['userId'],
-      });
-
-      const checkedTodayIds = new Set(checkedToday.map(u => u.userId));
-      const atRisk = streakUsers.filter(u => !checkedTodayIds.has(u.userId));
-
-      let seg3Count = 0;
-      for (const { userId, currentStreak } of atRisk) {
-        await sendNudge(
-          userId,
-          `⚠️ Your ${currentStreak}-day streak is at risk!`,
-          "Check in with an outfit before midnight to keep your streak alive.",
-          { type: 'nudge', segment: 'streak_risk', streak: currentStreak }
-        );
-        seg3Count++;
-      }
-      console.log(`[Nudger] Segment 3 (streak risk): ${atRisk.length} users, ${seg3Count} nudges sent`);
-    } catch (err) {
-      console.error('[Nudger] Segment 3 failed:', err);
-    }
-  }
 }
 
 // ─── Scheduler Init ───────────────────────────────────────────────────────────
@@ -641,6 +449,26 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
   }, { timezone: 'UTC' });
 
+  // ── Ops Learning Loop — Daily Measurers (6am UTC, DB only, $0) ──────────────
+  cron.schedule('0 6 * * *', async () => {
+    console.log('📊 [Scheduler] Running ops learning measurers...');
+    try { await measureNudgeMetrics(); }
+    catch (err) { console.error('[Scheduler] Nudge metrics failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Ops Learning Loop — Twitter Engagement Poll (6:30am UTC) ─────────────────
+  cron.schedule('30 6 * * *', async () => {
+    try { await pollTwitterEngagement(); }
+    catch (err) { console.error('[Scheduler] Twitter engagement poll failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Ops Learning Agent — Weekly Cycle (Sunday 7am UTC) ───────────────────────
+  cron.schedule('0 7 * * 0', async () => {
+    console.log('🧠 [Scheduler] Running Ops Learning Agent...');
+    try { await runOpsLearning(); }
+    catch (err) { console.error('[Scheduler] Ops Learning Agent failed:', err); }
+  }, { timezone: 'UTC' });
+
   // ── Relationship System ───────────────────────────────────────────────────────
 
   // Post-event follow-up: every 30 minutes
@@ -765,5 +593,5 @@ export function initializeScheduler(): void {
     console.log('⏭️  [Scheduler] ENABLE_LEARNING_SYSTEM=false — skipping learning system crons');
   }
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine)');
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops)');
 }

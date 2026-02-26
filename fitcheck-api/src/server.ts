@@ -25,6 +25,7 @@ import wardrobeRoutes from './routes/wardrobe.routes.js';
 import waitlistRoutes from './routes/waitlist.routes.js';
 // import eventRoutes from './routes/event.routes.js';
 import { handleWebhook } from './controllers/subscription.controller.js';
+import { handleResendWebhook } from './controllers/resend-webhook.controller.js';
 import { asyncHandler } from './middleware/asyncHandler.js';
 import { isConfigured as isS3Configured } from './services/s3.service.js';
 // LAUNCH: Socket.io disabled until live streaming is re-enabled
@@ -101,6 +102,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // RevenueCat webhook (before rate limiter - RevenueCat may send bursts)
 app.post('/api/webhooks/revenuecat', asyncHandler(handleWebhook));
+
+// Resend email event webhook (before rate limiter - Resend sends delivery events)
+app.post('/api/webhooks/resend', asyncHandler(handleResendWebhook));
 
 // Rate limiting
 app.use('/api', limiter);

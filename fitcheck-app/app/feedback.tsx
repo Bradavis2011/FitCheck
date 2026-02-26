@@ -86,6 +86,28 @@ export default function FeedbackScreen() {
   const interstitialRef = useRef<any>(null);
   const viewShotRef = useRef<any>(null);
 
+  // Staggered dot animation for loading screen
+  const dot1Anim = useRef(new Animated.Value(0.15)).current;
+  const dot2Anim = useRef(new Animated.Value(0.15)).current;
+  const dot3Anim = useRef(new Animated.Value(0.15)).current;
+
+  useEffect(() => {
+    const animateDot = (value: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(value, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0.15, duration: 300, useNativeDriver: true }),
+          Animated.delay(600 - delay),
+        ]),
+      );
+    const a1 = animateDot(dot1Anim, 0);
+    const a2 = animateDot(dot2Anim, 200);
+    const a3 = animateDot(dot3Anim, 400);
+    a1.start(); a2.start(); a3.start();
+    return () => { a1.stop(); a2.stop(); a3.stop(); };
+  }, []);
+
   const { data: communityFeedbackData } = useCommunityFeedback(isPublic ? outfitId : '');
 
   useEffect(() => {
@@ -314,9 +336,9 @@ export default function FeedbackScreen() {
           <Ionicons name="arrow-back" size={20} color={Colors.text} />
         </TouchableOpacity>
         <View style={styles.loadingDots}>
-          <View style={[styles.loadingDot, { backgroundColor: Colors.primary }]} />
-          <View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: 0.5 }]} />
-          <View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: 0.2 }]} />
+          <Animated.View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: dot1Anim }]} />
+          <Animated.View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: dot2Anim }]} />
+          <Animated.View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: dot3Anim }]} />
         </View>
         <Text style={styles.loadingText}>Reading your look...</Text>
         <Text style={styles.loadingSubtext}>This usually takes 10–15 seconds</Text>

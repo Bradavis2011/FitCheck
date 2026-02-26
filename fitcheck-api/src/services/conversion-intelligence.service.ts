@@ -5,6 +5,43 @@ import { triggerUpgradeSequence } from './lifecycle-email.service.js';
 
 const UPGRADE_STRENGTH_THRESHOLD = 0.7;
 
+// ─── Dynamic Strength Loading ─────────────────────────────────────────────────
+
+const BASE_STRENGTHS: Record<string, number> = {
+  hit_daily_limit: 0.8,
+  high_engagement: 0.7,
+  loyal_free: 0.5,
+  power_user: 0.6,
+};
+
+async function getSignalStrength(signalType: string): Promise<number> {
+  const calibration = await prisma.conversionCalibration.findFirst({
+    where: { signalType, isActive: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  return calibration?.strength ?? BASE_STRENGTHS[signalType] ?? 0.5;
+}
+
+// ─── Outcome Tracking ─────────────────────────────────────────────────────────
+
+/** Mark conversion outcome on signals when a user upgrades their tier. */
+export async function trackConversionOutcome(userId: string): Promise<void> {
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+
+  await prisma.conversionSignal.updateMany({
+    where: {
+      userId,
+      createdAt: { gte: fourteenDaysAgo },
+      outcome: null,
+    },
+    data: {
+      outcome: 'converted',
+      convertedAt: now,
+    },
+  });
+}
+
 // ─── Signal Detection ─────────────────────────────────────────────────────────
 
 async function detectSignals(): Promise<number> {
@@ -27,8 +64,9 @@ async function detectSignals(): Promise<number> {
         where: { userId: id, signalType: 'hit_daily_limit', createdAt: { gte: todayStart } },
       });
       if (!alreadyToday) {
+        const strength = await getSignalStrength('hit_daily_limit');
         await prisma.conversionSignal.create({
-          data: { userId: id, signalType: 'hit_daily_limit', strength: 0.8 },
+          data: { userId: id, signalType: 'hit_daily_limit', strength, outcome: 'pending' },
         });
         signalsCreated++;
       }
@@ -57,8 +95,9 @@ async function detectSignals(): Promise<number> {
           where: { userId: id, signalType: 'high_engagement', createdAt: { gte: todayStart } },
         });
         if (!alreadyToday) {
+          const strength = await getSignalStrength('high_engagement');
           await prisma.conversionSignal.create({
-            data: { userId: id, signalType: 'high_engagement', strength: 0.7 },
+            data: { userId: id, signalType: 'high_engagement', strength, outcome: 'pending' },
           });
           signalsCreated++;
         }
@@ -86,8 +125,9 @@ async function detectSignals(): Promise<number> {
         where: { userId, signalType: 'loyal_free', createdAt: { gte: todayStart } },
       });
       if (!alreadyToday) {
+        const strength = await getSignalStrength('loyal_free');
         await prisma.conversionSignal.create({
-          data: { userId, signalType: 'loyal_free', strength: 0.5 },
+          data: { userId, signalType: 'loyal_free', strength, outcome: 'pending' },
         });
         signalsCreated++;
       }
@@ -121,8 +161,9 @@ async function detectSignals(): Promise<number> {
           where: { userId, signalType: 'power_user', createdAt: { gte: todayStart } },
         });
         if (!alreadyToday) {
+          const strength = await getSignalStrength('power_user');
           await prisma.conversionSignal.create({
-            data: { userId, signalType: 'power_user', strength: 0.6 },
+            data: { userId, signalType: 'power_user', strength, outcome: 'pending' },
           });
           signalsCreated++;
         }
@@ -209,7 +250,7 @@ async function nudgeHighSignalUsers(): Promise<number> {
             });
           }
 
-          // Mark signals as acted on
+          // Mark signals as acted on (outcome stays 'pending' until tier change)
           await prisma.conversionSignal.updateMany({
             where: { id: { in: data.signalIds } },
             data: { actedOn: true },

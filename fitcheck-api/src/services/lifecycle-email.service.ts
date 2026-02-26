@@ -1,13 +1,14 @@
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { executeOrQueue } from './agent-manager.service.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 // ─── Sequence Definitions ─────────────────────────────────────────────────────
 
 interface EmailStep {
   delayMs: number; // delay from previous step (0 for first step)
   subject: string;
-  buildHtml: (user: { email: string; name?: string | null }) => string;
+  buildHtml: (user: { email: string; name?: string | null }, extraData?: unknown) => string;
 }
 
 interface SequenceDef {
@@ -137,14 +138,14 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 3 * 24 * 60 * 60 * 1000,
         subject: 'Top looks this week — get inspired',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (u, topStyles?: Array<{ archetype: string; avgScore: number }>) => buildEmail(
           'Style Inspiration',
           `Fresh styles from the community${u.name ? `, ${u.name}` : ''}`,
           `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">The Or This? community has been posting some amazing looks. The top-scoring styles this week are:</p>
           <ul style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 16px;padding-left:20px;">
-            <li>Minimalist monochrome (scoring 9.2 avg)</li>
-            <li>Smart casual with a pop of color (8.8 avg)</li>
-            <li>Elevated streetwear layering (8.5 avg)</li>
+            ${topStyles && topStyles.length > 0
+              ? topStyles.map(s => `<li>${s.archetype.charAt(0).toUpperCase() + s.archetype.slice(1)} (scoring ${s.avgScore.toFixed(1)} avg)</li>`).join('')
+              : '<li>Minimalist monochrome</li><li>Smart casual with a pop of color</li><li>Elevated streetwear layering</li>'}
           </ul>
           <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 24px;">Ready to see where your outfits land?</p>
           <div style="text-align:center;margin:24px 0;">
@@ -386,6 +387,100 @@ async function triggerNewSequences(): Promise<void> {
   }
 }
 
+// ─── Real Data: Top Styles for Reengagement Email ────────────────────────────
+
+async function getTopStylesForEmail(): Promise<Array<{ archetype: string; avgScore: number }>> {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const recentDNA = await prisma.styleDNA.findMany({
+    where: { createdAt: { gte: weekAgo } },
+    select: {
+      styleArchetypes: true,
+      outfitCheck: { select: { aiScore: true } },
+    },
+    take: 500,
+  });
+
+  const archetypeScores = new Map<string, number[]>();
+  for (const dna of recentDNA) {
+    const score = dna.outfitCheck?.aiScore;
+    if (!score) continue;
+    for (const archetype of dna.styleArchetypes) {
+      if (!archetypeScores.has(archetype)) archetypeScores.set(archetype, []);
+      archetypeScores.get(archetype)!.push(score);
+    }
+  }
+
+  return [...archetypeScores.entries()]
+    .map(([archetype, scores]) => ({
+      archetype,
+      avgScore: scores.reduce((s, v) => s + v, 0) / scores.length,
+    }))
+    .filter(s => s.avgScore >= 7.5)
+    .sort((a, b) => b.avgScore - a.avgScore)
+    .slice(0, 3);
+}
+
+// ─── Variant Subject Selection ────────────────────────────────────────────────
+
+async function getVariantSubject(
+  sequence: string,
+  step: number,
+  defaultSubject: string,
+): Promise<string> {
+  // 50/50 A/B split: if no variants, use default
+  const variants = await prisma.emailTemplateVariant.findMany({
+    where: { sequence, step, field: 'subject', isWinner: null },
+  });
+
+  if (variants.length === 0) return defaultSubject;
+
+  // Find winner if one has been promoted
+  const winner = await prisma.emailTemplateVariant.findFirst({
+    where: { sequence, step, field: 'subject', isWinner: true },
+  });
+  if (winner) return winner.variant;
+
+  // 50/50 split between control and best variant
+  const nonControl = variants.find(v => !v.isControl);
+  if (!nonControl) return defaultSubject;
+
+  const useVariant = Math.random() < 0.5;
+  if (useVariant) {
+    await prisma.emailTemplateVariant.update({
+      where: { id: nonControl.id },
+      data: { impressions: { increment: 1 } },
+    });
+    return nonControl.variant;
+  }
+
+  return defaultSubject;
+}
+
+// ─── Publish Email Metrics to Bus ────────────────────────────────────────────
+
+async function publishEmailMetrics(): Promise<void> {
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  const events = await prisma.emailEvent.groupBy({
+    by: ['sequence', 'step', 'status'],
+    where: { sentAt: { gte: fourteenDaysAgo } },
+    _count: { id: true },
+  });
+
+  const summary: Record<string, Record<string, number>> = {};
+  for (const e of events) {
+    const key = `${e.sequence}:${e.step}`;
+    if (!summary[key]) summary[key] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0 };
+    summary[key][e.status] = (summary[key][e.status] || 0) + e._count.id;
+  }
+
+  await publishToIntelligenceBus('lifecycle-email', 'email_metrics', {
+    measuredAt: new Date().toISOString(),
+    summary,
+  });
+}
+
 // ─── Process Due Steps ────────────────────────────────────────────────────────
 
 async function processDueSequences(): Promise<void> {
@@ -405,6 +500,13 @@ async function processDueSequences(): Promise<void> {
 
   if (dueSequences.length === 0) return;
   console.log(`[LifecycleEmail] Processing ${dueSequences.length} due sequence(s)...`);
+
+  // Pre-fetch real top styles for reengagement step 1
+  let topStyles: Array<{ archetype: string; avgScore: number }> = [];
+  const hasReengagementStep1 = dueSequences.some(s => s.sequence === 'reengagement' && s.currentStep === 1);
+  if (hasReengagementStep1) {
+    topStyles = await getTopStylesForEmail().catch(() => []);
+  }
 
   for (const seq of dueSequences) {
     try {
@@ -439,14 +541,22 @@ async function processDueSequences(): Promise<void> {
         continue;
       }
 
-      const htmlBody = step.buildHtml(user);
+      // A/B variant subject selection
+      const subject = await getVariantSubject(seq.sequence, seq.currentStep, step.subject);
+
+      // Inject real data into reengagement step 1
+      const extraData = (seq.sequence === 'reengagement' && seq.currentStep === 1)
+        ? topStyles
+        : undefined;
+
+      const htmlBody = step.buildHtml(user, extraData);
       const payload = {
         seqId: seq.id,
         userId: seq.userId,
         userEmail: user.email,
         sequence: seq.sequence,
         step: seq.currentStep,
-        subject: step.subject,
+        subject,
       };
 
       await executeOrQueue(
@@ -506,6 +616,8 @@ export async function runLifecycleEmail(): Promise<void> {
   console.log('[LifecycleEmail] Starting run...');
   await triggerNewSequences();
   await processDueSequences();
+  // Publish email metrics to bus every run (cheap DB aggregation)
+  await publishEmailMetrics().catch(err => console.error('[LifecycleEmail] Metrics publish failed:', err));
   console.log('[LifecycleEmail] Run complete');
 }
 
