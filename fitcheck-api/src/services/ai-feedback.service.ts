@@ -5,6 +5,7 @@ import { createNotification } from '../controllers/notification.controller.js';
 import { trackServerEvent } from '../lib/posthog.js';
 import { getLatestFashionTrendText } from './fashion-trends.service.js';
 import { checkMilestones } from './milestone-message.service.js';
+import { getActivePrompt, recordPromptResult } from './recursive-improvement.service.js';
 
 // In-memory AI counters (reset on server restart; used by metrics.service for digest)
 let _aiSuccessCount = 0;
@@ -1069,10 +1070,14 @@ export async function analyzeOutfit(
   const maxRetries = 3;
   const aiStartTime = Date.now();
 
+  // Recursive self-improvement: select prompt version (A/B tested)
+  const activePrompt = await getActivePrompt();
+  const activePromptVersion = activePrompt.version;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const tierSuffix = hasPriorityProcessing ? PREMIUM_PROMPT_SUFFIX : STANDARD_PROMPT_SUFFIX;
-      const fullSystemPrompt = SYSTEM_PROMPT + '\n\n' + tierSuffix;
+      const fullSystemPrompt = activePrompt.prompt + '\n\n' + tierSuffix;
 
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash-lite',
@@ -1171,9 +1176,12 @@ export async function analyzeOutfit(
           aiFeedback: feedback as any,
           aiScore: feedback.overallScore,
           aiProcessedAt: new Date(),
-          promptVersion: PROMPT_VERSION,
+          promptVersion: activePromptVersion,
         },
       });
+
+      // Record result for recursive self-improvement A/B tracking
+      recordPromptResult(activePromptVersion, feedback.overallScore).catch(() => {});
 
       if (user?.id) {
         const score = feedback.overallScore;
@@ -1251,7 +1259,7 @@ export async function analyzeOutfit(
         fallback: false,
         latency_ms: Date.now() - aiStartTime,
         model: 'gemini-2.5-flash-lite',
-        prompt_version: PROMPT_VERSION,
+        prompt_version: activePromptVersion,
         has_trend_context: !!trendContext,
         has_user_calibration: !!userCalibrationContext,
         is_cold_start: feedbackHistory.length > 0 && feedbackHistory[0].includes('body type'),

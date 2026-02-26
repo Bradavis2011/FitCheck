@@ -24,6 +24,7 @@ import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.service.js';
 import { runMilestoneScanner } from './milestone-message.service.js';
 import { runStyleNarrativeAgent } from './style-narrative.service.js';
+import { checkAndTriggerImprovement } from './recursive-improvement.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -656,5 +657,12 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Style narrative agent failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Relationship System)');
+  // ── Recursive Self-Improvement: Check quality + evaluate A/B tests — Daily 4am UTC ──
+  cron.schedule('0 4 * * *', async () => {
+    console.log('🧠 [Scheduler] Running recursive self-improvement check...');
+    try { await checkAndTriggerImprovement(); }
+    catch (err) { console.error('[Scheduler] Recursive self-improvement failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System)');
 }
