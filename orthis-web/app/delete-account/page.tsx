@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Delete Account — Or This?",
   description: "How to delete your Or This? account and all associated data.",
+  alternates: { canonical: "/delete-account" },
 };
 
 export default function DeleteAccountPage() {

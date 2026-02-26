@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Support — Or This?",
+  alternates: { canonical: "/support" },
 };
 
 export default function SupportPage() {

@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "Or This? — AI Outfit Feedback",
   description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",
   metadataBase: new URL("https://orthis.app"),
+  alternates: {
+    canonical: "https://orthis.app",
+  },
   openGraph: {
     title: "Or This? — AI Outfit Feedback",
     description: "Stop texting friends 'does this look ok?' Get instant AI feedback on your outfit before you walk out the door.",

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — Or This?",
+  alternates: { canonical: "/privacy" },
 };
 
 const EFFECTIVE_DATE = "February 17, 2026";

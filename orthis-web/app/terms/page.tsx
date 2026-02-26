@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms of Service — Or This?",
+  alternates: { canonical: "/terms" },
 };
 
 const EFFECTIVE_DATE = "February 17, 2026";
