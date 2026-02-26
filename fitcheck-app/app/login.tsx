@@ -15,7 +15,7 @@ import {
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import OrThisLogo from '../src/components/OrThisLogo';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 
 export default function LoginScreen() {
   const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
@@ -464,8 +464,8 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   title: {
+    fontFamily: Fonts.serif,
     fontSize: 48,
-    fontWeight: 'bold',
     color: Colors.primary,
     marginBottom: 8,
   },
@@ -482,23 +482,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: 8,
   },
   input: {
+    fontFamily: Fonts.sans,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     padding: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
   },
   button: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     padding: Spacing.md,
     alignItems: 'center',
     marginTop: 8,
@@ -507,8 +508,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
   },
   switchButton: {

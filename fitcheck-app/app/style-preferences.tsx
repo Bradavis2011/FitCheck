@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import PillButton from '../src/components/PillButton';
 import { useUser, useUpdateProfile } from '../src/hooks/useApi';
 
@@ -153,14 +152,9 @@ export default function StylePreferencesScreen() {
         {step === 1 && (
           <View style={styles.stepContent}>
             <View style={styles.iconContainer}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.primaryLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.iconGradient}
-              >
+              <View style={styles.iconBox}>
                 <Ionicons name="shirt-outline" size={40} color={Colors.white} />
-              </LinearGradient>
+              </View>
             </View>
 
             <Text style={styles.stepTitle}>What's your style?</Text>
@@ -185,14 +179,9 @@ export default function StylePreferencesScreen() {
         {step === 2 && (
           <View style={styles.stepContent}>
             <View style={styles.iconContainer}>
-              <LinearGradient
-                colors={[Colors.primaryLight, Colors.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.iconGradient}
-              >
+              <View style={styles.iconBox}>
                 <Ionicons name="star-outline" size={40} color={Colors.white} />
-              </LinearGradient>
+              </View>
             </View>
 
             <Text style={styles.stepTitle}>What matters most?</Text>
@@ -248,14 +237,9 @@ export default function StylePreferencesScreen() {
         {step === 3 && (
           <View style={styles.stepContent}>
             <View style={styles.iconContainer}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.iconGradient}
-              >
+              <View style={styles.iconBox}>
                 <Ionicons name="body-outline" size={40} color={Colors.white} />
-              </LinearGradient>
+              </View>
             </View>
 
             <Text style={styles.stepTitle}>Any styling goals?</Text>
@@ -285,33 +269,22 @@ export default function StylePreferencesScreen() {
           disabled={!canProceed() || isSaving}
           activeOpacity={0.8}
         >
-          <LinearGradient
-            colors={
-              canProceed() && !isSaving
-                ? [Colors.primary, Colors.secondary]
-                : [Colors.surface, Colors.surface]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.nextButtonGradient}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <>
-                <Text
-                  style={[styles.nextButtonText, !canProceed() && styles.nextButtonTextDisabled]}
-                >
-                  {step === 3 ? 'Complete' : 'Next'}
-                </Text>
-                <Ionicons
-                  name={step === 3 ? 'checkmark' : 'arrow-forward'}
-                  size={20}
-                  color={canProceed() ? Colors.white : Colors.textMuted}
-                />
-              </>
-            )}
-          </LinearGradient>
+          {isSaving ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <>
+              <Text
+                style={[styles.nextButtonText, !canProceed() && styles.nextButtonTextDisabled]}
+              >
+                {step === 3 ? 'Complete' : 'Next'}
+              </Text>
+              <Ionicons
+                name={step === 3 ? 'checkmark' : 'arrow-forward'}
+                size={20}
+                color={canProceed() ? Colors.white : Colors.textMuted}
+              />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -349,13 +322,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   skipText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.primary,
   },
   progressContainer: {
@@ -363,22 +336,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   progressBar: {
-    height: 4,
+    height: 2,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     overflow: 'hidden',
     marginBottom: Spacing.xs,
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   progressText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',
-    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -390,16 +363,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.lg,
   },
-  iconGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.full,
+  iconBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 0,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepTitle: {
+    fontFamily: Fonts.serif,
     fontSize: 28,
-    fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
     marginBottom: Spacing.sm,
@@ -447,8 +421,8 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     flex: 1,
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
   optionLabelSelected: {
@@ -460,22 +434,22 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   nextButton: {
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  nextButtonDisabled: {
-    opacity: 0.5,
-  },
-  nextButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
+    backgroundColor: Colors.primary,
+    borderRadius: 0,
+  },
+  nextButtonDisabled: {
+    opacity: 0.5,
   },
   nextButtonText: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
   },
   nextButtonTextDisabled: {

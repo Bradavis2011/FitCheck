@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../src/stores/auth';
 import { occasions, settings, weather, vibes, loadingMessages } from '../src/lib/mockData';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import LoadingOverlay from '../src/components/LoadingOverlay';
 import PillButton from '../src/components/PillButton';
 import { uploadImage } from '../src/services/image-upload.service';
@@ -539,12 +539,10 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 9999,
   },
   headerTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   scrollView: {
@@ -563,9 +561,9 @@ const styles = StyleSheet.create({
   },
   limitBannerText: {
     flex: 1,
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
     color: Colors.warning,
-    fontWeight: '500',
     lineHeight: 18,
   },
   imagePreviewContainer: {
@@ -588,8 +586,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   sectionTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   sectionHint: {
@@ -598,7 +596,7 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.sm,
   },
   required: {
-    color: Colors.secondary,
+    color: Colors.primary,
   },
   pillsContainer: {
     flexDirection: 'row',
@@ -613,8 +611,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   accordionTitle: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '500',
     color: Colors.textMuted,
   },
   detailsContainer: {
@@ -626,8 +624,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   subsectionTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -640,7 +638,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 0,
     backgroundColor: Colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -649,16 +647,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   toggleButtonText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '500',
     color: Colors.textMuted,
   },
   toggleButtonTextActive: {
     color: Colors.white,
   },
   textInput: {
+    fontFamily: Fonts.sans,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.border,
     padding: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
@@ -678,7 +679,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     borderWidth: 1.5,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
@@ -689,8 +690,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF0EE',
   },
   shareOptionLabel: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xs,
-    fontWeight: '700',
     color: Colors.textMuted,
     textAlign: 'center',
   },
@@ -711,15 +712,15 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   remainingText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',
-    fontWeight: '500',
   },
   submitButton: {
     flexDirection: 'row',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     paddingVertical: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -729,9 +730,11 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   submitButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
-    fontSize: FontSize.lg,
-    fontWeight: '700',
   },
   // Outfit memory card
   memoryCard: {
@@ -759,13 +762,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   memoryLabel: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
-    fontWeight: '500',
   },
   memoryScore: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.primary,
   },
   memorySummary: {
@@ -780,8 +783,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   datePickerTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.text,
   },
   datePickerHint: {
@@ -798,7 +801,7 @@ const styles = StyleSheet.create({
   dateChip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -808,8 +811,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   dateChipText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
-    fontWeight: '500',
     color: Colors.text,
   },
   dateChipTextActive: {
@@ -819,9 +822,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   dateSelected: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
     color: Colors.primary,
-    fontWeight: '600',
     marginTop: 4,
   },
   // Custom date modal
@@ -834,20 +837,21 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     width: '100%',
     gap: Spacing.md,
   },
   modalTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
   },
   modalInput: {
+    fontFamily: Fonts.sans,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     padding: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
@@ -863,11 +867,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   modalCancelText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.textMuted,
   },
   modalConfirm: {
@@ -875,11 +879,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   modalConfirmText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.white,
   },
 });

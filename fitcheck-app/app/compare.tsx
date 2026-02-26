@@ -135,7 +135,7 @@ const slotStyles = StyleSheet.create({
     top: Spacing.sm,
     right: Spacing.sm,
     backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 99,
+    borderRadius: 0,
   },
   editBtn: {
     position: 'absolute',

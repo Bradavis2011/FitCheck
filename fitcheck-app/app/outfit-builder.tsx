@@ -3,9 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Act
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useWardrobeItems } from '../src/hooks/useApi';
 import type { WardrobeItem, WardrobeCategory } from '../src/services/api.service';
 
@@ -278,21 +277,14 @@ export default function OutfitBuilderScreen() {
           disabled={filledCount < 2}
           activeOpacity={0.8}
         >
-          <LinearGradient
-            colors={filledCount >= 2 ? [Colors.primary, Colors.secondary] : [Colors.surface, Colors.surface]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.checkButtonGradient}
-          >
-            <Ionicons
-              name="sparkles"
-              size={20}
-              color={filledCount >= 2 ? Colors.white : Colors.textMuted}
-            />
-            <Text style={[styles.checkButtonText, filledCount < 2 && styles.checkButtonTextDisabled]}>
-              {filledCount >= 2 ? `Check Outfit (${filledCount} pieces)` : 'Select at least 2 items'}
-            </Text>
-          </LinearGradient>
+          <Ionicons
+            name="sparkles"
+            size={20}
+            color={filledCount >= 2 ? Colors.white : Colors.textMuted}
+          />
+          <Text style={[styles.checkButtonText, filledCount < 2 && styles.checkButtonTextDisabled]}>
+            {filledCount >= 2 ? `Check Outfit (${filledCount} pieces)` : 'Select at least 2 items'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -320,8 +312,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
   },
   scrollView: {
@@ -345,8 +337,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   emptyTitle: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
   },
@@ -360,20 +352,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     marginTop: Spacing.sm,
   },
   goToWardrobeText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
-    fontWeight: '700',
-    fontSize: FontSize.md,
   },
   previewSection: {
     padding: Spacing.lg,
   },
   sectionTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
     marginBottom: Spacing.md,
   },
@@ -413,8 +407,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceLight,
   },
   slotColorName: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.xs,
-    fontWeight: '600',
     color: Colors.text,
     textAlign: 'center',
   },
@@ -425,8 +419,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   slotPlaceholderText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.textMuted,
   },
   slotEmptyHint: {
@@ -444,8 +438,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   slotLabelText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.xs,
-    fontWeight: '600',
     color: Colors.white,
     textAlign: 'center',
   },
@@ -454,7 +448,7 @@ const styles = StyleSheet.create({
     top: Spacing.xs,
     right: Spacing.xs,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   selectorSection: {
     padding: Spacing.lg,
@@ -471,8 +465,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   selectorAddLink: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.primary,
   },
   itemGrid: {
@@ -508,8 +502,8 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   itemName: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.xs,
-    fontWeight: '600',
     color: Colors.text,
   },
   itemColor: {
@@ -525,7 +519,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -538,22 +532,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   checkButton: {
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  checkButtonDisabled: {
-    opacity: 0.6,
-  },
-  checkButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
+    backgroundColor: Colors.primary,
+    borderRadius: 0,
+  },
+  checkButtonDisabled: {
+    opacity: 0.6,
+    backgroundColor: Colors.surface,
   },
   checkButtonText: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
   },
   checkButtonTextDisabled: {
