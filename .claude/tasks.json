@@ -1,0 +1,164 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Branch cherry-picks: Tier 1 backend fixes",
+      "description": "DEPRECATED — all claude/* branches deleted 2026-02-25. Useful branches (remote-control-elb2r, recursive-self-improvement-HOGR1) merged to master. Stale branches (audit-launch-readiness, or-this-vision-strategy, resume-website-planning, startup-viral-growth-research) deleted — code already captured on master.",
+      "status": "cancelled",
+      "created_at": "2026-02-23T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "title": "Branch cherry-picks: Tier 2 backend (manual extract)",
+      "description": "DEPRECATED — source branches deleted 2026-02-25. Code was already captured on master prior to deletion.",
+      "status": "cancelled",
+      "created_at": "2026-02-23T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 3,
+      "title": "Pinch-to-zoom crop tool",
+      "description": "ImageCropPreview.tsx — full pinch/pan gesture handler using react-native-gesture-handler + reanimated. EXIF-normalized URI via manipulateAsync no-op pass. 3:4 crop frame with dim masks. camera.tsx uses it in preview mode.",
+      "status": "completed",
+      "created_at": "2026-02-23T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 4,
+      "title": "AI feedback: Vogue voice + v3.0 format",
+      "description": "ai-feedback.service.ts: PROMPT_VERSION='v3.2', full Vogue editorial system prompt with style lanes + styling moves + 5 example analyses. JSON schema: overallScore, whatsRight[], couldImprove[], takeItFurther[], editorialSummary, styleDNA.",
+      "status": "completed",
+      "created_at": "2026-02-23T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 5,
+      "title": "Frontend: feedback display v3.0",
+      "description": "feedback.tsx: full-bleed hero image, score overlay, bullet rows (+/–/↑), editorial pull-quote block, FeedbackCard sections. feedbackAdapter.ts handles v3.0 and v1/v2 legacy formats via normalizeFeedback().",
+      "status": "completed",
+      "created_at": "2026-02-23T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 6,
+      "title": "[YC T1] Launch beta to 20-50 users",
+      "description": "Distribute via TestFlight (iOS) + direct APK to modeling network + Reddit fashion/style communities. Need real usage data before submitting YC application.",
+      "status": "todo",
+      "tier": 1,
+      "priority": "before-submission",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 7,
+      "title": "[YC T1] Record 1-minute product demo video",
+      "description": "Screen recording of full flow: camera → context input → AI feedback → score card. Upload to unlisted YouTube or Vimeo for application link.",
+      "status": "todo",
+      "tier": 1,
+      "priority": "before-submission",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 8,
+      "title": "[YC T1] Verify/initiate Delaware C-Corp incorporation",
+      "description": "YC expects a Delaware C-Corp or willingness to convert. Use Stripe Atlas, Clerky, or a lawyer. Confirm current legal entity status first.",
+      "status": "todo",
+      "tier": 1,
+      "priority": "before-submission",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 9,
+      "title": "[YC T1] Check waitlist signup count",
+      "description": "Pull current count from orthis.app / any existing waitlist. Add exact number to YC application if >0. Even 50 signups signals demand.",
+      "status": "todo",
+      "tier": 1,
+      "priority": "before-submission",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 10,
+      "title": "[YC T2] Write 25+ interview Q&A document",
+      "description": "Prepare and practice answers for the most common YC interview questions. Each answer must be deliverable in under 30 seconds. Practice out loud until fluent.",
+      "status": "todo",
+      "tier": 2,
+      "priority": "before-interview",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 11,
+      "title": "[YC T2] Build monthly cohort financial model",
+      "description": "Spreadsheet showing 0 → $1M ARR progression. Include assumptions: conversion rate, ARPU, churn, CAC. Must be defensible in the room.",
+      "status": "todo",
+      "tier": 2,
+      "priority": "before-interview",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 12,
+      "title": "[YC T2] Prepare 'zero users' answer with beta data",
+      "description": "YC will ask about traction. Have a crisp, honest answer ready: what you've done, what you've learned from beta, and why you believe in the product despite early stage.",
+      "status": "todo",
+      "tier": 2,
+      "priority": "before-interview",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 13,
+      "title": "[YC T2] Create side-by-side comparison: Or This? vs ChatGPT",
+      "description": "Take the same outfit photo. Run it through ChatGPT and Or This?. Document the difference in specificity, personalization, and actionability. Use in interviews and pitch.",
+      "status": "todo",
+      "tier": 2,
+      "priority": "before-interview",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 14,
+      "title": "[YC T3] Submit iOS build to App Store",
+      "description": "Current build already delivered. Submit for App Store review. A live App Store listing significantly strengthens the application.",
+      "status": "todo",
+      "tier": 3,
+      "priority": "would-strengthen",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 15,
+      "title": "[YC T3] Submit Android AAB to Google Play",
+      "description": "Build the Android AAB and submit to Google Play for review. Dual-platform presence demonstrates scale ambition.",
+      "status": "todo",
+      "tier": 3,
+      "priority": "would-strengthen",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 16,
+      "title": "[YC T3] Get orthis.app landing page live",
+      "description": "Deploy the landing page and start collecting waitlist signups. Even a few hundred signups before application deadline is meaningful signal.",
+      "status": "todo",
+      "tier": 3,
+      "priority": "would-strengthen",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    },
+    {
+      "id": 17,
+      "title": "[YC T3] Collect 3-5 user testimonial quotes from beta",
+      "description": "Ask beta users for honest feedback quotes. Even informal DMs work. Specific praise ('it told me my blazer was too formal for a first date') is more powerful than general.",
+      "status": "todo",
+      "tier": 3,
+      "priority": "would-strengthen",
+      "created_at": "2026-02-25T00:00:00Z",
+      "updated_at": "2026-02-25T00:00:00Z"
+    }
+  ]
+}
