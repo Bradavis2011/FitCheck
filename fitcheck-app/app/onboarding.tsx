@@ -2,10 +2,7 @@ import { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
-import { ProgressDots } from '../src/components/ProgressDots';
+import { Colors, Spacing, Fonts } from '../src/constants/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import OrThisLogo from '../src/components/OrThisLogo';
 
@@ -13,40 +10,29 @@ const { width } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: number;
-  title: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  gradient: [string, string];
+  label: string;
+  headline: string;
+  body: string;
 }
 
 const slides: OnboardingSlide[] = [
   {
     id: 1,
-    title: 'Welcome to Or This?',
-    subtitle: 'Honest AI outfit feedback in seconds',
-    icon: 'camera',
-    gradient: [Colors.primary, Colors.primaryLight],
+    label: '',
+    headline: 'Confidence in\nevery choice.',
+    body: 'Honest AI outfit feedback in 30 seconds. No filters, no flattery — just real style intel.',
   },
   {
     id: 2,
-    title: 'How It Works',
-    subtitle: '1. Take a photo of your outfit\n2. Tell us the occasion\n3. Get AI-powered feedback in seconds',
-    icon: 'bulb',
-    gradient: [Colors.primaryLight, Colors.primary],
+    label: 'How it works',
+    headline: 'Shoot.\nSet the scene.\nGet honest feedback.',
+    body: 'Tell us the occasion, weather, and vibe. Our AI gives you a score, what\'s working, and what to fix.',
   },
   {
     id: 3,
-    title: 'Compare Outfits',
-    subtitle: 'Can\'t decide? Check two outfits side-by-side and let AI pick the winner.',
-    icon: 'git-compare-outline',
-    gradient: [Colors.primary, Colors.primaryLight],
-  },
-  {
-    id: 4,
-    title: 'Ready to Go',
-    subtitle: 'Honest feedback. No sugarcoating. Let\'s check your first outfit!',
-    icon: 'sparkles',
-    gradient: [Colors.primaryLight, Colors.primary],
+    label: 'Your closet',
+    headline: 'The more you use it,\nthe smarter it gets.',
+    body: 'Every outfit you check builds your digital wardrobe — so feedback gets sharper and more personal over time.',
   },
 ];
 
@@ -64,39 +50,10 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleSkip = () => {
-    const lastIndex = slides.length - 1;
-    flatListRef.current?.scrollToIndex({ index: lastIndex, animated: true });
-    setCurrentIndex(lastIndex);
-  };
-
   const handleGetStarted = () => {
     completeOnboarding();
     router.replace('/(tabs)' as any);
   };
-
-  const renderSlide = ({ item }: { item: OnboardingSlide }) => (
-    <View style={styles.slide}>
-      <LinearGradient
-        colors={item.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.iconContainer}
-      >
-        <Ionicons name={item.icon} size={80} color={Colors.white} />
-      </LinearGradient>
-
-      {item.id === 1 ? (
-        <View style={styles.titleLogoRow}>
-          <Text style={styles.title}>Welcome to </Text>
-          <OrThisLogo size={28} />
-        </View>
-      ) : (
-        <Text style={styles.title}>{item.title}</Text>
-      )}
-      <Text style={styles.subtitle}>{item.subtitle}</Text>
-    </View>
-  );
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -104,60 +61,69 @@ export default function OnboardingScreen() {
     }
   }).current;
 
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const isLastSlide = currentIndex === slides.length - 1;
 
+  const renderSlide = ({ item }: { item: OnboardingSlide }) => (
+    <View style={styles.slide}>
+      {item.id === 1 ? (
+        <View style={styles.logoWrap}>
+          <OrThisLogo size={32} />
+        </View>
+      ) : (
+        <View style={styles.labelWrap}>
+          <Text style={styles.sectionLabel}>{item.label}</Text>
+          <View style={styles.rule} />
+        </View>
+      )}
+      <Text style={styles.headline}>{item.headline}</Text>
+      <Text style={styles.body}>{item.body}</Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Skip Button - Hidden on last slide (Get Started is already there) */}
-        {!isLastSlide && (
-          <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
-            <Text style={styles.skipText}>Skip</Text>
+      {/* Skip */}
+      {!isLastSlide && (
+        <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+      )}
+
+      <FlatList
+        ref={flatListRef}
+        data={slides}
+        renderItem={renderSlide}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id.toString()}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        style={styles.flatList}
+      />
+
+      <View style={styles.footer}>
+        {/* Dot indicators */}
+        <View style={styles.dots}>
+          {slides.map((_, i) => (
+            <View
+              key={i}
+              style={[styles.dot, i === currentIndex && styles.dotActive]}
+            />
+          ))}
+        </View>
+
+        {isLastSlide ? (
+          <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
+            <Text style={styles.primaryButtonText}>Check Your First Outfit</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleNext}>
+            <Text style={styles.secondaryButtonText}>Next</Text>
           </TouchableOpacity>
         )}
-
-        {/* Slides */}
-        <FlatList
-          ref={flatListRef}
-          data={slides}
-          renderItem={renderSlide}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id.toString()}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          scrollEnabled={true}
-        />
-
-        {/* Progress Dots */}
-        <View style={styles.footer}>
-          <ProgressDots current={currentIndex} total={slides.length} />
-
-          {/* Action Button */}
-          {isLastSlide ? (
-            <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
-              >
-                <Text style={styles.getStartedText}>Get Started</Text>
-                <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-              <Text style={styles.nextText}>Next</Text>
-              <Ionicons name="arrow-forward" size={20} color={Colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
       </View>
     </SafeAreaView>
   );
@@ -168,99 +134,103 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
-    flex: 1,
-  },
   skipButton: {
     position: 'absolute',
-    top: Spacing.md,
+    top: Spacing.lg,
     right: Spacing.lg,
     zIndex: 10,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
   },
   skipText: {
-    fontSize: FontSize.lg,
-    color: Colors.primary,
-    fontWeight: '700',
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
+  flatList: {
+    flex: 1,
   },
   slide: {
     width,
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
+    paddingTop: 60,
   },
-  iconContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoWrap: {
     marginBottom: Spacing.xl,
   },
-  titleLogoRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
+  labelWrap: {
+    marginBottom: Spacing.xl,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: Colors.primary,
+  },
+  headline: {
+    fontFamily: 'PlayfairDisplay_400Regular',
+    fontSize: 36,
     color: Colors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
+    lineHeight: 44,
+    marginBottom: Spacing.lg,
   },
-  subtitle: {
-    fontSize: FontSize.lg,
+  body: {
+    fontFamily: Fonts.sans,
+    fontSize: 16,
     color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 26,
+    lineHeight: 24,
   },
   footer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
     gap: Spacing.lg,
-    alignItems: 'center',
   },
-  nextButton: {
+  dots: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    borderWidth: 3,
-    borderColor: Colors.primary,
-    minWidth: 250,
+    gap: 6,
     justifyContent: 'center',
-    backgroundColor: Colors.background,
   },
-  nextText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.primary,
+  dot: {
+    width: 20,
+    height: 2,
+    backgroundColor: 'rgba(0,0,0,0.12)',
   },
-  getStartedButton: {
-    width: '100%',
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
+  dotActive: {
+    backgroundColor: Colors.primary,
+    width: 32,
   },
-  gradientButton: {
-    flexDirection: 'row',
+  primaryButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
   },
-  getStartedText: {
-    fontSize: 18,
-    fontWeight: '700',
+  primaryButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.primary,
   },
 });
