@@ -17,6 +17,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '../utils/prisma.js';
 import { SYSTEM_PROMPT, PROMPT_VERSION } from './ai-feedback.service.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -734,6 +735,16 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
     log.push(`Discovered ${discoveredRules.length} new fashion rules`);
     for (const rule of discoveredRules.slice(0, 5)) {
       log.push(`  [${rule.category}] ${rule.rule} (confidence: ${(rule.confidence * 100).toFixed(0)}%)`);
+    }
+
+    // Publish high-confidence discovered rules to Intelligence Bus
+    for (const rule of discoveredRules.filter(r => r.confidence >= 0.7)) {
+      publishToIntelligenceBus('recursive-improvement', 'discovered_knowledge', {
+        category: rule.category,
+        rule: rule.rule,
+        confidence: rule.confidence,
+        sampleSize: rule.sampleSize,
+      }).catch(() => {});
     }
 
     // Step 3: Diagnose weaknesses

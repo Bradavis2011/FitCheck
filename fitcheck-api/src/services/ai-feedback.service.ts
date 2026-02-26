@@ -6,6 +6,8 @@ import { trackServerEvent } from '../lib/posthog.js';
 import { getLatestFashionTrendText } from './fashion-trends.service.js';
 import { checkMilestones } from './milestone-message.service.js';
 import { getActivePrompt, recordPromptResult } from './recursive-improvement.service.js';
+import { assemblePrompt, getLatestLearningMemory } from './prompt-assembly.service.js';
+import { recordUserTokens } from './token-budget.service.js';
 
 // In-memory AI counters (reset on server restart; used by metrics.service for digest)
 let _aiSuccessCount = 0;
@@ -1074,10 +1076,26 @@ export async function analyzeOutfit(
   const activePrompt = await getActivePrompt();
   const activePromptVersion = activePrompt.version;
 
+  // Sectional prompt assembly — overlay assembled sections if available
+  let baseSystemPrompt = activePrompt.prompt;
+  try {
+    const assembled = await assemblePrompt();
+    if (assembled.fromDB && assembled.text) {
+      baseSystemPrompt = assembled.text;
+    }
+    // Inject Learning Memory (zero-cost, compiled daily)
+    const learningMemory = await getLatestLearningMemory();
+    if (learningMemory) {
+      baseSystemPrompt = baseSystemPrompt + '\n\n' + learningMemory;
+    }
+  } catch (assemblyErr) {
+    console.error('[AI] Prompt assembly failed, using fallback:', assemblyErr);
+  }
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const tierSuffix = hasPriorityProcessing ? PREMIUM_PROMPT_SUFFIX : STANDARD_PROMPT_SUFFIX;
-      const fullSystemPrompt = activePrompt.prompt + '\n\n' + tierSuffix;
+      const fullSystemPrompt = baseSystemPrompt + '\n\n' + tierSuffix;
 
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash-lite',
@@ -1177,11 +1195,18 @@ export async function analyzeOutfit(
           aiScore: feedback.overallScore,
           aiProcessedAt: new Date(),
           promptVersion: activePromptVersion,
+          judgeEvaluated: false,
         },
       });
 
       // Record result for recursive self-improvement A/B tracking
       recordPromptResult(activePromptVersion, feedback.overallScore).catch(() => {});
+
+      // Track user token usage for Token Budget Manager
+      const usage2 = response.usageMetadata;
+      if (usage2?.promptTokenCount || usage2?.candidatesTokenCount) {
+        recordUserTokens(usage2.promptTokenCount || 0, usage2.candidatesTokenCount || 0).catch(() => {});
+      }
 
       if (user?.id) {
         const score = feedback.overallScore;

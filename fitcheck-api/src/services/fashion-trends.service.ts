@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '../utils/prisma.js';
 import { getTrendData } from './content-calendar.service.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -122,6 +123,15 @@ Be specific and accurate for ${season} ${now.getFullYear()}. Return only the JSO
     });
 
     console.log(`✅ [FashionTrends] Generated and saved trend data for ${period}: ${trendData.trendingStyles.slice(0, 3).join(', ')}`);
+
+    // Publish to Intelligence Bus for learning system
+    publishToIntelligenceBus('fashion-trends', 'trend_signal', {
+      period,
+      trendingStyles: trendData.trendingStyles,
+      seasonalColors: trendData.seasonalColors,
+      keyPieces: trendData.keyPieces,
+      fadingTrends: trendData.fadingTrends,
+    }).catch(() => {});
   } catch (error) {
     console.error('[FashionTrends] Failed to generate trend data:', error);
   }

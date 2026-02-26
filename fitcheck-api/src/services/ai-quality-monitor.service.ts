@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { getAiCounters } from './ai-feedback.service.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 export interface AiQualityMetrics {
   fallbackRate: number | null;
@@ -118,6 +119,14 @@ export async function runAiQualityMonitor(): Promise<void> {
       console.log('[AiQualityMonitor] No alerts — skipping email');
       return;
     }
+
+    // Publish quality alerts to Intelligence Bus for learning system
+    publishToIntelligenceBus('ai-quality-monitor', 'quality_alert', {
+      alerts,
+      fallbackRate: metrics.fallbackRate,
+      avgFeedbackRating: metrics.avgFeedbackRating,
+      ratingCount: metrics.ratingCount,
+    }).catch(() => {});
 
     const from = process.env.REPORT_FROM_EMAIL || 'alerts@orthis.app';
     await resend.emails.send({

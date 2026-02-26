@@ -360,6 +360,14 @@ const ALL_AGENT_NAMES = [
   'event-followup',
   'style-narrative',
   'milestone-scanner',
+  // Self-Improving StyleDNA Engine
+  'piggyback-judge',
+  'critic-agent',
+  'surgeon',
+  'followup-critic',
+  'followup-surgeon',
+  'arena',
+  'learning-memory',
 ];
 
 export async function killAllAgents(): Promise<void> {

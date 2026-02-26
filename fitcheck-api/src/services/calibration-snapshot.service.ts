@@ -1,4 +1,5 @@
 import { prisma } from '../utils/prisma.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 function computePearsonCorrelation(pairs: { x: number; y: number }[]): number | null {
   const n = pairs.length;
@@ -79,6 +80,18 @@ export async function runCalibrationSnapshot(): Promise<void> {
     console.log(
       `✅ [CalibrationSnapshot] Saved for ${period}: delta=${delta.toFixed(2)}, r=${correlation?.toFixed(3) ?? 'N/A'}, n=${pairs.length}`
     );
+
+    // Publish calibration drift to Intelligence Bus if significant drift detected
+    if (Math.abs(delta) > 0.5) {
+      publishToIntelligenceBus('calibration-snapshot', 'calibration_drift', {
+        period,
+        delta,
+        avgAiScore,
+        avgCommunity,
+        correlation,
+        sampleSize: pairs.length,
+      }).catch(() => {});
+    }
   } catch (error) {
     console.error('[CalibrationSnapshot] Failed:', error);
   }

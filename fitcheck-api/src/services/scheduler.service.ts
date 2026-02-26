@@ -25,6 +25,19 @@ import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.ser
 import { runMilestoneScanner } from './milestone-message.service.js';
 import { runStyleNarrativeAgent } from './style-narrative.service.js';
 import { checkAndTriggerImprovement } from './recursive-improvement.service.js';
+// ── Self-Improving StyleDNA Engine ────────────────────────────────────────────
+import { resetDailyBudget, hasLearningBudget } from './token-budget.service.js';
+import { purgeExpiredBusEntries } from './intelligence-bus.service.js';
+import { distillLearningMemory } from './prompt-assembly.service.js';
+import { runPiggybackJudge } from './arena.service.js';
+import { runCriticAgent, runFollowUpCritic } from './critic-agent.service.js';
+import {
+  runSurgeonAgent,
+  runSurgeonAgentEvening,
+  runAdditionalMutations,
+  runFollowUpSurgeon,
+  runExampleRotation,
+} from './surgeon-agent.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -664,5 +677,93 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Recursive self-improvement failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System)');
+  // ── Self-Improving StyleDNA Engine ───────────────────────────────────────────
+
+  if (process.env.ENABLE_LEARNING_SYSTEM !== 'false') {
+    // Midnight UTC: reset daily budget counter
+    cron.schedule('0 0 * * *', async () => {
+      try { await resetDailyBudget(); }
+      catch (err) { console.error('[Scheduler] Budget reset failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 1am UTC: Piggyback Judge — batch-evaluate yesterday's real analyses (P1, ~7K tokens)
+    cron.schedule('0 1 * * *', async () => {
+      console.log('🔍 [Scheduler] Running Piggyback Judge...');
+      try { await runPiggybackJudge(); }
+      catch (err) { console.error('[Scheduler] Piggyback Judge failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 2am UTC: Learning Memory distillation ($0 — pure DB reads)
+    cron.schedule('0 2 * * *', async () => {
+      console.log('🧠 [Scheduler] Distilling Learning Memory...');
+      try { await distillLearningMemory(); }
+      catch (err) { console.error('[Scheduler] Learning Memory distillation failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 3am UTC: Critic Agent — find weakness patterns (P1, ~10K tokens)
+    cron.schedule('0 3 * * *', async () => {
+      console.log('🔬 [Scheduler] Running Critic Agent...');
+      try { await runCriticAgent(); }
+      catch (err) { console.error('[Scheduler] Critic Agent failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 5am UTC: Surgeon Agent — reactive fix + proactive mutation (P1+P2, ~35-42K tokens)
+    cron.schedule('0 5 * * *', async () => {
+      console.log('⚕️  [Scheduler] Running Surgeon Agent...');
+      try { await runSurgeonAgent(); }
+      catch (err) { console.error('[Scheduler] Surgeon Agent failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 3pm UTC: Follow-Up Critic — evaluate follow-up Q&A quality (P2 budget-gated)
+    cron.schedule('0 15 * * *', async () => {
+      if (!(await hasLearningBudget(2))) return;
+      console.log('🔬 [Scheduler] Running Follow-Up Critic...');
+      try { await runFollowUpCritic(); }
+      catch (err) { console.error('[Scheduler] Follow-Up Critic failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 5pm UTC: Follow-Up Surgeon — improve follow-up prompt sections (P3 budget-gated)
+    cron.schedule('0 17 * * *', async () => {
+      if (!(await hasLearningBudget(3))) return;
+      console.log('⚕️  [Scheduler] Running Follow-Up Surgeon...');
+      try { await runFollowUpSurgeon(); }
+      catch (err) { console.error('[Scheduler] Follow-Up Surgeon failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 7pm UTC: 2nd-pass Surgeon — reactive fix or mutation (P3 budget-gated)
+    cron.schedule('0 19 * * *', async () => {
+      if (!(await hasLearningBudget(3))) return;
+      console.log('⚕️  [Scheduler] Running 2nd-pass Surgeon...');
+      try { await runSurgeonAgentEvening(); }
+      catch (err) { console.error('[Scheduler] 2nd-pass Surgeon failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // 9pm UTC: Additional proactive mutations (P4 budget-gated, 2x mutations)
+    cron.schedule('0 21 * * *', async () => {
+      if (!(await hasLearningBudget(4))) return;
+      console.log('⚕️  [Scheduler] Running additional mutations (P4)...');
+      try { await runAdditionalMutations(); }
+      catch (err) { console.error('[Scheduler] Additional mutations failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // Sunday 6pm UTC: Weekly example rotation (~14K tokens)
+    cron.schedule('0 18 * * 0', async () => {
+      console.log('🔄 [Scheduler] Running Example Rotation...');
+      try { await runExampleRotation(); }
+      catch (err) { console.error('[Scheduler] Example Rotation failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // Daily midnight: purge expired Intelligence Bus entries
+    cron.schedule('30 0 * * *', async () => {
+      try {
+        const count = await purgeExpiredBusEntries();
+        if (count > 0) console.log(`[Scheduler] Purged ${count} expired bus entries`);
+      }
+      catch (err) { console.error('[Scheduler] Bus cleanup failed:', err); }
+    }, { timezone: 'UTC' });
+  } else {
+    console.log('⏭️  [Scheduler] ENABLE_LEARNING_SYSTEM=false — skipping learning system crons');
+  }
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine)');
 }

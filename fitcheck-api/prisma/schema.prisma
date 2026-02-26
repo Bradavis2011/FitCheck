@@ -115,6 +115,10 @@ model OutfitCheck {
   feedbackHelpful Boolean? @map("feedback_helpful")
   feedbackRating  Int?     @map("feedback_rating") // 1-5
 
+  // Piggyback Judge scores (Self-Improving Engine)
+  judgeScores     Json?    @map("judge_scores")
+  judgeEvaluated  Boolean  @default(false) @map("judge_evaluated")
+
   // Community scores (cached)
   communityAvgScore   Float? @map("community_avg_score")
   communityScoreCount Int    @default(0) @map("community_score_count")
@@ -918,3 +922,136 @@ model ImprovementCycle {
 }
 
 // ─── End Recursive AI Self-Improvement Models ──────────────────────────────────
+
+// ─── Self-Improving StyleDNA Engine Models ──────────────────────────────────
+
+model IntelligenceBusEntry {
+  id          String   @id @default(uuid())
+  agent       String
+  entryType   String   @map("entry_type")
+  payload     Json
+  consumedBy  String[] @default([]) @map("consumed_by")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("intelligence_bus_entries")
+  @@index([entryType, createdAt])
+  @@index([expiresAt])
+}
+
+model PromptSection {
+  id             String    @id @default(uuid())
+  sectionKey     String    @map("section_key")
+  version        Int       @default(1)
+  content        String    @db.Text
+  isActive       Boolean   @default(true) @map("is_active")
+  parentVersion  Int?      @map("parent_version")
+  source         String    @default("manual")
+  arenaWinRate   Float?    @map("arena_win_rate")
+  changelog      String?
+  failedAttempts Json      @default("[]") @map("failed_attempts")
+  orderIndex     Int       @default(0) @map("order_index")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@unique([sectionKey, version])
+  @@index([sectionKey, isActive])
+  @@map("prompt_sections")
+}
+
+model LearningMemory {
+  id             String   @id @default(uuid())
+  compiledText   String   @db.Text @map("compiled_text")
+  bulletCount    Int      @default(0) @map("bullet_count")
+  sourceEntries  Int      @default(0) @map("source_entries")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("learning_memory")
+}
+
+model CritiqueReport {
+  id              String   @id @default(uuid())
+  weaknesses      Json     @default("[]")
+  sectionMappings Json     @default("{}") @map("section_mappings")
+  severityScores  Json     @default("{}") @map("severity_scores")
+  addressed       Boolean  @default(false)
+  piggybackPeriod String   @map("piggyback_period")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([addressed, createdAt])
+  @@map("critique_reports")
+}
+
+model ArenaSession {
+  id                    String   @id @default(uuid())
+  challengerSectionKey  String   @map("challenger_section_key")
+  challengerVersion     Int      @map("challenger_version")
+  baselineVersion       Int      @map("baseline_version")
+  trigger               String   @default("surgeon")
+  status                String   @default("running")
+  winRate               Float?   @map("win_rate")
+  matchCount            Int      @default(0) @map("match_count")
+  regressionPassed      Boolean? @map("regression_passed")
+  deployed              Boolean  @default(false)
+  resultSummary         String?  @map("result_summary")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  matches ArenaMatch[]
+
+  @@map("arena_sessions")
+}
+
+model ArenaMatch {
+  id                  String       @id @default(uuid())
+  sessionId           String       @map("session_id")
+  session             ArenaSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioType        String       @default("synthetic") @map("scenario_type")
+  contextSnapshot     Json         @map("context_snapshot")
+  baselineResponse    String       @db.Text @map("baseline_response")
+  challengerResponse  String       @db.Text @map("challenger_response")
+  winner              String
+  scoreDelta          Json?        @map("score_delta")
+  judgeRationale      String?      @db.Text @map("judge_rationale")
+  createdAt           DateTime     @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@map("arena_matches")
+}
+
+model RegressionCase {
+  id              String   @id @default(uuid())
+  scenarioName    String   @unique @map("scenario_name")
+  contextSnapshot Json     @map("context_snapshot")
+  baselineScores  Json     @map("baseline_scores")
+  category        String
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("regression_cases")
+}
+
+model JudgeCalibration {
+  id               String    @id @default(uuid())
+  dimension        String    @unique
+  biasOffset       Float     @default(0) @map("bias_offset")
+  sampleSize       Int       @default(0) @map("sample_size")
+  lastCalibratedAt DateTime? @map("last_calibrated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("judge_calibrations")
+}
+
+model DailyTokenUsage {
+  id             String   @id @default(uuid())
+  date           String   @unique
+  userTokens     Int      @default(0) @map("user_tokens")
+  learningTokens Int      @default(0) @map("learning_tokens")
+  reservedTokens Int      @default(0) @map("reserved_tokens")
+  budget         Int
+  learningBudget Int      @map("learning_budget")
+  breakdown      Json     @default("{}") @map("breakdown")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("daily_token_usage")
+}
+
+// ─── End Self-Improving StyleDNA Engine Models ───────────────────────────────
