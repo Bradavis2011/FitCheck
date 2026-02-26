@@ -130,6 +130,144 @@ async function measurePromptPerformance(version?: string): Promise<PerformanceMe
   };
 }
 
+// ─── B1: Mine follow-up questions for prompt gaps ────────────────────────────
+
+/**
+ * Cluster recent follow-up questions to find what the AI feedback didn't address.
+ * High-volume follow-up topics = prompt gaps. Injects findings into diagnoseWeaknesses().
+ * ~3K tokens/week when called from improvement cycle.
+ */
+export async function mineFollowUpGaps(): Promise<string[]> {
+  const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  const followUps = await prisma.followUp.findMany({
+    where: { createdAt: { gte: twoWeeksAgo } },
+    select: { userQuestion: true },
+    orderBy: { createdAt: 'desc' },
+    take: 300,
+  });
+
+  if (followUps.length < 10) return [];
+
+  if (!process.env.GEMINI_API_KEY) return [];
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+  // Sample up to 100 questions for the analysis
+  const sample = followUps.slice(0, 100).map(f => f.userQuestion);
+
+  const prompt = `You are analyzing follow-up questions users asked AFTER receiving AI outfit feedback.
+These questions reveal what the original feedback FAILED to address.
+
+Follow-up questions (${sample.length} samples from the last 2 weeks):
+${sample.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
+
+Identify the top 3-5 recurring TOPICS or GAPS that appear in these questions.
+Each gap = something the AI feedback consistently missed.
+
+Return JSON only (no markdown):
+{
+  "gaps": [
+    "gap description as a weakness statement (e.g., 'Feedback doesn't address occasion-specific formality rules')",
+    ...
+  ]
+}`;
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash-lite',
+      generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+    });
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text().trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return [];
+
+    const parsed = JSON.parse(match[0]) as { gaps?: string[] };
+    const gaps = Array.isArray(parsed.gaps) ? parsed.gaps.filter(g => typeof g === 'string') : [];
+
+    console.log(`[FollowUpMining] Discovered ${gaps.length} prompt gaps from ${followUps.length} follow-ups`);
+
+    // Publish to Intelligence Bus
+    if (gaps.length > 0) {
+      publishToIntelligenceBus('followup-mining', 'followup_gaps', {
+        discoveredAt: new Date().toISOString(),
+        sampleSize: followUps.length,
+        gaps,
+      }).catch(() => {});
+    }
+
+    return gaps;
+  } catch (err) {
+    console.error('[FollowUpMining] Failed:', err);
+    return [];
+  }
+}
+
+// ─── A4: Aggregate comparison votes → DiscoveredRules ────────────────────────
+
+/**
+ * Aggregate community comparison votes into DiscoveredRules.
+ * High decisiveness for an occasion = users have strong aesthetic opinions for it.
+ * Also aggregates AI verdict accuracy when both AI verdict and outcome data exist.
+ */
+export async function discoverComparisonRules(): Promise<void> {
+  const posts = await prisma.comparisonPost.findMany({
+    where: { isDeleted: false },
+    select: { occasions: true, votesA: true, votesB: true, question: true },
+    orderBy: { createdAt: 'desc' },
+    take: 500,
+  });
+
+  // Aggregate decisive votes by occasion (>= 65% margin = decisive)
+  const byOccasion = new Map<string, { total: number; decisive: number }>();
+
+  for (const post of posts) {
+    const totalVotes = post.votesA + post.votesB;
+    if (totalVotes < 5) continue;
+
+    const maxVotes = Math.max(post.votesA, post.votesB);
+    const decisiveMargin = maxVotes / totalVotes;
+
+    for (const occasion of post.occasions) {
+      const entry = byOccasion.get(occasion) || { total: 0, decisive: 0 };
+      entry.total++;
+      if (decisiveMargin >= 0.65) entry.decisive++;
+      byOccasion.set(occasion, entry);
+    }
+  }
+
+  let rulesCreated = 0;
+  for (const [occasion, data] of byOccasion) {
+    if (data.total < 5) continue;
+
+    const decisiveRate = data.decisive / data.total;
+    if (decisiveRate < 0.6) continue;
+
+    const rule = `For "${occasion}", community comparisons show decisive preferences (${(decisiveRate * 100).toFixed(0)}% decisive rate, n=${data.total}). Users have strong aesthetic opinions for this context — give specific, opinionated advice rather than hedging.`;
+
+    // Check if a similar rule exists
+    const existing = await prisma.discoveredRule.findFirst({
+      where: { category: 'occasion', rule: { contains: `For "${occasion}"` } },
+    });
+
+    if (!existing) {
+      await prisma.discoveredRule.create({
+        data: {
+          category: 'occasion',
+          rule,
+          confidence: Math.min(data.total / 30, 1.0),
+          sampleSize: data.total,
+          evidence: `${data.decisive}/${data.total} decisive comparisons` as any,
+        },
+      });
+      rulesCreated++;
+    }
+  }
+
+  console.log(`[ComparisonRules] discoverComparisonRules: ${posts.length} posts analyzed, ${rulesCreated} new rules created`);
+}
+
 // ─── Step 2: DISCOVER — Extract new fashion rules from StyleDNA patterns ────
 
 async function discoverFashionRules(): Promise<DiscoveredFashionRule[]> {
@@ -593,10 +731,43 @@ async function promoteCandidate(candidateVersion: string, controlVersion: string
  * Returns the system prompt to use for a given request.
  * Handles A/B testing by probabilistically selecting between active versions.
  */
-export async function getActivePrompt(): Promise<{ prompt: string; version: string }> {
+/**
+ * C2: Get the user's StyleDNA cohort key (top 2 archetypes, sorted + joined).
+ * e.g. ["Classic", "Minimalist"] → "classic-minimalist"
+ */
+async function getUserCohort(userId: string): Promise<string | null> {
   try {
+    const styleDNA = await prisma.styleDNA.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { styleArchetypes: true },
+    });
+    const archetypes = styleDNA?.styleArchetypes?.slice(0, 2) ?? [];
+    if (archetypes.length === 0) return null;
+    return archetypes.map(a => a.toLowerCase()).sort().join('-');
+  } catch {
+    return null;
+  }
+}
+
+export async function getActivePrompt(userId?: string): Promise<{ prompt: string; version: string }> {
+  try {
+    // C2: If userId provided, check for cohort-specific active version first
+    if (userId) {
+      const cohort = await getUserCohort(userId);
+      if (cohort) {
+        const cohortVersion = await prisma.promptVersion.findFirst({
+          where: { isActive: true, trafficPct: { gt: 0 }, cohort } as any,
+          orderBy: { trafficPct: 'desc' },
+        });
+        if (cohortVersion) {
+          return { prompt: cohortVersion.promptText, version: cohortVersion.version };
+        }
+      }
+    }
+
     const activeVersions = await prisma.promptVersion.findMany({
-      where: { isActive: true, trafficPct: { gt: 0 } },
+      where: { isActive: true, trafficPct: { gt: 0 }, cohort: null },
       orderBy: { trafficPct: 'desc' },
     });
 
@@ -737,6 +908,16 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
       log.push(`  [${rule.category}] ${rule.rule} (confidence: ${(rule.confidence * 100).toFixed(0)}%)`);
     }
 
+    // A4: Aggregate comparison votes → DiscoveredRules
+    await discoverComparisonRules().catch(err => log.push(`  comparison rules error: ${err}`));
+    log.push('Comparison vote rules aggregated');
+
+    // B1: Mine follow-up questions for prompt gaps
+    const followUpGaps = await mineFollowUpGaps().catch(() => [] as string[]);
+    if (followUpGaps.length > 0) {
+      log.push(`Follow-up mining: ${followUpGaps.length} prompt gaps discovered`);
+    }
+
     // Publish high-confidence discovered rules to Intelligence Bus
     for (const rule of discoveredRules.filter(r => r.confidence >= 0.7)) {
       publishToIntelligenceBus('recursive-improvement', 'discovered_knowledge', {
@@ -747,9 +928,13 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
       }).catch(() => {});
     }
 
-    // Step 3: Diagnose weaknesses
+    // Step 3: Diagnose weaknesses (inject follow-up gaps as explicit weaknesses)
     log.push('\n--- STEP 3: DIAGNOSE ---');
     const weaknesses = await diagnoseWeaknesses();
+    // Inject follow-up mining results as additional prompt weaknesses (B1)
+    if (followUpGaps.length > 0) {
+      weaknesses.weaknesses.push(...followUpGaps.map(g => `[Follow-up mining] ${g}`));
+    }
     log.push(`Weaknesses: ${weaknesses.weaknesses.length}`);
     log.push(`Low-performing occasions: ${weaknesses.lowPerformingOccasions.join(', ') || 'none'}`);
     log.push(`Calibration issues: ${weaknesses.calibrationIssues.length}`);
@@ -854,6 +1039,162 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
 }
 
 // ─── Quality-drop trigger ───────────────────────────────────────────────────
+
+/**
+ * C1+C2: StyleDNA Cohort Clustering — run a simplified improvement cycle per cohort.
+ * Finds top 8 archetype cohorts by user count, runs improvement for each with 20+ users.
+ * Creates cohort-tagged PromptVersion candidates for A/B testing.
+ * Runs monthly (~10K tokens/run).
+ */
+export async function runCohortImprovementCycle(): Promise<void> {
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('[CohortImprovement] Gemini not configured — skipping');
+    return;
+  }
+
+  console.log('[CohortImprovement] Starting cohort improvement cycle...');
+
+  // Step 1: Find top cohorts by user count (group by top 2 archetypes)
+  const styleDNARecords = await prisma.styleDNA.findMany({
+    orderBy: { createdAt: 'desc' },
+    select: { userId: true, styleArchetypes: true },
+    take: 2000,
+  });
+
+  // Deduplicate by userId (keep most recent)
+  const latestByUser = new Map<string, string[]>();
+  for (const r of styleDNARecords) {
+    if (!latestByUser.has(r.userId)) {
+      latestByUser.set(r.userId, r.styleArchetypes.slice(0, 2));
+    }
+  }
+
+  // Build cohort counts
+  const cohortCounts = new Map<string, number>();
+  for (const [, archetypes] of latestByUser) {
+    if (archetypes.length === 0) continue;
+    const cohortKey = archetypes.map(a => a.toLowerCase()).sort().join('-');
+    cohortCounts.set(cohortKey, (cohortCounts.get(cohortKey) || 0) + 1);
+  }
+
+  // Top 8 cohorts with 20+ users
+  const topCohorts = [...cohortCounts.entries()]
+    .filter(([, count]) => count >= 20)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([cohort]) => cohort);
+
+  if (topCohorts.length === 0) {
+    console.log('[CohortImprovement] No cohorts with 20+ users — skipping');
+    return;
+  }
+
+  console.log(`[CohortImprovement] Processing ${topCohorts.length} cohorts: ${topCohorts.join(', ')}`);
+
+  // Get global active prompt as base
+  const globalPrompt = await getActivePrompt();
+
+  const genAI_local = new (await import('@google/generative-ai').then(m => m.GoogleGenerativeAI))(
+    process.env.GEMINI_API_KEY
+  );
+
+  for (const cohortKey of topCohorts) {
+    try {
+      // Check if we already have a recent cohort version (within 14 days)
+      const recentCohortVersion = await prisma.promptVersion.findFirst({
+        where: {
+          cohort: cohortKey,
+          createdAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+        },
+      });
+      if (recentCohortVersion) {
+        console.log(`[CohortImprovement] Cohort ${cohortKey}: recent version exists — skipping`);
+        continue;
+      }
+
+      // Get cohort-specific performance data
+      const cohortUserIds = [...latestByUser.entries()]
+        .filter(([, archetypes]) => archetypes.map(a => a.toLowerCase()).sort().join('-') === cohortKey)
+        .map(([userId]) => userId);
+
+      const cohortChecks = await prisma.outfitCheck.findMany({
+        where: {
+          userId: { in: cohortUserIds },
+          isDeleted: false,
+          aiScore: { not: null },
+          feedbackRating: { not: null },
+        },
+        select: { aiScore: true, feedbackRating: true, occasions: true },
+        take: 100,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (cohortChecks.length < 10) {
+        console.log(`[CohortImprovement] Cohort ${cohortKey}: insufficient data (${cohortChecks.length}) — skipping`);
+        continue;
+      }
+
+      const avgRating = cohortChecks.reduce((s, c) => s + (c.feedbackRating || 0), 0) / cohortChecks.length;
+      const commonOccasions = cohortChecks
+        .flatMap(c => c.occasions)
+        .reduce((acc, o) => { acc.set(o, (acc.get(o) || 0) + 1); return acc; }, new Map<string, number>());
+      const topOccasions = [...commonOccasions.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([o]) => o);
+      const archetypeLabel = cohortKey.split('-').map(a => a[0].toUpperCase() + a.slice(1)).join('+');
+
+      const prompt = `You are improving an AI outfit analysis system's prompt for a specific user cohort.
+
+Cohort: ${archetypeLabel} users (${cohortUserIds.length} users)
+Their most common occasions: ${topOccasions.join(', ')}
+Their avg satisfaction rating: ${avgRating.toFixed(2)}/5
+Sample size: ${cohortChecks.length} outfit checks
+
+Current global prompt (first 800 chars):
+${globalPrompt.prompt.slice(0, 800)}
+
+Generate a cohort-specific variant of the analysis instructions that:
+1. Acknowledges the ${archetypeLabel} aesthetic sensibility
+2. Applies occasion-specific advice relevant to ${topOccasions.slice(0, 2).join(' and ')}
+3. Keeps the same JSON output format
+4. Is only a 2-3 paragraph ADDITION to prepend to the existing prompt (not a full replacement)
+
+Return the addition text only, no JSON wrapper, max 400 words.`;
+
+      const model = genAI_local.getGenerativeModel({
+        model: 'gemini-2.5-flash-lite',
+        generationConfig: { temperature: 0.5, maxOutputTokens: 512 },
+      });
+      const result = await model.generateContent(prompt);
+      const cohortAddition = result.response.text().trim();
+
+      if (!cohortAddition || cohortAddition.length < 50) continue;
+
+      const cohortPromptText = `COHORT CONTEXT (${archetypeLabel} aesthetic):\n${cohortAddition}\n\n${globalPrompt.prompt}`;
+      const cohortVersionId = `${globalPrompt.version}-cohort-${cohortKey}-${Date.now()}`;
+
+      await prisma.promptVersion.create({
+        data: {
+          version: cohortVersionId,
+          parentVersion: globalPrompt.version,
+          cohort: cohortKey,
+          promptText: cohortPromptText,
+          source: 'auto-optimize',
+          trafficPct: 100, // Active for this cohort (only shown to matching users)
+          isActive: true,
+          isCandidate: false,
+        } as any,
+      });
+
+      console.log(`[CohortImprovement] Created cohort variant for ${cohortKey} (${cohortUserIds.length} users)`);
+
+      // Small delay to avoid rate limiting
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (err) {
+      console.error(`[CohortImprovement] Failed for cohort ${cohortKey}:`, err);
+    }
+  }
+
+  console.log('[CohortImprovement] Cohort improvement cycle complete');
+}
 
 /**
  * Check if quality has dropped enough to trigger an improvement cycle.

@@ -23,6 +23,16 @@ import ImageCropPreview from '../src/components/ImageCropPreview';
 
 const toBase64 = async (uri: string): Promise<string> => {
   if (uri.startsWith('data:')) return uri; // already a data URI
+  // Remote URLs (R2 / CDN) cannot be read directly — download to cache first
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    const tmp = `${FileSystem.cacheDirectory}cmp_${Date.now()}.jpg`;
+    await FileSystem.downloadAsync(uri, tmp);
+    const b64 = await FileSystem.readAsStringAsync(tmp, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    FileSystem.deleteAsync(tmp, { idempotent: true }).catch(() => {});
+    return `data:image/jpeg;base64,${b64}`;
+  }
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
   });

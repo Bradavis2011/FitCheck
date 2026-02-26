@@ -19,6 +19,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '../utils/prisma.js';
 import { publishToIntelligenceBus, readFromIntelligenceBus } from './intelligence-bus.service.js';
 import { measureNudgeMetrics, promoteNudgeWinners } from './nudge.service.js';
+import { measureFollowUpMetrics } from './event-followup.service.js';
+import { measureMilestoneMetrics } from './milestone-message.service.js';
+import { publishBrandGuardMetrics } from './brand-guard.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -289,6 +292,8 @@ async function runOpsLearningCritique(
   socialMetrics: SocialMetrics[],
   conversionMetrics: ConversionMetrics[],
   nudgePayload: Record<string, unknown>,
+  followUpPayload: Record<string, unknown>,
+  milestonePayload: Record<string, unknown>,
 ): Promise<string> {
   if (!process.env.GEMINI_API_KEY) return 'Gemini not configured';
 
@@ -306,7 +311,7 @@ async function runOpsLearningCritique(
     .sort((a, b) => a[1].rate - b[1].rate)[0]?.[0];
 
   const prompt = `You are an ops learning agent for "Or This?", an AI outfit feedback app.
-Review the following performance metrics across 4 systems and identify the single biggest improvement opportunity.
+Review the following performance metrics across 6 systems and identify the single biggest improvement opportunity.
 
 EMAIL METRICS (last 14 days):
 ${worstEmail
@@ -326,9 +331,19 @@ ${worstSocial
 CONVERSION SIGNAL RECALIBRATION:
 ${conversionMetrics.map(m => `${m.signalType}: ${(m.conversionRate * 100).toFixed(1)}% conversion rate, strength ${m.currentStrength.toFixed(2)} → ${m.newStrength.toFixed(2)}`).join('\n')}
 
+EVENT FOLLOW-UP METRICS (last 30 days):
+${followUpPayload.worstOccasion
+  ? `Worst occasion: ${followUpPayload.worstOccasion} — response rate ${((followUpPayload.worstResponseRate as number || 0) * 100).toFixed(1)}%`
+  : 'Insufficient data'}
+
+MILESTONE MESSAGE METRICS (last 30 days):
+${milestonePayload.worstMilestone
+  ? `Worst milestone: ${milestonePayload.worstMilestone} — conversion rate ${((milestonePayload.worstConversionRate as number || 0) * 100).toFixed(1)}%`
+  : 'Insufficient data'}
+
 Return JSON only (no markdown):
 {
-  "weakestDomain": "email" | "nudge" | "social" | "conversion",
+  "weakestDomain": "email" | "nudge" | "social" | "conversion" | "followup" | "milestone",
   "criticalIssue": "one sentence describing the biggest problem",
   "recommendation": "one specific, actionable improvement",
   "urgency": "low" | "medium" | "high"
@@ -607,14 +622,30 @@ export async function runOpsLearning(): Promise<void> {
   // Measure nudges (also publishes to bus)
   await measureNudgeMetrics().catch(err => console.error('[OpsLearning] Nudge metrics failed:', err));
 
-  // Read nudge metrics back from bus
+  // B2: Event follow-up response learning
+  await measureFollowUpMetrics().catch(err => console.error('[OpsLearning] Follow-up metrics failed:', err));
+
+  // B3: Milestone effectiveness
+  await measureMilestoneMetrics().catch(err => console.error('[OpsLearning] Milestone metrics failed:', err));
+
+  // B5: Brand guard calibration — monthly only (skip if not first run of the month)
+  const isFirstRunOfMonth = new Date().getDate() <= 7; // Approximate: Sunday 7am only fires ~once/month
+  if (isFirstRunOfMonth) {
+    await publishBrandGuardMetrics().catch(err => console.error('[OpsLearning] Brand guard metrics failed:', err));
+  }
+
+  // Read metrics back from bus
   const nudgeEntry = await readFromIntelligenceBus('ops-learning', 'nudge_metrics', { limit: 1 });
   const nudgePayload = nudgeEntry[0]?.payload || {};
+  const followUpEntry = await readFromIntelligenceBus('ops-learning', 'followup_metrics', { limit: 1 });
+  const followUpPayload = followUpEntry[0]?.payload || {};
+  const milestoneEntry = await readFromIntelligenceBus('ops-learning', 'milestone_metrics', { limit: 1 });
+  const milestonePayload = milestoneEntry[0]?.payload || {};
 
   // Phase 2: Batched Gemini critique (~5K tokens)
   let critiqueResult = '{}';
   if (process.env.GEMINI_API_KEY) {
-    critiqueResult = await runOpsLearningCritique(emailMetrics, socialMetrics, conversionMetrics, nudgePayload);
+    critiqueResult = await runOpsLearningCritique(emailMetrics, socialMetrics, conversionMetrics, nudgePayload, followUpPayload, milestonePayload);
 
     await publishToIntelligenceBus('ops-learning', 'ops_critique', {
       critique: critiqueResult,

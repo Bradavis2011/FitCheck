@@ -3,7 +3,7 @@ import { sendDailyDigest, sendWeeklyDigest } from './email-report.service.js';
 import { resetWeeklyPoints, resetMonthlyPoints } from './gamification.service.js';
 import { prisma } from '../utils/prisma.js';
 import { Resend } from 'resend';
-import { runEngagementNudger, measureNudgeMetrics } from './nudge.service.js';
+import { runEngagementNudger, measureNudgeMetrics, computePreferredNudgeHours, runPersonalizedNudge } from './nudge.service.js';
 import { runOpsLearning, pollTwitterEngagement } from './ops-learning.service.js';
 import { runContentCalendar } from './content-calendar.service.js';
 import { runGrowthDashboard } from './growth-dashboard.service.js';
@@ -25,7 +25,7 @@ import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.service.js';
 import { runMilestoneScanner } from './milestone-message.service.js';
 import { runStyleNarrativeAgent } from './style-narrative.service.js';
-import { checkAndTriggerImprovement } from './recursive-improvement.service.js';
+import { checkAndTriggerImprovement, runCohortImprovementCycle } from './recursive-improvement.service.js';
 // ── Self-Improving StyleDNA Engine ────────────────────────────────────────────
 import { resetDailyBudget, hasLearningBudget } from './token-budget.service.js';
 import { purgeExpiredBusEntries } from './intelligence-bus.service.js';
@@ -449,6 +449,22 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
   }, { timezone: 'UTC' });
 
+  // ── A1: Compute preferred nudge hours — Daily 4:30am UTC (before Surgeon at 5am) ──
+  if (isNudgeEnabled()) {
+    cron.schedule('30 4 * * *', async () => {
+      try { await computePreferredNudgeHours(); }
+      catch (err) { console.error('[Scheduler] computePreferredNudgeHours failed:', err); }
+    }, { timezone: 'UTC' });
+
+    // A1: Personalized nudge — every hour, sends to users whose preferred hour matches now
+    cron.schedule('0 * * * *', async () => {
+      try {
+        const hour = new Date().getUTCHours();
+        await runPersonalizedNudge(hour);
+      } catch (err) { console.error('[Scheduler] runPersonalizedNudge failed:', err); }
+    }, { timezone: 'UTC' });
+  }
+
   // ── Ops Learning Loop — Daily Measurers (6am UTC, DB only, $0) ──────────────
   cron.schedule('0 6 * * *', async () => {
     console.log('📊 [Scheduler] Running ops learning measurers...');
@@ -503,6 +519,13 @@ export function initializeScheduler(): void {
     console.log('🧠 [Scheduler] Running recursive self-improvement check...');
     try { await checkAndTriggerImprovement(); }
     catch (err) { console.error('[Scheduler] Recursive self-improvement failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── C1+C2: StyleDNA Cohort Improvement — Monthly (Wed 6am UTC, days 1-7) ──
+  cron.schedule('0 6 1-7 * 3', async () => {
+    console.log('🎯 [Scheduler] Running StyleDNA cohort improvement cycle...');
+    try { await runCohortImprovementCycle(); }
+    catch (err) { console.error('[Scheduler] Cohort improvement cycle failed:', err); }
   }, { timezone: 'UTC' });
 
   // ── Self-Improving StyleDNA Engine ───────────────────────────────────────────
@@ -593,5 +616,5 @@ export function initializeScheduler(): void {
     console.log('⏭️  [Scheduler] ENABLE_LEARNING_SYSTEM=false — skipping learning system crons');
   }
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops)');
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System)');
 }

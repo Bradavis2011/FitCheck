@@ -26,7 +26,12 @@ export type BusEntryType =
   | 'social_metrics'
   | 'conversion_metrics'
   | 'ops_critique'
-  | 'ops_improvement';
+  | 'ops_improvement'
+  // RSI Learning System entry types
+  | 'followup_metrics'
+  | 'milestone_metrics'
+  | 'brand_guard_metrics'
+  | 'followup_gaps';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

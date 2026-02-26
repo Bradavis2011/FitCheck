@@ -170,6 +170,7 @@ const AnalyzeComparisonSchema = z.object({
   imageBData: z.string().min(1),
   question: z.string().max(150).optional(),
   occasions: z.array(z.string()).optional(),
+  postId: z.string().optional(), // B4: link verdict to a saved post for calibration tracking
 });
 
 /**
@@ -177,6 +178,7 @@ const AnalyzeComparisonSchema = z.object({
  * Available to all authenticated users (no tier gate)
  */
 export async function analyzeComparison(req: AuthenticatedRequest, res: Response) {
+  const userId = req.userId!;
   const data = AnalyzeComparisonSchema.parse(req.body);
 
   const occasionText = data.occasions?.length ? data.occasions.join(', ') : 'general wear';
@@ -219,6 +221,14 @@ Replace "A" in the winner field with either "A" or "B".`;
     analysis = JSON.parse(jsonText);
   } catch {
     throw new AppError(500, 'AI analysis returned an unexpected format. Please try again.');
+  }
+
+  // B4: Store AI verdict on the linked post for calibration tracking
+  if (data.postId) {
+    await prisma.comparisonPost.updateMany({
+      where: { id: data.postId, userId },
+      data: { aiVerdict: analysis.winner } as any,
+    }).catch(() => {}); // Non-fatal — verdict tracking must not break the response
   }
 
   res.json(analysis);

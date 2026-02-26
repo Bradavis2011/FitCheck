@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { TabActions } from '@react-navigation/core';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../../src/constants/theme';
+import { getHeroCopy } from '../../src/constants/archetypeHero';
 import OutfitCard from '../../src/components/OutfitCard';
 import OutfitFeedCard from '../../src/components/OutfitFeedCard';
 import OrThisLogo from '../../src/components/OrThisLogo';
@@ -34,6 +35,9 @@ export default function HomeScreen() {
   const { data: referralStats } = useReferralStats();
   const { data: userProfile } = useUser();
   const [refreshing, setRefreshing] = useState(false);
+
+  // A7: archetype-personalized hero copy
+  const heroContent = getHeroCopy((userProfile as any)?.topArchetype);
 
   const outfits = outfitsData?.outfits || [];
   const communityOutfits = (communityData?.outfits || []).map((outfit) => ({
@@ -120,8 +124,8 @@ export default function HomeScreen() {
 
         {/* Editorial prompt area */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroPrompt}>What are you{'\n'}wearing today?</Text>
-          <Text style={styles.heroSub}>No sugarcoating. Honest AI feedback.</Text>
+          <Text style={styles.heroPrompt}>{heroContent.prompt}</Text>
+          <Text style={styles.heroSub}>{heroContent.sub}</Text>
 
           {/* Primary CTA — sharp corners, coral, uppercase */}
           <TouchableOpacity

@@ -20,7 +20,7 @@ import LoadingOverlay from '../src/components/LoadingOverlay';
 import PillButton from '../src/components/PillButton';
 import { uploadImage } from '../src/services/image-upload.service';
 import { outfitService, ShareWith } from '../src/services/api.service';
-import { useUserStats, useOutfitMemory } from '../src/hooks/useApi';
+import { useUserStats, useOutfitMemory, useContextPreferences } from '../src/hooks/useApi';
 
 // Occasions that get a follow-up the next morning
 const EVENT_OCCASIONS = ['Date Night', 'Interview', 'Event'];
@@ -57,6 +57,16 @@ export default function ContextScreen() {
   const [customDateText, setCustomDateText] = useState('');
 
   const hasEventOccasion = selectedOccasions.some((o) => EVENT_OCCASIONS.includes(o));
+
+  // A6: Load user's most common occasions + vibes and pre-select on first render
+  const { data: contextPrefs } = useContextPreferences();
+  const [prefsApplied, setPrefsApplied] = useState(false);
+  useEffect(() => {
+    if (prefsApplied || !contextPrefs || selectedOccasions.length > 0) return;
+    for (const occasion of contextPrefs.topOccasions) toggleOccasion(occasion);
+    for (const vibe of contextPrefs.topVibes) toggleVibe(vibe);
+    setPrefsApplied(true);
+  }, [contextPrefs, prefsApplied, selectedOccasions.length]);
 
   // Outfit memory — fetch best past outfit for selected occasions
   const { data: memoryData } = useOutfitMemory(selectedOccasions);

@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { prisma } from '../utils/prisma.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -84,5 +86,57 @@ Respond with JSON only, no markdown fences:
     // Brand guard must never crash agents — default to approved
     console.error('[BrandGuard] Gemini check failed, defaulting to approved:', err);
     return { approved: true, issues: [] };
+  }
+}
+
+/**
+ * B5: Publish per-agent brand guard approval rates to Intelligence Bus.
+ * Runs monthly in the ops learning cycle (~1K tokens/month when patterns warrant improvement).
+ * Over-flagging (>95% approval) = brand guard is too strict.
+ * Under-flagging (<50% approval) = brand guard needs tightening.
+ */
+export async function publishBrandGuardMetrics(): Promise<void> {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const actions = await prisma.agentAction.findMany({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      select: { agent: true, status: true },
+    });
+
+    if (actions.length === 0) return;
+
+    const byAgent = new Map<string, { total: number; approved: number; rejected: number }>();
+    for (const a of actions) {
+      if (!byAgent.has(a.agent)) byAgent.set(a.agent, { total: 0, approved: 0, rejected: 0 });
+      const m = byAgent.get(a.agent)!;
+      m.total++;
+      if (a.status === 'auto_approved' || a.status === 'approved') m.approved++;
+      if (a.status === 'rejected') m.rejected++;
+    }
+
+    const metrics: Array<{ agent: string; total: number; approvalRate: number; rejectionRate: number }> = [];
+    for (const [agent, m] of byAgent) {
+      if (m.total < 5) continue;
+      metrics.push({
+        agent,
+        total: m.total,
+        approvalRate: m.total > 0 ? m.approved / m.total : 0,
+        rejectionRate: m.total > 0 ? m.rejected / m.total : 0,
+      });
+    }
+
+    if (metrics.length === 0) return;
+
+    await publishToIntelligenceBus('brand-guard', 'brand_guard_metrics', {
+      measuredAt: new Date().toISOString(),
+      metrics,
+      overFlagging: metrics.filter(m => m.approvalRate > 0.95).map(m => m.agent),
+      underFlagging: metrics.filter(m => m.rejectionRate > 0.5).map(m => m.agent),
+    });
+
+    console.log(`[BrandGuard] Published metrics for ${metrics.length} agents`);
+  } catch (err) {
+    console.error('[BrandGuard] Failed to publish metrics:', err);
   }
 }

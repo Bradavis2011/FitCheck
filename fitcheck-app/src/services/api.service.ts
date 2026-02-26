@@ -287,6 +287,11 @@ export const userService = {
     const response = await api.delete<{ success: boolean }>('/api/user/account');
     return response.data;
   },
+
+  async getContextPreferences(): Promise<{ topOccasions: string[]; topVibes: string[] }> {
+    const response = await api.get<{ topOccasions: string[]; topVibes: string[] }>('/api/user/context-preferences');
+    return response.data;
+  },
 };
 
 // Social/Community Service

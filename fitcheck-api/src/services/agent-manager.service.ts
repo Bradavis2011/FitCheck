@@ -363,6 +363,11 @@ const ALL_AGENT_NAMES = [
   // Ops Learning Loops
   'ops-learning',
   'nudge',
+  // RSI Learning System (B2-B5)
+  'followup-learning',
+  'milestone-learning',
+  'comparison-learning',
+  'brand-guard-calibration',
   // Self-Improving StyleDNA Engine
   'piggyback-judge',
   'critic-agent',

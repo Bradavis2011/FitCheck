@@ -1072,8 +1072,8 @@ export async function analyzeOutfit(
   const maxRetries = 3;
   const aiStartTime = Date.now();
 
-  // Recursive self-improvement: select prompt version (A/B tested)
-  const activePrompt = await getActivePrompt();
+  // Recursive self-improvement: select prompt version (A/B tested, C2: cohort-specific if available)
+  const activePrompt = await getActivePrompt(user?.id);
   const activePromptVersion = activePrompt.version;
 
   // Sectional prompt assembly — overlay assembled sections if available

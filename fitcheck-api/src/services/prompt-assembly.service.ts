@@ -93,7 +93,11 @@ export async function assemblePrompt(
       .join('|');
 
     // Concatenate sections
-    const text = orderedSections.map(s => s.content).join('\n\n');
+    let text = orderedSections.map(s => s.content).join('\n\n');
+
+    // A5: Append per-occasion calibration corrections if community data supports them
+    const biasCorrections = await getCategoryBiasCorrections();
+    if (biasCorrections) text += biasCorrections;
 
     return { text, versionFingerprint: fingerprint, fromDB: true, sectionVersions };
   } catch (err) {
@@ -313,4 +317,57 @@ export async function getLatestLearningMemory(): Promise<string> {
     orderBy: { createdAt: 'desc' },
   });
   return latest?.compiledText || '';
+}
+
+// ─── Community Bias Corrections (A5) ──────────────────────────────────────────
+
+/**
+ * Compute per-occasion AI vs community score deltas.
+ * Where community consistently rates an occasion higher/lower than AI by >= 0.5 points,
+ * inject a correction directive into the prompt so the AI self-corrects its scoring bias.
+ */
+async function getCategoryBiasCorrections(): Promise<string> {
+  try {
+    const data = await prisma.outfitCheck.findMany({
+      where: {
+        aiScore: { not: null },
+        communityAvgScore: { not: null },
+        communityScoreCount: { gte: 3 },
+        isDeleted: false,
+      },
+      select: { occasions: true, aiScore: true, communityAvgScore: true },
+      take: 1000,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const byOccasion = new Map<string, { ai: number[]; community: number[] }>();
+    for (const d of data) {
+      if (!d.aiScore || !d.communityAvgScore) continue;
+      for (const occasion of d.occasions) {
+        if (!byOccasion.has(occasion)) byOccasion.set(occasion, { ai: [], community: [] });
+        const od = byOccasion.get(occasion)!;
+        od.ai.push(d.aiScore);
+        od.community.push(d.communityAvgScore);
+      }
+    }
+
+    const corrections: string[] = [];
+    for (const [occasion, od] of byOccasion) {
+      if (od.ai.length < 10) continue; // Need enough data for reliable signal
+      const avgAi = od.ai.reduce((s, v) => s + v, 0) / od.ai.length;
+      const avgCommunity = od.community.reduce((s, v) => s + v, 0) / od.community.length;
+      const delta = avgCommunity - avgAi; // positive = community rates higher than AI
+      if (Math.abs(delta) >= 0.5) {
+        const dir = delta > 0 ? 'higher' : 'lower';
+        corrections.push(
+          `The community rates "${occasion}" outfits ${Math.abs(delta).toFixed(1)} points ${dir} than AI baseline — adjust your scoring accordingly.`
+        );
+      }
+    }
+
+    if (corrections.length === 0) return '';
+    return `\n\nCALIBRATION CORRECTIONS (platform-validated scoring adjustments):\n${corrections.map(c => `- ${c}`).join('\n')}`;
+  } catch {
+    return '';
+  }
 }

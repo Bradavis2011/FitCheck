@@ -17,6 +17,7 @@ export const queryKeys = {
   notifications: (unreadOnly?: boolean) => ['notifications', unreadOnly],
   subscriptionStatus: ['subscription', 'status'],
   comparisonFeed: (params?: any) => ['comparisons', 'feed', params],
+  contextPreferences: ['user', 'context-preferences'],
 };
 
 // User hooks
@@ -24,6 +25,14 @@ export function useUser() {
   return useQuery({
     queryKey: queryKeys.user,
     queryFn: () => userService.getProfile(),
+  });
+}
+
+export function useContextPreferences() {
+  return useQuery({
+    queryKey: queryKeys.contextPreferences,
+    queryFn: () => userService.getContextPreferences(),
+    staleTime: 10 * 60 * 1000, // 10 minutes — preferences don't change often
   });
 }
 

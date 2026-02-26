@@ -54,7 +54,15 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
       throw new AppError(404, 'User not found');
     }
 
-    res.json(user);
+    // A7: include top StyleDNA archetype for home screen personalization
+    const styleDNA = await prisma.styleDNA.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { styleArchetypes: true },
+    }).catch(() => null);
+    const topArchetype: string | null = styleDNA?.styleArchetypes?.[0] ?? null;
+
+    res.json({ ...user, topArchetype });
   } catch (error) {
     throw error;
   }
@@ -409,6 +417,48 @@ export async function getBadges(req: AuthenticatedRequest, res: Response) {
   } catch (error) {
     throw error;
   }
+}
+
+/**
+ * A6: Smart context defaults — returns user's most frequent occasions and vibes
+ * so the context screen can pre-select them on the next outfit check.
+ */
+export async function getContextPreferences(req: AuthenticatedRequest, res: Response) {
+  const userId = req.userId!;
+
+  const checks = await prisma.outfitCheck.findMany({
+    where: { userId, isDeleted: false },
+    select: { occasions: true, vibe: true },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  // Count occasion frequency
+  const occasionCount = new Map<string, number>();
+  for (const c of checks) {
+    for (const o of c.occasions) {
+      occasionCount.set(o, (occasionCount.get(o) || 0) + 1);
+    }
+  }
+  const topOccasions = [...occasionCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([o]) => o);
+
+  // Count vibe frequency (stored as comma-separated string)
+  const vibeCount = new Map<string, number>();
+  for (const c of checks) {
+    if (!c.vibe) continue;
+    for (const v of c.vibe.split(',').map(s => s.trim()).filter(Boolean)) {
+      vibeCount.set(v, (vibeCount.get(v) || 0) + 1);
+    }
+  }
+  const topVibes = [...vibeCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([v]) => v);
+
+  res.json({ topOccasions, topVibes });
 }
 
 export async function clearHistory(req: AuthenticatedRequest, res: Response) {

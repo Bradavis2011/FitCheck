@@ -42,6 +42,9 @@ model User {
   dailyChecksUsed   Int      @default(0) @map("daily_checks_used")
   dailyChecksResetAt DateTime @default(now()) @map("daily_checks_reset_at") @db.Date
 
+  // Nudge personalization
+  preferredNudgeHour Int?    @map("preferred_nudge_hour") // UTC hour with most outfit check activity (0-23)
+
   // Referral system
   referralCode      String?  @unique @map("referral_code")
   referredById      String?  @map("referred_by_id")
@@ -400,6 +403,9 @@ model ComparisonPost {
   // Cached vote counts
   votesA     Int      @default(0) @map("votes_a")
   votesB     Int      @default(0) @map("votes_b")
+
+  // AI verdict (from analyzeComparison — stored for learning loop calibration)
+  aiVerdict  String?  @map("ai_verdict") // "A" or "B"
 
   isDeleted  Boolean  @default(false) @map("is_deleted")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -887,6 +893,7 @@ model PromptVersion {
   id                String    @id @default(uuid())
   version           String    @unique
   parentVersion     String?   @map("parent_version")
+  cohort            String?   @map("cohort") // C1: null = global, e.g. "minimalist-classic"
   promptText        String    @db.Text @map("prompt_text")
   source            String    @default("manual") // "manual", "auto-optimize"
   trafficPct        Int       @default(0) @map("traffic_pct")
@@ -904,6 +911,7 @@ model PromptVersion {
   @@map("prompt_versions")
   @@index([isActive, trafficPct])
   @@index([parentVersion])
+  @@index([cohort])
 }
 
 model ImprovementCycle {

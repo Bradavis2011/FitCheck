@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 export const EVENT_OCCASIONS = ['Date Night', 'Interview', 'Event'];
 
@@ -197,6 +198,56 @@ export async function recordFollowUpResponse(
   if (result.count === 0) {
     throw new AppError(404, 'Follow-up not found or unauthorized');
   }
+}
+
+/**
+ * B2: Measure event follow-up response rates per occasion.
+ * Publishes metrics to Intelligence Bus for ops-learning weekly critique.
+ */
+export async function measureFollowUpMetrics(): Promise<void> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const followUps = await prisma.eventFollowUp.findMany({
+    where: { followUpAt: { gte: thirtyDaysAgo } },
+    select: { occasion: true, status: true, response: true },
+  });
+
+  if (followUps.length === 0) return;
+
+  const byOccasion = new Map<string, { sent: number; responded: number; expired: number; positive: number }>();
+  for (const fu of followUps) {
+    if (!byOccasion.has(fu.occasion)) {
+      byOccasion.set(fu.occasion, { sent: 0, responded: 0, expired: 0, positive: 0 });
+    }
+    const m = byOccasion.get(fu.occasion)!;
+    m.sent++;
+    if (fu.status === 'completed' && fu.response) {
+      m.responded++;
+      if (fu.response === 'crushed_it' || fu.response === 'felt_good') m.positive++;
+    }
+    if (fu.status === 'expired') m.expired++;
+  }
+
+  const metrics = [...byOccasion.entries()].map(([occasion, m]) => ({
+    occasion,
+    sent: m.sent,
+    responseRate: m.sent > 0 ? m.responded / m.sent : 0,
+    positiveRate: m.responded > 0 ? m.positive / m.responded : 0,
+    silenceRate: m.sent > 0 ? m.expired / m.sent : 0,
+  }));
+
+  const worstOccasion = metrics
+    .filter(m => m.sent >= 5)
+    .sort((a, b) => a.responseRate - b.responseRate)[0] || null;
+
+  await publishToIntelligenceBus('ops-learning', 'followup_metrics', {
+    measuredAt: new Date().toISOString(),
+    metrics,
+    worstOccasion: worstOccasion?.occasion || null,
+    worstResponseRate: worstOccasion?.responseRate || null,
+  });
+
+  console.log(`[EventFollowUp] Metrics published: ${followUps.length} follow-ups, ${metrics.length} occasions`);
 }
 
 function buildFollowUpEmail(

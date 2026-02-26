@@ -187,6 +187,145 @@ export async function promoteNudgeWinners(): Promise<void> {
   }
 }
 
+// ─── Preferred Nudge Hour Computation (A1) ────────────────────────────────────
+
+/**
+ * Batch-compute preferred nudge hour for all active users.
+ * "Preferred" = the UTC hour with the most outfit check activity.
+ * Only computed for users with 5+ checks. Runs daily at 5am UTC.
+ */
+export async function computePreferredNudgeHours(): Promise<void> {
+  // Find users with 5+ outfit checks
+  const activeUsers = await prisma.outfitCheck.groupBy({
+    by: ['userId'],
+    where: { isDeleted: false, aiProcessedAt: { not: null } },
+    _count: { id: true },
+    having: { id: { _count: { gte: 5 } } },
+  });
+
+  let updated = 0;
+
+  for (const { userId } of activeUsers) {
+    const checks = await prisma.outfitCheck.findMany({
+      where: { userId, isDeleted: false, aiProcessedAt: { not: null } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50, // use recent 50 for the histogram
+    });
+
+    if (checks.length < 5) continue;
+
+    // Build hour histogram (UTC)
+    const hourCounts = new Array(24).fill(0) as number[];
+    for (const { createdAt } of checks) {
+      hourCounts[createdAt.getUTCHours()]++;
+    }
+
+    // Find modal hour
+    const modalHour = hourCounts.indexOf(Math.max(...hourCounts));
+
+    // Skip default nudge hours (14=2pm, 22=10pm) to avoid duplication
+    if (modalHour === 14 || modalHour === 22) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { preferredNudgeHour: null } as any,
+      }).catch(() => {});
+      continue;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { preferredNudgeHour: modalHour } as any,
+    }).catch(() => {});
+
+    updated++;
+  }
+
+  console.log(`[NudgeService] computePreferredNudgeHours: updated ${updated} users`);
+}
+
+/**
+ * Run personalized nudge for users whose preferred hour matches currentUTCHour.
+ * Called hourly. Handles segments 1 (new no-outfit) and 2 (inactive 3d) only.
+ * Streak-risk remains at 10pm; churning-paid remains at 2pm (default runs).
+ */
+export async function runPersonalizedNudge(currentUTCHour: number): Promise<void> {
+  // Skip default hours — those are handled by runEngagementNudger
+  if (currentUTCHour === 14 || currentUTCHour === 22) return;
+
+  const now = new Date();
+  const hoursAgo24 = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const hoursAgo48 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+  const hoursAgo72 = new Date(now.getTime() - 72 * 60 * 60 * 1000);
+
+  // Segment 1: New users with no outfit (24-48h after signup) — personalized hour
+  try {
+    const newUsersWithoutOutfit = await prisma.user.findMany({
+      where: {
+        createdAt: { gte: hoursAgo48, lt: hoursAgo24 },
+        preferredNudgeHour: currentUTCHour,
+        outfitChecks: { none: {} },
+      } as any,
+      select: { id: true },
+    });
+
+    const msg = await getNudgeMessage(
+      'new_no_outfit',
+      'Ready for your first outfit check? 👗',
+      "Get personalized style feedback from our AI stylist. It only takes 30 seconds!"
+    );
+
+    for (const { id } of newUsersWithoutOutfit) {
+      await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'new_no_outfit', personalized: true });
+    }
+  } catch (err) {
+    console.error('[PersonalizedNudge] Segment 1 failed:', err);
+  }
+
+  // Segment 2: Users inactive for 3 days — personalized hour
+  try {
+    const activeBeforeWindow = await prisma.outfitCheck.findMany({
+      where: { isDeleted: false, createdAt: { lt: hoursAgo72 } },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+
+    const potentialIds = activeBeforeWindow.map(u => u.userId);
+
+    // Filter to only users with this preferred hour
+    const personalizedUsers = await prisma.user.findMany({
+      where: { id: { in: potentialIds }, preferredNudgeHour: currentUTCHour } as any,
+      select: { id: true },
+    });
+    const personalizedIds = personalizedUsers.map(u => u.id);
+
+    const recentlyActive = await prisma.outfitCheck.findMany({
+      where: {
+        userId: { in: personalizedIds },
+        isDeleted: false,
+        createdAt: { gte: hoursAgo72 },
+      },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+
+    const recentIds = new Set(recentlyActive.map(u => u.userId));
+    const inactiveIds = personalizedIds.filter(id => !recentIds.has(id));
+
+    const msg = await getNudgeMessage(
+      'inactive_3d',
+      'Your style is evolving! ✨',
+      "It's been a few days. Share your current look and get AI feedback."
+    );
+
+    for (const userId of inactiveIds) {
+      await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'inactive_3d', personalized: true });
+    }
+  } catch (err) {
+    console.error('[PersonalizedNudge] Segment 2 failed:', err);
+  }
+}
+
 // ─── Engagement Nudger (main run) ─────────────────────────────────────────────
 
 export async function runEngagementNudger(isEveningRun: boolean): Promise<void> {
@@ -203,12 +342,14 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
   if (!isEveningRun) {
     // ── Segment 1: New users with no outfit check (24-48h after signup) ──
+    // Skip users with a custom preferredNudgeHour — they get personalized timing
     try {
       const newUsersWithoutOutfit = await prisma.user.findMany({
         where: {
           createdAt: { gte: hoursAgo48, lt: hoursAgo24 },
+          preferredNudgeHour: null, // personalized users handled by hourly cron
           outfitChecks: { none: {} },
-        },
+        } as any,
         select: { id: true },
       });
 
@@ -228,6 +369,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
     }
 
     // ── Segment 2: Users inactive for 3 days ──
+    // Skip users with preferredNudgeHour — handled by personalized hourly cron
     try {
       const activeBeforeWindow = await prisma.outfitCheck.findMany({
         where: { isDeleted: false, createdAt: { lt: hoursAgo72 } },
@@ -237,9 +379,16 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       const potentialIds = activeBeforeWindow.map(u => u.userId);
 
+      // Filter out users with a custom preferred nudge hour
+      const defaultUsers = await prisma.user.findMany({
+        where: { id: { in: potentialIds }, preferredNudgeHour: null } as any,
+        select: { id: true },
+      });
+      const defaultIds = new Set(defaultUsers.map(u => u.id));
+
       const recentlyActive = await prisma.outfitCheck.findMany({
         where: {
-          userId: { in: potentialIds },
+          userId: { in: [...defaultIds] },
           isDeleted: false,
           createdAt: { gte: hoursAgo72 },
         },
@@ -248,7 +397,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
       });
 
       const recentIds = new Set(recentlyActive.map(u => u.userId));
-      const inactiveIds = potentialIds.filter(id => !recentIds.has(id));
+      const inactiveIds = [...defaultIds].filter(id => !recentIds.has(id));
 
       const msg = await getNudgeMessage(
         'inactive_3d',

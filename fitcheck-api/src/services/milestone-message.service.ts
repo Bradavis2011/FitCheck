@@ -1,6 +1,7 @@
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
 import { canSendRelationshipNotification } from './event-followup.service.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 export interface MilestoneContext {
   outfitCount?: number;
@@ -126,6 +127,60 @@ export async function runMilestoneScanner(): Promise<void> {
   } catch (err) {
     console.error('[Milestones] score_improvement scan failed:', err);
   }
+}
+
+/**
+ * B3: Measure milestone message effectiveness.
+ * For each milestone type, compute the % of users who submitted an outfit check within 24h.
+ * Publishes to Intelligence Bus for ops-learning weekly critique.
+ */
+export async function measureMilestoneMetrics(): Promise<void> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const milestones = await prisma.milestoneMessage.findMany({
+    where: { createdAt: { gte: thirtyDaysAgo } },
+    select: { userId: true, milestoneKey: true, createdAt: true },
+  });
+
+  if (milestones.length === 0) return;
+
+  const byKey = new Map<string, { total: number; converted: number }>();
+
+  for (const m of milestones) {
+    if (!byKey.has(m.milestoneKey)) byKey.set(m.milestoneKey, { total: 0, converted: 0 });
+    const stats = byKey.get(m.milestoneKey)!;
+    stats.total++;
+
+    // Check for outfit check within 24h after milestone notification
+    const twentyFourHoursAfter = new Date(m.createdAt.getTime() + 24 * 60 * 60 * 1000);
+    const check = await prisma.outfitCheck.findFirst({
+      where: {
+        userId: m.userId,
+        isDeleted: false,
+        createdAt: { gte: m.createdAt, lte: twentyFourHoursAfter },
+      },
+    });
+    if (check) stats.converted++;
+  }
+
+  const metrics = [...byKey.entries()].map(([milestoneKey, m]) => ({
+    milestoneKey,
+    total: m.total,
+    conversionRate: m.total > 0 ? m.converted / m.total : 0,
+  }));
+
+  const worstMilestone = metrics
+    .filter(m => m.total >= 3)
+    .sort((a, b) => a.conversionRate - b.conversionRate)[0] || null;
+
+  await publishToIntelligenceBus('ops-learning', 'milestone_metrics', {
+    measuredAt: new Date().toISOString(),
+    metrics,
+    worstMilestone: worstMilestone?.milestoneKey || null,
+    worstConversionRate: worstMilestone?.conversionRate || null,
+  });
+
+  console.log(`[Milestones] Metrics published: ${milestones.length} milestone events across ${metrics.length} types`);
 }
 
 async function fireIfNew(
