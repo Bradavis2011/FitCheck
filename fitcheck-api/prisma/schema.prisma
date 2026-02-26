@@ -858,3 +858,61 @@ model WaitlistEntry {
   @@map("waitlist_entries")
   @@index([createdAt])
 }
+
+// ─── Recursive AI Self-Improvement Models ─────────────────────────────────────
+
+model DiscoveredRule {
+  id             String   @id @default(uuid())
+  category       String   // "color", "proportion", "occasion_matching", etc.
+  rule           String   @db.Text
+  confidence     Float
+  sampleSize     Int      @map("sample_size")
+  evidence       Json?
+  incorporated   Boolean  @default(false)
+  incorporatedIn String?  @map("incorporated_in")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("discovered_rules")
+  @@index([category])
+  @@index([incorporated])
+}
+
+model PromptVersion {
+  id                String    @id @default(uuid())
+  version           String    @unique
+  parentVersion     String?   @map("parent_version")
+  promptText        String    @db.Text @map("prompt_text")
+  source            String    @default("manual") // "manual", "auto-optimize"
+  trafficPct        Int       @default(0) @map("traffic_pct")
+  isActive          Boolean   @default(true) @map("is_active")
+  isCandidate       Boolean   @default(false) @map("is_candidate")
+  sampleSize        Int       @default(0) @map("sample_size")
+  avgUserRating     Float?    @map("avg_user_rating")
+  avgCommunityDelta Float?    @map("avg_community_delta")
+  promotedAt        DateTime? @map("promoted_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@map("prompt_versions")
+  @@index([isActive, trafficPct])
+  @@index([parentVersion])
+}
+
+model ImprovementCycle {
+  id                 String    @id @default(uuid())
+  trigger            String    // "scheduled", "manual", "quality-drop"
+  status             String    @default("running") // "running", "completed", "failed"
+  log                String?   @db.Text
+  triggerMetrics     Json?     @map("trigger_metrics")
+  weaknessesFound    Json?     @map("weaknesses_found")
+  knowledgeExtracted Json?     @map("knowledge_extracted")
+  sourceVersion      String?   @map("source_version")
+  candidateVersion   String?   @map("candidate_version")
+  startedAt          DateTime  @default(now()) @map("started_at")
+  completedAt        DateTime? @map("completed_at")
+
+  @@map("improvement_cycles")
+  @@index([status, startedAt])
+}
+
+// ─── End Recursive AI Self-Improvement Models ──────────────────────────────────

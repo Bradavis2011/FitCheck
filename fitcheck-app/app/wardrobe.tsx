@@ -32,6 +32,7 @@ const CATEGORIES: { id: Category; label: string }[] = [
 
 const WARDROBE_CATEGORIES: WardrobeCategory[] = ['tops', 'bottoms', 'shoes', 'accessories', 'outerwear'];
 
+
 function formatLastWorn(lastWorn: string | null): string {
   if (!lastWorn) return 'Never worn';
   const diff = Date.now() - new Date(lastWorn).getTime();
@@ -212,11 +213,12 @@ export default function WardrobeScreen() {
                   activeOpacity={0.85}
                 >
                   {item.imageUrl ? (
-                    <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+                    <Image source={{ uri: item.imageUrl }} style={styles.itemImage} resizeMode="cover" />
                   ) : (
                     <View style={styles.itemPlaceholder}>
+                      <View style={styles.placeholderRule} />
                       <Text style={styles.placeholderCategory}>
-                        {item.category.slice(0, 3).toUpperCase()}
+                        {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                       </Text>
                     </View>
                   )}
@@ -441,12 +443,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
+  },
+  placeholderRule: {
+    width: 16,
+    height: 1,
+    backgroundColor: Colors.primary,
   },
   placeholderCategory: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 11,
-    letterSpacing: 2,
+    fontFamily: Fonts.serifItalic,
+    fontSize: 13,
     color: Colors.textMuted,
+    letterSpacing: 0.2,
   },
   itemInfo: {
     padding: 10,
