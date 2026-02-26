@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius, getScoreColor, Fonts } from '../constants/theme';
 
@@ -23,12 +22,7 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
         {/* Header — editorial logo */}
         <View style={styles.header}>
           <Text style={styles.logo}>
@@ -90,7 +84,7 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
             <Text style={styles.username}>shared by @{username}</Text>
           )}
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -105,6 +99,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.lg,
     justifyContent: 'space-between',
+    backgroundColor: Colors.primary,
   },
   // Header
   header: {

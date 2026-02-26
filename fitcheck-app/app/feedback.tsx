@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderRadius: 4,
+    borderRadius: 0,
     gap: Spacing.sm,
   },
   retryBannerText: {
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
   helpfulButton: {
     width: 48,
     height: 48,
-    borderRadius: 4,
+    borderRadius: 0,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -938,7 +938,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 4,
+    borderRadius: 0,
   },
   shareRow: {
     flexDirection: 'row',
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 4,
+    borderRadius: 0,
   },
   inviteSectionLabel: {
     fontFamily: Fonts.sansMedium,

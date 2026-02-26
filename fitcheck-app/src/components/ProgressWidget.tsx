@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
 import { useUserStats } from '../hooks/useApi';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProgressWidget() {
   const router = useRouter();
@@ -37,12 +36,7 @@ export default function ProgressWidget() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.secondary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -77,7 +71,7 @@ export default function ProgressWidget() {
           <Text style={styles.ctaText}>Give Feedback to Earn Bonus Check</Text>
           <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       {/* Daily Goals Preview */}
       <View style={styles.goalsPreview}>
@@ -100,14 +94,10 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
   },
   gradient: {
     padding: Spacing.lg,
+    backgroundColor: Colors.primary,
   },
   header: {
     flexDirection: 'row',

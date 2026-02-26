@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   headline: {
-    fontFamily: 'PlayfairDisplay_400Regular',
+    fontFamily: Fonts.serif,
     fontSize: 36,
     color: Colors.text,
     lineHeight: 44,

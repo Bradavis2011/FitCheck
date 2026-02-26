@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   lookbookImage: {
     width: 140,
     height: 200,
-    borderRadius: 4,
+    borderRadius: BorderRadius.md,
   },
   photoCredit: {
     fontFamily: Fonts.sans,

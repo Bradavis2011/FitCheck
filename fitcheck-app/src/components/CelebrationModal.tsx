@@ -8,7 +8,6 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
@@ -138,12 +137,9 @@ export default function CelebrationModal({
               },
             ]}
           >
-            <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
-              style={styles.iconGradient}
-            >
+            <View style={styles.iconGradient}>
               <Ionicons name="arrow-up-circle" size={64} color={Colors.white} />
-            </LinearGradient>
+            </View>
           </Animated.View>
 
           <Text style={styles.title}>Level Up!</Text>
@@ -250,14 +246,9 @@ export default function CelebrationModal({
               onPress={onDismiss}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={[Colors.primary, Colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.dismissGradient}
-              >
+              <View style={styles.dismissGradient}>
                 <Text style={styles.dismissText}>Awesome!</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -290,11 +281,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
   },
   iconContainer: {
     marginBottom: Spacing.lg,
@@ -303,13 +289,9 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
   },
   badgeIconContainer: {
     width: 120,
@@ -411,12 +393,13 @@ const styles = StyleSheet.create({
   },
   dismissButton: {
     width: '100%',
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     overflow: 'hidden',
   },
   dismissGradient: {
     paddingVertical: Spacing.md,
     alignItems: 'center',
+    backgroundColor: Colors.primary,
   },
   dismissText: {
     fontSize: FontSize.lg,

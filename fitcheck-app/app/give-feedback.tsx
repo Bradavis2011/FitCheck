@@ -636,17 +636,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: 16,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderRadius: 0,
   },
   submitButtonDisabled: {
     backgroundColor: Colors.surfaceLight,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   submitButtonText: {
     fontSize: FontSize.md,

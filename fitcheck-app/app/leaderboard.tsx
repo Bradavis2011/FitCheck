@@ -352,11 +352,6 @@ const styles = StyleSheet.create({
   },
   leaderboardItemTopThree: {
     borderWidth: 2,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   rankSection: {
     width: 50,
