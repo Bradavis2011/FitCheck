@@ -486,6 +486,211 @@ export const FEW_SHOT_EXAMPLES: FewShotExample[] = [
       ],
     },
   },
+
+  // EXAMPLE 12: Gym/Athleisure - Style-Aligned Feedback (suggestions stay in the athletic lane)
+  {
+    id: 'athleisure-gym-session',
+    occasion: 'gym workout',
+    context: {
+      occasion: 'gym session',
+      weather: 'indoor',
+      setting: 'fitness center',
+      vibe: 'motivated, put-together',
+    },
+    outfit: {
+      description: 'Black compression leggings, oversized gray cotton tee, neon green running shoes, Apple Watch, hair in ponytail',
+      items: ['compression leggings', 'oversized cotton tee', 'running shoes', 'sports watch'],
+    },
+    exemplaryFeedback: {
+      overallScore: 6.5,
+      criteriaScores: {
+        fit: 6,
+        color: 6,
+        occasion: 8,
+        cohesion: 6,
+        confidence: 7,
+      },
+      summary: 'Functional and gym-ready—a few athletic-specific upgrades would take this from default to dialed-in.',
+      whatsWorking: [
+        'The compression leggings are a solid base—functional and flattering for movement',
+        'Black-and-gray is a neutral athletic palette that works as a starting point',
+      ],
+      consider: [
+        'The oversized cotton tee is absorbing sweat instead of wicking it—a performance fabric tee or tank would function and look better',
+        'The neon shoes fight the neutral palette—a monochrome or tonal shoe would create a cleaner read',
+      ],
+      quickFixes: [
+        'Swap the cotton tee for a fitted or cropped performance top to show the legging waistband and create proportional contrast',
+        'Match the shoe to the outfit palette (black, gray, or white) for a more coordinated athletic look',
+        'Add a matching sports bra visible at the neckline for a layered athletic set look',
+        'A lightweight zip-up or hoodie tied at the waist adds a style layer to basic gym wear',
+      ],
+    },
+  },
+
+  // EXAMPLE 13: Grunge - Style-Aligned Feedback (suggestions stay in the grunge lane)
+  {
+    id: 'grunge-casual-day',
+    occasion: 'casual day out',
+    context: {
+      occasion: 'record store and coffee',
+      weather: 'overcast, cool',
+      setting: 'urban',
+      vibe: 'effortless, laid-back',
+    },
+    outfit: {
+      description: 'Oversized red flannel, black band tee underneath, ripped light-wash jeans, beat-up Converse, beanie',
+      items: ['flannel shirt', 'band tee', 'ripped jeans', 'Converse', 'beanie'],
+    },
+    exemplaryFeedback: {
+      overallScore: 7.0,
+      criteriaScores: {
+        fit: 7,
+        color: 7,
+        occasion: 8,
+        cohesion: 7,
+        confidence: 6,
+      },
+      summary: 'The grunge DNA is solid—flannel over band tee is a classic formula that reads authentic here.',
+      whatsWorking: [
+        'Flannel over band tee is the grunge uniform done correctly—the layering reads intentional, not lazy',
+        'The light-wash ripped jeans add contrast to the darker top half and break up the visual weight',
+      ],
+      consider: [
+        'The Converse are reading worn-out rather than worn-in—there is a line between lived-in and needs-replacing',
+        'Everything is slightly oversized with no contrast—one fitted element (cuffed jeans, tucked tee) would add intentionality',
+      ],
+      quickFixes: [
+        'Cuff the jeans to just above the ankle to show the shoe and add a proportional break',
+        'Upgrade to Doc Martens or clean Converse—same energy, sharper execution',
+        'Layer a chain necklace over the band tee for the one detail that signals effort',
+        'Push up the flannel sleeves to 3/4 length—it reads more considered than fully buttoned-down sleeves',
+      ],
+    },
+  },
+
+  // EXAMPLE 14: Clean Girl - Style-Aligned Feedback (suggestions stay in the clean-girl lane)
+  {
+    id: 'clean-girl-everyday',
+    occasion: 'everyday errands',
+    context: {
+      occasion: 'coffee run and errands',
+      weather: 'mild',
+      setting: 'city',
+      vibe: 'effortless, polished',
+    },
+    outfit: {
+      description: 'White ribbed tank top, high-waisted beige wide-leg trousers, white Air Force 1s, gold hoop earrings, slicked-back bun',
+      items: ['ribbed tank', 'wide-leg trousers', 'Air Force 1s', 'gold hoops'],
+    },
+    exemplaryFeedback: {
+      overallScore: 8.0,
+      criteriaScores: {
+        fit: 8,
+        color: 8,
+        occasion: 8,
+        cohesion: 9,
+        confidence: 7,
+      },
+      summary: 'This is clean-girl executed with precision—the neutral palette and gold accents read polished without trying.',
+      whatsWorking: [
+        'The white-and-beige palette is tonal perfection—it reads effortless and expensive even if the pieces are affordable',
+        'Gold hoops are the signature clean-girl accessory and they anchor the whole look',
+        'Wide-leg trouser with a fitted tank creates the right proportional contrast—volume on bottom, streamlined on top',
+      ],
+      consider: [
+        'The AF1s are slightly bulky for the wide-leg trouser silhouette—a slimmer white sneaker or flat would create a cleaner line at the ankle',
+      ],
+      quickFixes: [
+        'Add a structured mini crossbody in tan or cream to continue the tonal story',
+        'Layer a thin gold chain necklace with the hoops to complete the jewelry triangle',
+        'A pair of minimal sunglasses (thin metal frames) elevates this from everyday to editorial',
+        'Swap to white leather mules or ballet flats for a slightly more polished version of the same energy',
+      ],
+    },
+  },
+
+  // EXAMPLE 15: Gorpcore/Outdoor - Style-Aligned Feedback (suggestions stay in the outdoor lane)
+  {
+    id: 'gorpcore-weekend-hike',
+    occasion: 'weekend hike',
+    context: {
+      occasion: 'day hike with friends',
+      weather: 'cool morning, warming up',
+      setting: 'trail and post-hike brunch',
+      vibe: 'outdoorsy, practical',
+    },
+    outfit: {
+      description: 'Olive fleece half-zip, black hiking pants, Salomon trail runners, beige baseball cap, small backpack',
+      items: ['fleece half-zip', 'hiking pants', 'trail runners', 'baseball cap', 'backpack'],
+    },
+    exemplaryFeedback: {
+      overallScore: 7.5,
+      criteriaScores: {
+        fit: 7,
+        color: 8,
+        occasion: 9,
+        cohesion: 8,
+        confidence: 7,
+      },
+      summary: 'The gorpcore palette is dialed—olive and black with a technical runner reads trail-ready and intentional.',
+      whatsWorking: [
+        'Olive fleece over black creates a grounded earth-tone palette that reads correctly for the trail and post-hike',
+        'Salomon trail runners signal function and fashion simultaneously—the shoe choice is doing heavy lifting',
+        'The beige cap breaks up the dark tones and adds a warm accent at the top of the frame',
+      ],
+      consider: [
+        'The hiking pants are reading more generic than technical—a tapered or articulated-knee pant would sharpen the silhouette',
+      ],
+      quickFixes: [
+        'Layer a lightweight shell or vest for the cool morning that can be tied around the waist later',
+        'Swap the basic backpack for one with technical details (compression straps, water bottle pocket) to commit to the gorpcore story',
+        'Add a Nalgene or Hydroflask in a coordinating color—it is genuinely an accessory in this aesthetic',
+        'A pair of sunglasses on a cord or retainer adds the final outdoor-culture detail',
+      ],
+    },
+  },
+
+  // EXAMPLE 16: Dark Academia - Style-Aligned Feedback (suggestions stay in the academic lane)
+  {
+    id: 'dark-academia-campus',
+    occasion: 'campus day',
+    context: {
+      occasion: 'classes and library',
+      weather: 'cool autumn day',
+      setting: 'university campus',
+      vibe: 'intellectual, put-together',
+    },
+    outfit: {
+      description: 'Brown tweed blazer, cream turtleneck, dark plaid trousers, brown oxford shoes, leather messenger bag',
+      items: ['tweed blazer', 'turtleneck', 'plaid trousers', 'oxford shoes', 'leather messenger bag'],
+    },
+    exemplaryFeedback: {
+      overallScore: 8.5,
+      criteriaScores: {
+        fit: 8,
+        color: 9,
+        occasion: 9,
+        cohesion: 9,
+        confidence: 8,
+      },
+      summary: 'This is dark academia committed and executed—the tweed-and-plaid layering reads like a mood board come to life.',
+      whatsWorking: [
+        'The brown-cream-plaid tonal palette is rich and autumnal—every piece lives in the same warm color family',
+        'Tweed blazer over a turtleneck is the dark academia signature move, and the textures work in conversation',
+        'The leather messenger bag completes the scholarly narrative—it is both functional and aesthetic',
+      ],
+      consider: [
+        'The plaid trousers and tweed blazer are both patterned—the outfit is one pattern away from reading costume rather than curated',
+      ],
+      quickFixes: [
+        'Add a simple gold or antique-finish ring for the one accessory detail that signals intentionality',
+        'A vintage-style watch or leather-strap timepiece fits the aesthetic perfectly',
+        'Carry a hardcover book—unironically, it completes the silhouette in this lane',
+        'In warmer weather, swap the turtleneck for a cream button-down with the collar visible above the blazer',
+      ],
+    },
+  },
 ];
 
 // Export examples by category for easy retrieval
@@ -496,6 +701,8 @@ export const EXAMPLES_BY_OCCASION = {
   work: FEW_SHOT_EXAMPLES.filter(ex => ex.occasion.includes('work') || ex.occasion.includes('business')),
   wedding: FEW_SHOT_EXAMPLES.filter(ex => ex.occasion.includes('wedding')),
   cocktail: FEW_SHOT_EXAMPLES.filter(ex => ex.occasion.includes('cocktail')),
+  gym: FEW_SHOT_EXAMPLES.filter(ex => ex.occasion.includes('gym') || ex.occasion.includes('workout')),
+  outdoor: FEW_SHOT_EXAMPLES.filter(ex => ex.occasion.includes('hike') || ex.occasion.includes('outdoor')),
 };
 
 export const EXAMPLES_BY_SCORE_RANGE = {
@@ -510,5 +717,10 @@ export const EXAMPLES_BY_STYLE_LANE = {
   edgy: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('edgy') || ex.id.includes('concert')),
   bohemian: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('boho') || ex.id.includes('farmers')),
   classic: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('business') || ex.id.includes('interview')),
-  casual: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('casual') || ex.id.includes('weekend') || ex.id.includes('athleisure')),
+  casual: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('casual') || ex.id.includes('weekend')),
+  athletic: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('athleisure') || ex.id.includes('gym')),
+  grunge: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('grunge')),
+  cleanGirl: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('clean-girl')),
+  gorpcore: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('gorpcore') || ex.id.includes('hike')),
+  darkAcademia: FEW_SHOT_EXAMPLES.filter(ex => ex.id.includes('dark-academia') || ex.id.includes('campus')),
 };
