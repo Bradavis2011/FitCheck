@@ -53,6 +53,8 @@ export default function WardrobeScreen() {
   const [addCategory, setAddCategory] = useState<WardrobeCategory>('tops');
   const [addColor, setAddColor] = useState('');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
+  const [showOutfitsModal, setShowOutfitsModal] = useState(false);
 
   const apiCategory = selectedCategory === 'all' ? undefined : selectedCategory;
   const { data, isLoading, isError } = useWardrobeItems(apiCategory ? { category: apiCategory } : undefined);
@@ -111,19 +113,17 @@ export default function WardrobeScreen() {
     });
   }
 
+  function dismissOutfitsModal() {
+    setShowOutfitsModal(false);
+    setSelectedItemId(null);
+    setSelectedItem(null);
+  }
+
   function handleItemPress(item: WardrobeItem) {
     if (item.source === 'ai-detected') {
       setSelectedItemId(item.id);
-      const outfitCount = item._count?.outfitLinks ?? item.timesWorn;
-      Alert.alert(
-        item.name,
-        `${item.category}${item.color ? `  ·  ${item.color}` : ''}\nSeen in ${outfitCount} outfit${outfitCount !== 1 ? 's' : ''}\n${formatLastWorn(item.lastWorn)}\n\nAI-detected`,
-        [
-          { text: 'Log Wear', onPress: () => handleLogWear(item) },
-          { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
-          { text: 'Close', style: 'cancel', onPress: () => setSelectedItemId(null) },
-        ]
-      );
+      setSelectedItem(item);
+      setShowOutfitsModal(true);
     } else {
       Alert.alert(
         item.name,
@@ -222,11 +222,7 @@ export default function WardrobeScreen() {
                       </Text>
                     </View>
                   )}
-                  {item.source === 'ai-detected' && (
-                    <View style={styles.aiBadge}>
-                      <Text style={styles.aiBadgeText}>AI</Text>
-                    </View>
-                  )}
+
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName} numberOfLines={1}>
                       {item.name}
@@ -246,6 +242,101 @@ export default function WardrobeScreen() {
         )}
         <View style={{ height: 48 }} />
       </ScrollView>
+
+      {/* Outfit Sources Modal (AI-detected items) */}
+      <Modal
+        visible={showOutfitsModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={dismissOutfitsModal}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={dismissOutfitsModal}>
+              <Ionicons name="close" size={22} color={Colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle} numberOfLines={1}>{selectedItem?.name ?? ''}</Text>
+            <View style={{ width: 22 }} />
+          </View>
+          <View style={styles.modalRule} />
+
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* Item meta */}
+            <Text style={styles.fieldLabel}>
+              {selectedItem?.category?.toUpperCase()}
+              {selectedItem?.color ? `  ·  ${selectedItem.color.toUpperCase()}` : ''}
+              {'  ·  ' + formatLastWorn(selectedItem?.lastWorn ?? null).toUpperCase()}
+            </Text>
+
+            {/* Outfit links */}
+            <Text style={[styles.fieldLabel, { marginTop: Spacing.lg }]}>
+              SEEN IN {(selectedItem?._count?.outfitLinks ?? 0)} OUTFIT{(selectedItem?._count?.outfitLinks ?? 0) !== 1 ? 'S' : ''}
+            </Text>
+
+            {!itemOutfitsData ? (
+              <ActivityIndicator color={Colors.primary} style={{ marginTop: 24 }} />
+            ) : itemOutfitsData.outfits.length === 0 ? (
+              <Text style={styles.emptySubtext}>No linked outfits found.</Text>
+            ) : (
+              itemOutfitsData.outfits.map((outfit) => (
+                <TouchableOpacity
+                  key={outfit.id}
+                  style={styles.outfitRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    dismissOutfitsModal();
+                    router.push(`/feedback?outfitId=${outfit.id}` as any);
+                  }}
+                >
+                  <View style={styles.outfitThumb}>
+                    {outfit.thumbnailUrl || outfit.thumbnailData ? (
+                      <Image
+                        source={{ uri: outfit.thumbnailUrl ?? `data:image/jpeg;base64,${outfit.thumbnailData}` }}
+                        style={styles.outfitThumbImg}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.outfitThumbPlaceholder} />
+                    )}
+                  </View>
+                  <View style={styles.outfitRowInfo}>
+                    <Text style={styles.outfitRowDate}>
+                      {new Date(outfit.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                    {outfit.occasions?.length > 0 && (
+                      <Text style={styles.outfitRowOccasion} numberOfLines={1}>
+                        {outfit.occasions.join(' · ')}
+                      </Text>
+                    )}
+                  </View>
+                  {outfit.aiScore !== null && (
+                    <Text style={styles.outfitRowScore}>{outfit.aiScore.toFixed(1)}</Text>
+                  )}
+                  <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+                </TouchableOpacity>
+              ))
+            )}
+
+            {/* Actions */}
+            <View style={[styles.modalRule, { marginTop: Spacing.lg }]} />
+            <View style={styles.itemActions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => { if (selectedItem) handleLogWear(selectedItem); dismissOutfitsModal(); }}
+              >
+                <Text style={styles.actionButtonText}>LOG WEAR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonDestructive]}
+                onPress={() => { if (selectedItem) handleDelete(selectedItem); dismissOutfitsModal(); }}
+              >
+                <Text style={[styles.actionButtonText, { color: Colors.error }]}>REMOVE</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 32 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       {/* Add Item Modal */}
       <Modal
@@ -417,22 +508,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     position: 'relative',
   },
-  aiBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.sharp,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    zIndex: 1,
-  },
-  aiBadgeText: {
-    fontFamily: Fonts.sansBold,
-    color: Colors.white,
-    fontSize: 9,
-    letterSpacing: 0.8,
-  },
   itemImage: {
     width: '100%',
     aspectRatio: 1,
@@ -516,6 +591,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.8,
     color: Colors.white,
+  },
+
+  // Outfit rows (inside outfits modal)
+  outfitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  outfitThumb: {
+    width: 52,
+    height: 52,
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  outfitThumbImg: {
+    width: 52,
+    height: 52,
+  },
+  outfitThumbPlaceholder: {
+    width: 52,
+    height: 52,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  outfitRowInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  outfitRowDate: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  outfitRowOccasion: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  outfitRowScore: {
+    fontFamily: Fonts.serif,
+    fontSize: 20,
+    color: Colors.text,
+    marginRight: 2,
+  },
+  itemActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: BorderRadius.sharp,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  actionButtonDestructive: {
+    borderColor: Colors.error,
+  },
+  actionButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: Colors.text,
   },
 
   // Modal

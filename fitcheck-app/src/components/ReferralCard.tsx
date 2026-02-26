@@ -70,19 +70,19 @@ export default function ReferralCard() {
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{referralCount}</Text>
-          <Text style={styles.statLabel}>Invited</Text>
+          <Text style={styles.statLabel}>{'Total\nInvited'}</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={[styles.statItem, { paddingLeft: 8 }]}>
+        <View style={styles.statItem}>
           <Text style={[styles.statNumber, bonusChecks > 0 && styles.statNumberActive]}>
             +{bonusChecks}
           </Text>
-          <Text style={styles.statLabel}>Bonus Checks</Text>
+          <Text style={styles.statLabel}>{'Bonus\nChecks'}</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={[styles.statItem, { paddingLeft: 8 }]}>
+        <View style={styles.statItem}>
           <Text style={styles.statNumber}>{maxBonus - bonusChecks}</Text>
-          <Text style={styles.statLabel}>Still Available</Text>
+          <Text style={styles.statLabel}>{'Still\nAvailable'}</Text>
         </View>
       </View>
 
@@ -152,6 +152,7 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   statNumber: {
     fontFamily: Fonts.sansBold,
