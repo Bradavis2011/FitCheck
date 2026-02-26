@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 import { useWardrobeProgress } from '../hooks/useApi';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -24,12 +24,10 @@ export default function WardrobeProgressCard() {
   if (!isUnlocked) {
     return (
       <View style={styles.card}>
-        <View style={styles.lockedHeader}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="lock-closed" size={18} color={Colors.primary} />
-          </View>
-          <Text style={styles.title}>Your Closet is Building</Text>
-        </View>
+        <Text style={styles.sectionLabel}>The Closet</Text>
+        <View style={styles.rule} />
+
+        <Text style={styles.title}>Your Closet is Building</Text>
 
         {wardrobeItemCount > 0 && (
           <Text style={styles.teaser}>{wardrobeItemCount} item{wardrobeItemCount !== 1 ? 's' : ''} detected so far</Text>
@@ -54,15 +52,13 @@ export default function WardrobeProgressCard() {
       activeOpacity={0.8}
     >
       <View style={styles.unlockedHeader}>
-        <View style={[styles.iconWrap, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
-          <Ionicons name="shirt" size={18} color="#10B981" />
-        </View>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Your Closet</Text>
+        <Text style={styles.sectionLabel}>The Closet</Text>
+        <View style={styles.itemCountRow}>
           <Text style={styles.itemCount}>{wardrobeItemCount} items</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
         </View>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </View>
+      <View style={styles.rule} />
 
       {categoryEntries.length > 0 && (
         <View style={styles.chips}>
@@ -80,74 +76,73 @@ export default function WardrobeProgressCard() {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderColor: 'rgba(0,0,0,0.06)',
   },
-  lockedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: Colors.primary,
+    marginBottom: Spacing.md,
   },
   unlockedHeader: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  itemCountRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  headerText: {
-    flex: 1,
-  },
-  iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.primaryAlpha10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.text,
+    gap: 2,
+    marginTop: 1,
   },
   itemCount: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },
+  title: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    marginBottom: 6,
+  },
   teaser: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.xs,
     color: Colors.primary,
-    fontWeight: '500',
     marginBottom: Spacing.sm,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 3,
+    height: 2,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     overflow: 'hidden',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 3,
   },
   progressLabel: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     marginBottom: 4,
   },
   subtitle: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },
@@ -157,12 +152,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
   },
   chipText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.text,
   },

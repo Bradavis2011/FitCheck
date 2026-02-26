@@ -1,16 +1,16 @@
 # Monetization Product Requirements Document
-## FitCheck: Revenue Strategy & Implementation Plan
+## Or This?: Revenue Strategy & Implementation Plan
 
-**Version:** 1.0  
-**Date:** February 13, 2026  
-**Author:** Brandon [Last Name]  
+**Version:** 1.1
+**Date:** February 25, 2026
+**Author:** Brandon Davis
 **Status:** Strategic Planning
 
 ---
 
 ## Executive Summary
 
-This document outlines FitCheck's monetization strategy across six revenue streams, with phased implementation over 24 months. The strategy prioritizes user trust and product-market fit before aggressive monetization, with projected revenue reaching $500K-2M MRR by month 24.
+This document outlines Or This?'s monetization strategy across six revenue streams, with phased implementation over 24 months. The strategy prioritizes user trust and product-market fit before aggressive monetization, with projected revenue reaching $500K-2M MRR by month 24.
 
 ### Revenue Streams Overview
 
@@ -20,8 +20,10 @@ This document outlines FitCheck's monetization strategy across six revenue strea
 | Expert Marketplace | Phase 2 (Month 8) | 25% |
 | Affiliate Commerce | Phase 1 (Month 3) | 15% |
 | Sponsored Recommendations | Phase 2 (Month 9) | 15% |
-| Data & Insights | Phase 3 (Month 18) | 5% |
-| Enterprise/B2B | Phase 3 (Month 20) | 5% |
+| Data & Insights | Phase 3 (Month 18) | 10-15% |
+| Enterprise/B2B | Phase 3 (Month 20) | 10% |
+
+> **Note:** At scale (Year 3+), B2B data licensing and enterprise represent the highest-margin, fastest-growing revenue streams — projected to exceed 25% of total revenue.
 
 ### Key Principles
 
@@ -848,7 +850,11 @@ More blazer options:
 
 ---
 
-## Part 5: Data & Insights (B2B)
+## Part 5: Data & Insights (B2B) — The Platform Play
+
+Or This? generates structured fashion intelligence with every outfit check — StyleDNA attributes, color harmonies, occasion patterns, garment frequencies, score distributions, and trend signals. This is the world's only real-time, bottom-up consumer fashion dataset. At scale, it becomes more valuable than any survey-based trend report because it captures what people actually wear, not what they say they wear.
+
+Comparables: WGSN (~$100M+ ARR), Edited, Trendalytics, Heuritech — all sell fashion intelligence to the industry. Or This? will have a fundamentally better data source: real outfit decisions from real consumers in real time.
 
 ### 5.1 Data Products
 
@@ -905,6 +911,10 @@ More blazer options:
 |-------|---------------|---------|
 | 18 | 3 trend reports | $75K |
 | 24 | 6 reports + 2 custom | $250K |
+| 30 | 8 reports + 4 custom + 2 API clients | $750K |
+| 36 | Quarterly reports + API + custom research | $2-5M ARR |
+
+By Month 36, data licensing is projected to be the highest-margin revenue stream (80%+ gross margin vs. ~70% for subscriptions), driven by the compounding value of the StyleDNA dataset as it grows in depth and coverage.
 
 ---
 
@@ -917,7 +927,7 @@ More blazer options:
 **Audience:** Fashion retailers, e-commerce platforms
 
 **How It Works:**
-1. Retailer integrates FitCheck SDK
+1. Retailer integrates Or This? SDK
 2. Their customers upload outfit photos
 3. AI feedback references retailer's inventory
 4. Shopping links go to retailer's products
@@ -1170,7 +1180,7 @@ More blazer options:
 1. **The Opportunity**
    - Women make 80% of fashion purchase decisions
    - $890B in returns = "doesn't look right" problem
-   - FitCheck reaches women at moment of decision
+   - Or This? reaches women at moment of decision
 
 2. **Our Audience**
    - Demographics: Women 25-45, household income $75K+

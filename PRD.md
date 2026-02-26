@@ -41,6 +41,16 @@ A full-stack mobile application with:
 
 Unlike AI styling apps that focus on wardrobe management and shopping recommendations, Or This? solves the **moment-of-decision problem**: "I'm dressed and about to leave — does this actually look good?" It's the only app combining instant AI feedback with community validation, live streaming, and professional stylist access in one product.
 
+### Strategic Positioning
+
+Or This? is a consumer app built on a fashion intelligence platform. The consumer app is the data collection engine — every outfit check generates structured, queryable fashion intelligence (StyleDNA) that no competitor can replicate without the same user base. At scale, this dataset becomes the premier real-time source of what real people actually wear to real occasions, scored by AI and validated by community consensus.
+
+This positions Or This? at the intersection of two markets:
+- **Consumer**: Online personal styling services ($5.5B → $15B by 2032)
+- **B2B**: Fashion data, analytics, and trend intelligence — serving brands, retailers, and trend forecasters
+
+The consumer app drives engagement and subscription revenue. The data layer drives the moat, the B2B revenue expansion, and the defensibility that makes this a venture-scale business.
+
 ---
 
 ## Problem Statement
@@ -295,8 +305,13 @@ This section describes the actual, implemented product as of February 17, 2026.
 
 1. **Expert Reviews (a la carte)** — Pro tier includes 5/month; additional reviews purchasable independently
 2. **Affiliate/Shopping Integration** — AI suggests specific items with affiliate links (future)
-3. **Brand Partnerships** — sponsored styling tips, clearly labeled (future)
-4. **Data Insights (B2B)** — anonymized aggregate trend data to fashion retailers (future)
+3. **Brand Partnerships** — Sponsored styling tips, clearly labeled (future)
+4. **Fashion Intelligence Platform (B2B)** — The core strategic expansion:
+   - **Trend Reports** ($15-50K/quarter) — real-time consumer styling data for brands, retailers, and trend forecasters
+   - **Custom Research** ($25-100K) — bespoke insights for brands ("How do women 25-35 dress for work in 2026?")
+   - **Real-Time Trend API** ($5-20K/month) — daily trend pulse for fast-fashion retailers
+   - **White-Label Styling SDK** ($10-50K/month) — embeddable outfit feedback for retailer apps
+   - See `Monetization/MONETIZATION_PRD.md` Parts 5-6 for full specifications
 
 ---
 

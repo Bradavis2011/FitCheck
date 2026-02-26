@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate the "Or This?" Seed Stage Pitch Deck as a PowerPoint file.
+Design language reverse-engineered from OrThis_Seed_Pitch_Deck(2).pptx reference.
 Designed for Y Combinator and similar accelerator applications.
 """
 
@@ -12,713 +13,857 @@ from pptx.enum.shapes import MSO_SHAPE
 import os
 
 # ── Brand Colors ──
-CORAL = RGBColor(0xE8, 0x5D, 0x4C)
-CORAL_LIGHT = RGBColor(0xFF, 0x7A, 0x6B)
-CORAL_DARK = RGBColor(0xC9, 0x4A, 0x3A)
-CREAM = RGBColor(0xFB, 0xF7, 0xF4)
-BLACK = RGBColor(0x1A, 0x1A, 0x1A)
-CHARCOAL = RGBColor(0x2D, 0x2D, 0x2D)
-SAGE = RGBColor(0xA8, 0xB5, 0xA0)
-WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-LIGHT_GRAY = RGBColor(0x99, 0x99, 0x99)
-GREEN = RGBColor(0x10, 0xB9, 0x81)
-AMBER = RGBColor(0xF5, 0x9E, 0x0B)
+CORAL       = RGBColor(0xE8, 0x5D, 0x4C)   # #E85D4C — Decision Coral
+BLACK       = RGBColor(0x1A, 0x1A, 0x1A)   # #1A1A1A — Clarity Black
+CHARCOAL    = RGBColor(0x2D, 0x2D, 0x2D)   # #2D2D2D
+GRAY        = RGBColor(0x9B, 0x9B, 0x9B)   # #9B9B9B — secondary / muted
+DIVIDER     = RGBColor(0xE8, 0xE8, 0xE8)   # #E8E8E8 — thin rule
+WHITE       = RGBColor(0xFF, 0xFF, 0xFF)   # #FFFFFF
+CREAM       = RGBColor(0xFB, 0xF7, 0xF4)   # #FBF7F4 — fallback placeholder
 
 # ── Slide Dimensions (16:9) ──
-SLIDE_WIDTH = Inches(13.333)
+SLIDE_WIDTH  = Inches(13.333)
 SLIDE_HEIGHT = Inches(7.5)
 
+# ── Image paths (extracted from reference deck) ──
+IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extracted_images")
+
+def img(filename):
+    path = os.path.join(IMG_DIR, filename)
+    return path if os.path.exists(path) else None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Primitive helpers
+# ──────────────────────────────────────────────────────────────────────────────
 
 def set_slide_bg(slide, color):
-    """Set solid background color for a slide."""
-    background = slide.background
-    fill = background.fill
+    fill = slide.background.fill
     fill.solid()
     fill.fore_color.rgb = color
 
 
-def add_shape(slide, left, top, width, height, fill_color=None, shape_type=MSO_SHAPE.RECTANGLE):
-    """Add a colored shape to the slide."""
+def add_shape(slide, left, top, width, height, fill_color=None,
+              shape_type=MSO_SHAPE.RECTANGLE, line_color=None, line_width=None):
     shape = slide.shapes.add_shape(shape_type, left, top, width, height)
-    shape.line.fill.background()
     if fill_color:
         shape.fill.solid()
         shape.fill.fore_color.rgb = fill_color
+    else:
+        shape.fill.background()
+    if line_color:
+        shape.line.color.rgb = line_color
+        if line_width:
+            shape.line.width = Pt(line_width)
+    else:
+        shape.line.fill.background()
     return shape
 
 
-def add_text_box(slide, left, top, width, height, text, font_size=18,
-                 font_color=BLACK, bold=False, alignment=PP_ALIGN.LEFT,
-                 font_name="Calibri", line_spacing=1.2):
-    """Add a text box with specified formatting."""
-    txBox = slide.shapes.add_textbox(left, top, width, height)
-    tf = txBox.text_frame
+def add_picture(slide, path, left, top, width, height, placeholder=CREAM):
+    if path and os.path.exists(path):
+        return slide.shapes.add_picture(path, left, top, width, height)
+    # Fallback: solid color rectangle
+    return add_shape(slide, left, top, width, height, placeholder)
+
+
+def add_text_box(slide, left, top, width, height, text,
+                 font_size=16, font_color=CHARCOAL, bold=False, italic=False,
+                 alignment=PP_ALIGN.LEFT, font_name="DM Sans", line_spacing=None):
+    tb = slide.shapes.add_textbox(left, top, width, height)
+    tf = tb.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = text
     p.font.size = Pt(font_size)
     p.font.color.rgb = font_color
     p.font.bold = bold
+    p.font.italic = italic
     p.font.name = font_name
     p.alignment = alignment
     p.space_after = Pt(0)
-    if line_spacing != 1.0:
+    if line_spacing:
         p.line_spacing = Pt(font_size * line_spacing)
-    return txBox
+    return tb
 
 
-def add_multiline_text(slide, left, top, width, height, lines, default_size=18,
-                       default_color=BLACK, default_bold=False, alignment=PP_ALIGN.LEFT,
-                       font_name="Calibri", line_spacing=1.3):
-    """Add a text box with multiple paragraphs. Each line is a dict or string."""
-    txBox = slide.shapes.add_textbox(left, top, width, height)
-    tf = txBox.text_frame
+def add_multiline_text(slide, left, top, width, height, lines,
+                       default_size=16, default_color=CHARCOAL, default_bold=False,
+                       alignment=PP_ALIGN.LEFT, font_name="DM Sans", line_spacing=1.4):
+    """
+    lines: list of str or dict.
+    dict keys: text, size, color, bold, italic, font_name, space_after
+    """
+    tb = slide.shapes.add_textbox(left, top, width, height)
+    tf = tb.text_frame
     tf.word_wrap = True
 
     for i, line in enumerate(lines):
-        if i == 0:
-            p = tf.paragraphs[0]
-        else:
-            p = tf.add_paragraph()
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
 
         if isinstance(line, str):
             p.text = line
             p.font.size = Pt(default_size)
             p.font.color.rgb = default_color
             p.font.bold = default_bold
-        elif isinstance(line, dict):
+            p.font.italic = False
+            p.font.name = font_name
+            p.space_after = Pt(4)
+        else:
             p.text = line.get("text", "")
-            p.font.size = Pt(line.get("size", default_size))
+            sz = line.get("size", default_size)
+            p.font.size = Pt(sz)
             p.font.color.rgb = line.get("color", default_color)
             p.font.bold = line.get("bold", default_bold)
+            p.font.italic = line.get("italic", False)
+            p.font.name = line.get("font_name", font_name)
+            p.space_after = Pt(line.get("space_after", 4))
 
-        p.font.name = font_name
         p.alignment = alignment
-        p.space_after = Pt(line.get("space_after", 4) if isinstance(line, dict) else 4)
-        p.line_spacing = Pt((line.get("size", default_size) if isinstance(line, dict) else default_size) * line_spacing)
+        if line_spacing and (isinstance(line, str) or not line.get("no_spacing")):
+            sz = default_size if isinstance(line, str) else line.get("size", default_size)
+            p.line_spacing = Pt(sz * line_spacing)
 
-    return txBox
+    return tb
 
 
-def add_rounded_rect(slide, left, top, width, height, fill_color):
-    """Add a rounded rectangle."""
-    shape = add_shape(slide, left, top, width, height, fill_color, MSO_SHAPE.ROUNDED_RECTANGLE)
+# ── Short editorial coral rule (placed below headline, not above section label) ──
+def coral_rule(slide, left, top, width=Inches(1.5)):
+    add_shape(slide, left, top, width, Inches(0.028), CORAL)
+
+
+# ── Full-width thin gray divider (before footnote at slide bottom) ──
+def gray_rule(slide, left=Inches(0.8), top=None, width=Inches(11.5)):
+    add_shape(slide, left, top, width, Inches(0.014), DIVIDER)
+
+
+# ── Card with outline (for FREE tier, white on white bg) ──
+def add_outline_card(slide, left, top, width, height):
+    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = WHITE
+    shape.line.color.rgb = DIVIDER
+    shape.line.width = Pt(1)
     return shape
 
+
+# ── Internal thin divider inside a card ──
+def card_divider(slide, left, top, width, color=DIVIDER):
+    add_shape(slide, left, top, width, Inches(0.014), color)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Slide builders
+# ──────────────────────────────────────────────────────────────────────────────
 
 def build_deck():
     prs = Presentation()
     prs.slide_width = SLIDE_WIDTH
     prs.slide_height = SLIDE_HEIGHT
+    blank = prs.slide_layouts[6]
 
-    # Use blank layout
-    blank_layout = prs.slide_layouts[6]
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 1: TITLE  — white bg, left half image, right text
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, WHITE)
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 1: TITLE
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
-    set_slide_bg(slide, CREAM)
+    # Left half — fashion photo panel
+    add_picture(slide, img("slide1_Picture 1.jpg"),
+                Inches(0), Inches(0), Inches(5.5), Inches(7.5))
 
-    # Large coral accent bar at top
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.08), CORAL)
+    # Right side — coral rule above the logo
+    coral_rule(slide, left=Inches(6.5), top=Inches(2.0), width=Inches(2.0))
 
-    # Brand name
-    add_text_box(slide, Inches(1), Inches(1.8), Inches(11), Inches(1.5),
-                 "Or This?", font_size=72, font_color=CORAL, bold=True,
-                 alignment=PP_ALIGN.CENTER, font_name="Georgia")
+    # "Or " — DM Sans 72pt black
+    add_text_box(slide, Inches(5.88), Inches(2.3), Inches(1.48), Inches(1.31),
+                 "Or", font_size=72, font_color=BLACK, font_name="DM Sans")
+
+    # "This?" — Playfair Display 72pt coral
+    add_text_box(slide, Inches(7.36), Inches(2.3), Inches(2.59), Inches(1.31),
+                 "This?", font_size=72, font_color=CORAL, font_name="Playfair Display")
 
     # Tagline
-    add_text_box(slide, Inches(2), Inches(3.4), Inches(9), Inches(0.8),
-                 "Confidence in every choice.", font_size=28, font_color=CHARCOAL,
-                 alignment=PP_ALIGN.CENTER, font_name="Georgia")
+    add_text_box(slide, Inches(6.5), Inches(3.7), Inches(6.0), Inches(0.6),
+                 "Confidence in every choice.",
+                 font_size=24, font_color=CHARCOAL, font_name="Playfair Display")
 
     # One-liner
-    add_text_box(slide, Inches(1.5), Inches(4.5), Inches(10), Inches(0.8),
-                 "AI-powered outfit feedback in 30 seconds. Your honest friend in your pocket.",
-                 font_size=20, font_color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
-
-    # Stage + round
-    add_text_box(slide, Inches(3), Inches(5.8), Inches(7), Inches(0.5),
-                 "Seed Stage  |  Y Combinator Application  |  2026",
-                 font_size=16, font_color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
-
-    # Bottom accent
-    add_shape(slide, Inches(0), Inches(7.42), SLIDE_WIDTH, Inches(0.08), CORAL)
-
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 2: THE PROBLEM
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
-    set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
-
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "THE PROBLEM", font_size=14, font_color=CORAL, bold=True)
-
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(1.2),
-                 "Every day, millions of women stand in front of the mirror\nand ask: \"Does this actually look good?\"",
-                 font_size=32, font_color=BLACK, bold=True, font_name="Georgia")
-
-    # Problem bullets
-    problems = [
-        {"text": "72% of women say outfit indecision causes daily stress", "size": 20, "bold": False, "color": CHARCOAL, "space_after": 14},
-        {"text": "The average woman changes outfits 2-3x before leaving the house", "size": 20, "bold": False, "color": CHARCOAL, "space_after": 14},
-        {"text": "No trusted, instant feedback source exists at the moment of decision", "size": 20, "bold": False, "color": CHARCOAL, "space_after": 14},
-    ]
-    add_multiline_text(slide, Inches(0.8), Inches(2.8), Inches(7), Inches(2.5), problems)
-
-    # Right side - pain points box
-    card = add_rounded_rect(slide, Inches(8.5), Inches(2.8), Inches(4), Inches(3.5), CREAM)
-    add_multiline_text(slide, Inches(8.8), Inches(3.0), Inches(3.5), Inches(3.2), [
-        {"text": "Current \"solutions\" fail:", "size": 18, "bold": True, "color": CORAL, "space_after": 16},
-        {"text": "Friends — biased, unavailable", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Partners — \"you look fine\"", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Social media — too slow, public", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Fashion apps — inspiration, not feedback", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Stylists — expensive, not instant", "size": 16, "color": CHARCOAL, "space_after": 8},
+    add_multiline_text(slide, Inches(6.5), Inches(4.6), Inches(5.5), Inches(0.8), [
+        {"text": "AI-powered outfit feedback in 30 seconds.", "size": 16, "color": GRAY},
+        {"text": "Your honest friend in your pocket.",        "size": 16, "color": GRAY},
     ])
 
-    # Bottom quote
-    add_text_box(slide, Inches(0.8), Inches(6.0), Inches(11), Inches(0.8),
-                 "\"I just want someone honest to tell me if this works — right now, before I walk out the door.\"",
-                 font_size=18, font_color=CORAL, font_name="Georgia", alignment=PP_ALIGN.LEFT)
+    # Stage line
+    add_text_box(slide, Inches(6.5), Inches(6.0), Inches(5.0), Inches(0.4),
+                 "Seed Stage  \u2022  2026",
+                 font_size=13, font_color=GRAY, font_name="DM Sans")
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 3: THE SOLUTION
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 2: THE PROBLEM  — white bg, left text, right inset photo
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "THE SOLUTION", font_size=14, font_color=CORAL, bold=True)
+    # Right inset photo
+    add_picture(slide, img("slide2_Picture 6.jpg"),
+                Inches(8.8), Inches(0.8), Inches(4.2), Inches(6.2))
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(1.0),
-                 "Your honest friend in your pocket.\nInstant AI outfit feedback — anytime, anywhere.",
-                 font_size=32, font_color=BLACK, bold=True, font_name="Georgia")
+    # Section label
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "THE PROBLEM", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    # Core loop - 4 steps
+    # Headline
+    add_multiline_text(slide, Inches(0.8), Inches(1.2), Inches(7.5), Inches(1.4), [
+        {"text": "Every morning, millions of women", "size": 32, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "stand in front of the mirror and ask:", "size": 32, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "\u201cDoes this actually look good?\u201d", "size": 32, "color": BLACK, "font_name": "Playfair Display"},
+    ], line_spacing=1.2)
+
+    # Thin divider between headline and bullets
+    gray_rule(slide, left=Inches(0.8), top=Inches(3.0), width=Inches(1.5))
+
+    # Bullet stats
+    add_multiline_text(slide, Inches(0.8), Inches(3.3), Inches(5.5), Inches(2.2), [
+        {"text": "72% of women say outfit indecision causes daily stress.", "size": 18, "color": CHARCOAL},
+        {"text": "The average woman changes outfits 2\u20133 times before leaving.", "size": 18, "color": CHARCOAL},
+        {"text": "No trusted, instant feedback exists at the moment of decision.", "size": 18, "color": CHARCOAL},
+    ], line_spacing=1.5)
+
+    # Pull quote
+    add_text_box(slide, Inches(0.8), Inches(6.2), Inches(7.0), Inches(0.6),
+                 "\u2014 \u201cI just want someone honest to tell me if this works.\u201d",
+                 font_size=17, font_color=CHARCOAL, font_name="Playfair Display")
+
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 3: THE SOLUTION  — white bg, left half image, right steps
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, WHITE)
+
+    add_picture(slide, img("slide3_Picture 1.jpg"),
+                Inches(0), Inches(0), Inches(5.5), Inches(7.5))
+
+    add_text_box(slide, Inches(6.2), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "THE SOLUTION", font_size=11, font_color=CORAL, font_name="DM Sans")
+
+    add_multiline_text(slide, Inches(6.2), Inches(1.2), Inches(6.5), Inches(1.0), [
+        {"text": "Your honest friend", "size": 36, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "in your pocket.",    "size": 36, "color": BLACK, "font_name": "Playfair Display"},
+    ], line_spacing=1.15)
+
+    coral_rule(slide, left=Inches(6.2), top=Inches(2.6))
+
+    # 4-step process
     steps = [
-        ("1", "Snap", "Take a full-body\nphoto or selfie"),
-        ("2", "Tell Us", "Occasion, setting,\nweather, your vibe"),
-        ("3", "Get Feedback", "AI analysis in\n30 seconds flat"),
-        ("4", "Ask More", "Follow-up questions\nlike a real friend"),
+        ("01", "Snap",         "Full-body photo or selfie."),
+        ("02", "Context",      "Occasion, setting, vibe."),
+        ("03", "Feedback",     "AI analysis in 30 seconds."),
+        ("04", "Conversation", "Follow-ups like a friend."),
     ]
-
     for i, (num, title, desc) in enumerate(steps):
-        x = Inches(0.8 + i * 3.1)
-        # Number circle
-        circle = add_shape(slide, x, Inches(2.8), Inches(0.7), Inches(0.7), CORAL, MSO_SHAPE.OVAL)
-        add_text_box(slide, x, Inches(2.85), Inches(0.7), Inches(0.6),
-                     num, font_size=24, font_color=WHITE, bold=True, alignment=PP_ALIGN.CENTER)
-        # Title
-        add_text_box(slide, x, Inches(3.7), Inches(2.5), Inches(0.5),
-                     title, font_size=22, font_color=BLACK, bold=True)
-        # Description
-        add_text_box(slide, x, Inches(4.2), Inches(2.5), Inches(1.0),
-                     desc, font_size=16, font_color=CHARCOAL)
+        y = Inches(3.0 + i * 1.0)
+        add_text_box(slide, Inches(6.2), y, Inches(0.7), Inches(0.4),
+                     num, font_size=14, font_color=DIVIDER, font_name="Playfair Display")
+        add_text_box(slide, Inches(7.0), y, Inches(2.0), Inches(0.4),
+                     title, font_size=18, font_color=BLACK, font_name="DM Sans")
+        add_text_box(slide, Inches(9.2), y, Inches(3.5), Inches(0.4),
+                     desc, font_size=15, font_color=CHARCOAL, font_name="DM Sans")
 
-    # What makes it different
-    add_shape(slide, Inches(0.8), Inches(5.6), Inches(11.5), Inches(0.04), CREAM)
-    add_text_box(slide, Inches(0.8), Inches(5.8), Inches(11), Inches(0.8),
-                 "Not inspiration. Not shopping. Not social media. Just honest, instant, private outfit feedback.",
-                 font_size=18, font_color=CORAL, font_name="Georgia")
+    gray_rule(slide, left=Inches(6.2), top=Inches(6.6), width=Inches(6.5))
+    add_text_box(slide, Inches(6.2), Inches(6.8), Inches(6.5), Inches(0.5),
+                 "Not inspiration. Not shopping. Just honest, instant, private feedback.",
+                 font_size=15, font_color=CHARCOAL, font_name="Playfair Display")
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 4: HOW IT WORKS (AI DETAIL)
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
-    set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 4: THE AI  — dark bg, left half image, right bullets
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, BLACK)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "THE AI", font_size=14, font_color=CORAL, bold=True)
+    add_picture(slide, img("slide4_Picture 1.jpg"),
+                Inches(0), Inches(0), Inches(5.5), Inches(7.5))
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "A Vogue editor in your pocket — powered by vision AI",
-                 font_size=32, font_color=BLACK, bold=True, font_name="Georgia")
+    add_text_box(slide, Inches(6.2), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "THE AI", font_size=11, font_color=GRAY, font_name="DM Sans")
 
-    # Left: what the AI does
-    add_multiline_text(slide, Inches(0.8), Inches(2.2), Inches(5.5), Inches(4.5), [
-        {"text": "What you get:", "size": 20, "bold": True, "color": BLACK, "space_after": 12},
-        {"text": "Overall score (1-10) with editorial summary", "size": 17, "color": CHARCOAL, "space_after": 8},
-        {"text": "What's working — specific, actionable praise", "size": 17, "color": CHARCOAL, "space_after": 8},
-        {"text": "What to reconsider — honest, constructive notes", "size": 17, "color": CHARCOAL, "space_after": 8},
-        {"text": "Quick fixes — things you can change in 2 minutes", "size": 17, "color": CHARCOAL, "space_after": 8},
-        {"text": "Occasion match score — how well it fits the event", "size": 17, "color": CHARCOAL, "space_after": 8},
-        {"text": "", "size": 10, "space_after": 6},
-        {"text": "Then ask follow-ups — \"What shoes would work better?\"", "size": 17, "bold": True, "color": CORAL, "space_after": 8},
-        {"text": "\"Is this too casual for a client dinner?\"", "size": 17, "bold": True, "color": CORAL, "space_after": 8},
+    add_text_box(slide, Inches(6.2), Inches(1.2), Inches(6.5), Inches(0.8),
+                 "It tells you the truth.",
+                 font_size=40, font_color=WHITE, font_name="Playfair Display")
+
+    add_text_box(slide, Inches(6.2), Inches(2.1), Inches(6.0), Inches(0.4),
+                 "A Vogue editor in your pocket \u2014 powered by vision AI.",
+                 font_size=16, font_color=GRAY, font_name="DM Sans")
+
+    coral_rule(slide, left=Inches(6.2), top=Inches(2.7))
+
+    add_multiline_text(slide, Inches(6.2), Inches(3.1), Inches(6.0), Inches(2.5), [
+        {"text": "\u2014  A score out of 10. No sugarcoating.",          "size": 16, "color": GRAY},
+        {"text": "\u2014  What\u2019s working \u2014 specific, actionable.",   "size": 16, "color": GRAY, "space_after": 6},
+        {"text": "\u2014  What to reconsider \u2014 honest, constructive.", "size": 16, "color": GRAY, "space_after": 6},
+        {"text": "\u2014  Quick fixes you can change in 2 minutes.",      "size": 16, "color": GRAY, "space_after": 6},
+        {"text": "\u2014  Keep asking until you\u2019re sure.",            "size": 16, "color": GRAY, "space_after": 12},
     ])
 
-    # Right: AI knowledge card
-    card = add_rounded_rect(slide, Inches(7.2), Inches(2.2), Inches(5.3), Inches(4.5), CREAM)
-    add_multiline_text(slide, Inches(7.5), Inches(2.4), Inches(4.8), Inches(4.2), [
-        {"text": "Built-in fashion expertise:", "size": 18, "bold": True, "color": CORAL, "space_after": 14},
-        {"text": "Color theory & palette harmony", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "Proportions & silhouette rules", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "Fit principles & tailoring", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "Occasion-appropriate dress codes", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "Seasonal trend awareness", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "Body balance guidelines", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "", "size": 10, "space_after": 8},
-        {"text": "Powered by Google Gemini Vision", "size": 14, "color": LIGHT_GRAY, "space_after": 4},
-        {"text": "Automated AI training pipeline", "size": 14, "color": LIGHT_GRAY, "space_after": 4},
-        {"text": "Prompt v3.0 — Vogue editorial voice", "size": 14, "color": LIGHT_GRAY, "space_after": 4},
-    ])
+    add_text_box(slide, Inches(6.2), Inches(5.3), Inches(6.0), Inches(0.3),
+                 "Built-in fashion expertise:",
+                 font_size=14, font_color=WHITE, font_name="DM Sans")
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 5: MARKET OPPORTUNITY
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    add_text_box(slide, Inches(6.2), Inches(5.7), Inches(6.5), Inches(0.35),
+                 "Color theory  \u2022  Proportions  \u2022  Fit  \u2022  Dress codes  \u2022  Trends",
+                 font_size=13, font_color=GRAY, font_name="DM Sans")
+
+    add_text_box(slide, Inches(6.2), Inches(6.1), Inches(6.5), Inches(0.35),
+                 "Automated 7-stage training pipeline  \u2022  Prompt v3.0",
+                 font_size=13, font_color=GRAY, font_name="DM Sans")
+
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 5: MARKET OPPORTUNITY  — white bg, left dark cards, right image
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "MARKET OPPORTUNITY", font_size=14, font_color=CORAL, bold=True)
+    add_picture(slide, img("slide5_Image 0.jpg"),
+                Inches(8.8), Inches(0), Inches(4.53), Inches(7.5))
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "A massive, underserved market at the intersection of fashion & AI",
-                 font_size=30, font_color=BLACK, bold=True, font_name="Georgia")
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "MARKET OPPORTUNITY", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    # TAM / SAM / SOM circles
+    add_multiline_text(slide, Inches(0.8), Inches(0.9), Inches(7.8), Inches(0.8), [
+        {"text": "Two markets. One product.", "size": 36, "color": BLACK, "font_name": "Playfair Display"},
+    ], line_spacing=1.2)
+
+    add_text_box(slide, Inches(0.8), Inches(1.8), Inches(7.8), Inches(0.5),
+                 "Consumer subscriptions + B2B fashion intelligence licensing.",
+                 font_size=17, font_color=CHARCOAL, font_name="DM Sans")
+
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.5))
+
+    # TAM / SAM / SOM — dark cards
     markets = [
-        ("TAM", "$1.7T", "Global fashion\nmarket", Inches(1.0)),
-        ("SAM", "$45B", "Women's personal\nstyling & fashion apps", Inches(4.5)),
-        ("SOM", "$500M", "AI-powered outfit\nfeedback (Year 5)", Inches(8.0)),
+        ("TAM",  "$1.8T",  "Global apparel\nmarket",              Inches(0.8)),
+        ("SAM",  "$5.5B",  "Online personal styling\n(+$15B by 2032, 15% CAGR)", Inches(3.4)),
+        ("SOM",  "$200M",  "Year 5 ARR\n2M subs \u00d7 $100/yr + B2B data", Inches(6.0)),
     ]
-
     for label, value, desc, x in markets:
-        # Circle
-        circle = add_shape(slide, x, Inches(2.5), Inches(3.2), Inches(3.2), None, MSO_SHAPE.OVAL)
-        circle.fill.solid()
-        circle.fill.fore_color.rgb = CREAM
-        circle.line.color.rgb = CORAL
-        circle.line.width = Pt(2)
+        add_shape(slide, x, Inches(2.9), Inches(2.4), Inches(2.6), BLACK)
+        add_text_box(slide, x + Inches(0.2), Inches(3.1), Inches(2.0), Inches(0.3),
+                     label, font_size=11, font_color=GRAY, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(3.4), Inches(2.0), Inches(0.7),
+                     value, font_size=40, font_color=WHITE, font_name="Playfair Display")
+        add_text_box(slide, x + Inches(0.2), Inches(4.2), Inches(2.0), Inches(0.7),
+                     desc, font_size=13, font_color=GRAY, font_name="DM Sans")
 
-        add_text_box(slide, x, Inches(2.8), Inches(3.2), Inches(0.5),
-                     label, font_size=16, font_color=CORAL, bold=True, alignment=PP_ALIGN.CENTER)
-        add_text_box(slide, x, Inches(3.3), Inches(3.2), Inches(0.8),
-                     value, font_size=40, font_color=BLACK, bold=True, alignment=PP_ALIGN.CENTER,
-                     font_name="Georgia")
-        add_text_box(slide, x, Inches(4.2), Inches(3.2), Inches(1.0),
-                     desc, font_size=14, font_color=CHARCOAL, alignment=PP_ALIGN.CENTER)
+    gray_rule(slide, left=Inches(0.8), top=Inches(6.2))
+    add_text_box(slide, Inches(0.8), Inches(6.4), Inches(7.8), Inches(0.7),
+                 "Why now?  Vision AI crossed the quality threshold in 2023\u201324. "
+                 "And every outfit we analyze becomes a permanent, structured data asset "
+                 "that compounds in value \u2014 a moat no competitor can replicate without our user base.",
+                 font_size=15, font_color=CHARCOAL, font_name="Playfair Display")
 
-    # Why now
-    add_shape(slide, Inches(0.8), Inches(5.9), Inches(11.5), Inches(0.04), CREAM)
-    add_multiline_text(slide, Inches(0.8), Inches(6.1), Inches(11), Inches(1.2), [
-        {"text": "Why now?  Vision AI has crossed the quality threshold. For the first time, AI can reliably analyze real-world outfit photos and give specific, useful feedback. This category literally could not exist 18 months ago.", "size": 17, "color": CHARCOAL, "space_after": 4},
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 6: FASHION INTELLIGENCE  — dark bg, data platform story
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, BLACK)
+
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(11.0), Inches(0.4),
+                 "FASHION INTELLIGENCE", font_size=11, font_color=GRAY, font_name="DM Sans")
+
+    add_text_box(slide, Inches(0.8), Inches(1.1), Inches(11.5), Inches(0.9),
+                 "The consumer app is the data collection engine.",
+                 font_size=40, font_color=WHITE, font_name="Playfair Display")
+
+    add_text_box(slide, Inches(0.8), Inches(2.1), Inches(11.5), Inches(0.45),
+                 "Every outfit check generates structured fashion intelligence no competitor "
+                 "can replicate without the same user base.",
+                 font_size=16, font_color=GRAY, font_name="DM Sans")
+
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.75))
+
+    # Three-panel pipeline: CAPTURE → DATASET → B2B MARKET
+    DARK_CARD = RGBColor(0x2D, 0x2D, 0x2D)
+
+    # Panel 1 — WHAT WE CAPTURE
+    add_shape(slide, Inches(0.8), Inches(3.0), Inches(3.6), Inches(2.9), DARK_CARD)
+    add_text_box(slide, Inches(1.0), Inches(3.15), Inches(3.2), Inches(0.3),
+                 "CAPTURED PER CHECK", font_size=11, font_color=CORAL, font_name="DM Sans")
+    add_multiline_text(slide, Inches(1.0), Inches(3.55), Inches(3.2), Inches(2.2), [
+        {"text": "\u2014  StyleDNA attributes",            "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2014  Color harmonies & palette",      "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2014  Occasion + setting patterns",    "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2014  Garment categories & frequency", "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2014  AI score + community signal",   "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2014  Trend velocity signals",         "size": 14, "color": GRAY},
     ])
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 6: BUSINESS MODEL
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # Arrow label between panels
+    add_text_box(slide, Inches(4.5), Inches(4.3), Inches(0.5), Inches(0.4),
+                 "\u2192", font_size=24, font_color=CORAL, font_name="DM Sans",
+                 alignment=PP_ALIGN.CENTER)
+
+    # Panel 2 — AT SCALE
+    add_shape(slide, Inches(5.0), Inches(3.0), Inches(3.6), Inches(2.9), DARK_CARD)
+    add_text_box(slide, Inches(5.2), Inches(3.15), Inches(3.2), Inches(0.3),
+                 "AT SCALE", font_size=11, font_color=CORAL, font_name="DM Sans")
+    add_multiline_text(slide, Inches(5.2), Inches(3.55), Inches(3.2), Inches(2.2), [
+        {"text": "Real-time, bottom-up dataset",            "size": 14, "color": WHITE, "space_after": 8},
+        {"text": "What real people actually wear \u2014",   "size": 13, "color": GRAY, "space_after": 4},
+        {"text": "not what they say they wear.",            "size": 13, "color": GRAY, "space_after": 10},
+        {"text": "AI-scored. Community-validated.",         "size": 13, "color": GRAY, "space_after": 4},
+        {"text": "Queryable by demo, occasion, geo.",       "size": 13, "color": GRAY, "space_after": 10},
+        {"text": "No competitor can replicate it",          "size": 13, "color": GRAY, "space_after": 4},
+        {"text": "without our user base.",                  "size": 13, "color": GRAY},
+    ])
+
+    # Arrow label between panels
+    add_text_box(slide, Inches(8.7), Inches(4.3), Inches(0.5), Inches(0.4),
+                 "\u2192", font_size=24, font_color=CORAL, font_name="DM Sans",
+                 alignment=PP_ALIGN.CENTER)
+
+    # Panel 3 — B2B MARKET
+    add_shape(slide, Inches(9.2), Inches(3.0), Inches(3.6), Inches(2.9), DARK_CARD)
+    add_text_box(slide, Inches(9.4), Inches(3.15), Inches(3.2), Inches(0.3),
+                 "B2B REVENUE", font_size=11, font_color=CORAL, font_name="DM Sans")
+    add_multiline_text(slide, Inches(9.4), Inches(3.55), Inches(3.2), Inches(2.2), [
+        {"text": "Trend reports",                   "size": 14, "color": WHITE, "space_after": 2},
+        {"text": "$15\u201350K / quarter",           "size": 13, "color": GRAY, "space_after": 7},
+        {"text": "Custom brand research",           "size": 14, "color": WHITE, "space_after": 2},
+        {"text": "$25\u2013100K per study",          "size": 13, "color": GRAY, "space_after": 7},
+        {"text": "Real-time trend API",             "size": 14, "color": WHITE, "space_after": 2},
+        {"text": "$5\u201320K / month",              "size": 13, "color": GRAY, "space_after": 7},
+        {"text": "White-label styling SDK",         "size": 14, "color": WHITE, "space_after": 2},
+        {"text": "$10\u201350K / month",             "size": 13, "color": GRAY},
+    ])
+
+    # Bottom insight — WGSN comparable
+    gray_rule(slide, left=Inches(0.8), top=Inches(6.2))
+    add_text_box(slide, Inches(0.8), Inches(6.4), Inches(12.2), Inches(0.7),
+                 "Comparable: WGSN earns ~$100M+ ARR selling fashion intelligence "
+                 "built on runway predictions and surveys. "
+                 "Ours is built on what real people actually wear.",
+                 font_size=16, font_color=CORAL, font_name="Playfair Display")
+
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 7: BUSINESS MODEL  — white bg, 3 tier cards, right image
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "BUSINESS MODEL", font_size=14, font_color=CORAL, bold=True)
+    add_picture(slide, img("slide6_Picture 22.png"),
+                Inches(9.6), Inches(0), Inches(3.73), Inches(7.5))
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "Freemium SaaS with a clear upgrade path",
-                 font_size=32, font_color=BLACK, bold=True, font_name="Georgia")
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "BUSINESS MODEL", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    # Three tier cards
+    add_text_box(slide, Inches(0.8), Inches(1.2), Inches(8.5), Inches(0.7),
+                 "Freemium with a clear upgrade path.",
+                 font_size=34, font_color=BLACK, font_name="Playfair Display")
+
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
+
+    # Tier cards — FREE (white outline), PLUS (dark), PRO (coral)
     tiers = [
-        ("FREE", "$0", [
-            "3 AI checks/day",
+        ("FREE",     "$0",          [
+            "3 AI checks / day",
             "3 follow-ups per check",
             "7-day history",
             "Ad-supported",
-            "Give-to-get bonus checks",
-        ], CREAM, BLACK),
-        ("PLUS", "$4.99/mo", [
+        ], "outline", BLACK, CHARCOAL),
+        ("PLUS",     "$4.99/mo",    [
             "Unlimited AI checks",
             "5 follow-ups per check",
             "Full outfit history",
             "No ads",
             "Community feedback",
-        ], CORAL, WHITE),
-        ("PRO", "$14.99/mo", [
+        ], BLACK, WHITE, GRAY),
+        ("PRO",      "$14.99/mo",   [
             "Everything in Plus",
             "10 follow-ups per check",
-            "5 expert reviews/month",
+            "5 expert reviews / month",
             "Event planning mode",
             "Style analytics & DNA",
-        ], BLACK, WHITE),
+        ], CORAL, WHITE, WHITE),
     ]
 
-    for i, (name, price, features, bg, text_color) in enumerate(tiers):
-        x = Inches(0.8 + i * 4.1)
-        card = add_rounded_rect(slide, x, Inches(2.2), Inches(3.6), Inches(4.5), bg)
+    for i, (name, price, features, bg, name_color, feat_color) in enumerate(tiers):
+        x = Inches(0.8 + i * 3.0)
+        if bg == "outline":
+            add_outline_card(slide, x, Inches(2.6), Inches(2.6), Inches(4.2))
+        else:
+            add_shape(slide, x, Inches(2.6), Inches(2.6), Inches(4.2), bg)
 
-        # Tier name
-        add_text_box(slide, x + Inches(0.3), Inches(2.4), Inches(3.0), Inches(0.5),
-                     name, font_size=16, font_color=text_color if bg != CORAL else WHITE, bold=True)
+        add_text_box(slide, x + Inches(0.2), Inches(2.8), Inches(2.2), Inches(0.3),
+                     name, font_size=11, font_color=name_color, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(3.1), Inches(2.2), Inches(0.6),
+                     price, font_size=36, font_color=name_color, font_name="Playfair Display")
+        card_divider(slide, x + Inches(0.2), Inches(3.8), Inches(2.2),
+                     color=GRAY if bg != "outline" else DIVIDER)
+        add_multiline_text(slide, x + Inches(0.2), Inches(4.0), Inches(2.2), Inches(2.5), [
+            {"text": f, "size": 14, "color": feat_color, "space_after": 5} for f in features
+        ])
 
-        # Price
-        price_color = text_color if bg != CREAM else CORAL
-        add_text_box(slide, x + Inches(0.3), Inches(2.9), Inches(3.0), Inches(0.6),
-                     price, font_size=36, font_color=price_color, bold=True, font_name="Georgia")
+    gray_rule(slide, left=Inches(0.8), top=Inches(6.85))
+    add_text_box(slide, Inches(0.8), Inches(6.95), Inches(8.5), Inches(0.4),
+                 "Layer 2 \u2014 Fashion Intelligence (B2B):  "
+                 "Trend reports  \u2022  Trend API  \u2022  White-label SDK  \u2022  Custom research  "
+                 "\u2014  highest-margin revenue at scale",
+                 font_size=13, font_color=CORAL, font_name="DM Sans")
 
-        # Features
-        feature_lines = [{"text": f, "size": 15, "color": text_color if bg != CREAM else CHARCOAL, "space_after": 6} for f in features]
-        add_multiline_text(slide, x + Inches(0.3), Inches(3.7), Inches(3.0), Inches(3.0), feature_lines)
-
-    # Revenue note
-    add_text_box(slide, Inches(0.8), Inches(6.9), Inches(11), Inches(0.5),
-                 "Additional revenue: Expert review add-ons  •  Affiliate shopping links  •  Brand partnerships  •  Google AdMob (free tier)",
-                 font_size=14, font_color=LIGHT_GRAY)
-
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 7: UNIT ECONOMICS
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 7: UNIT ECONOMICS  — white bg, 4 dark cards
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "UNIT ECONOMICS", font_size=14, font_color=CORAL, bold=True)
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "UNIT ECONOMICS", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "AI costs are dropping fast — our margins improve every quarter",
-                 font_size=30, font_color=BLACK, bold=True, font_name="Georgia")
+    add_text_box(slide, Inches(0.8), Inches(1.2), Inches(11.0), Inches(0.7),
+                 "AI costs drop. Our margins improve. Every quarter.",
+                 font_size=34, font_color=BLACK, font_name="Playfair Display")
 
-    # Key metrics
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
+
     metrics = [
-        ("~$0.003", "Cost per\nAI check", "Gemini Vision API\ncost per outfit analysis"),
-        ("~$0.50", "Blended monthly\ncost per user", "Including infrastructure,\nstorage, and AI calls"),
-        ("$4.99-$14.99", "Monthly\nrevenue per paid user", "Strong gross margins\non subscription revenue"),
-        ("10-30x", "Target\nLTV:CAC", "Organic-first acquisition\ndrives efficient growth"),
+        ("~$0.003",     "Cost per\nAI check",           "Gemini Vision API\ncost per analysis"),
+        ("~$0.50",      "Blended monthly\ncost per user","Including infra,\nstorage, AI calls"),
+        ("$4.99\u2013$14.99", "Monthly revenue\nper paid user", "Strong gross margins\non subscriptions"),
+        ("10\u201330x",       "Target\nLTV:CAC",              "Organic-first\nacquisition"),
     ]
-
     for i, (value, label, detail) in enumerate(metrics):
         x = Inches(0.8 + i * 3.1)
-        card = add_rounded_rect(slide, x, Inches(2.4), Inches(2.7), Inches(3.0), CREAM)
-        add_text_box(slide, x, Inches(2.7), Inches(2.7), Inches(0.6),
-                     value, font_size=32, font_color=CORAL, bold=True, alignment=PP_ALIGN.CENTER,
-                     font_name="Georgia")
-        add_text_box(slide, x, Inches(3.4), Inches(2.7), Inches(0.6),
-                     label, font_size=16, font_color=BLACK, bold=True, alignment=PP_ALIGN.CENTER)
-        add_text_box(slide, x, Inches(4.1), Inches(2.7), Inches(0.8),
-                     detail, font_size=13, font_color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
+        add_shape(slide, x, Inches(2.6), Inches(2.7), Inches(2.8), BLACK)
+        add_text_box(slide, x + Inches(0.2), Inches(2.9), Inches(2.3), Inches(0.6),
+                     value, font_size=32, font_color=WHITE, font_name="Playfair Display")
+        add_text_box(slide, x + Inches(0.2), Inches(3.6), Inches(2.3), Inches(0.6),
+                     label, font_size=14, font_color=WHITE, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(4.3), Inches(2.3), Inches(0.6),
+                     detail, font_size=12, font_color=GRAY, font_name="DM Sans")
 
-    add_multiline_text(slide, Inches(0.8), Inches(5.8), Inches(11), Inches(1.5), [
-        {"text": "Key insight: AI API costs have dropped 90% in the past 18 months and continue falling. Our COGS improves automatically over time — the opposite of most consumer businesses.", "size": 17, "color": CHARCOAL, "space_after": 4},
+    gray_rule(slide, left=Inches(0.8), top=Inches(5.8))
+    add_text_box(slide, Inches(0.8), Inches(6.0), Inches(11.0), Inches(0.8),
+                 "AI API costs have dropped 90% in 18 months and keep falling. "
+                 "Our COGS improves automatically \u2014 the opposite of most consumer businesses.",
+                 font_size=17, font_color=CHARCOAL, font_name="Playfair Display")
+
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 8: GROWTH  — white bg, left loop + dark GTM card, right image
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, WHITE)
+
+    add_picture(slide, img("slide8_Picture 8.jpg"),
+                Inches(10.1), Inches(0), Inches(3.23), Inches(7.5))
+
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "GROWTH", font_size=11, font_color=CORAL, font_name="DM Sans")
+
+    add_text_box(slide, Inches(0.8), Inches(0.8), Inches(7.0), Inches(0.7),
+                 "\u201cOr This?\u201d is inherently shareable.",
+                 font_size=34, font_color=BLACK, font_name="Playfair Display")
+
+    add_text_box(slide, Inches(0.8), Inches(2.0), Inches(7.0), Inches(0.4),
+                 "Built-in virality. Every outfit is a potential share.",
+                 font_size=16, font_color=CHARCOAL, font_name="DM Sans")
+
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.6))
+
+    add_multiline_text(slide, Inches(0.8), Inches(2.9), Inches(4.5), Inches(3.0), [
+        {"text": "The core loop:", "size": 17, "color": BLACK, "space_after": 8},
+        {"text": "1.  User gets feedback \u2192 tells friends",  "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "2.  A/B comparisons shared for votes",         "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "3.  Friends download to participate",          "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "4.  New users try AI \u2192 get hooked",       "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "5.  Every outfit = potential share",           "size": 16, "color": CHARCOAL, "space_after": 6},
     ])
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 8: GROWTH FLYWHEEL
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
-    set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
-
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "GROWTH FLYWHEEL", font_size=14, font_color=CORAL, bold=True)
-
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "Built-in virality: \"Or This?\" is inherently shareable",
-                 font_size=30, font_color=BLACK, bold=True, font_name="Georgia")
-
-    # Left: The flywheel steps
-    flywheel_steps = [
-        {"text": "The core loop creates natural sharing moments:", "size": 20, "bold": True, "color": BLACK, "space_after": 16},
-        {"text": "1.  User gets outfit feedback → tells friends", "size": 18, "color": CHARCOAL, "space_after": 10},
-        {"text": "2.  A/B comparisons (\"Or This?\") shared for votes", "size": 18, "color": CHARCOAL, "space_after": 10},
-        {"text": "3.  Friends download to participate", "size": 18, "color": CHARCOAL, "space_after": 10},
-        {"text": "4.  New users try AI feedback → get hooked", "size": 18, "color": CHARCOAL, "space_after": 10},
-        {"text": "5.  Repeat — every outfit is a potential share", "size": 18, "color": CHARCOAL, "space_after": 10},
-    ]
-    add_multiline_text(slide, Inches(0.8), Inches(2.2), Inches(5.5), Inches(3.5), flywheel_steps)
-
-    # Right: channels card
-    card = add_rounded_rect(slide, Inches(7.2), Inches(2.2), Inches(5.3), Inches(4.5), CREAM)
-    add_multiline_text(slide, Inches(7.5), Inches(2.4), Inches(4.8), Inches(4.2), [
-        {"text": "Go-to-market channels:", "size": 18, "bold": True, "color": CORAL, "space_after": 14},
-        {"text": "TikTok/Reels — outfit content is dominant", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Reddit — r/femalefashionadvice (2M+)", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Influencer seeding — micro-creators", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "Word of mouth — \"have you tried this app?\"", "size": 16, "color": CHARCOAL, "space_after": 8},
-        {"text": "", "size": 10, "space_after": 8},
-        {"text": "Launch strategy:", "size": 18, "bold": True, "color": CORAL, "space_after": 14},
-        {"text": "Private beta → 500 users", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "ProductHunt launch", "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "Creator partnerships", "size": 16, "color": CHARCOAL, "space_after": 6},
+    # Dark GTM card
+    add_shape(slide, Inches(5.8), Inches(2.9), Inches(4.0), Inches(3.8), BLACK)
+    add_multiline_text(slide, Inches(6.1), Inches(3.1), Inches(3.5), Inches(3.4), [
+        {"text": "Go-to-market:",          "size": 15, "color": WHITE,  "space_after": 8},
+        {"text": "\u2022  TikTok / Reels", "size": 14, "color": GRAY,   "space_after": 5},
+        {"text": "\u2022  Reddit (2M+ members)", "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2022  Micro-creator seeding", "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2022  Word of mouth",  "size": 14, "color": GRAY,   "space_after": 10},
+        {"text": "Launch:",                "size": 15, "color": WHITE,  "space_after": 8},
+        {"text": "\u2022  Private beta \u2192 500", "size": 14, "color": GRAY, "space_after": 5},
+        {"text": "\u2022  ProductHunt launch",     "size": 14, "color": GRAY, "space_after": 5},
     ])
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 9: COMPETITIVE LANDSCAPE
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 9: COMPETITION  — white bg, 4 cards (3 white + 1 coral)
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "COMPETITIVE LANDSCAPE", font_size=14, font_color=CORAL, bold=True)
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "COMPETITION", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "We own the \"moment of decision\" — nobody else does",
-                 font_size=30, font_color=BLACK, bold=True, font_name="Georgia")
+    add_multiline_text(slide, Inches(0.8), Inches(1.2), Inches(11.0), Inches(0.8), [
+        {"text": "We own the \u201cmoment of decision.\u201d", "size": 34, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "Nobody else does.",                           "size": 34, "color": BLACK, "font_name": "Playfair Display"},
+    ], line_spacing=1.15)
 
-    # Competitor grid
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.5))
+
     competitors = [
-        ("Stitch Fix / Trunk Club", "Subscription boxes", "Shipping delay, expensive,\nnot instant", CREAM),
-        ("Pinterest / Instagram", "Inspiration & discovery", "Not feedback, not private,\nnot actionable", CREAM),
-        ("ChatGPT / General AI", "General-purpose AI", "No fashion expertise,\nno specialized UX", CREAM),
-        ("Or This?", "Instant AI outfit feedback\nat the moment of decision", "Fast, private, expert-quality,\nalways available", CORAL),
+        ("Stitch Fix",  "Subscription boxes.",        "Days, not seconds.\nExpensive.",          "outline",  BLACK, CHARCOAL),
+        ("Pinterest",   "Inspiration.",               "Not feedback.\nNot private.",             "outline",  BLACK, CHARCOAL),
+        ("ChatGPT",     "General AI.",                "No fashion expertise.\nNo specialized UX.", "outline", BLACK, CHARCOAL),
+        ("Or This?",    "Instant AI feedback\nat the moment of decision.", "Fast. Private.\nExpert. Always on.", CORAL, WHITE, WHITE),
     ]
+    for i, (name, what, diff, bg, name_clr, body_clr) in enumerate(competitors):
+        x = Inches(0.8 + i * 3.1)
+        if bg == "outline":
+            add_outline_card(slide, x, Inches(2.9), Inches(2.7), Inches(2.4))
+        else:
+            add_shape(slide, x, Inches(2.9), Inches(2.7), Inches(2.4), bg)
+        add_text_box(slide, x + Inches(0.2), Inches(3.1), Inches(2.3), Inches(0.4),
+                     name, font_size=17, font_color=name_clr, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(3.6), Inches(2.3), Inches(0.5),
+                     what, font_size=13, font_color=body_clr, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(4.2), Inches(2.3), Inches(0.7),
+                     diff, font_size=12, font_color=body_clr, font_name="DM Sans")
 
-    for i, (name, what, diff, bg) in enumerate(competitors):
-        x = Inches(0.8 + (i % 4) * 3.1)
-        y = Inches(2.4)
-        text_color = WHITE if bg == CORAL else CHARCOAL
-        name_color = WHITE if bg == CORAL else BLACK
+    gray_rule(slide, left=Inches(0.8), top=Inches(5.6))
+    add_text_box(slide, Inches(0.8), Inches(5.8), Inches(11.0), Inches(0.5),
+                 "Our moat: The world\u2019s only real-time consumer fashion dataset \u2014 "
+                 "every outfit analyzed generates structured intelligence that compounds in value. "
+                 "Style DNA profiles that deepen over time. Community network effects.",
+                 font_size=15, font_color=CHARCOAL, font_name="DM Sans")
 
-        card = add_rounded_rect(slide, x, y, Inches(2.7), Inches(3.0), bg)
-        add_text_box(slide, x + Inches(0.2), y + Inches(0.3), Inches(2.3), Inches(0.5),
-                     name, font_size=17, font_color=name_color, bold=True)
-        add_text_box(slide, x + Inches(0.2), y + Inches(0.9), Inches(2.3), Inches(0.6),
-                     what, font_size=14, font_color=text_color)
-        add_text_box(slide, x + Inches(0.2), y + Inches(1.7), Inches(2.3), Inches(1.0),
-                     diff, font_size=13, font_color=text_color)
-
-    # Moat
-    add_shape(slide, Inches(0.8), Inches(5.8), Inches(11.5), Inches(0.04), CREAM)
-    add_multiline_text(slide, Inches(0.8), Inches(6.0), Inches(11), Inches(1.0), [
-        {"text": "Our moat:  Proprietary AI training pipeline that improves with every outfit analyzed. Style DNA profiles that deepen over time. Community network effects. The more you use it, the better it knows you.", "size": 16, "color": CHARCOAL, "space_after": 4},
-    ])
-
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 10: TRACTION & PRODUCT STATUS
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 10: TRACTION  — white bg, 4 dark status cards + targets
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "TRACTION & STATUS", font_size=14, font_color=CORAL, bold=True)
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "TRACTION", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
+    add_text_box(slide, Inches(0.8), Inches(1.2), Inches(11.0), Inches(0.7),
                  "Complete product built. Ready for users.",
-                 font_size=32, font_color=BLACK, bold=True, font_name="Georgia")
+                 font_size=34, font_color=BLACK, font_name="Playfair Display")
 
-    # Status items
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
+
     status_items = [
-        ("BUILT", "Full-stack app", "37 screens, 16 API domains,\n54+ database tables"),
-        ("LIVE", "Backend deployed", "Railway hosting, PostgreSQL,\nall services operational"),
-        ("READY", "App store submission", "iOS + Android builds\nprepared for review"),
-        ("ACTIVE", "AI pipeline", "Automated 7-stage training\nPrompt v3.0 in production"),
+        ("BUILT",    "Full-stack app",    "37 screens\n16 API domains\n54+ database tables"),
+        ("DEPLOYED", "Backend live",      "Railway hosting\nPostgreSQL\nAll services up"),
+        ("READY",    "App store",         "iOS + Android\nbuilds prepared"),
+        ("ACTIVE",   "AI pipeline",       "7-stage training\nPrompt v3.0"),
     ]
-
     for i, (badge, title, desc) in enumerate(status_items):
         x = Inches(0.8 + i * 3.1)
-        # Badge
-        badge_shape = add_rounded_rect(slide, x, Inches(2.4), Inches(1.0), Inches(0.4), GREEN)
-        add_text_box(slide, x, Inches(2.4), Inches(1.0), Inches(0.4),
-                     badge, font_size=12, font_color=WHITE, bold=True, alignment=PP_ALIGN.CENTER)
-        # Title
-        add_text_box(slide, x, Inches(3.0), Inches(2.7), Inches(0.5),
-                     title, font_size=20, font_color=BLACK, bold=True)
-        # Desc
-        add_text_box(slide, x, Inches(3.5), Inches(2.7), Inches(1.0),
-                     desc, font_size=15, font_color=CHARCOAL)
+        add_shape(slide, x, Inches(2.5), Inches(2.7), Inches(2.2), BLACK)
+        add_text_box(slide, x + Inches(0.2), Inches(2.7), Inches(2.3), Inches(0.3),
+                     badge, font_size=11, font_color=CORAL, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(3.0), Inches(2.3), Inches(0.3),
+                     title, font_size=17, font_color=WHITE, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(3.4), Inches(2.3), Inches(1.0),
+                     desc, font_size=13, font_color=GRAY, font_name="DM Sans")
 
-    # Targets
-    add_shape(slide, Inches(0.8), Inches(4.8), Inches(11.5), Inches(0.04), CREAM)
-    add_text_box(slide, Inches(0.8), Inches(5.0), Inches(5), Inches(0.5),
-                 "Month 6 Targets", font_size=18, font_color=CORAL, bold=True)
+    gray_rule(slide, left=Inches(0.8), top=Inches(5.0))
+
+    add_text_box(slide, Inches(0.8), Inches(5.2), Inches(5.0), Inches(0.3),
+                 "MONTH 6 TARGETS", font_size=11, font_color=CORAL, font_name="DM Sans")
 
     targets = [
-        ("50K", "MAU"),
-        ("10K", "Daily checks"),
-        ("30%", "D7 retention"),
-        ("4.0/5", "Helpfulness"),
+        ("50K",     "MAU"),
+        ("10K",     "Daily checks"),
+        ("30%",     "D7 retention"),
+        ("4.0 / 5", "Helpfulness"),
     ]
-
     for i, (val, label) in enumerate(targets):
         x = Inches(0.8 + i * 3.1)
-        add_text_box(slide, x, Inches(5.5), Inches(2.5), Inches(0.6),
-                     val, font_size=36, font_color=CORAL, bold=True, font_name="Georgia")
-        add_text_box(slide, x, Inches(6.1), Inches(2.5), Inches(0.4),
-                     label, font_size=16, font_color=CHARCOAL)
+        add_text_box(slide, x, Inches(5.5), Inches(2.5), Inches(0.5),
+                     val, font_size=32, font_color=BLACK, font_name="Playfair Display")
+        add_text_box(slide, x, Inches(6.0), Inches(2.5), Inches(0.3),
+                     label, font_size=13, font_color=CHARCOAL, font_name="DM Sans")
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 11: ROADMAP
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 11: ROADMAP  — white bg, 4 phase cards
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "ROADMAP", font_size=14, font_color=CORAL, bold=True)
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "ROADMAP", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "Focused execution: nail the core, then expand",
-                 font_size=30, font_color=BLACK, bold=True, font_name="Georgia")
+    add_text_box(slide, Inches(0.8), Inches(1.2), Inches(11.0), Inches(0.7),
+                 "Nail the core. Then expand.",
+                 font_size=34, font_color=BLACK, font_name="Playfair Display")
+
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
 
     phases = [
-        ("NOW", "Core Loop", [
+        ("NOW",     "Core Loop",  CORAL,    WHITE, WHITE, GRAY, [
             "App store launch",
-            "AI feedback refinement",
-            "Private beta (500 users)",
-            "Organic growth seeding",
-        ], CORAL, WHITE),
-        ("Q3 2026", "Community", [
-            "Community feedback live",
-            "\"Or This?\" comparisons",
+            "AI refinement",
+            "Beta (500 users)",
+            "Organic seeding",
+        ]),
+        ("Q3 2026", "Community",  BLACK,    WHITE, WHITE, GRAY, [
+            "Community feedback",
+            "\u201cOr This?\u201d A/B",
             "Give-to-get flywheel",
-            "Gamification & streaks",
-        ], CHARCOAL, WHITE),
-        ("Q4 2026", "Monetize", [
-            "Plus & Pro tiers live",
-            "Expert stylist marketplace",
+            "Gamification",
+        ]),
+        ("Q4 2026", "Monetize",   BLACK,    WHITE, WHITE, GRAY, [
+            "Plus & Pro tiers",
+            "Expert marketplace",
             "A/B test pricing",
             "Revenue optimization",
-        ], BLACK, WHITE),
-        ("2027", "Scale", [
-            "Video outfit analysis",
-            "Shopping/affiliate integration",
-            "Brand partnerships",
-            "International expansion",
-        ], CREAM, CHARCOAL),
+        ]),
+        ("2027",    "Scale",      WHITE,    BLACK, BLACK, CHARCOAL, [
+            "B2B trend API launch",
+            "Fashion intelligence",
+            "Shopping integration",
+            "International",
+        ]),
     ]
 
-    for i, (when, title, items, bg, text_color) in enumerate(phases):
+    for i, (when, title, bg, when_clr, title_clr, item_clr, items) in enumerate(phases):
         x = Inches(0.8 + i * 3.1)
-        card = add_rounded_rect(slide, x, Inches(2.2), Inches(2.7), Inches(4.5), bg)
+        if bg == WHITE:
+            add_outline_card(slide, x, Inches(2.5), Inches(2.7), Inches(4.5))
+        else:
+            add_shape(slide, x, Inches(2.5), Inches(2.7), Inches(4.5), bg)
+        add_text_box(slide, x + Inches(0.2), Inches(2.7), Inches(2.3), Inches(0.3),
+                     when, font_size=11, font_color=when_clr, font_name="DM Sans")
+        add_text_box(slide, x + Inches(0.2), Inches(3.0), Inches(2.3), Inches(0.4),
+                     title, font_size=22, font_color=title_clr, font_name="Playfair Display")
+        add_multiline_text(slide, x + Inches(0.2), Inches(3.6), Inches(2.3), Inches(3.0), [
+            {"text": f"\u2022  {item}", "size": 14, "color": item_clr, "space_after": 5}
+            for item in items
+        ])
 
-        add_text_box(slide, x + Inches(0.2), Inches(2.4), Inches(2.3), Inches(0.4),
-                     when, font_size=14, font_color=text_color, bold=True)
-        add_text_box(slide, x + Inches(0.2), Inches(2.8), Inches(2.3), Inches(0.5),
-                     title, font_size=22, font_color=text_color, bold=True, font_name="Georgia")
-
-        item_lines = [{"text": f"•  {item}", "size": 15, "color": text_color, "space_after": 6} for item in items]
-        add_multiline_text(slide, x + Inches(0.2), Inches(3.5), Inches(2.3), Inches(3.0), item_lines)
-
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 12: THE TEAM
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 12: THE TEAM  — white bg, left founder photo + right bio + top-right logos
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
     set_slide_bg(slide, WHITE)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "THE TEAM", font_size=14, font_color=CORAL, bold=True)
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "THE TEAM", font_size=11, font_color=CORAL, font_name="DM Sans")
 
-    add_text_box(slide, Inches(0.8), Inches(1.0), Inches(11), Inches(0.8),
-                 "Built by people who understand the problem",
-                 font_size=30, font_color=BLACK, bold=True, font_name="Georgia")
+    add_text_box(slide, Inches(0.3), Inches(1.18), Inches(11.0), Inches(0.64),
+                 "Built by someone who understood the problem.",
+                 font_size=34, font_color=BLACK, font_name="Playfair Display")
 
-    # Team member placeholders
-    team = [
-        ("[Founder Name]", "CEO / Product", [
-            "[Background summary]",
-            "[Relevant experience]",
-            "[Why this problem]",
-        ]),
-        ("[Co-founder Name]", "CTO / Engineering", [
-            "[Background summary]",
-            "[Technical expertise]",
-            "[Previous builds]",
-        ]),
-        ("[Advisor / Co-founder]", "[Role]", [
-            "[Background summary]",
-            "[Industry connections]",
-            "[Domain expertise]",
-        ]),
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
+
+    # Left — founder photo placeholder (dark rect same size as reference)
+    add_picture(slide, img("slide12_Picture 26.jpg"),
+                Inches(0.3), Inches(2.43), Inches(3.38), Inches(5.07),
+                placeholder=BLACK)
+
+    # Right — name + bio
+    add_text_box(slide, Inches(4.2), Inches(2.47), Inches(5.2), Inches(0.4),
+                 "Brandon Davis", font_size=18, font_color=BLACK, font_name="DM Sans",
+                 alignment=PP_ALIGN.LEFT)
+    add_text_box(slide, Inches(4.2), Inches(2.87), Inches(5.2), Inches(0.3),
+                 "CEO / Product", font_size=13, font_color=CORAL, font_name="DM Sans")
+    add_text_box(slide, Inches(4.2), Inches(3.27), Inches(5.2), Inches(0.3),
+                 "Vassar College  \u2022  Kellogg MBA (Northwestern)",
+                 font_size=13, font_color=CHARCOAL, font_name="DM Sans")
+
+    add_multiline_text(slide, Inches(4.2), Inches(3.9), Inches(5.5), Inches(3.5), [
+        {"text": "Kellogg MBA (Northwestern). Led program management at Apple "
+                 "(Health Technologies), Verily/Alphabet (Project Baseline), and Komodo Health. "
+                 "8+ years AI product management. $15M+ revenue impact.",
+         "size": 14, "color": CHARCOAL, "space_after": 10},
+        {"text": "Former signed model (Rae Agency) and SAG-AFTRA actor. "
+                 "Lived the problem \u2014 understands fashion from the inside.",
+         "size": 14, "color": CHARCOAL, "space_after": 10},
+        {"text": "Technical founder: built this entire product \u2014 "
+                 "React Native, TypeScript, PostgreSQL.",
+         "size": 14, "color": CHARCOAL},
+    ], line_spacing=1.4)
+
+    # Top-right company logos
+    logo_imgs = [
+        ("slide12_Picture 2.png",  Inches(9.35),  Inches(0.13), Inches(1.28), Inches(1.28)),
+        ("slide12_Picture 4.jpg",  Inches(10.63), Inches(0.02), Inches(2.67), Inches(1.27)),
+        ("slide12_Picture 8.png",  Inches(10.35), Inches(1.29), Inches(2.67), Inches(0.94)),
+        ("slide12_Picture 10.png", Inches(10.67), Inches(2.4),  Inches(2.04), Inches(1.14)),
+        ("slide12_Picture 12.png", Inches(10.23), Inches(3.94), Inches(2.92), Inches(0.81)),
+        ("slide12_Picture 14.png", Inches(10.81), Inches(4.92), Inches(2.34), Inches(2.34)),
     ]
+    for fname, l, t, w, h in logo_imgs:
+        path = img(fname)
+        if path:
+            slide.shapes.add_picture(path, l, t, w, h)
 
-    for i, (name, role, bullets) in enumerate(team):
-        x = Inches(0.8 + i * 4.1)
-        # Avatar placeholder
-        avatar = add_shape(slide, x + Inches(0.8), Inches(2.4), Inches(1.5), Inches(1.5),
-                           CREAM, MSO_SHAPE.OVAL)
-        add_text_box(slide, x + Inches(0.8), Inches(2.85), Inches(1.5), Inches(0.6),
-                     "Photo", font_size=14, font_color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 13: THE ASK  — dark bg, 4 white fund cards, right image
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, BLACK)
 
-        # Name & role
-        add_text_box(slide, x, Inches(4.1), Inches(3.3), Inches(0.5),
-                     name, font_size=20, font_color=BLACK, bold=True, alignment=PP_ALIGN.CENTER)
-        add_text_box(slide, x, Inches(4.6), Inches(3.3), Inches(0.4),
-                     role, font_size=16, font_color=CORAL, alignment=PP_ALIGN.CENTER)
+    add_picture(slide, img("slide13_Picture 4.jpg"),
+                Inches(10.0), Inches(0), Inches(3.33), Inches(7.5))
 
-        bullet_lines = [{"text": b, "size": 14, "color": CHARCOAL, "space_after": 4} for b in bullets]
-        add_multiline_text(slide, x + Inches(0.3), Inches(5.2), Inches(2.7), Inches(1.5),
-                           bullet_lines, alignment=PP_ALIGN.CENTER)
+    add_text_box(slide, Inches(0.8), Inches(0.5), Inches(5.0), Inches(0.4),
+                 "THE ASK", font_size=11, font_color=GRAY, font_name="DM Sans")
 
-    add_text_box(slide, Inches(0.8), Inches(6.8), Inches(11), Inches(0.5),
-                 "Note: Update this slide with real team bios, photos, and relevant credentials.",
-                 font_size=13, font_color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
+    add_text_box(slide, Inches(0.8), Inches(0.9), Inches(8.0), Inches(0.7),
+                 "Raising $1.5M seed to launch and scale.",
+                 font_size=36, font_color=WHITE, font_name="Playfair Display")
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 13: THE ASK
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
-    set_slide_bg(slide, CREAM)
-    add_shape(slide, Inches(0), Inches(0), SLIDE_WIDTH, Inches(0.06), CORAL)
+    coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
 
-    add_text_box(slide, Inches(0.8), Inches(0.4), Inches(4), Inches(0.6),
-                 "THE ASK", font_size=14, font_color=CORAL, bold=True)
-
-    add_text_box(slide, Inches(0.8), Inches(1.2), Inches(11), Inches(0.8),
-                 "Raising $1.5M seed to launch and scale",
-                 font_size=36, font_color=BLACK, bold=True, font_name="Georgia")
-
-    # Use of funds
     funds = [
-        ("40%", "Engineering", "Scale infrastructure, hire\n2 engineers, accelerate\nfeature development"),
-        ("25%", "Growth", "Creator partnerships,\ncommunity seeding,\nlaunch marketing"),
-        ("20%", "AI / Data", "Training pipeline, model\nimprovement, Style DNA\ndata collection"),
-        ("15%", "Operations", "Team growth, legal,\ncompliance, 18-month\nrunway extension"),
+        ("40%", "Engineering",  "Scale infra.\nHire 2 engineers.",     Inches(0.8)),
+        ("25%", "Growth",       "Creator partnerships.\nLaunch.",       Inches(3.1)),
+        ("20%", "AI / Data",    "Training pipeline.\nStyle DNA.",       Inches(5.4)),
+        ("15%", "Operations",   "Team. Legal.\n18-mo runway.",          Inches(7.7)),
     ]
+    for pct, label, desc, x in funds:
+        add_outline_card(slide, x, Inches(2.6), Inches(2.0), Inches(2.6))
+        add_text_box(slide, x + Inches(0.15), Inches(2.8), Inches(1.7), Inches(0.5),
+                     pct, font_size=32, font_color=CORAL, font_name="Playfair Display")
+        add_text_box(slide, x + Inches(0.15), Inches(3.3), Inches(1.7), Inches(0.3),
+                     label, font_size=14, font_color=BLACK, font_name="DM Sans")
+        card_divider(slide, x + Inches(0.15), Inches(3.6), Inches(1.7))
+        add_text_box(slide, x + Inches(0.15), Inches(3.8), Inches(1.7), Inches(1.0),
+                     desc, font_size=12, font_color=CHARCOAL, font_name="DM Sans")
 
-    for i, (pct, label, desc) in enumerate(funds):
-        x = Inches(0.8 + i * 3.1)
-        card = add_rounded_rect(slide, x, Inches(2.6), Inches(2.7), Inches(2.8), WHITE)
-        add_text_box(slide, x, Inches(2.8), Inches(2.7), Inches(0.6),
-                     pct, font_size=36, font_color=CORAL, bold=True, alignment=PP_ALIGN.CENTER,
-                     font_name="Georgia")
-        add_text_box(slide, x, Inches(3.4), Inches(2.7), Inches(0.4),
-                     label, font_size=18, font_color=BLACK, bold=True, alignment=PP_ALIGN.CENTER)
-        add_text_box(slide, x, Inches(3.9), Inches(2.7), Inches(1.2),
-                     desc, font_size=14, font_color=CHARCOAL, alignment=PP_ALIGN.CENTER)
+    gray_rule(slide, left=Inches(0.8), top=Inches(5.6), width=Inches(8.5))
+    add_text_box(slide, Inches(0.8), Inches(5.8), Inches(8.0), Inches(0.3),
+                 "18-MONTH MILESTONES", font_size=11, font_color=GRAY, font_name="DM Sans")
+    add_text_box(slide, Inches(0.8), Inches(6.1), Inches(8.5), Inches(0.5),
+                 "250K MAU  \u2022  75K daily checks  \u2022  $1M+ ARR  \u2022  Series A metrics",
+                 font_size=17, font_color=WHITE, font_name="DM Sans")
 
-    # Milestones
-    add_text_box(slide, Inches(0.8), Inches(5.8), Inches(5), Inches(0.4),
-                 "18-month milestones with this raise:", font_size=16, font_color=BLACK, bold=True)
+    # ══════════════════════════════════════════════════════════════
+    # SLIDE 14: CLOSING  — dark bg, left half image, right logo + contact
+    # ══════════════════════════════════════════════════════════════
+    slide = prs.slides.add_slide(blank)
+    set_slide_bg(slide, BLACK)
 
-    milestones_text = [
-        {"text": "250K MAU  •  75K daily outfit checks  •  Series A metrics ($1M+ ARR)  •  Proven unit economics", "size": 18, "color": CORAL, "bold": True, "space_after": 4},
-    ]
-    add_multiline_text(slide, Inches(0.8), Inches(6.2), Inches(11), Inches(0.6), milestones_text)
+    add_picture(slide, img("slide14_Picture 1.jpg"),
+                Inches(0), Inches(0), Inches(5.5), Inches(7.5))
 
-    # ════════════════════════════════════════════════════════════════
-    # SLIDE 14: CLOSING
-    # ════════════════════════════════════════════════════════════════
-    slide = prs.slides.add_slide(blank_layout)
-    set_slide_bg(slide, CORAL)
+    coral_rule(slide, left=Inches(6.5), top=Inches(2.2), width=Inches(2.0))
 
-    add_text_box(slide, Inches(1), Inches(2.0), Inches(11), Inches(1.2),
-                 "Or This?", font_size=72, font_color=WHITE, bold=True,
-                 alignment=PP_ALIGN.CENTER, font_name="Georgia")
+    add_text_box(slide, Inches(6.5), Inches(2.5), Inches(3.0), Inches(1.0),
+                 "Or", font_size=72, font_color=WHITE, font_name="DM Sans")
+    add_text_box(slide, Inches(8.0), Inches(2.47), Inches(4.0), Inches(1.0),
+                 "This?", font_size=72, font_color=CORAL, font_name="Playfair Display")
 
-    add_text_box(slide, Inches(2), Inches(3.4), Inches(9), Inches(0.8),
-                 "Confidence in every choice.", font_size=28, font_color=WHITE,
-                 alignment=PP_ALIGN.CENTER, font_name="Georgia")
+    add_text_box(slide, Inches(6.5), Inches(3.7), Inches(6.0), Inches(0.5),
+                 "Confidence in every choice.",
+                 font_size=24, font_color=WHITE, font_name="Playfair Display")
 
-    add_text_box(slide, Inches(2), Inches(4.6), Inches(9), Inches(0.6),
-                 "[founder@orthis.app]  •  orthis.app", font_size=20, font_color=WHITE,
-                 alignment=PP_ALIGN.CENTER)
-
-    add_text_box(slide, Inches(2), Inches(5.8), Inches(9), Inches(0.8),
-                 "The only app that gives you honest outfit feedback\nin 30 seconds — right when you need it most.",
-                 font_size=18, font_color=WHITE, alignment=PP_ALIGN.CENTER)
+    add_text_box(slide, Inches(6.5), Inches(5.0), Inches(5.0), Inches(0.4),
+                 "bradavis2011@gmail.com  \u2022  orthis.app",
+                 font_size=15, font_color=GRAY, font_name="DM Sans")
 
     # ── Save ──
-    output_path = "/home/user/FitCheck/pitch-materials/OrThis_Seed_Pitch_Deck.pptx"
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "OrThis_Seed_Pitch_Deck.pptx")
     prs.save(output_path)
     print(f"Pitch deck saved to: {output_path}")
     return output_path

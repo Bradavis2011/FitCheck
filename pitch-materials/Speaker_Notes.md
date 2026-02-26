@@ -14,9 +14,9 @@ Use these notes when presenting the deck. Each section corresponds to a slide. F
 
 ## Slide 2: The Problem
 
-> "Every morning, millions of women stand in front of the mirror and ask 'does this actually look good?' It causes real stress — 72% of women report daily outfit indecision.
+> "Every morning, millions of women stand in front of the mirror and ask 'does this actually look good?' Outfit indecision is one of the most universally reported daily stressors for women — and the options are terrible.
 >
-> And the options are terrible. Your friends are biased. Your partner says 'you look fine.' Social media is too slow and too public. Pinterest gives inspiration but not feedback on what you're actually wearing. A stylist costs hundreds of dollars.
+> Your friends are biased. Your partner says 'you look fine.' Social media is too slow and too public. Pinterest gives inspiration but not feedback on what you're actually wearing. A stylist costs hundreds of dollars — and they're not available at 7:45am on a Tuesday.
 >
 > There is no honest, available, instant feedback source at the moment of decision. That moment — standing in front of the mirror, running late — is where we live."
 
@@ -42,9 +42,9 @@ Use these notes when presenting the deck. Each section corresponds to a slide. F
 
 ## Slide 5: Market Opportunity
 
-> "$1.7 trillion global fashion market. $45 billion in personal styling and fashion apps. We're targeting a $500 million serviceable market in AI-powered outfit feedback within 5 years.
+> "$1.8 trillion global apparel market. $5.5 billion in online personal styling services — growing 15% annually to $15 billion by 2032. We're targeting $200 million in ARR by Year 5 — 2 million paying subscribers plus B2B fashion intelligence licensing. For context, Duolingo has 8 million paid subscribers. We need 2 million.
 >
-> But the real story is timing. This category could not have existed 18 months ago. Vision AI crossed the quality threshold — models can now reliably analyze real outfit photos and give specific, useful feedback. We're here at the exact right moment."
+> But the bigger story is the data. Every outfit we analyze generates structured fashion intelligence — what real people actually wear to real occasions, scored by AI, validated by community consensus. At scale, we become the premier real-time fashion data source for the industry. Think WGSN, but built on actual consumer behavior instead of runway predictions."
 
 ---
 
@@ -86,7 +86,7 @@ Use these notes when presenting the deck. Each section corresponds to a slide. F
 
 ## Slide 10: Traction & Status
 
-> "The product is fully built. 37 screens covering the complete user journey. 16 backend API domains. Backend deployed and operational. AI pipeline live and running our v3.0 prompt in production.
+> "The product is fully built. 29 screens covering the complete user journey. 14 active API domains. 41 database models. Backend deployed and operational. AI pipeline live with our v2.0 prompt and Style DNA personalization in production.
 >
 > We're submitting to app stores now. We haven't launched publicly yet — we're pre-users — but the product is real, it works, and it's ready for people.
 >
@@ -104,9 +104,15 @@ Use these notes when presenting the deck. Each section corresponds to a slide. F
 
 ## Slide 12: The Team
 
-> *[Customize with real team story]*
+> "I'm the right founder for this because I've lived on both sides of the problem.
 >
-> "We understand this problem because we've lived it. [Personal story]. [Technical credibility]. [Why this team is uniquely positioned]."
+> I was a signed model with Rae Agency and a SAG actor. I spent years in an industry where your appearance is literally your professional product. I know what it costs to dress wrong, and how few reliable resources exist for fast, honest feedback.
+>
+> Then I spent 8 years at Apple, Verily — that's Alphabet — and Komodo Health managing AI products. I led AI analytics GTM for 12 of the top 20 pharma companies. I have a Kellogg MBA from Northwestern.
+>
+> And I built every line of code in this product myself. That's unusual — but I'm a technical founder. React Native, TypeScript, PostgreSQL — all of it.
+>
+> The combination of living the problem, managing AI at scale, and being able to build the solution is genuinely rare. That's why I'm here."
 
 ---
 
