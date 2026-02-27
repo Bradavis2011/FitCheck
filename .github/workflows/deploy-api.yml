@@ -39,6 +39,8 @@ jobs:
           cache-dependency-path: fitcheck-api/package-lock.json
       - run: npm ci
       - run: npx prisma generate
+      - name: Wait for Postgres to be fully ready
+        run: sleep 2
       - name: Run migrations against test DB
         run: npx prisma migrate deploy
       - name: Notify success
