@@ -138,10 +138,12 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 3 * 24 * 60 * 60 * 1000,
         subject: 'Top looks this week — get inspired',
-        buildHtml: (u, topStyles?: Array<{ archetype: string; avgScore: number }>) => buildEmail(
-          'Style Inspiration',
-          `Fresh styles from the community${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">The Or This? community has been posting some amazing looks. The top-scoring styles this week are:</p>
+        buildHtml: (u, extraData?: unknown) => {
+          const topStyles = extraData as Array<{ archetype: string; avgScore: number }> | undefined;
+          return buildEmail(
+            'Style Inspiration',
+            `Fresh styles from the community${u.name ? `, ${u.name}` : ''}`,
+            `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">The Or This? community has been posting some amazing looks. The top-scoring styles this week are:</p>
           <ul style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 16px;padding-left:20px;">
             ${topStyles && topStyles.length > 0
               ? topStyles.map(s => `<li>${s.archetype.charAt(0).toUpperCase() + s.archetype.slice(1)} (scoring ${s.avgScore.toFixed(1)} avg)</li>`).join('')
@@ -151,7 +153,8 @@ const SEQUENCES: Record<string, SequenceDef> = {
           <div style="text-align:center;margin:24px 0;">
             <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Check My Outfit</a>
           </div>`,
-        ),
+          );
+        },
       },
     ],
   },
@@ -227,7 +230,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
 
 // ─── Email HTML Builder ───────────────────────────────────────────────────────
 
-function buildEmail(title: string, headline: string, bodyHtml: string): string {
+function buildEmail(_title: string, headline: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>

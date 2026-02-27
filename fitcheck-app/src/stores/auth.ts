@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { FeedbackResponse, OutfitCheck } from '../lib/mockData';
+import { FeedbackResponse } from '../lib/mockData';
 
 interface AppState {
   // Onboarding
@@ -17,9 +17,6 @@ interface AppState {
   isAnalyzing: boolean;
   currentFeedback: FeedbackResponse | null;
 
-  // Outfits
-  outfits: OutfitCheck[];
-
   // Check flow actions
   setCapturedImage: (image: string | null) => void;
   toggleOccasion: (occasion: string) => void;
@@ -29,12 +26,8 @@ interface AppState {
   setConcerns: (text: string) => void;
   setEventDate: (date: Date | null) => void;
   startAnalysis: () => void;
-  setFeedback: (feedback: FeedbackResponse) => void;
+  setFeedback: (feedback: FeedbackResponse | null) => void;
   resetCheckFlow: () => void;
-
-  // Outfit actions
-  addOutfit: (outfit: OutfitCheck) => void;
-  toggleFavorite: (outfitId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -48,7 +41,6 @@ export const useAppStore = create<AppState>((set) => ({
   eventDate: null,
   isAnalyzing: false,
   currentFeedback: null,
-  outfits: [],
 
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
@@ -84,13 +76,4 @@ export const useAppStore = create<AppState>((set) => ({
       currentFeedback: null,
       isAnalyzing: false,
     }),
-
-  addOutfit: (outfit) =>
-    set((state) => ({ outfits: [outfit, ...state.outfits] })),
-  toggleFavorite: (outfitId) =>
-    set((state) => ({
-      outfits: state.outfits.map((o) =>
-        o.id === outfitId ? { ...o, isFavorite: !o.isFavorite } : o
-      ),
-    })),
 }));

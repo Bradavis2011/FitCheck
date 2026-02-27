@@ -5,11 +5,11 @@
  * with your actual AI service (OpenAI, Google Gemini, etc.)
  */
 
-import { OUTFIT_ANALYSIS_SYSTEM_PROMPT, COMPARISON_PROMPT_SUFFIX, FOLLOW_UP_PROMPT } from '../prompts/outfit-analysis.prompt.js';
-import { FEW_SHOT_EXAMPLES, EXAMPLES_BY_OCCASION } from '../data/few-shot-examples.js';
+import { OUTFIT_ANALYSIS_SYSTEM_PROMPT, FOLLOW_UP_PROMPT } from '../prompts/outfit-analysis.prompt.js';
+import { EXAMPLES_BY_OCCASION } from '../data/few-shot-examples.js';
 import { brandVoiceValidator } from '../validators/brand-voice-validator.js';
 import { validateFeedbackTemplate, FeedbackTemplate } from '../templates/feedback-template.js';
-import { COLOR_THEORY, FIT_GUIDELINES, QUICK_FIX_DATABASE } from '../knowledge/style-rules.js';
+import { COLOR_THEORY, QUICK_FIX_DATABASE } from '../knowledge/style-rules.js';
 
 export interface OutfitContext {
   occasion?: string;
@@ -167,7 +167,7 @@ export function validateAIResponse(response: any): {
  */
 export function getRelevantQuickFixes(
   issues: string[],
-  context: OutfitContext
+  _context: OutfitContext
 ): string[] {
   const fixes: string[] = [];
 
@@ -281,13 +281,9 @@ export async function callAIWithValidation(
  * Example usage with OpenAI (pseudocode)
  */
 export async function exampleOpenAIIntegration(
-  imageUrl: string,
-  context: OutfitContext
+  _imageUrl: string,
+  _context: OutfitContext
 ) {
-  // Build prompts
-  const systemPrompt = buildEnhancedSystemPrompt(context);
-  const userPrompt = buildOutfitAnalysisPrompt('Burgundy wrap dress, nude heels', context);
-
   // Call OpenAI (pseudocode - you'll need to implement this)
   const aiCall = async () => {
     // return await openai.chat.completions.create({

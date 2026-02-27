@@ -20,15 +20,16 @@ export class AppError extends Error {
 
 export function errorHandler(
   err: Error | AppError,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) {
   console.error('Error:', err);
 
   // Express body-parser sends SyntaxError for malformed JSON
   if (err instanceof SyntaxError && 'status' in err && (err as any).status === 400) {
-    return res.status(400).json({ error: 'Invalid JSON in request body', status: 400 });
+    res.status(400).json({ error: 'Invalid JSON in request body', status: 400 });
+    return;
   }
 
   if (err instanceof AppError) {
@@ -36,10 +37,11 @@ export function errorHandler(
       _errorCount5xx++;
       try { Sentry.captureException(err); } catch {}
     }
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       error: err.message,
       status: err.statusCode
     });
+    return;
   }
 
   // Default error (unhandled 500)

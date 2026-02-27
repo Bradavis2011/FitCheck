@@ -16,6 +16,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { publishToIntelligenceBus, readFromIntelligenceBus } from './intelligence-bus.service.js';
 import { measureNudgeMetrics, promoteNudgeWinners } from './nudge.service.js';
@@ -508,7 +509,7 @@ async function improveSocialPrompt(worstContentType: string): Promise<void> {
 
   // Get top 3 highest-performing posts of any type as positive examples
   const topPosts = await prisma.socialPost.findMany({
-    where: { status: 'posted', engagement: { not: null } },
+    where: { status: 'posted', engagement: { not: Prisma.JsonNull } },
     orderBy: { createdAt: 'desc' },
     take: 20,
   });
@@ -659,7 +660,6 @@ export async function runOpsLearning(): Promise<void> {
 
   const worstEmailStep = emailMetrics.filter(m => m.sent >= 5).sort((a, b) => a.openRate - b.openRate)[0];
   const worstSocialType = socialMetrics.filter(m => m.postsCount >= 2).sort((a, b) => a.engagementRate - b.engagementRate)[0]?.contentType;
-  const nudgeSegments = nudgePayload.segments as Record<string, { rate: number }> || {};
   const worstNudgeSegment = nudgePayload.worstSegment as string | null;
 
   switch (critique.weakestDomain) {

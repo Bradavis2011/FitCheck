@@ -201,13 +201,6 @@ export async function getMetricsSnapshot(): Promise<MetricsSnapshot> {
     });
     if (cohortUsers.length > 0) {
       const cohortIds = cohortUsers.map(u => u.userId);
-      const retainedCount = await prisma.outfitCheck.count({
-        where: {
-          userId: { in: cohortIds },
-          createdAt: { gte: sevenDaysAgo },
-          isDeleted: false,
-        },
-      });
       // Count distinct retained users
       const retained = await prisma.outfitCheck.findMany({
         where: {

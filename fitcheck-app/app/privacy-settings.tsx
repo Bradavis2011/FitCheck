@@ -14,10 +14,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@clerk/clerk-expo';
+import { useQueryClient } from '@tanstack/react-query';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { logOutPurchases } from '../src/services/purchases.service';
 import { useUpdateProfile, useUser } from '../src/hooks/useApi';
 import { userService } from '../src/services/api.service';
+import { useAuthStore } from '../src/stores/authStore';
+import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 type VisibilityOption = 'all' | 'followers' | 'trusted';
 type AutoDeleteOption = 'never' | '24h' | '7d' | '30d';
@@ -31,6 +34,8 @@ interface PrivacySettings {
 export default function PrivacySettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
+  const queryClient = useQueryClient();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
   const { data: user, isLoading } = useUser();
   const updateProfileMutation = useUpdateProfile();
 
@@ -106,8 +111,12 @@ export default function PrivacySettingsScreen() {
                   onPress: async () => {
                     try {
                       await userService.deleteAccount();
-                      await logOutPurchases();
                       await signOut();
+                      await logOutPurchases();
+                      await clearAuth();
+                      queryClient.clear();
+                      useSubscriptionStore.setState({ tier: 'free', isLoaded: false, offerings: null, customerInfo: null, limits: null });
+                      router.replace('/login' as any);
                     } catch (error) {
                       Alert.alert('Error', 'Failed to delete account. Please try again.');
                     }

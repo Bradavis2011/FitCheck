@@ -111,7 +111,7 @@ app.post('/api/webhooks/resend', express.raw({ type: '*/*' }), asyncHandler(hand
 app.use('/api', limiter);
 
 // Health check — verifies DB connectivity
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() });
@@ -127,14 +127,16 @@ app.get('/api/follow-up/:id/respond/:response', asyncHandler(async (req, res) =>
   const { token } = req.query as { token?: string };
   const valid = ['crushed_it', 'felt_good', 'meh', 'not_great'];
   if (!valid.includes(response)) {
-    return res.status(400).send('Invalid response.');
+    res.status(400).send('Invalid response.');
+    return;
   }
 
   // Verify HMAC token if secret is configured
   const hmacSecret = process.env.FOLLOW_UP_HMAC_SECRET;
   if (hmacSecret) {
     if (!token) {
-      return res.status(403).send('Missing token.');
+      res.status(403).send('Missing token.');
+      return;
     }
     const { createHmac } = await import('crypto');
     const expected = createHmac('sha256', hmacSecret).update(`${id}:${response}`).digest('hex');
@@ -142,7 +144,8 @@ app.get('/api/follow-up/:id/respond/:response', asyncHandler(async (req, res) =>
     const tokenBuf = Buffer.from(token as string, 'hex');
     const expectedBuf = Buffer.from(expected, 'hex');
     if (tokenBuf.length !== expectedBuf.length || !timingSafeEqual(tokenBuf, expectedBuf)) {
-      return res.status(403).send('Invalid token.');
+      res.status(403).send('Invalid token.');
+      return;
     }
   }
 
@@ -188,7 +191,7 @@ app.use('/api/trends', trendsRoutes);
 app.use('/api/referral', referralRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 

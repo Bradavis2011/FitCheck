@@ -6,11 +6,12 @@
  * with priority-based gating. Wraps all learning Gemini calls with tracking.
  */
 
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GenerativeModel } from '@google/generative-ai';
 import { prisma } from '../utils/prisma.js';
 
 const DAILY_BUDGET = parseInt(process.env.DAILY_TOKEN_BUDGET || '500000');
-const USER_RESERVATION_PCT = 0.25;
+// USER_RESERVATION_PCT is documented for reference but currently not used in calculations
+// const USER_RESERVATION_PCT = 0.25;
 const LEARNING_BUDGET_PCT = parseFloat(process.env.LEARNING_BUDGET_PCT || '0.75');
 const LEARNING_FLOOR = parseInt(process.env.LEARNING_BUDGET_FLOOR || '50000');
 const HARD_CAP_MULTIPLIER = 1.05;
@@ -87,7 +88,7 @@ export async function hasLearningBudget(priority: 1 | 2 | 3 | 4 | 5 | 6): Promis
 /** Reserve tokens atomically. Returns false if budget would be exceeded. */
 export async function reserveTokens(
   estimatedTokens: number,
-  category: string,
+  _category: string,
   isUserCall = false
 ): Promise<boolean> {
   const date = getTodayString();

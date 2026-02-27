@@ -1,11 +1,11 @@
-
 import { Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 // sharp is lazy-loaded inside functions to prevent startup crash if native binary is incompatible
 import { AuthenticatedRequest, OutfitCheckInput } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { isAdmin } from '../utils/admin.js';
 
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 import { prisma } from '../utils/prisma.js';
@@ -147,22 +147,6 @@ async function updateUserStreakAndPoints(userId: string): Promise<void> {
   }
 }
 
-// Soft-delete outfit checks whose expiresAt has passed (auto-delete feature)
-async function purgeExpiredOutfits(userId: string): Promise<void> {
-  try {
-    await prisma.outfitCheck.updateMany({
-      where: {
-        userId,
-        isDeleted: false,
-        expiresAt: { lte: new Date() },
-      },
-      data: { isDeleted: true },
-    });
-  } catch (err) {
-    console.error('Failed to purge expired outfits:', err);
-  }
-}
-
 export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
@@ -213,7 +197,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     }
 
     // Check daily limit based on tier, with give-to-get bonus
-    if (ADMIN_USER_IDS.includes(userId)) {
+    if (isAdmin(userId)) {
       // Admin/founder accounts are always unlimited — skip limit check
     } else {
     const limits = getTierLimits(user.tier);
@@ -719,7 +703,7 @@ export async function reanalyzeOutfit(req: AuthenticatedRequest, res: Response) 
   await prisma.outfitCheck.update({
     where: { id },
     data: {
-      aiFeedback: null,
+      aiFeedback: Prisma.JsonNull,
       aiScore: null,
       aiProcessedAt: null,
     },
@@ -737,7 +721,7 @@ export async function reanalyzeOutfit(req: AuthenticatedRequest, res: Response) 
   };
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  const tierLimits = getTierLimits(user?.tier || 'FREE');
+  const tierLimits = getTierLimits(user?.tier || 'free');
   analyzeOutfit(id, analysisInput as OutfitCheckInput, user!, tierLimits.hasPriorityProcessing).catch((error) => {
     console.error('Background re-analysis failed:', error);
   });

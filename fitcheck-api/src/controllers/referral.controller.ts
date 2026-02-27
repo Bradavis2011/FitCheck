@@ -53,7 +53,8 @@ export async function claimReferral(req: AuthenticatedRequest, res: Response) {
 
   // Idempotent — already claimed
   if (user.referredById) {
-    return res.json({ ok: true, alreadyClaimed: true });
+    res.json({ ok: true, alreadyClaimed: true });
+    return;
   }
 
   const referrer = await prisma.user.findUnique({

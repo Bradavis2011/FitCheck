@@ -1,18 +1,9 @@
 import { Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
-import { AppError } from '../middleware/errorHandler.js';
 import { getMetricsSnapshot, getSnapshotHistory } from '../services/metrics.service.js';
 import { sendDailyDigest, sendWeeklyDigest } from '../services/email-report.service.js';
-
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
-
-function requireAdmin(req: AuthenticatedRequest): void {
-  const userId = req.userId;
-  if (!userId || !ADMIN_USER_IDS.includes(userId)) {
-    throw new AppError(403, 'Admin access required');
-  }
-}
+import { requireAdmin } from '../utils/admin.js';
 
 // GET /api/admin/metrics
 export async function getLiveMetrics(req: AuthenticatedRequest, res: Response) {

@@ -36,9 +36,6 @@ export default function ProfileScreen() {
   const claimReferral = useClaimReferral();
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [showStyles, setShowStyles] = useState(false);
-  const selectedStyles = (userProfile?.stylePreferences?.styles as string[]) || [];
-  const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editUsername, setEditUsername] = useState('');
@@ -73,13 +70,6 @@ export default function ProfileScreen() {
     claimPendingReferral();
   }, []);
 
-  const toggleStyle = (style: string) => {
-    const newStyles = selectedStyles.includes(style)
-      ? selectedStyles.filter((s) => s !== style)
-      : [...selectedStyles, style];
-    updateProfile.mutate({ stylePreferences: { styles: newStyles } });
-  };
-
   const toggleNotifications = async () => {
     const newValue = !notifications;
     setNotifications(newValue);
@@ -96,11 +86,11 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
         try {
-          await logOutPurchases();
-          await clearAuth();
-          queryClient.clear();
+          await signOut();            // 1. Kill session first — no more valid tokens
+          await logOutPurchases();    // 2. RevenueCat logout
+          await clearAuth();          // 3. Zustand + SecureStore (including onboarding key)
+          queryClient.clear();        // 4. React Query — safe now, refetches will fail auth
           useSubscriptionStore.setState({ tier: 'free', isLoaded: false, offerings: null, customerInfo: null, limits: null });
-          await signOut();
           router.replace('/login' as any);
         } catch (error) {
           console.error('Sign out failed:', error);

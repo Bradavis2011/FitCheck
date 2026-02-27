@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -58,9 +58,13 @@ function AuthGate() {
   const { isSignedIn, isLoaded, getToken, userId } = useAuth();
   const { hasCompletedOnboarding, loadAuth } = useAuthStore();
   const { initialize: initSubscription } = useSubscriptionStore();
+  const queryClient = useQueryClient();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
+
+  // Track previous userId to detect account switches
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
 
   // Initialize push notifications
   usePushNotifications();
@@ -70,9 +74,26 @@ function AuthGate() {
     setClerkTokenGetter(getToken);
   }, [getToken]);
 
+  // Re-run loadAuth when sign-in state changes so Zustand stays in sync
   useEffect(() => {
     loadAuth();
-  }, []);
+  }, [isSignedIn]);
+
+  // Clear all caches whenever the active userId changes (account switch or sign-out).
+  // This is the primary safety net — it fires regardless of which auth path was taken.
+  useEffect(() => {
+    // Skip the very first render (undefined → first resolved value)
+    if (prevUserIdRef.current === undefined) {
+      prevUserIdRef.current = userId ?? null;
+      return;
+    }
+    const normalizedUserId = userId ?? null;
+    if (prevUserIdRef.current !== normalizedUserId) {
+      queryClient.clear();
+      useSubscriptionStore.setState({ tier: 'free', isLoaded: false, offerings: null, customerInfo: null, limits: null });
+      prevUserIdRef.current = normalizedUserId;
+    }
+  }, [userId]);
 
   // Initialize RevenueCat when user is signed in
   useEffect(() => {

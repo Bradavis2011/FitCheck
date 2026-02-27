@@ -241,7 +241,8 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         where: { isPublic: true, isDeleted: false, visibility: 'inner_circle', userId: { in: ownerIds } },
       });
 
-      return res.json({ outfits, total, hasMore: total > parseInt(offset as string) + outfits.length });
+      res.json({ outfits, total, hasMore: total > parseInt(offset as string) + outfits.length });
+      return;
     }
 
     // Determine sort order based on filter

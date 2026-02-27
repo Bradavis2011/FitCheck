@@ -3,8 +3,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
-
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
+import { isAdmin } from '../utils/admin.js';
 
 const CreateChallengeSchema = z.object({
   title: z.string().min(3).max(100),
@@ -17,11 +16,6 @@ const CreateChallengeSchema = z.object({
 
 const SubmitEntrySchema = z.object({
   outfitCheckId: z.string().uuid(),
-});
-
-const SubmitReviewSchema = z.object({
-  score: z.number().int().min(1).max(10),
-  feedback: z.string().min(10).max(2000),
 });
 
 // GET /api/challenges
@@ -58,7 +52,7 @@ export async function listChallenges(req: Request, res: Response) {
 }
 
 // GET /api/challenges/active — convenience endpoint for the home/current tab
-export async function getActiveChallenge(req: Request, res: Response) {
+export async function getActiveChallenge(_req: Request, res: Response) {
   const now = new Date();
 
   // Also auto-transition upcoming → active
@@ -82,7 +76,8 @@ export async function getActiveChallenge(req: Request, res: Response) {
   });
 
   if (!challenge) {
-    return res.json({ challenge: null });
+    res.json({ challenge: null });
+    return;
   }
 
   res.json({ challenge: { ...challenge, submissionCount: challenge._count.submissions } });
@@ -220,7 +215,7 @@ export async function getMySubmission(req: AuthenticatedRequest, res: Response) 
 // POST /api/challenges  (admin only)
 export async function createChallenge(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;
-  if (!ADMIN_USER_IDS.includes(userId)) {
+  if (!isAdmin(userId)) {
     throw new AppError(403, 'Admin access required');
   }
 
@@ -247,7 +242,7 @@ export async function createChallenge(req: AuthenticatedRequest, res: Response) 
 // POST /api/challenges/:id/end  (admin only)
 export async function endChallenge(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;
-  if (!ADMIN_USER_IDS.includes(userId)) {
+  if (!isAdmin(userId)) {
     throw new AppError(403, 'Admin access required');
   }
 

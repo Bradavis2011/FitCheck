@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { createHash, timingSafeEqual } from 'crypto';
 import * as Sentry from '@sentry/node';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -7,15 +6,9 @@ import { processWebhookEvent, syncSubscriptionFromClient } from '../services/sub
 import { getTierLimits } from '../constants/tiers.js';
 import { trackServerEvent } from '../lib/posthog.js';
 import { prisma } from '../utils/prisma.js';
+import { safeTokenEqual } from '../utils/crypto.js';
 
 const REVENUECAT_WEBHOOK_AUTH = process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN;
-
-// Hash-then-compare: normalizes token lengths, timing-safe against oracle attacks
-function safeTokenEqual(a: string, b: string): boolean {
-  const ha = createHash('sha256').update(a).digest();
-  const hb = createHash('sha256').update(b).digest();
-  return timingSafeEqual(ha, hb);
-}
 
 /**
  * POST /api/webhooks/revenuecat
@@ -27,7 +20,8 @@ export async function handleWebhook(req: Request, res: Response) {
   const authHeader = req.headers['authorization'];
   if (!REVENUECAT_WEBHOOK_AUTH || !authHeader || !safeTokenEqual(authHeader, `Bearer ${REVENUECAT_WEBHOOK_AUTH}`)) {
     console.warn('[Webhook] Unauthorized webhook attempt');
-    return res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   try {

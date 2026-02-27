@@ -4,6 +4,8 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { getTierLimits } from '../constants/tiers.js';
+import { isAdmin } from '../utils/admin.js';
+import { getWeekNumber } from '../utils/date.js';
 
 const UpdateProfileSchema = z.object({
   name: z.string().optional(),
@@ -116,8 +118,6 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
   }
 }
 
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
-
 export async function getUserStats(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
@@ -139,8 +139,8 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
     ]);
 
     // Admin accounts are always unlimited
-    if (ADMIN_USER_IDS.includes(userId)) {
-      return res.json({
+    if (isAdmin(userId)) {
+      res.json({
         ...stats,
         totalOutfits: outfitCount,
         totalFavorites: favoriteCount,
@@ -148,6 +148,7 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
         dailyChecksLimit: 999,
         dailyChecksRemaining: 999,
       });
+      return;
     }
 
     // Apply same reset logic as outfit submission — so the UI updates at midnight
@@ -339,15 +340,6 @@ export async function getStyleEvolution(req: AuthenticatedRequest, res: Response
     throw error;
   }
   return;
-}
-
-// Helper: Get ISO week number
-function getWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
 // ========== GAMIFICATION ENDPOINTS ==========

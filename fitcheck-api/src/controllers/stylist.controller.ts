@@ -3,8 +3,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
-
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
+import { isAdmin } from '../utils/admin.js';
 
 const StylistApplicationSchema = z.object({
   bio: z.string().min(20, 'Bio must be at least 20 characters').max(1000),
@@ -120,7 +119,7 @@ export async function getStylist(req: AuthenticatedRequest, res: Response) {
 export async function verifyStylist(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;
 
-  if (!ADMIN_USER_IDS.includes(userId)) {
+  if (!isAdmin(userId)) {
     throw new AppError(403, 'Admin access required');
   }
 
@@ -141,7 +140,7 @@ export async function verifyStylist(req: AuthenticatedRequest, res: Response) {
 export async function unverifyStylist(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;
 
-  if (!ADMIN_USER_IDS.includes(userId)) {
+  if (!isAdmin(userId)) {
     throw new AppError(403, 'Admin access required');
   }
 

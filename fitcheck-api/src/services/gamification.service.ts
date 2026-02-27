@@ -372,20 +372,16 @@ export async function getLeaderboard(type: 'weekly' | 'monthly' | 'alltime', lim
 
 // Get user's rank on leaderboard
 export async function getUserRank(userId: string, type: 'weekly' | 'monthly' | 'alltime') {
-  let orderBy: any;
   let pointsField: string;
 
   switch (type) {
     case 'weekly':
-      orderBy = { weeklyPoints: 'desc' };
       pointsField = 'weeklyPoints';
       break;
     case 'monthly':
-      orderBy = { monthlyPoints: 'desc' };
       pointsField = 'monthlyPoints';
       break;
     case 'alltime':
-      orderBy = { points: 'desc' };
       pointsField = 'points';
       break;
   }

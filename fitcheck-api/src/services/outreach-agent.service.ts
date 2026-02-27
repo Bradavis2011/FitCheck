@@ -166,7 +166,6 @@ export async function runOutreachAgent(): Promise<void> {
         continue;
       }
 
-      const htmlBody = buildReviewEmail(draft, target.label);
       const contentToCheck = `${draft.subject}\n${draft.body}`;
 
       await executeOrQueue(

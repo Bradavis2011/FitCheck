@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { createHash, timingSafeEqual } from 'crypto';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
@@ -17,15 +16,8 @@ import {
   getDashboardSummary,
   processApprovedActions,
 } from '../services/agent-manager.service.js';
-
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
-
-// Hash-then-compare: normalizes lengths, timing-safe against token oracle attacks
-function safeTokenEqual(a: string, b: string): boolean {
-  const ha = createHash('sha256').update(a).digest();
-  const hb = createHash('sha256').update(b).digest();
-  return timingSafeEqual(ha, hb);
-}
+import { safeTokenEqual } from '../utils/crypto.js';
+import { requireAdmin } from '../utils/admin.js';
 
 // POST /api/admin/agents/auth/verify — validate dashboard token (no auth required)
 export async function verifyToken(req: Request, res: Response) {
@@ -37,13 +29,6 @@ export async function verifyToken(req: Request, res: Response) {
     return;
   }
   res.json({ ok: true });
-}
-
-function requireAdmin(req: AuthenticatedRequest): void {
-  const userId = req.userId;
-  if (!userId || !ADMIN_USER_IDS.includes(userId)) {
-    throw new AppError(403, 'Admin access required');
-  }
 }
 
 // GET /api/admin/agents — dashboard: all agent configs + recent actions + pending count

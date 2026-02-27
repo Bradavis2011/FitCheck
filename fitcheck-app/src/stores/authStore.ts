@@ -55,8 +55,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_KEY);
+      await SecureStore.deleteItemAsync(ONBOARDING_KEY);
       setAuthToken(null);
-      set({ token: null, user: null, isAuthenticated: false });
+      set({ token: null, user: null, isAuthenticated: false, hasCompletedOnboarding: false });
     } catch (error) {
       console.error('Failed to clear auth:', error);
     }

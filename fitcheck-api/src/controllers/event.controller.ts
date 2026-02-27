@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -201,7 +202,7 @@ export async function addOutfitToEvent(req: AuthenticatedRequest, res: Response)
   // Invalidate any cached comparison since the outfit list changed
   await prisma.event.update({
     where: { id: eventId },
-    data: { compareResult: null, compareRunAt: null },
+    data: { compareResult: Prisma.JsonNull, compareRunAt: null },
   });
 
   res.status(201).json({ eventOutfit });
@@ -226,7 +227,7 @@ export async function removeOutfitFromEvent(req: AuthenticatedRequest, res: Resp
   // Invalidate cached comparison
   await prisma.event.update({
     where: { id: eventId },
-    data: { compareResult: null, compareRunAt: null },
+    data: { compareResult: Prisma.JsonNull, compareRunAt: null },
   });
 
   res.json({ success: true });
@@ -268,7 +269,8 @@ export async function compareOutfits(req: AuthenticatedRequest, res: Response) {
   if (event.compareResult && event.compareRunAt) {
     const age = Date.now() - new Date(event.compareRunAt).getTime();
     if (age < 24 * 60 * 60 * 1000) {
-      return res.json({ result: event.compareResult, cached: true });
+      res.json({ result: event.compareResult, cached: true });
+      return;
     }
   }
 

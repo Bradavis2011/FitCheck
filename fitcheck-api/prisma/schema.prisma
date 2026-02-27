@@ -85,6 +85,7 @@ model User {
   milestoneMessages      MilestoneMessage[]
 
   @@map("users")
+  @@index([tier])
 }
 
 model OutfitCheck {
@@ -231,6 +232,7 @@ model Report {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("reports")
+  @@index([status, createdAt])
 }
 
 model BlockedUser {
@@ -271,6 +273,8 @@ model Notification {
 
   @@map("notifications")
   @@index([userId, createdAt])
+  @@index([userId, isRead])
+  @@index([type, createdAt])
 }
 
 model PushToken {
@@ -368,6 +372,7 @@ model StyleDNA {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId])
+  @@index([userId, createdAt])
   @@index([createdAt])
   @@map("style_dna")
 }
@@ -679,6 +684,7 @@ model EmailSequence {
 
   @@map("email_sequences")
   @@unique([userId, sequence])
+  @@index([userId])
   @@index([status, nextSendAt])
 }
 

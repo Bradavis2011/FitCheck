@@ -157,7 +157,6 @@ export class BrandVoiceValidator {
 
   private checkHedging(text: string): BrandVoiceIssue[] {
     const issues: BrandVoiceIssue[] = [];
-    const lowerText = text.toLowerCase();
     let hedgeCount = 0;
 
     for (const word of HEDGING_WORDS) {
@@ -243,8 +242,6 @@ export class BrandVoiceValidator {
       'avoid', 'problem', 'issue', 'concern', 'wrong', 'bad',
       'poor', 'terrible', 'awful', 'harsh', 'unflattering',
     ];
-
-    const lowerText = text.toLowerCase();
 
     const positiveCount = positiveWords.reduce((count, word) => {
       const regex = new RegExp(`\\b${word}`, 'gi');

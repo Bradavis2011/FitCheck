@@ -8,6 +8,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { trackedGenerateContent } from './token-budget.service.js';
 import { readFromIntelligenceBus, publishToIntelligenceBus } from './intelligence-bus.service.js';
@@ -68,7 +69,7 @@ export async function runCriticAgent(): Promise<CritiqueResult | null> {
   const recentOutfits = await prisma.outfitCheck.findMany({
     where: {
       judgeEvaluated: true,
-      judgeScores: { not: null },
+      judgeScores: { not: Prisma.JsonNull },
       isDeleted: false,
       createdAt: { gte: sevenDaysAgo },
     },

@@ -7,7 +7,7 @@
  */
 
 import { execSync } from 'child_process';
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import { Resend } from 'resend';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';

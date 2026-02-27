@@ -514,7 +514,7 @@ async function diagnoseWeaknesses(): Promise<WeaknessReport> {
 async function generateImprovedPrompt(
   currentPrompt: string,
   weaknesses: WeaknessReport,
-  discoveredRules: DiscoveredFashionRule[],
+  _discoveredRules: DiscoveredFashionRule[],
   metrics: PerformanceMetrics,
 ): Promise<string | null> {
   const unincorporatedRules = await prisma.discoveredRule.findMany({
@@ -611,7 +611,7 @@ OUTPUT: Return ONLY the complete improved system prompt text. No preamble, no ma
 async function deployCandidate(
   improvedPrompt: string,
   parentVersion: string,
-  cycleId: string,
+  _cycleId: string,
 ): Promise<string> {
   // Generate version name
   const existing = await prisma.promptVersion.findMany({
