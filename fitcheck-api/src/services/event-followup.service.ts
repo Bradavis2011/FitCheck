@@ -1,8 +1,20 @@
+import { createHmac } from 'crypto';
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+
+/**
+ * Generates an HMAC-SHA256 token for an email click-through link.
+ * Prevents enumeration/CSRF on the unauthenticated follow-up endpoint.
+ * If FOLLOW_UP_HMAC_SECRET is not set, returns an empty string (token omitted from URL).
+ */
+export function generateFollowUpToken(id: string, response: string): string {
+  const secret = process.env.FOLLOW_UP_HMAC_SECRET;
+  if (!secret) return '';
+  return createHmac('sha256', secret).update(`${id}:${response}`).digest('hex');
+}
 
 export const EVENT_OCCASIONS = ['Date Night', 'Interview', 'Event'];
 
@@ -264,13 +276,14 @@ function buildFollowUpEmail(
   ];
 
   const buttons = responses
-    .map(
-      (r) =>
-        `<a href="${baseUrl}/api/follow-up/${followUpId}/respond/${r.key}" ` +
+    .map((r) => {
+      const token = generateFollowUpToken(followUpId, r.key);
+      const tokenParam = token ? `?token=${token}` : '';
+      return `<a href="${baseUrl}/api/follow-up/${followUpId}/respond/${r.key}${tokenParam}" ` +
         `style="display:inline-block;margin:8px;padding:12px 24px;background:#FBF7F4;` +
         `border:2px solid #E85D4C;border-radius:50px;text-decoration:none;` +
-        `color:#E85D4C;font-weight:600;font-size:15px;">${r.emoji} ${r.label}</a>`,
-    )
+        `color:#E85D4C;font-weight:600;font-size:15px;">${r.emoji} ${r.label}</a>`;
+    })
     .join('');
 
   return `<!DOCTYPE html>

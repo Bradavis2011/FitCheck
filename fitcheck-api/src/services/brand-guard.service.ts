@@ -14,6 +14,14 @@ export interface BrandGuardResult {
 const cache = new Map<string, { result: BrandGuardResult; expiresAt: number }>();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
+// Sweep expired entries every 30 minutes to prevent unbounded Map growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (entry.expiresAt <= now) cache.delete(key);
+  }
+}, 30 * 60 * 1000).unref();
+
 function cacheKey(text: string): string {
   // Cheap fingerprint: first 120 chars + length (good enough for dedup)
   return `${text.slice(0, 120)}|${text.length}`;

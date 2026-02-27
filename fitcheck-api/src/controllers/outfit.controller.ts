@@ -4,6 +4,10 @@ import { z } from 'zod';
 // sharp is lazy-loaded inside functions to prevent startup crash if native binary is incompatible
 import { AuthenticatedRequest, OutfitCheckInput } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+
+const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 import { prisma } from '../utils/prisma.js';
 import { analyzeOutfit, handleFollowUpQuestion } from '../services/ai-feedback.service.js';
 import { uploadBuffer } from '../services/s3.service.js';
@@ -38,8 +42,9 @@ async function generateThumbnail(base64Image: string): Promise<Buffer> {
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(base64Data, 'base64');
 
-  // Resize to 200px width, JPEG quality 60
+  // .rotate() with no args auto-rotates by EXIF orientation and strips all EXIF/GPS metadata
   const thumbnail = await sharp(buffer)
+    .rotate()
     .resize(200, null, { fit: 'inside' })
     .jpeg({ quality: 60 })
     .toBuffer();
@@ -53,8 +58,10 @@ async function resizeForAI(base64Image: string): Promise<string> {
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(base64Data, 'base64');
 
+  // .rotate() with no args auto-rotates by EXIF orientation and strips all EXIF/GPS metadata
   // Resize to max 1024px on either dimension — Gemini doesn't need full resolution
   const resized = await sharp(buffer)
+    .rotate()
     .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 85 })
     .toBuffer();
@@ -64,13 +71,14 @@ async function resizeForAI(base64Image: string): Promise<string> {
 
 async function updateUserStreakAndPoints(userId: string): Promise<void> {
   try {
-    // Get all outfit checks for this user, ordered by creation date
+    // Get recent outfit checks for this user — 60 days is more than enough to calculate a streak
     const outfitChecks = await prisma.outfitCheck.findMany({
       where: {
         userId,
         isDeleted: false,
       },
       orderBy: { createdAt: 'desc' },
+      take: 60,
       select: { createdAt: true },
     });
 
@@ -188,9 +196,24 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       });
     }
 
+    // Validate image MIME type and size before any processing
+    if (data.imageBase64) {
+      const mimeMatch = data.imageBase64.match(/^data:(image\/[\w+]+);base64,/);
+      if (mimeMatch) {
+        if (!ALLOWED_MIME_TYPES.includes(mimeMatch[1])) {
+          throw new AppError(400, 'Invalid image type. Supported formats: JPEG, PNG, WEBP');
+        }
+      }
+      // Estimate decoded size: base64 chars × 0.75 ≈ bytes
+      const base64Payload = data.imageBase64.replace(/^data:image\/[\w+]+;base64,/, '');
+      const estimatedBytes = Math.ceil(base64Payload.length * 0.75);
+      if (estimatedBytes > MAX_IMAGE_BYTES) {
+        throw new AppError(400, 'Image exceeds 5MB limit');
+      }
+    }
+
     // Check daily limit based on tier, with give-to-get bonus
-    const ADMIN_EMAILS = ['bradavis2011@gmail.com', 'admin@orthis.app'];
-    if (ADMIN_EMAILS.includes(user.email)) {
+    if (ADMIN_USER_IDS.includes(userId)) {
       // Admin/founder accounts are always unlimited — skip limit check
     } else {
     const limits = getTierLimits(user.tier);
@@ -210,7 +233,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         }
       }
       // Referral bonus: +1 per referred user who completed first outfit check (max 3)
-      effectiveDailyLimit += Math.min(3, (user as any).bonusDailyChecks || 0);
+      effectiveDailyLimit += Math.min(3, user.bonusDailyChecks || 0);
     }
     if (effectiveDailyLimit !== Infinity && user.dailyChecksUsed >= effectiveDailyLimit) {
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
@@ -391,15 +414,15 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         ]);
 
         // Referral reward: first outfit check by a referred user earns their referrer +1 bonus daily check
-        if (outfitCount === 1 && (user as any).referredById) {
+        if (outfitCount === 1 && user.referredById) {
           try {
             const referrer = await prisma.user.findUnique({
-              where: { id: (user as any).referredById },
+              where: { id: user.referredById },
               select: { bonusDailyChecks: true },
             });
             if (referrer && referrer.bonusDailyChecks < 3) {
               await prisma.user.update({
-                where: { id: (user as any).referredById },
+                where: { id: user.referredById },
                 data: { bonusDailyChecks: { increment: 1 } },
               });
             }
@@ -442,372 +465,329 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
 }
 
 export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
+  const { id } = req.params;
+  const userId = req.userId!;
 
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: {
-        id,
-        userId,
-        isDeleted: false,
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: {
+      id,
+      userId,
+      isDeleted: false,
+    },
+    include: {
+      followUps: {
+        orderBy: { createdAt: 'asc' },
       },
-      include: {
-        followUps: {
-          orderBy: { createdAt: 'asc' },
-        },
-      },
-    });
+    },
+  });
 
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    res.json(outfitCheck);
-  } catch (error) {
-    throw error;
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
   }
+
+  res.json(outfitCheck);
 }
 
 export async function listOutfitChecks(req: AuthenticatedRequest, res: Response) {
-  try {
-    const userId = req.userId!;
-    const { occasion, isFavorite, limit = '20', offset = '0' } = req.query;
+  const userId = req.userId!;
+  const { occasion, isFavorite, limit = '20', offset = '0' } = req.query;
 
-    // Purge any expired outfits for this user before listing
-    await purgeExpiredOutfits(userId);
+  // Get user tier for history gating
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { tier: true },
+  });
 
-    // Get user tier for history gating
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { tier: true },
-    });
+  const tierLimits = getTierLimits(user?.tier || 'free');
 
-    const tierLimits = getTierLimits(user?.tier || 'free');
+  const where: any = {
+    userId,
+    isDeleted: false,
+  };
 
-    const where: any = {
-      userId,
-      isDeleted: false,
-    };
-
-    // Apply history gating for free tier
-    if (tierLimits.historyDays !== Infinity) {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - tierLimits.historyDays);
-      where.createdAt = { gte: cutoffDate };
-    }
-
-    if (occasion) {
-      where.occasions = { has: occasion };
-    }
-
-    if (isFavorite === 'true') {
-      where.isFavorite = true;
-    }
-
-    const outfits = await prisma.outfitCheck.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit as string),
-      skip: parseInt(offset as string),
-      select: {
-        id: true,
-        imageUrl: true,
-        imageData: true,
-        thumbnailUrl: true,
-        thumbnailData: true,
-        occasions: true,
-        aiScore: true,
-        isFavorite: true,
-        createdAt: true,
-      },
-    });
-
-    const total = await prisma.outfitCheck.count({ where });
-
-    res.json({
-      outfits,
-      total,
-      hasMore: total > parseInt(offset as string) + outfits.length,
-    });
-  } catch (error) {
-    throw error;
+  // Apply history gating for free tier
+  if (tierLimits.historyDays !== Infinity) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - tierLimits.historyDays);
+    where.createdAt = { gte: cutoffDate };
   }
+
+  if (occasion) {
+    where.occasions = { has: occasion };
+  }
+
+  if (isFavorite === 'true') {
+    where.isFavorite = true;
+  }
+
+  const outfits = await prisma.outfitCheck.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: Math.min(100, parseInt(limit as string) || 20),
+    skip: Math.min(10000, parseInt(offset as string) || 0),
+    select: {
+      id: true,
+      imageUrl: true,
+      imageData: true,
+      thumbnailUrl: true,
+      thumbnailData: true,
+      occasions: true,
+      aiScore: true,
+      isFavorite: true,
+      createdAt: true,
+    },
+  });
+
+  const total = await prisma.outfitCheck.count({ where });
+
+  res.json({
+    outfits,
+    total,
+    hasMore: total > (Math.min(10000, parseInt(offset as string) || 0)) + outfits.length,
+  });
 }
 
 export async function submitFollowUpQuestion(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const { question } = req.body;
+  const { id } = req.params;
+  const userId = req.userId!;
+  const { question } = req.body;
 
-    if (!question || typeof question !== 'string') {
-      throw new AppError(400, 'Question is required');
-    }
-
-    // Verify outfit belongs to user
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: { id, userId },
-      include: { followUps: true },
-    });
-
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    // Limit follow-ups based on tier
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    const limits = getTierLimits(user?.tier || 'free');
-    if (outfitCheck.followUps.length >= limits.followUpsPerCheck) {
-      throw new AppError(429, 'Follow-up limit reached. Upgrade to Plus for more questions!');
-    }
-
-    const answer = await handleFollowUpQuestion(id, question);
-
-    res.json({
-      question,
-      answer,
-    });
-  } catch (error) {
-    throw error;
+  if (!question || typeof question !== 'string') {
+    throw new AppError(400, 'Question is required');
   }
+
+  // Verify outfit belongs to user
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: { id, userId },
+    include: { followUps: true },
+  });
+
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
+  }
+
+  // Limit follow-ups based on tier
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  const limits = getTierLimits(user?.tier || 'free');
+  if (outfitCheck.followUps.length >= limits.followUpsPerCheck) {
+    throw new AppError(429, 'Follow-up limit reached. Upgrade to Plus for more questions!');
+  }
+
+  const answer = await handleFollowUpQuestion(id, question);
+
+  res.json({
+    question,
+    answer,
+  });
 }
 
 export async function toggleFavorite(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
+  const { id } = req.params;
+  const userId = req.userId!;
 
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: { id, userId },
-    });
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: { id, userId },
+  });
 
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    const updated = await prisma.outfitCheck.update({
-      where: { id },
-      data: { isFavorite: !outfitCheck.isFavorite },
-    });
-
-    res.json({ isFavorite: updated.isFavorite });
-  } catch (error) {
-    throw error;
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
   }
+
+  const updated = await prisma.outfitCheck.update({
+    where: { id },
+    data: { isFavorite: !outfitCheck.isFavorite },
+  });
+
+  res.json({ isFavorite: updated.isFavorite });
 }
 
 export async function togglePublic(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
+  const { id } = req.params;
+  const userId = req.userId!;
 
-    // Verify the outfit belongs to this user
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: { id, userId, isDeleted: false },
-    });
+  // Verify the outfit belongs to this user
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: { id, userId, isDeleted: false },
+  });
 
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    // If making public, ensure user has a username and make their profile public too
-    if (!outfitCheck.isPublic) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { username: true, isPublic: true },
-      });
-
-      if (!user?.username) {
-        throw new AppError(400, 'You must set a username before sharing outfits publicly. Go to Profile > Edit Profile to set one.');
-      }
-
-      // Auto-make user profile public so outfits appear in the community feed
-      if (!user.isPublic) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { isPublic: true },
-        });
-      }
-    }
-
-    const updated = await prisma.outfitCheck.update({
-      where: { id },
-      data: { isPublic: !outfitCheck.isPublic },
-    });
-
-    res.json({ isPublic: updated.isPublic });
-  } catch (error) {
-    throw error;
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
   }
+
+  // If making public, ensure user has a username and make their profile public too
+  if (!outfitCheck.isPublic) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, isPublic: true },
+    });
+
+    if (!user?.username) {
+      throw new AppError(400, 'You must set a username before sharing outfits publicly. Go to Profile > Edit Profile to set one.');
+    }
+
+    // Auto-make user profile public so outfits appear in the community feed
+    if (!user.isPublic) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isPublic: true },
+      });
+    }
+  }
+
+  const updated = await prisma.outfitCheck.update({
+    where: { id },
+    data: { isPublic: !outfitCheck.isPublic },
+  });
+
+  res.json({ isPublic: updated.isPublic });
 }
 
 export async function rateFeedback(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const { helpful, rating } = req.body;
+  const { id } = req.params;
+  const userId = req.userId!;
+  const { helpful, rating } = req.body;
 
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: { id, userId },
-    });
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: { id, userId },
+  });
 
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    await prisma.outfitCheck.update({
-      where: { id },
-      data: {
-        feedbackHelpful: helpful,
-        feedbackRating: rating,
-      },
-    });
-
-    // Track rating for recursive self-improvement A/B testing
-    if (outfitCheck.promptVersion && rating != null) {
-      recordPromptRating(outfitCheck.promptVersion, rating, helpful ?? null).catch(() => {});
-    }
-
-    // Update user stats: increment feedback counts and add points
-    const existingStats = await prisma.userStats.findUnique({
-      where: { userId },
-    });
-
-    const newPoints = (existingStats?.points || 0) + 5;
-    const newLevel = Math.min(50, Math.floor(newPoints / 100) + 1);
-
-    await prisma.userStats.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalFeedbackGiven: 1,
-        totalHelpfulVotes: helpful ? 1 : 0,
-        points: 5,
-        level: 1,
-      },
-      update: {
-        totalFeedbackGiven: { increment: 1 },
-        totalHelpfulVotes: helpful ? { increment: 1 } : undefined,
-        points: newPoints,
-        level: newLevel,
-      },
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    throw error;
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
   }
+
+  await prisma.outfitCheck.update({
+    where: { id },
+    data: {
+      feedbackHelpful: helpful,
+      feedbackRating: rating,
+    },
+  });
+
+  // Track rating for recursive self-improvement A/B testing
+  if (outfitCheck.promptVersion && rating != null) {
+    recordPromptRating(outfitCheck.promptVersion, rating, helpful ?? null).catch(() => {});
+  }
+
+  // Update user stats: increment feedback counts and add points
+  const existingStats = await prisma.userStats.findUnique({
+    where: { userId },
+  });
+
+  const newPoints = (existingStats?.points || 0) + 5;
+  const newLevel = Math.min(50, Math.floor(newPoints / 100) + 1);
+
+  await prisma.userStats.upsert({
+    where: { userId },
+    create: {
+      userId,
+      totalFeedbackGiven: 1,
+      totalHelpfulVotes: helpful ? 1 : 0,
+      points: 5,
+      level: 1,
+    },
+    update: {
+      totalFeedbackGiven: { increment: 1 },
+      totalHelpfulVotes: helpful ? { increment: 1 } : undefined,
+      points: newPoints,
+      level: newLevel,
+    },
+  });
+
+  res.json({ success: true });
 }
 
 export async function reanalyzeOutfit(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
+  const { id } = req.params;
+  const userId = req.userId!;
 
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: { id, userId, isDeleted: false },
-    });
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: { id, userId, isDeleted: false },
+  });
 
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    if (!outfitCheck.imageData && !outfitCheck.imageUrl) {
-      throw new AppError(400, 'No image data available for re-analysis');
-    }
-
-    // Reset the AI fields so the feedback screen polls again
-    await prisma.outfitCheck.update({
-      where: { id },
-      data: {
-        aiFeedback: null,
-        aiScore: null,
-        aiProcessedAt: null,
-      },
-    });
-
-    // Re-trigger async analysis
-    const analysisInput = {
-      imageBase64: outfitCheck.imageData || undefined,
-      imageUrl: outfitCheck.imageUrl || undefined,
-      occasions: outfitCheck.occasions,
-      setting: outfitCheck.setting || undefined,
-      weather: outfitCheck.weather || undefined,
-      vibe: outfitCheck.vibe || undefined,
-      specificConcerns: outfitCheck.specificConcerns || undefined,
-    };
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    const tierLimits = getTierLimits(user?.tier || 'FREE');
-    analyzeOutfit(id, analysisInput as OutfitCheckInput, user!, tierLimits.hasPriorityProcessing).catch((error) => {
-      console.error('Background re-analysis failed:', error);
-    });
-
-    res.json({ message: 'Re-analysis started' });
-  } catch (error) {
-    throw error;
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
   }
+
+  if (!outfitCheck.imageData && !outfitCheck.imageUrl) {
+    throw new AppError(400, 'No image data available for re-analysis');
+  }
+
+  // Reset the AI fields so the feedback screen polls again
+  await prisma.outfitCheck.update({
+    where: { id },
+    data: {
+      aiFeedback: null,
+      aiScore: null,
+      aiProcessedAt: null,
+    },
+  });
+
+  // Re-trigger async analysis
+  const analysisInput = {
+    imageBase64: outfitCheck.imageData || undefined,
+    imageUrl: outfitCheck.imageUrl || undefined,
+    occasions: outfitCheck.occasions,
+    setting: outfitCheck.setting || undefined,
+    weather: outfitCheck.weather || undefined,
+    vibe: outfitCheck.vibe || undefined,
+    specificConcerns: outfitCheck.specificConcerns || undefined,
+  };
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const tierLimits = getTierLimits(user?.tier || 'FREE');
+  analyzeOutfit(id, analysisInput as OutfitCheckInput, user!, tierLimits.hasPriorityProcessing).catch((error) => {
+    console.error('Background re-analysis failed:', error);
+  });
+
+  res.json({ message: 'Re-analysis started' });
 }
 
 export async function deleteOutfitCheck(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { id } = req.params;
-    const userId = req.userId!;
+  const { id } = req.params;
+  const userId = req.userId!;
 
-    const outfitCheck = await prisma.outfitCheck.findFirst({
-      where: { id, userId },
-    });
+  const outfitCheck = await prisma.outfitCheck.findFirst({
+    where: { id, userId },
+  });
 
-    if (!outfitCheck) {
-      throw new AppError(404, 'Outfit check not found');
-    }
-
-    await prisma.outfitCheck.update({
-      where: { id },
-      data: { isDeleted: true },
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    throw error;
+  if (!outfitCheck) {
+    throw new AppError(404, 'Outfit check not found');
   }
+
+  await prisma.outfitCheck.update({
+    where: { id },
+    data: { isDeleted: true },
+  });
+
+  res.json({ success: true });
 }
 
 export async function respondToFollowUp(req: AuthenticatedRequest, res: Response) {
-  try {
-    const userId = req.userId!;
-    const { followUpId } = req.params;
-    const { response } = req.body;
+  const userId = req.userId!;
+  const { followUpId } = req.params;
+  const { response } = req.body;
 
-    if (!response || typeof response !== 'string') {
-      throw new AppError(400, 'response is required');
-    }
-
-    await recordFollowUpResponse(followUpId, userId, response);
-    res.json({ success: true });
-  } catch (error) {
-    throw error;
+  if (!response || typeof response !== 'string') {
+    throw new AppError(400, 'response is required');
   }
+
+  await recordFollowUpResponse(followUpId, userId, response);
+  res.json({ success: true });
 }
 
 export async function getOutfitMemoryHandler(req: AuthenticatedRequest, res: Response) {
-  try {
-    const userId = req.userId!;
-    const occasionsParam = (req.query.occasions as string) || '';
-    const occasions = occasionsParam
-      .split(',')
-      .map((o) => o.trim())
-      .filter(Boolean);
+  const userId = req.userId!;
+  const occasionsParam = (req.query.occasions as string) || '';
+  const occasions = occasionsParam
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
-    const memory = await getOutfitMemory(userId, occasions);
-    res.json({ memory });
-  } catch (error) {
-    throw error;
-  }
+  const memory = await getOutfitMemory(userId, occasions);
+  res.json({ memory });
 }
 
 const RecommendationQuerySchema = z.object({

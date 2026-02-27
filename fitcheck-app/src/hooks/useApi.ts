@@ -303,7 +303,8 @@ export function useNotifications(unreadOnly: boolean = false) {
   return useQuery({
     queryKey: queryKeys.notifications(unreadOnly) as readonly unknown[],
     queryFn: () => notificationService.getNotifications(unreadOnly),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 60000, // Refetch every 60 seconds
+    refetchOnWindowFocus: true,
   });
 }
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { adminAuthLimiter } from '../middleware/rateLimiter.js';
 import {
   verifyToken,
   listAgents,
@@ -18,8 +19,8 @@ import {
 
 const router = Router();
 
-// Token verify — no auth required (this IS the login endpoint)
-router.post('/auth/verify', asyncHandler(verifyToken));
+// Token verify — no auth required (this IS the login endpoint); rate-limited to 5/5min
+router.post('/auth/verify', adminAuthLimiter, asyncHandler(verifyToken));
 
 // All routes below require authentication (admin check inside each handler)
 router.use(authenticateToken);

@@ -63,8 +63,13 @@ export default function ContextScreen() {
   const [prefsApplied, setPrefsApplied] = useState(false);
   useEffect(() => {
     if (prefsApplied || !contextPrefs || selectedOccasions.length > 0) return;
-    for (const occasion of contextPrefs.topOccasions) toggleOccasion(occasion);
-    for (const vibe of contextPrefs.topVibes) toggleVibe(vibe);
+    // Batch-set all occasions and vibes in a single store update to avoid a
+    // re-render loop where each toggleOccasion call causes selectedOccasions.length
+    // to change, re-triggering this effect and exiting early on guard check.
+    useAppStore.setState({
+      selectedOccasions: [...contextPrefs.topOccasions],
+      selectedVibes: [...contextPrefs.topVibes],
+    });
     setPrefsApplied(true);
   }, [contextPrefs, prefsApplied, selectedOccasions.length]);
 
@@ -156,7 +161,9 @@ export default function ContextScreen() {
       });
       console.log('[Context] API response received:', response.id);
 
-      // Navigate to feedback with outfit ID
+      // Clear isAnalyzing before navigating so the loading overlay doesn't
+      // persist if the user presses back from the feedback screen.
+      useAppStore.setState({ isAnalyzing: false });
       router.push(`/feedback?outfitId=${response.id}`);
     } catch (error: any) {
       console.error('[Context] Failed to submit outfit check:', error);

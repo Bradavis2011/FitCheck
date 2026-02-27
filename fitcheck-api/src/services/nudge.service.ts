@@ -228,14 +228,14 @@ export async function computePreferredNudgeHours(): Promise<void> {
     if (modalHour === 14 || modalHour === 22) {
       await prisma.user.update({
         where: { id: userId },
-        data: { preferredNudgeHour: null } as any,
+        data: { preferredNudgeHour: null },
       }).catch(() => {});
       continue;
     }
 
     await prisma.user.update({
       where: { id: userId },
-      data: { preferredNudgeHour: modalHour } as any,
+      data: { preferredNudgeHour: modalHour },
     }).catch(() => {});
 
     updated++;
@@ -265,7 +265,7 @@ export async function runPersonalizedNudge(currentUTCHour: number): Promise<void
         createdAt: { gte: hoursAgo48, lt: hoursAgo24 },
         preferredNudgeHour: currentUTCHour,
         outfitChecks: { none: {} },
-      } as any,
+      },
       select: { id: true },
     });
 
@@ -294,7 +294,7 @@ export async function runPersonalizedNudge(currentUTCHour: number): Promise<void
 
     // Filter to only users with this preferred hour
     const personalizedUsers = await prisma.user.findMany({
-      where: { id: { in: potentialIds }, preferredNudgeHour: currentUTCHour } as any,
+      where: { id: { in: potentialIds }, preferredNudgeHour: currentUTCHour },
       select: { id: true },
     });
     const personalizedIds = personalizedUsers.map(u => u.id);
@@ -349,7 +349,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
           createdAt: { gte: hoursAgo48, lt: hoursAgo24 },
           preferredNudgeHour: null, // personalized users handled by hourly cron
           outfitChecks: { none: {} },
-        } as any,
+        },
         select: { id: true },
       });
 
@@ -381,7 +381,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       // Filter out users with a custom preferred nudge hour
       const defaultUsers = await prisma.user.findMany({
-        where: { id: { in: potentialIds }, preferredNudgeHour: null } as any,
+        where: { id: { in: potentialIds }, preferredNudgeHour: null },
         select: { id: true },
       });
       const defaultIds = new Set(defaultUsers.map(u => u.id));

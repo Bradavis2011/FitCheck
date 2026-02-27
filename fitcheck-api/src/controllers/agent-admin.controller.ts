@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import { createHash, timingSafeEqual } from 'crypto';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
@@ -19,27 +20,20 @@ import {
 
 const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
 
+// Hash-then-compare: normalizes lengths, timing-safe against token oracle attacks
+function safeTokenEqual(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 // POST /api/admin/agents/auth/verify — validate dashboard token (no auth required)
 export async function verifyToken(req: Request, res: Response) {
   const { token } = req.body || {};
   const adminToken = process.env.ADMIN_DASHBOARD_TOKEN;
 
-  // Debug: log token comparison details (no actual values logged)
-  console.log('[Dashboard Auth]', {
-    hasBody: !!req.body,
-    hasToken: !!token,
-    tokenLen: token?.length,
-    hasAdminToken: !!adminToken,
-    adminTokenLen: adminToken?.length,
-    match: token === adminToken,
-  });
-
-  if (!adminToken) {
-    res.status(503).json({ error: 'ADMIN_DASHBOARD_TOKEN not configured on server' });
-    return;
-  }
-  if (!token || token !== adminToken) {
-    res.status(401).json({ error: 'Invalid token' });
+  if (!adminToken || !token || !safeTokenEqual(token, adminToken)) {
+    res.status(401).json({ error: 'Unauthorized' });
     return;
   }
   res.json({ ok: true });
@@ -267,6 +261,15 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
     'founder-brief': async () => {
       const { runFounderBrief } = await import('../services/founder-brief.service.js');
       await runFounderBrief();
+    },
+    // ── Security & Quality ────────────────────────────────────────────────────
+    'security-auditor': async () => {
+      const { runSecurityAudit } = await import('../services/security-auditor.service.js');
+      await runSecurityAudit();
+    },
+    'code-reviewer': async () => {
+      const { runCodeReview } = await import('../services/code-reviewer.service.js');
+      await runCodeReview();
     },
   };
 

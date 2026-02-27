@@ -10,6 +10,7 @@ export type AnalyticsEvent =
   | 'upgrade_completed'
   | 'feature_used'
   | 'share_tapped'
+  | 'score_card_shared'
   | 'follow_up_asked';
 
 // Per-event property shapes
@@ -22,6 +23,7 @@ export type EventProperties = {
   upgrade_completed: { new_tier: string; product_id?: string; billing?: string };
   feature_used: { feature: string };
   share_tapped: { score: number; method?: string };
+  score_card_shared: { score: number; method?: string };
   follow_up_asked: { outfit_id: string; question_number: number };
 };
 

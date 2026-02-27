@@ -286,7 +286,7 @@ export default function FeedbackScreen() {
 
   const handleGoHome = () => {
     resetCheckFlow();
-    router.push('/(tabs)' as any);
+    router.replace('/(tabs)' as any);
   };
 
   const handleNewCheck = () => {

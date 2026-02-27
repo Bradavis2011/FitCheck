@@ -116,7 +116,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
   }
 }
 
-const ADMIN_EMAILS = ['bradavis2011@gmail.com', 'admin@orthis.app'];
+const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
 
 export async function getUserStats(req: AuthenticatedRequest, res: Response) {
   try {
@@ -127,7 +127,6 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
       where: { id: userId },
       select: {
         tier: true,
-        email: true,
         dailyChecksUsed: true,
         dailyChecksResetAt: true,
       },
@@ -140,7 +139,7 @@ export async function getUserStats(req: AuthenticatedRequest, res: Response) {
     ]);
 
     // Admin accounts are always unlimited
-    if (user?.email && ADMIN_EMAILS.includes(user.email)) {
+    if (ADMIN_USER_IDS.includes(userId)) {
       return res.json({
         ...stats,
         totalOutfits: outfitCount,

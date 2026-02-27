@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { createHash, timingSafeEqual } from 'crypto';
 import * as Sentry from '@sentry/node';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -9,15 +10,22 @@ import { prisma } from '../utils/prisma.js';
 
 const REVENUECAT_WEBHOOK_AUTH = process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN;
 
+// Hash-then-compare: normalizes token lengths, timing-safe against oracle attacks
+function safeTokenEqual(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 /**
  * POST /api/webhooks/revenuecat
  * Called by RevenueCat when subscription events occur.
  * NOT behind auth middleware -- uses its own authorization header.
  */
 export async function handleWebhook(req: Request, res: Response) {
-  // Verify authorization header
+  // Verify authorization header using timing-safe comparison
   const authHeader = req.headers['authorization'];
-  if (!REVENUECAT_WEBHOOK_AUTH || authHeader !== `Bearer ${REVENUECAT_WEBHOOK_AUTH}`) {
+  if (!REVENUECAT_WEBHOOK_AUTH || !authHeader || !safeTokenEqual(authHeader, `Bearer ${REVENUECAT_WEBHOOK_AUTH}`)) {
     console.warn('[Webhook] Unauthorized webhook attempt');
     return res.status(401).json({ error: 'Unauthorized' });
   }

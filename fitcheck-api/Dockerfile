@@ -17,4 +17,8 @@ RUN npx prisma generate && npm run build
 EXPOSE 3000
 
 RUN chmod +x start.sh
+
+# Run as non-root for security
+USER node
+
 CMD ["./start.sh"]

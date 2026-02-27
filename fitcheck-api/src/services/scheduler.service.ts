@@ -1,4 +1,6 @@
 import cron from 'node-cron';
+import { runSecurityAudit } from './security-auditor.service.js';
+import { runCodeReview } from './code-reviewer.service.js';
 import { sendDailyDigest, sendWeeklyDigest } from './email-report.service.js';
 import { resetWeeklyPoints, resetMonthlyPoints } from './gamification.service.js';
 import { prisma } from '../utils/prisma.js';
@@ -616,5 +618,19 @@ export function initializeScheduler(): void {
     console.log('⏭️  [Scheduler] ENABLE_LEARNING_SYSTEM=false — skipping learning system crons');
   }
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System)');
+  // ── Security Auditor — Daily 2:30am UTC ──────────────────────────────────
+  cron.schedule('30 2 * * *', async () => {
+    console.log('🔐 [Scheduler] Running security auditor...');
+    try { await runSecurityAudit(); }
+    catch (err) { console.error('[Scheduler] Security auditor failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Code Reviewer — Wednesday 3:00am UTC ─────────────────────────────────
+  cron.schedule('0 3 * * 3', async () => {
+    console.log('🔍 [Scheduler] Running code reviewer...');
+    try { await runCodeReview(); }
+    catch (err) { console.error('[Scheduler] Code reviewer failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer)');
 }

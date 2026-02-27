@@ -19,8 +19,8 @@ export async function getNotifications(req: AuthenticatedRequest, res: Response)
     const notifications = await prisma.notification.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: parseInt(limit as string),
-      skip: parseInt(offset as string),
+      take: Math.min(100, parseInt(limit as string) || 50),
+      skip: Math.min(10000, parseInt(offset as string) || 0),
     });
 
     const unreadCount = await prisma.notification.count({

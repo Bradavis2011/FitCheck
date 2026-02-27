@@ -515,6 +515,7 @@ export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
 
     res.json({ feedback });

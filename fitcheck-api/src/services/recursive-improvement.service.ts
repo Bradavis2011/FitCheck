@@ -757,7 +757,7 @@ export async function getActivePrompt(userId?: string): Promise<{ prompt: string
       const cohort = await getUserCohort(userId);
       if (cohort) {
         const cohortVersion = await prisma.promptVersion.findFirst({
-          where: { isActive: true, trafficPct: { gt: 0 }, cohort } as any,
+          where: { isActive: true, trafficPct: { gt: 0 }, cohort },
           orderBy: { trafficPct: 'desc' },
         });
         if (cohortVersion) {

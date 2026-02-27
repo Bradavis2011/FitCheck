@@ -31,7 +31,10 @@ export type BusEntryType =
   | 'followup_metrics'
   | 'milestone_metrics'
   | 'brand_guard_metrics'
-  | 'followup_gaps';
+  | 'followup_gaps'
+  // Security & Quality agents
+  | 'security_audit'
+  | 'code_review';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

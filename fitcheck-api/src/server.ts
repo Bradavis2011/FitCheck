@@ -104,7 +104,8 @@ app.use(express.urlencoded({ extended: true }));
 app.post('/api/webhooks/revenuecat', asyncHandler(handleWebhook));
 
 // Resend email event webhook (before rate limiter - Resend sends delivery events)
-app.post('/api/webhooks/resend', asyncHandler(handleResendWebhook));
+// Use express.raw() so handleResendWebhook receives the raw body for svix HMAC verification
+app.post('/api/webhooks/resend', express.raw({ type: '*/*' }), asyncHandler(handleResendWebhook));
 
 // Rate limiting
 app.use('/api', limiter);
@@ -120,12 +121,31 @@ app.get('/health', async (req, res) => {
 });
 
 // Email click-through follow-up response (unauthenticated — link from email)
+// Token is HMAC-signed in event-followup.service.ts to prevent enumeration/CSRF
 app.get('/api/follow-up/:id/respond/:response', asyncHandler(async (req, res) => {
   const { id, response } = req.params;
+  const { token } = req.query as { token?: string };
   const valid = ['crushed_it', 'felt_good', 'meh', 'not_great'];
   if (!valid.includes(response)) {
     return res.status(400).send('Invalid response.');
   }
+
+  // Verify HMAC token if secret is configured
+  const hmacSecret = process.env.FOLLOW_UP_HMAC_SECRET;
+  if (hmacSecret) {
+    if (!token) {
+      return res.status(403).send('Missing token.');
+    }
+    const { createHmac } = await import('crypto');
+    const expected = createHmac('sha256', hmacSecret).update(`${id}:${response}`).digest('hex');
+    const { timingSafeEqual } = await import('crypto');
+    const tokenBuf = Buffer.from(token as string, 'hex');
+    const expectedBuf = Buffer.from(expected, 'hex');
+    if (tokenBuf.length !== expectedBuf.length || !timingSafeEqual(tokenBuf, expectedBuf)) {
+      return res.status(403).send('Invalid token.');
+    }
+  }
+
   try {
     const { prisma: db } = await import('./utils/prisma.js');
     await db.eventFollowUp.updateMany({

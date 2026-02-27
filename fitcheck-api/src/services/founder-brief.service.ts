@@ -3,6 +3,8 @@ import { prisma } from '../utils/prisma.js';
 import { getMetricsSnapshot } from './metrics.service.js';
 import { getAiQualitySummary } from './ai-quality-monitor.service.js';
 import { getRevenueSummary } from './revenue-cost.service.js';
+import { getSecurityAuditSummary } from './security-auditor.service.js';
+import { getCodeReviewSummary } from './code-reviewer.service.js';
 
 function statRow(label: string, value: string, noteHtml = ''): string {
   return `<tr>
@@ -28,12 +30,14 @@ export async function runFounderBrief(): Promise<void> {
     const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const ago14d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek] = await Promise.all([
+    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary] = await Promise.all([
       getMetricsSnapshot(),
       getAiQualitySummary(),
       getRevenueSummary(),
       prisma.user.count({ where: { createdAt: { gte: ago7d } } }),
       prisma.user.count({ where: { createdAt: { gte: ago14d, lt: ago7d } } }),
+      getSecurityAuditSummary(),
+      getCodeReviewSummary(),
     ]);
 
     const userGrowthPct = newUsersPriorWeek > 0
@@ -62,6 +66,9 @@ export async function runFounderBrief(): Promise<void> {
     if (revenue.cancellations7d > revenue.newSubscriptions7d) risks.push(`Churn (${revenue.cancellations7d}) outpacing new subs (${revenue.newSubscriptions7d}) this week`);
     if (metrics.dau === 0) risks.push(`Zero DAU today — verify the API is reachable`);
     if (metrics.pendingReportsOlderThan24h > 0) risks.push(`${metrics.pendingReportsOlderThan24h} content report(s) pending 24h+ review`);
+    if (securitySummary && securitySummary.critical > 0) risks.push(`${securitySummary.critical} CRITICAL security finding(s) — check Security Auditor email`);
+    if (securitySummary && securitySummary.high > 0) risks.push(`${securitySummary.high} high-severity security finding(s) need attention`);
+    if (codeReviewSummary && codeReviewSummary.high > 0) risks.push(`${codeReviewSummary.high} high-severity code review finding(s) — check Code Reviewer email`);
 
     const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -120,6 +127,14 @@ export async function runFounderBrief(): Promise<void> {
             ${statRow('5xx Errors', metrics.errorCount5xx.toString())}
             ${statRow('Pending Reports 24h+', metrics.pendingReportsOlderThan24h.toString())}
             ${statRow('Expert Reviews Pending', metrics.expertReviewsPending.toString())}
+
+            ${sectionHeader('Security')}
+            ${statRow('Security Findings', securitySummary ? `${securitySummary.total} total` : 'N/A', securitySummary && securitySummary.critical > 0 ? `<span style="color:#EF4444;font-size:12px;">🔴 ${securitySummary.critical} critical</span>` : '')}
+            ${statRow('Critical Issues', securitySummary ? securitySummary.critical.toString() : '—')}
+            ${statRow('High Issues', securitySummary ? securitySummary.high.toString() : '—')}
+
+            ${sectionHeader('Code Health')}
+            ${statRow('Code Review Findings', codeReviewSummary ? `${codeReviewSummary.total} total` : 'N/A', codeReviewSummary && codeReviewSummary.high > 0 ? `<span style="color:#EF4444;font-size:12px;">🔴 ${codeReviewSummary.high} high</span>` : '')}
           </table>
         </div>
         <div style="background:#F5EDE7;padding:20px 40px;text-align:center;">

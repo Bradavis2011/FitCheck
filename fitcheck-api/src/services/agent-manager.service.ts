@@ -376,6 +376,9 @@ const ALL_AGENT_NAMES = [
   'followup-surgeon',
   'arena',
   'learning-memory',
+  // Security & Quality
+  'security-auditor',
+  'code-reviewer',
 ];
 
 export async function killAllAgents(): Promise<void> {

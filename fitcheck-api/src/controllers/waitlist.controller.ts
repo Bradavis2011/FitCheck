@@ -19,7 +19,7 @@ const JoinSchema = z.object({
 });
 
 function makeReferralCode(): string {
-  return randomBytes(4).toString('hex'); // 8-char hex, e.g. "a3f9c201"
+  return randomBytes(8).toString('hex'); // 16-char hex, 64-bit entropy
 }
 
 function getAppUrl(): string {
@@ -37,11 +37,10 @@ export async function joinWaitlist(req: Request, res: Response) {
   const { email, referralCode: referredByCode } = parsed.data;
   const normalizedEmail = email.toLowerCase().trim();
 
-  // Check if already on the waitlist
+  // Check if already on the waitlist — return same shape as new entry to avoid enumeration
   const existing = await prisma.waitlistEntry.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
     res.json({
-      alreadyJoined: true,
       position: existing.position,
       referralCode: existing.referralCode,
       referralLink: `${getAppUrl()}?ref=${existing.referralCode}`,
@@ -119,7 +118,7 @@ export async function getWaitlistStatus(req: Request, res: Response) {
 
   const entry = await prisma.waitlistEntry.findUnique({ where: { email } });
   if (!entry) {
-    res.status(404).json({ error: 'Email not found on waitlist' });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 

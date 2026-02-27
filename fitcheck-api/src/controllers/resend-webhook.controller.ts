@@ -4,10 +4,11 @@
  * Receives email delivery events from Resend and updates EmailEvent.status.
  * Supported events: email.delivered, email.opened, email.clicked, email.bounced
  *
- * Set RESEND_WEBHOOK_SECRET in env to validate signatures (optional but recommended).
+ * RESEND_WEBHOOK_SECRET must be set in env — requests without valid signatures are rejected.
  */
 
 import { Request, Response } from 'express';
+import { Webhook } from 'svix';
 import { prisma } from '../utils/prisma.js';
 
 // Status priority — only upgrade, never downgrade
@@ -27,29 +28,46 @@ const EVENT_TO_STATUS: Record<string, string> = {
 };
 
 export async function handleResendWebhook(req: Request, res: Response): Promise<void> {
-  // Optional signature validation
   const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (secret) {
-    const svixId = req.headers['svix-id'] as string;
-    const svixTimestamp = req.headers['svix-timestamp'] as string;
-    const svixSignature = req.headers['svix-signature'] as string;
-
-    if (!svixId || !svixTimestamp || !svixSignature) {
-      res.status(401).json({ error: 'Missing webhook signature headers' });
-      return;
-    }
-
-    // Simple timestamp validation (within 5 minutes)
-    const ts = parseInt(svixTimestamp, 10);
-    if (Math.abs(Date.now() / 1000 - ts) > 300) {
-      res.status(401).json({ error: 'Webhook timestamp too old' });
-      return;
-    }
-    // Full HMAC validation would go here if using svix library
-    // For now we validate timestamp + secret presence
+  if (!secret) {
+    // Reject all requests when the secret is not configured — misconfigured server
+    console.error('[ResendWebhook] RESEND_WEBHOOK_SECRET is not set — rejecting all requests');
+    res.status(503).json({ error: 'Webhook not configured' });
+    return;
   }
 
-  const body = req.body as { type?: string; data?: { email_id?: string; to?: string[] } };
+  const svixId = req.headers['svix-id'] as string;
+  const svixTimestamp = req.headers['svix-timestamp'] as string;
+  const svixSignature = req.headers['svix-signature'] as string;
+
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    res.status(401).json({ error: 'Missing webhook signature headers' });
+    return;
+  }
+
+  // req.body is a Buffer when express.raw() is used on this route (see server.ts)
+  const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(req.body);
+
+  try {
+    const wh = new Webhook(secret);
+    wh.verify(rawBody, {
+      'svix-id': svixId,
+      'svix-timestamp': svixTimestamp,
+      'svix-signature': svixSignature,
+    });
+  } catch {
+    res.status(401).json({ error: 'Invalid webhook signature' });
+    return;
+  }
+
+  // Parse body (may be raw Buffer or already-parsed object)
+  let parsedBody: { type?: string; data?: { email_id?: string; to?: string[] } };
+  if (Buffer.isBuffer(req.body)) {
+    try { parsedBody = JSON.parse(req.body.toString('utf8')); } catch { parsedBody = {}; }
+  } else {
+    parsedBody = req.body;
+  }
+  const body = parsedBody;
   const eventType = body?.type;
   const newStatus = EVENT_TO_STATUS[eventType || ''];
 

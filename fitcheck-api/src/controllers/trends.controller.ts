@@ -20,7 +20,7 @@ export async function getTrendingColors(req: AuthenticatedRequest, res: Response
     }
     const { period, limit } = TrendQuerySchema.parse(req.query);
 
-    // Get StyleDNA records grouped by time period
+    // Get StyleDNA records grouped by time period (capped to prevent unbounded queries)
     const styleDNAs = await prisma.styleDNA.findMany({
       where: {
         createdAt: {
@@ -38,6 +38,7 @@ export async function getTrendingColors(req: AuthenticatedRequest, res: Response
       orderBy: {
         createdAt: 'desc',
       },
+      take: 5000,
     });
 
     // Group by period and count colors
@@ -130,6 +131,7 @@ export async function getTrendingArchetypes(req: AuthenticatedRequest, res: Resp
       orderBy: {
         createdAt: 'desc',
       },
+      take: 5000,
     });
 
     // Group by period and count archetypes
@@ -233,6 +235,7 @@ export async function getTrendSummary(req: AuthenticatedRequest, res: Response) 
           },
         },
       },
+      take: 5000,
     });
 
     // Count everything

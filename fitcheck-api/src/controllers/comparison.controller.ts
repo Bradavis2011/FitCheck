@@ -69,8 +69,8 @@ export async function getComparisonFeed(req: AuthenticatedRequest, res: Response
   const posts = await prisma.comparisonPost.findMany({
     where: { isDeleted: false },
     orderBy: { createdAt: 'desc' },
-    take: parseInt(limit as string),
-    skip: parseInt(offset as string),
+    take: Math.min(100, parseInt(limit as string) || 20),
+    skip: Math.min(10000, parseInt(offset as string) || 0),
     select: {
       id: true,
       imageAUrl: true,
@@ -101,68 +101,72 @@ export async function getComparisonFeed(req: AuthenticatedRequest, res: Response
 
   res.json({
     posts: postsWithVoted,
-    hasMore: parseInt(offset as string) + posts.length < total,
+    hasMore: (Math.min(10000, parseInt(offset as string) || 0)) + posts.length < total,
   });
 }
 
 /**
  * Vote on a comparison post
+ * Wrapped in a transaction to prevent double-voting race conditions (TOCTOU).
  */
 export async function voteOnComparison(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
   const { id } = req.params;
   const { choice } = VoteSchema.parse(req.body);
 
-  const post = await prisma.comparisonPost.findFirst({
-    where: { id, isDeleted: false },
-  });
-
-  if (!post) {
-    throw new AppError(404, 'Comparison post not found');
-  }
-
-  // Check if user already voted
-  const existingVote = await prisma.comparisonVote.findUnique({
-    where: { postId_userId: { postId: id, userId } },
-  });
-
-  if (existingVote) {
-    if (existingVote.choice === choice) {
-      // Same vote — no change needed
-      return res.json({ success: true, votesA: post.votesA, votesB: post.votesB, myVote: choice });
-    }
-
-    // Changed vote — update
-    await prisma.comparisonVote.update({
-      where: { postId_userId: { postId: id, userId } },
-      data: { choice },
+  const result = await prisma.$transaction(async (tx) => {
+    const post = await tx.comparisonPost.findFirst({
+      where: { id, isDeleted: false },
     });
 
-    const updatedPost = await prisma.comparisonPost.update({
+    if (!post) {
+      throw new AppError(404, 'Comparison post not found');
+    }
+
+    const existingVote = await tx.comparisonVote.findUnique({
+      where: { postId_userId: { postId: id, userId } },
+    });
+
+    if (existingVote) {
+      if (existingVote.choice === choice) {
+        // Same vote — no change needed
+        return { votesA: post.votesA, votesB: post.votesB, myVote: choice };
+      }
+
+      // Changed vote — update
+      await tx.comparisonVote.update({
+        where: { postId_userId: { postId: id, userId } },
+        data: { choice },
+      });
+
+      const updatedPost = await tx.comparisonPost.update({
+        where: { id },
+        data: {
+          votesA: existingVote.choice === 'A' ? { decrement: 1 } : { increment: 1 },
+          votesB: existingVote.choice === 'B' ? { decrement: 1 } : { increment: 1 },
+        },
+      });
+
+      return { votesA: updatedPost.votesA, votesB: updatedPost.votesB, myVote: choice };
+    }
+
+    // New vote
+    await tx.comparisonVote.create({
+      data: { postId: id, userId, choice },
+    });
+
+    const updatedPost = await tx.comparisonPost.update({
       where: { id },
       data: {
-        votesA: existingVote.choice === 'A' ? { decrement: 1 } : { increment: 1 },
-        votesB: existingVote.choice === 'B' ? { decrement: 1 } : { increment: 1 },
+        votesA: choice === 'A' ? { increment: 1 } : undefined,
+        votesB: choice === 'B' ? { increment: 1 } : undefined,
       },
     });
 
-    return res.json({ success: true, votesA: updatedPost.votesA, votesB: updatedPost.votesB, myVote: choice });
-  }
-
-  // New vote
-  await prisma.comparisonVote.create({
-    data: { postId: id, userId, choice },
+    return { votesA: updatedPost.votesA, votesB: updatedPost.votesB, myVote: choice };
   });
 
-  const updatedPost = await prisma.comparisonPost.update({
-    where: { id },
-    data: {
-      votesA: choice === 'A' ? { increment: 1 } : undefined,
-      votesB: choice === 'B' ? { increment: 1 } : undefined,
-    },
-  });
-
-  res.json({ success: true, votesA: updatedPost.votesA, votesB: updatedPost.votesB, myVote: choice });
+  res.json({ success: true, ...result });
 }
 
 const AnalyzeComparisonSchema = z.object({
@@ -227,7 +231,7 @@ Replace "A" in the winner field with either "A" or "B".`;
   if (data.postId) {
     await prisma.comparisonPost.updateMany({
       where: { id: data.postId, userId },
-      data: { aiVerdict: analysis.winner } as any,
+      data: { aiVerdict: analysis.winner },
     }).catch(() => {}); // Non-fatal — verdict tracking must not break the response
   }
 

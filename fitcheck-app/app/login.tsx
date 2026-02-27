@@ -96,6 +96,19 @@ export default function LoginScreen() {
       // Clear any stale session — prevents "session already exists" error
       try { await signOut(); } catch {}
 
+      // Clerk persists sign-up state in SecureStore between app launches.
+      // If a previous sign-up was left mid-flow (pending email verification),
+      // calling signUp.create() again throws "Invalid action".
+      // Detect and recover: if the email matches, just resend and show verification.
+      if (signUp.status === 'missing_requirements') {
+        if (signUp.emailAddress === email) {
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+          setPendingVerification(true);
+          return;
+        }
+        // Different email — fall through and let create() replace the stale attempt
+      }
+
       await signUp.create({
         emailAddress: email,
         password,
@@ -109,11 +122,27 @@ export default function LoginScreen() {
     } catch (error: any) {
       console.error('Sign up error:', error);
       const clerkCode = error.errors?.[0]?.code;
-      const message =
-        clerkCode === 'form_password_pwned'
-          ? 'That password appears in a known data breach. Try a longer or more unique password (e.g. 3 random words + a number).'
-          : error.errors?.[0]?.message || error.message || 'Failed to sign up';
-      Alert.alert('Sign Up Error', message);
+      const clerkMsg: string = error.errors?.[0]?.message || '';
+
+      if (clerkCode === 'form_password_pwned') {
+        Alert.alert('Sign Up Error', 'That password appears in a known data breach. Try a longer or more unique password (e.g. 3 random words + a number).');
+        return;
+      }
+
+      // Stale sign-up session for a different email — try to recover by
+      // continuing the existing verification flow.
+      if (clerkMsg === 'Invalid action' || clerkCode === 'session_exists') {
+        try {
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+          setPendingVerification(true);
+          return;
+        } catch {
+          Alert.alert('Sign Up Error', 'A previous sign-up is pending verification. Please check your email or try again shortly.');
+          return;
+        }
+      }
+
+      Alert.alert('Sign Up Error', clerkMsg || error.message || 'Failed to sign up');
     } finally {
       setLoading(false);
     }

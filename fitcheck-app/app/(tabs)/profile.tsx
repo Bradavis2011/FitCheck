@@ -17,7 +17,6 @@ import PillButton from '../../src/components/PillButton';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 import ReferralCard from '../../src/components/ReferralCard';
 import UserAvatar from '../../src/components/UserAvatar';
-import { styles as styleOptions } from '../../src/lib/mockData';
 
 const PENDING_REFERRAL_KEY = 'orthis_pending_referral_code';
 
@@ -244,7 +243,7 @@ export default function ProfileScreen() {
         <ReferralCard />
 
         {/* Gamification — editorial, no gradient */}
-        {(dailyGoals || (badgesData && badgesData.totalBadges > 0)) && (
+        {(dailyGoals || (badgesData && badgesData.totalCount > 0)) && (
           <View style={styles.card}>
             {/* XP / Level */}
             <View style={styles.levelRow}>

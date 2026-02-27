@@ -1,7 +1,15 @@
 import { Response, NextFunction } from 'express';
+import { createHash, timingSafeEqual } from 'crypto';
 import { verifyToken, createClerkClient } from '@clerk/express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
+
+// Hash-then-compare: normalizes lengths, timing-safe against token oracle attacks
+function safeTokenEqual(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
 
 // Lazy Clerk client — created on first use so CLERK_SECRET_KEY is read at runtime
 let _clerk: ReturnType<typeof createClerkClient> | null = null;
@@ -29,7 +37,7 @@ export async function authenticateToken(
 
     // Check ADMIN_DASHBOARD_TOKEN first (dashboard bypass — no Clerk required)
     const dashboardToken = process.env.ADMIN_DASHBOARD_TOKEN;
-    if (dashboardToken && token === dashboardToken) {
+    if (dashboardToken && safeTokenEqual(token, dashboardToken)) {
       const adminIds = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
       const adminId = adminIds[0];
       if (adminId) {
