@@ -20,7 +20,7 @@ import { track } from '../src/lib/analytics';
 
 export default function UpgradeScreen() {
   const router = useRouter();
-  const { tier, offerings, loadOfferings, purchase, restore } = useSubscriptionStore();
+  const { tier, offerings, loadOfferings, purchase, restore, syncWithBackend } = useSubscriptionStore();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isAnnual, setIsAnnual] = useState(true);
@@ -35,9 +35,9 @@ export default function UpgradeScreen() {
     try {
       const success = await purchase(pkg);
       if (success) {
-        const newTier = 'plus';
+        await syncWithBackend();
         track('upgrade_completed', {
-          new_tier: newTier,
+          new_tier: tier,
           product_id: pkg.product.identifier,
           billing: isAnnual ? 'annual' : 'monthly',
         });
@@ -59,6 +59,7 @@ export default function UpgradeScreen() {
     try {
       const customerInfo = await restore();
       if (customerInfo) {
+        await syncWithBackend();
         Alert.alert('Purchases Restored', 'Your subscription has been restored!');
       } else {
         Alert.alert('No Purchases Found', 'No active subscriptions to restore.');
