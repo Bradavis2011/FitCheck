@@ -23,27 +23,27 @@ const AGENT_TRIGGER_NAME = {
 };
 
 const AGENT_META = {
-  'lifecycle-email':         { icon: '📧', label: 'Lifecycle Email' },
-  'conversion-intelligence': { icon: '📈', label: 'Conversion Intel' },
-  'community-manager':       { icon: '🤝', label: 'Community Mgr' },
-  'social-media-manager':    { icon: '📱', label: 'Social Media' },
-  'appstore-manager':        { icon: '⭐', label: 'App Store' },
-  'outreach-agent':          { icon: '📨', label: 'Outreach' },
+  'lifecycle-email':         { label: 'Lifecycle Email' },
+  'conversion-intelligence': { label: 'Conversion Intel' },
+  'community-manager':       { label: 'Community Mgr' },
+  'social-media-manager':    { label: 'Social Media' },
+  'appstore-manager':        { label: 'App Store' },
+  'outreach-agent':          { label: 'Outreach' },
 };
 
 // Reporting agents — email results directly, no action queue
 const REPORTING_AGENTS = [
-  { name: 'content-calendar',         icon: '📅', label: 'Content Calendar' },
-  { name: 'growth-dashboard',         icon: '📊', label: 'Growth Dashboard' },
-  { name: 'viral-monitor',            icon: '🔁', label: 'Viral Monitor' },
-  { name: 'beta-recruiter',           icon: '🌟', label: 'Beta Recruiter' },
-  { name: 'revenue-cost',             icon: '💰', label: 'Revenue & Cost' },
-  { name: 'ai-quality-monitor',       icon: '🤖', label: 'AI Quality' },
-  { name: 'community-manager-weekly', icon: '🏆', label: 'Community Weekly' },
-  { name: 'appstore-weekly',          icon: '📋', label: 'App Store Weekly' },
-  { name: 'fashion-trends',           icon: '👗', label: 'Fashion Trends' },
-  { name: 'calibration-snapshot',     icon: '📐', label: 'Calibration' },
-  { name: 'founder-brief',            icon: '📝', label: 'Founder Brief' },
+  { name: 'content-calendar',         label: 'Content Calendar' },
+  { name: 'growth-dashboard',         label: 'Growth Dashboard' },
+  { name: 'viral-monitor',            label: 'Viral Monitor' },
+  { name: 'beta-recruiter',           label: 'Beta Recruiter' },
+  { name: 'revenue-cost',             label: 'Revenue & Cost' },
+  { name: 'ai-quality-monitor',       label: 'AI Quality' },
+  { name: 'community-manager-weekly', label: 'Community Weekly' },
+  { name: 'appstore-weekly',          label: 'App Store Weekly' },
+  { name: 'fashion-trends',           label: 'Fashion Trends' },
+  { name: 'calibration-snapshot',     label: 'Calibration' },
+  { name: 'founder-brief',            label: 'Founder Brief' },
 ];
 
 function agentLabel(name) { return AGENT_META[name]?.label || name; }
@@ -62,7 +62,7 @@ const CONTENT_TYPE_LABELS = {
 const PLATFORM_META = {
   twitter:   { icon: '𝕏', label: 'Twitter', limit: 280, cls: 'platform-twitter'  },
   tiktok:    { icon: '♪', label: 'TikTok',  limit: null, cls: 'platform-tiktok'  },
-  pinterest: { icon: '📌', label: 'Pinterest', limit: null, cls: 'platform-pinterest' },
+  pinterest: { icon: 'P',   label: 'Pinterest', limit: null, cls: 'platform-pinterest' },
 };
 
 // ─── New: image assignments and page order ─────────────────────────────────────
@@ -301,7 +301,7 @@ function loadingHTML() {
 
 function errorHTML(msg) {
   return `<div style="display:flex;align-items:center;justify-content:center;padding:48px;gap:8px;color:#EF4444;">
-    ⚠️ ${esc(msg)}
+    ${esc(msg)}
   </div>`;
 }
 
@@ -324,8 +324,8 @@ function paginationHTML(page, total, limit, fn) {
   return `<div style="display:flex;align-items:center;justify-content:space-between;font-size:0.875rem;">
     <span style="color:#9CA3AF;">${total} total · Page ${page} of ${totalPages}</span>
     <div style="display:flex;gap:8px;">
-      ${page > 1 ? `<button onclick="${fn}(${page - 1})" class="btn-ghost" style="padding:6px 12px;border-radius:8px;border:1px solid #E5E7EB;font-size:0.8125rem;">← Prev</button>` : ''}
-      ${page < totalPages ? `<button onclick="${fn}(${page + 1})" class="btn-coral" style="padding:6px 12px;border-radius:8px;font-size:0.8125rem;">Next →</button>` : ''}
+      ${page > 1 ? `<button onclick="${fn}(${page - 1})" class="btn-ghost" style="padding:6px 12px;border:1px solid var(--border-solid);font-size:0.8125rem;">← Prev</button>` : ''}
+      ${page < totalPages ? `<button onclick="${fn}(${page + 1})" class="btn-coral" style="padding:6px 12px;font-size:0.8125rem;">Next →</button>` : ''}
     </div>
   </div>`;
 }
@@ -468,7 +468,7 @@ async function loadOverview() {
       <div class="masthead-item reveal">
         <span style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.9375rem;color:var(--black);">${esc(a.label)}</span>
         <button onclick="handleTrigger('${esc(a.name)}', this)"
-                class="btn-coral" style="padding:6px 14px;font-size:0.6875rem;flex-shrink:0;">Run ▶</button>
+                class="btn-coral" style="padding:6px 14px;font-size:0.6875rem;flex-shrink:0;">Run</button>
       </div>`).join('');
 
     // Pending preview
@@ -866,7 +866,7 @@ async function loadAgent(name) {
 
             <button onclick="handleTrigger('${esc(AGENT_TRIGGER_NAME[name] || name)}', this)"
                     class="btn-coral" style="padding:14px 28px;">
-              ▶ Run Now
+              Run Now
             </button>
           </div>
 
