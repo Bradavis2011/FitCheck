@@ -34,7 +34,10 @@ export type BusEntryType =
   | 'followup_gaps'
   // Security & Quality agents
   | 'security_audit'
-  | 'code_review';
+  | 'code_review'
+  // Marketing Intelligence
+  | 'aso_metrics'
+  | 'attribution_metrics';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { validateRequest } from '../middleware/validateRequest.js';
+import { ComparisonFeedQuerySchema } from '../schemas/index.js';
 import {
   createComparison,
   analyzeComparison,
@@ -15,7 +17,7 @@ router.use(authenticateToken);
 
 router.post('/', asyncHandler(createComparison));
 router.post('/analyze', asyncHandler(analyzeComparison));
-router.get('/feed', asyncHandler(getComparisonFeed));
+router.get('/feed', validateRequest({ query: ComparisonFeedQuerySchema }), asyncHandler(getComparisonFeed));
 router.post('/:id/vote', asyncHandler(voteOnComparison));
 router.delete('/:id', asyncHandler(deleteComparison));
 

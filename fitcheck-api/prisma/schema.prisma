@@ -52,6 +52,9 @@ model User {
   referredUsers     User[]   @relation("UserReferrals")
   bonusDailyChecks  Int      @default(0) @map("bonus_daily_checks")
 
+  // UTM Attribution (first touch — set once on signup)
+  attribution       Json?    // { source, medium, campaign, content, socialPostId? }
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -709,6 +712,7 @@ model ConversionSignal {
   actedOn     Boolean   @default(false) @map("acted_on")
   convertedAt DateTime? @map("converted_at") // when user actually upgraded
   outcome     String?                         // "converted", "ignored", "pending"
+  metadata    Json?     @map("signal_metadata") // e.g. { source: "twitter" }
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("conversion_signals")
@@ -729,6 +733,7 @@ model SocialPost {
   engagement   Json?
   contentType  String?   @map("content_type")  // "founder_story" | "fashion_news" | "community_spotlight" | "style_data_drop" | "wardrobe_insight" | "conversation_starter" | "behind_the_scenes"
   sourceData   Json?     @map("source_data")   // Raw data that generated the post (commits, headlines, stats)
+  trackingUrl  String?   @map("tracking_url")  // UTM-tagged link appended to post for attribution
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@map("social_posts")
@@ -1134,3 +1139,20 @@ model ConversionCalibration {
 }
 
 // ─── End Ops Learning Loop Models ────────────────────────────────────────────
+
+// ─── ASO Intelligence Models ──────────────────────────────────────────────────
+
+model AsoSnapshot {
+  id          String   @id @default(uuid())
+  store       String   // "apple" | "google"
+  keyword     String
+  difficulty  Float?
+  traffic     Float?
+  currentRank Int?     @map("current_rank")
+  rankChange  Int?     @map("rank_change")  // vs prior week (positive = rank dropped, negative = rank improved)
+  competitors Json?    // top apps for this keyword
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("aso_snapshots")
+  @@index([keyword, store, createdAt])
+}

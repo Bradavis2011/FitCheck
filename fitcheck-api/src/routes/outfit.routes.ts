@@ -1,7 +1,14 @@
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { validateRequest } from '../middleware/validateRequest.js';
 import * as outfitController from '../controllers/outfit.controller.js';
+import {
+  FollowUpQuestionSchema,
+  RateFeedbackSchema,
+  RespondToFollowUpSchema,
+  ListOutfitChecksQuerySchema,
+} from '../schemas/index.js';
 
 const router = Router();
 
@@ -18,19 +25,19 @@ router.get('/recommendations', asyncHandler(outfitController.getRecommendations)
 router.get('/memory', asyncHandler(outfitController.getOutfitMemoryHandler));
 
 // Post-event follow-up response
-router.post('/follow-up/:followUpId/respond', asyncHandler(outfitController.respondToFollowUp));
+router.post('/follow-up/:followUpId/respond', validateRequest({ body: RespondToFollowUpSchema }), asyncHandler(outfitController.respondToFollowUp));
 
 // Get outfit feedback by ID
 router.get('/:id', asyncHandler(outfitController.getOutfitFeedback));
 
 // List user's outfit checks
-router.get('/', asyncHandler(outfitController.listOutfitChecks));
+router.get('/', validateRequest({ query: ListOutfitChecksQuerySchema }), asyncHandler(outfitController.listOutfitChecks));
 
 // Follow-up question
-router.post('/:id/followup', asyncHandler(outfitController.submitFollowUpQuestion));
+router.post('/:id/followup', validateRequest({ body: FollowUpQuestionSchema }), asyncHandler(outfitController.submitFollowUpQuestion));
 
 // Rate feedback
-router.put('/:id/rate', asyncHandler(outfitController.rateFeedback));
+router.put('/:id/rate', validateRequest({ body: RateFeedbackSchema }), asyncHandler(outfitController.rateFeedback));
 
 // Toggle favorite
 router.put('/:id/favorite', asyncHandler(outfitController.toggleFavorite));

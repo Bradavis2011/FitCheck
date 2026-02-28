@@ -16,6 +16,7 @@ import { prisma } from '../utils/prisma.js';
 import { getTrendData } from './content-calendar.service.js';
 import { getLatestFashionTrendText } from './fashion-trends.service.js';
 import { getGrowthSummary } from './growth-dashboard.service.js';
+import { getAsoKeywordHint } from './aso-intelligence.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -96,6 +97,13 @@ function buildDeduplicationBlock(recentPosts: string[]): string {
   if (recentPosts.length === 0) return '';
   const examples = recentPosts.slice(0, 5).map((p, i) => `  ${i + 1}. "${p.slice(0, 100)}..."`).join('\n');
   return `\nRECENT POSTS (do NOT repeat similar ideas, angles, or phrasing):\n${examples}\n`;
+}
+
+/** Build an ASO keyword hint for prompt injection — makes posts SEO-aligned without being spammy */
+async function buildAsoKeywordBlock(): Promise<string> {
+  const hint = await getAsoKeywordHint().catch(() => null);
+  if (!hint) return '';
+  return `\nSEO-FRIENDLY TERMS (naturally incorporate when relevant, never force): ${hint}\n`;
 }
 
 // ─── Hashtag Rotation Pools ───────────────────────────────────────────────────
@@ -816,6 +824,7 @@ export async function generateStyleDataDrop(): Promise<GeneratedPost[]> {
 
   const recentPosts = await getRecentPosts('style_data_drop');
   const dedupBlock = buildDeduplicationBlock(recentPosts);
+  const asoBlock = await buildAsoKeywordBlock();
 
   const tweetPrompt = `${BRAND_VOICE}
 
@@ -823,6 +832,7 @@ Turn this style data into a surprising, shareable social media post. Pick the si
 
 Data:
 ${statsContext}
+${asoBlock}
 
 Good examples:
 - "68% of outfit checks this week were for work. y'all are STRESSED about office fits and honestly same"
@@ -1026,13 +1036,14 @@ export async function generateBehindTheScenes(): Promise<GeneratedPost[]> {
 
   const recentPosts = await getRecentPosts('behind_the_scenes');
   const dedupBlock = buildDeduplicationBlock(recentPosts);
+  const asoHint = await getAsoKeywordHint().catch(() => null);
 
   const tweetPrompt = `${BRAND_VOICE}
 
 You're the founder of "Or This?", a small AI outfit feedback app. Write a vulnerable, honest "building in public" post about what it's really like to build this.
 
 Current context: ${metricsContext}
-${contextBlock ? `\nWhat you're working on:\n${contextBlock}\n\nWeave in a specific detail about what you're building — ground it in real engineering or design work from the context above.` : ''}
+${asoHint ? `People are searching for: ${asoHint} — if it fits naturally, use language that resonates with these interests.\n` : ''}${contextBlock ? `\nWhat you're working on:\n${contextBlock}\n\nWeave in a specific detail about what you're building — ground it in real engineering or design work from the context above.` : ''}
 Good examples:
 - "day 410 of building. had 3 users yesterday. but one of them sent a message saying it actually helped them pick an outfit for a date. that's the whole point right there"
 - "someone asked me when we'll be profitable. I said I don't know. they said 'then why are you building it?' because I wish it existed when I was 19"

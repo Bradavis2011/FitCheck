@@ -3,6 +3,7 @@ import { createSign } from 'crypto';
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { executeOrQueue, registerExecutor } from './agent-manager.service.js';
+import { getAsoSummary } from './aso-intelligence.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -296,9 +297,10 @@ export async function runAppStoreWeeklySummary(): Promise<void> {
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [weekReviews, pendingCount] = await Promise.all([
+  const [weekReviews, pendingCount, asoSummary] = await Promise.all([
     prisma.appReview.findMany({ where: { createdAt: { gte: weekAgo } }, select: { rating: true, store: true } }),
     prisma.appReview.count({ where: { replyStatus: 'pending' } }),
+    getAsoSummary(),
   ]);
 
   const total = weekReviews.length;
@@ -340,6 +342,18 @@ export async function runAppStoreWeeklySummary(): Promise<void> {
           <tbody>${ratingRows}</tbody>
         </table>
       </div>
+      ${asoSummary && asoSummary.topKeywords.length > 0 ? `
+      <div style="padding:0 40px 24px;">
+        <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">ASO Keyword Intelligence</div>
+        <div style="background:#FBF7F4;border-radius:8px;padding:12px 16px;">
+          <div style="font-size:12px;color:#6B7280;margin-bottom:6px;">Top traffic keywords this week:</div>
+          <div style="font-size:13px;color:#1A1A1A;">${asoSummary.topKeywords.slice(0, 5).join(' · ')}</div>
+          ${asoSummary.biggestMovers.length > 0 ? `
+          <div style="font-size:12px;color:#6B7280;margin-top:8px;margin-bottom:4px;">Biggest mover:</div>
+          <div style="font-size:13px;color:#1A1A1A;">"${asoSummary.biggestMovers[0].keyword}" — ${asoSummary.biggestMovers[0].change < 0 ? '<span style="color:#10B981;">improved</span>' : '<span style="color:#EF4444;">dropped</span>'} on ${asoSummary.biggestMovers[0].store === 'google' ? 'Play' : 'iOS'}</div>
+          ` : ''}
+        </div>
+      </div>` : ''}
       <div style="padding:16px 40px 24px;border-top:1px solid #F5EDE7;"><p style="color:#6B7280;font-size:12px;margin:0;">Or This? · App Store Manager · ${new Date().toISOString()}</p></div>
     </div>
   </body></html>`;

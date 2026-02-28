@@ -68,6 +68,27 @@ function WaitlistPage() {
   const scrolled = useStickyNav();
   const pageRef = useScrollReveal();
 
+  // Capture UTM attribution on landing and persist to localStorage for later retrieval
+  useEffect(() => {
+    const source = searchParams.get("utm_source");
+    const medium = searchParams.get("utm_medium");
+    const campaign = searchParams.get("utm_campaign");
+    const content = searchParams.get("utm_content");
+    if (source || medium || campaign || content) {
+      const attribution = {
+        ...(source ? { source } : {}),
+        ...(medium ? { medium } : {}),
+        ...(campaign ? { campaign } : {}),
+        ...(content ? { content } : {}),
+      };
+      try {
+        localStorage.setItem("orthis_attribution", JSON.stringify(attribution));
+      } catch {
+        // localStorage may be unavailable in some environments
+      }
+    }
+  }, [searchParams]);
+
   const scrollToWaitlist = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" });
@@ -509,7 +530,12 @@ function WaitlistForm({ refCode, variant = "light" }: { refCode: string; variant
 
       setResult(data);
       setStatus("success");
-      posthog.capture("waitlist_signup", { referral: !!refCode });
+      let attribution: Record<string, string> = {};
+      try {
+        const stored = localStorage.getItem("orthis_attribution");
+        if (stored) attribution = JSON.parse(stored) as Record<string, string>;
+      } catch { /* ignore */ }
+      posthog.capture("waitlist_signup", { referral: !!refCode, ...attribution });
     } catch {
       setErrorMsg("Network error. Please check your connection and try again.");
       setStatus("error");

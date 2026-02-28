@@ -26,6 +26,7 @@ jobs:
       - run: npx prisma generate
       - run: npx tsc --noEmit
       - run: npx prisma validate
+      - run: npm test
 
   typecheck-app:
     name: Typecheck App

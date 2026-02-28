@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { runSecurityAudit } from './security-auditor.service.js';
 import { runCodeReview } from './code-reviewer.service.js';
+import { runAsoIntelligence } from './aso-intelligence.service.js';
 import { sendDailyDigest, sendWeeklyDigest } from './email-report.service.js';
 import { resetWeeklyPoints, resetMonthlyPoints } from './gamification.service.js';
 import { prisma } from '../utils/prisma.js';
@@ -632,5 +633,12 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Code reviewer failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer)');
+  // ── ASO Intelligence Agent — Tuesday 6:00am UTC ───────────────────────────
+  cron.schedule('0 6 * * 2', async () => {
+    console.log('📊 [Scheduler] Running ASO intelligence...');
+    try { await runAsoIntelligence(); }
+    catch (err) { console.error('[Scheduler] ASO intelligence failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence)');
 }

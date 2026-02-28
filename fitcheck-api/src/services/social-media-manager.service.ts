@@ -127,6 +127,8 @@ export async function postToTwitter(socialPostId: string): Promise<{ posted: boo
 // ─── Orchestrator: Content Engine Runner ──────────────────────────────────────
 
 async function queueGeneratedPost(post: GeneratedPost): Promise<void> {
+  // Generate UTM tracking URL for attribution — unique per post via the record ID
+  // We create the record first to get the ID, then update with the tracking URL
   const record = await prisma.socialPost.create({
     data: {
       platform: post.platform,
@@ -136,6 +138,14 @@ async function queueGeneratedPost(post: GeneratedPost): Promise<void> {
       contentType: post.contentType,
       sourceData: post.sourceData != null ? JSON.parse(JSON.stringify(post.sourceData)) : undefined,
     },
+  });
+
+  // Build UTM tracking URL and store it on the record
+  const baseUrl = process.env.REFERRAL_BASE_URL?.replace('/invite', '') || 'https://orthis.app';
+  const trackingUrl = `${baseUrl}?utm_source=${encodeURIComponent(post.platform)}&utm_medium=social&utm_campaign=${encodeURIComponent(post.contentType)}&utm_content=${record.id}`;
+  await prisma.socialPost.update({
+    where: { id: record.id },
+    data: { trackingUrl },
   });
 
   await executeOrQueue(

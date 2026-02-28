@@ -22,6 +22,9 @@ router.get('/leaderboard/:type', asyncHandler(userController.getLeaderboard));
 router.get('/daily-goals', asyncHandler(userController.getDailyGoals));
 router.get('/badges', asyncHandler(userController.getBadges));
 
+// UTM attribution (first-touch, set once)
+router.post('/attribution', asyncHandler(userController.setAttribution));
+
 // Account management
 router.delete('/history', asyncHandler(userController.clearHistory));
 router.delete('/account', asyncHandler(userController.deleteAccount));

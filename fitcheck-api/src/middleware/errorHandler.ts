@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as Sentry from '@sentry/node';
+import { ZodError } from 'zod';
 
 // In-memory 5xx error counter (resets on server restart)
 let _errorCount5xx = 0;
@@ -29,6 +30,15 @@ export function errorHandler(
   // Express body-parser sends SyntaxError for malformed JSON
   if (err instanceof SyntaxError && 'status' in err && (err as any).status === 400) {
     res.status(400).json({ error: 'Invalid JSON in request body', status: 400 });
+    return;
+  }
+
+  if (err instanceof ZodError) {
+    const fieldErrors = err.errors.map(e => ({
+      field: e.path.join('.'),
+      message: e.message,
+    }));
+    res.status(400).json({ error: 'Validation failed', status: 400, fieldErrors });
     return;
   }
 

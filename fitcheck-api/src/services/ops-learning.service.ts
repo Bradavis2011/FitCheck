@@ -295,6 +295,8 @@ async function runOpsLearningCritique(
   nudgePayload: Record<string, unknown>,
   followUpPayload: Record<string, unknown>,
   milestonePayload: Record<string, unknown>,
+  asoPayload: Record<string, unknown>,
+  attrPayload: Record<string, unknown>,
 ): Promise<string> {
   if (!process.env.GEMINI_API_KEY) return 'Gemini not configured';
 
@@ -342,9 +344,21 @@ ${milestonePayload.worstMilestone
   ? `Worst milestone: ${milestonePayload.worstMilestone} — conversion rate ${((milestonePayload.worstConversionRate as number || 0) * 100).toFixed(1)}%`
   : 'Insufficient data'}
 
+ASO KEYWORD TRENDS (latest weekly snapshot):
+${asoPayload.keywords
+  ? `Top keywords: ${(asoPayload.keywords as Array<{keyword: string; store: string; traffic: number; difficulty: number; rankChange: number | null}>)
+      .slice(0, 4).map(k => `"${k.keyword}" (${k.store}): traffic ${(k.traffic || 0).toFixed(0)}, difficulty ${(k.difficulty || 0).toFixed(0)}, rank ${k.rankChange != null ? (k.rankChange > 0 ? `▼${k.rankChange}` : `▲${Math.abs(k.rankChange)}`) : 'new'}`).join('; ')}`
+  : 'No ASO data yet — first snapshot runs Tuesday 6am UTC'}
+
+ATTRIBUTION (signups by source, last 7d):
+${attrPayload.bySource
+  ? (attrPayload.bySource as Array<{source: string; count: number; firstOutfitRate: number}>)
+      .slice(0, 5).map(s => `${s.source}: ${s.count} signups, ${s.firstOutfitRate}% first-outfit`).join(' | ')
+  : 'No attribution data yet — ensure UTM links are in use'}
+
 Return JSON only (no markdown):
 {
-  "weakestDomain": "email" | "nudge" | "social" | "conversion" | "followup" | "milestone",
+  "weakestDomain": "email" | "nudge" | "social" | "conversion" | "followup" | "milestone" | "aso" | "attribution",
   "criticalIssue": "one sentence describing the biggest problem",
   "recommendation": "one specific, actionable improvement",
   "urgency": "low" | "medium" | "high"
@@ -642,11 +656,15 @@ export async function runOpsLearning(): Promise<void> {
   const followUpPayload = followUpEntry[0]?.payload || {};
   const milestoneEntry = await readFromIntelligenceBus('ops-learning', 'milestone_metrics', { limit: 1 });
   const milestonePayload = milestoneEntry[0]?.payload || {};
+  const asoEntry = await readFromIntelligenceBus('ops-learning', 'aso_metrics', { limit: 1 });
+  const asoPayload = asoEntry[0]?.payload || {};
+  const attrEntry = await readFromIntelligenceBus('ops-learning', 'attribution_metrics', { limit: 1 });
+  const attrPayload = attrEntry[0]?.payload || {};
 
   // Phase 2: Batched Gemini critique (~5K tokens)
   let critiqueResult = '{}';
   if (process.env.GEMINI_API_KEY) {
-    critiqueResult = await runOpsLearningCritique(emailMetrics, socialMetrics, conversionMetrics, nudgePayload, followUpPayload, milestonePayload);
+    critiqueResult = await runOpsLearningCritique(emailMetrics, socialMetrics, conversionMetrics, nudgePayload, followUpPayload, milestonePayload, asoPayload, attrPayload);
 
     await publishToIntelligenceBus('ops-learning', 'ops_critique', {
       critique: critiqueResult,

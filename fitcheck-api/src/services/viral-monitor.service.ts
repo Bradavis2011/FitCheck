@@ -1,5 +1,13 @@
 import { Resend } from 'resend';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
+
+interface ChannelVirality {
+  source: string;
+  publicOutfits: number;
+  totalOutfits: number;
+  viralRate: number;
+}
 
 interface ViralMetrics {
   publicOutfits: number;
@@ -10,6 +18,7 @@ interface ViralMetrics {
   weekOverWeekTrend: number | null;
   viralCoefficient: number | null;
   topSharedStyles: string[];
+  channelVirality: ChannelVirality[];
 }
 
 async function getViralMetrics(): Promise<ViralMetrics> {
@@ -53,7 +62,35 @@ async function getViralMetrics(): Promise<ViralMetrics> {
     ? Math.round((sharesPast7d / activeCount) * 100) / 100
     : null;
 
-  return { publicOutfits, totalOutfits, publicPct, sharesPast7d, sharesPrior7d, weekOverWeekTrend, viralCoefficient, topSharedStyles };
+  // Channel virality: share rate by attribution source (for users active in past 7d)
+  let channelVirality: ChannelVirality[] = [];
+  try {
+    const activeUserIds = activeUsers.map(u => u.userId);
+    const usersWithAttr = await prisma.user.findMany({
+      where: { id: { in: activeUserIds }, attribution: { not: Prisma.JsonNull } },
+      select: { id: true, attribution: true },
+    });
+
+    const sourceMap = new Map<string, string[]>();
+    for (const u of usersWithAttr) {
+      const source = (u.attribution as Record<string, unknown>)?.source as string || 'unknown';
+      if (!sourceMap.has(source)) sourceMap.set(source, []);
+      sourceMap.get(source)!.push(u.id);
+    }
+
+    for (const [source, userIds] of sourceMap) {
+      const [pubCount, totCount] = await Promise.all([
+        prisma.outfitCheck.count({ where: { userId: { in: userIds }, isPublic: true, isDeleted: false, createdAt: { gte: ago7d } } }),
+        prisma.outfitCheck.count({ where: { userId: { in: userIds }, isDeleted: false, createdAt: { gte: ago7d } } }),
+      ]);
+      if (totCount > 0) {
+        channelVirality.push({ source, publicOutfits: pubCount, totalOutfits: totCount, viralRate: Math.round((pubCount / totCount) * 100) });
+      }
+    }
+    channelVirality.sort((a, b) => b.viralRate - a.viralRate);
+  } catch {}
+
+  return { publicOutfits, totalOutfits, publicPct, sharesPast7d, sharesPrior7d, weekOverWeekTrend, viralCoefficient, topSharedStyles, channelVirality };
 }
 
 function buildViralMonitorEmail(m: ViralMetrics): string {
@@ -111,9 +148,23 @@ function buildViralMonitorEmail(m: ViralMetrics): string {
             </td>
           </tr>
         </table>
-        <div style="background:#FBF7F4;border-radius:10px;padding:16px 20px;border-left:4px solid #A8B5A0;">
+        <div style="background:#FBF7F4;border-radius:10px;padding:16px 20px;border-left:4px solid #A8B5A0;margin-bottom:24px;">
           <div style="font-size:14px;color:#2D2D2D;">${insight}</div>
         </div>
+        ${m.channelVirality.length > 0 ? `
+        <div style="font-size:13px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Channel Virality (7d)</div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border-collapse:collapse;">
+          <tr style="background:#F5EDE7;">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Source</th>
+            <th style="padding:8px 12px;text-align:right;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Public</th>
+            <th style="padding:8px 12px;text-align:right;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Share Rate</th>
+          </tr>
+          ${m.channelVirality.slice(0, 5).map(ch => `<tr>
+            <td style="padding:8px 12px;font-size:13px;color:#2D2D2D;">${ch.source}</td>
+            <td style="padding:8px 12px;font-size:13px;color:#1A1A1A;text-align:right;">${ch.publicOutfits}/${ch.totalOutfits}</td>
+            <td style="padding:8px 12px;font-size:13px;font-weight:600;text-align:right;color:${ch.viralRate >= 40 ? '#10B981' : ch.viralRate >= 20 ? '#F59E0B' : '#6B7280'};">${ch.viralRate}%</td>
+          </tr>`).join('')}
+        </table>` : ''}
       </div>
       <div style="background:#F5EDE7;padding:20px 40px;text-align:center;">
         <div style="font-size:12px;color:#6B7280;">Or This? · Viral Loop Monitor · ${new Date().toISOString()}</div>

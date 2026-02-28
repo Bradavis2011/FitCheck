@@ -474,7 +474,12 @@ export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response
 
 export async function listOutfitChecks(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
-  const { occasion, isFavorite, limit = '20', offset = '0' } = req.query;
+  const { occasion, isFavorite, limit, offset } = req.query as unknown as {
+    occasion?: string;
+    isFavorite?: 'true' | 'false';
+    limit: number;
+    offset: number;
+  };
 
   // Get user tier for history gating
   const user = await prisma.user.findUnique({
@@ -507,8 +512,8 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
   const outfits = await prisma.outfitCheck.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    take: Math.min(100, parseInt(limit as string) || 20),
-    skip: Math.min(10000, parseInt(offset as string) || 0),
+    take: Math.min(100, limit),
+    skip: Math.min(10000, offset),
     select: {
       id: true,
       imageUrl: true,
@@ -527,7 +532,7 @@ export async function listOutfitChecks(req: AuthenticatedRequest, res: Response)
   res.json({
     outfits,
     total,
-    hasMore: total > (Math.min(10000, parseInt(offset as string) || 0)) + outfits.length,
+    hasMore: total > Math.min(10000, offset) + outfits.length,
   });
 }
 
@@ -535,10 +540,6 @@ export async function submitFollowUpQuestion(req: AuthenticatedRequest, res: Res
   const { id } = req.params;
   const userId = req.userId!;
   const { question } = req.body;
-
-  if (!question || typeof question !== 'string') {
-    throw new AppError(400, 'Question is required');
-  }
 
   // Verify outfit belongs to user
   const outfitCheck = await prisma.outfitCheck.findFirst({
@@ -753,10 +754,6 @@ export async function respondToFollowUp(req: AuthenticatedRequest, res: Response
   const userId = req.userId!;
   const { followUpId } = req.params;
   const { response } = req.body;
-
-  if (!response || typeof response !== 'string') {
-    throw new AppError(400, 'response is required');
-  }
 
   await recordFollowUpResponse(followUpId, userId, response);
   res.json({ success: true });

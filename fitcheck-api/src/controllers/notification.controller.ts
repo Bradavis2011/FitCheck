@@ -9,7 +9,11 @@ import { pushService } from '../services/push.service.js';
 export async function getNotifications(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
-    const { limit = '50', offset = '0', unreadOnly = 'false' } = req.query;
+    const { limit, offset, unreadOnly } = req.query as unknown as {
+      limit: number;
+      offset: number;
+      unreadOnly: 'true' | 'false';
+    };
 
     const where: any = { userId };
     if (unreadOnly === 'true') {
@@ -19,8 +23,8 @@ export async function getNotifications(req: AuthenticatedRequest, res: Response)
     const notifications = await prisma.notification.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: Math.min(100, parseInt(limit as string) || 50),
-      skip: Math.min(10000, parseInt(offset as string) || 0),
+      take: Math.min(100, limit),
+      skip: Math.min(10000, offset),
     });
 
     const unreadCount = await prisma.notification.count({

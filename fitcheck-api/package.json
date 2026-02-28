@@ -18,15 +18,19 @@
     "generate:training-data": "tsx scripts/generate-training-data.ts",
     "test:brand-voice": "tsx -e \"import { brandVoiceValidator } from './src/validators/brand-voice-validator.js'; const result = brandVoiceValidator.validate('You\\'ve got this! The dress is stunning.'); console.log(result);\"",
     "train:ai": "tsx scripts/train/index.ts",
-    "launch:check": "tsx scripts/pre-launch-check.ts"
+    "launch:check": "tsx scripts/pre-launch-check.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.989.0",
+    "@aws-sdk/client-s3": "^3.893.0",
     "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/express": "^1.7.69",
     "@google/generative-ai": "^0.21.0",
     "@prisma/client": "^6.2.0",
     "@sentry/node": "^8.55.0",
+    "aso-v2": "^2.0.14",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -56,9 +60,11 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.5",
     "@types/node-cron": "^3.0.11",
+    "@vitest/coverage-v8": "^4.0.18",
     "prisma": "^6.2.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   },
   "private": true,
   "engines": {

@@ -64,13 +64,13 @@ export async function createComparison(req: AuthenticatedRequest, res: Response)
  */
 export async function getComparisonFeed(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
-  const { limit = '20', offset = '0' } = req.query;
+  const { limit, offset } = req.query as unknown as { limit: number; offset: number };
 
   const posts = await prisma.comparisonPost.findMany({
     where: { isDeleted: false },
     orderBy: { createdAt: 'desc' },
-    take: Math.min(100, parseInt(limit as string) || 20),
-    skip: Math.min(10000, parseInt(offset as string) || 0),
+    take: Math.min(100, limit),
+    skip: Math.min(10000, offset),
     select: {
       id: true,
       imageAUrl: true,
@@ -101,7 +101,7 @@ export async function getComparisonFeed(req: AuthenticatedRequest, res: Response
 
   res.json({
     posts: postsWithVoted,
-    hasMore: (Math.min(10000, parseInt(offset as string) || 0)) + posts.length < total,
+    hasMore: Math.min(10000, offset) + posts.length < total,
   });
 }
 

@@ -5,6 +5,8 @@ import { getAiQualitySummary } from './ai-quality-monitor.service.js';
 import { getRevenueSummary } from './revenue-cost.service.js';
 import { getSecurityAuditSummary } from './security-auditor.service.js';
 import { getCodeReviewSummary } from './code-reviewer.service.js';
+import { getAsoSummary } from './aso-intelligence.service.js';
+import { getLatestBusEntry } from './intelligence-bus.service.js';
 
 function statRow(label: string, value: string, noteHtml = ''): string {
   return `<tr>
@@ -30,7 +32,7 @@ export async function runFounderBrief(): Promise<void> {
     const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const ago14d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary] = await Promise.all([
+    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary, asoSummary, attributionEntry] = await Promise.all([
       getMetricsSnapshot(),
       getAiQualitySummary(),
       getRevenueSummary(),
@@ -38,6 +40,8 @@ export async function runFounderBrief(): Promise<void> {
       prisma.user.count({ where: { createdAt: { gte: ago14d, lt: ago7d } } }),
       getSecurityAuditSummary(),
       getCodeReviewSummary(),
+      getAsoSummary(),
+      getLatestBusEntry('attribution_metrics'),
     ]);
 
     const userGrowthPct = newUsersPriorWeek > 0
@@ -69,6 +73,30 @@ export async function runFounderBrief(): Promise<void> {
     if (securitySummary && securitySummary.critical > 0) risks.push(`${securitySummary.critical} CRITICAL security finding(s) — check Security Auditor email`);
     if (securitySummary && securitySummary.high > 0) risks.push(`${securitySummary.high} high-severity security finding(s) need attention`);
     if (codeReviewSummary && codeReviewSummary.high > 0) risks.push(`${codeReviewSummary.high} high-severity code review finding(s) — check Code Reviewer email`);
+
+    // ASO keyword alerts
+    if (asoSummary) {
+      const droppedKeywords = asoSummary.biggestMovers.filter(m => m.change > 5);
+      const improvedKeywords = asoSummary.biggestMovers.filter(m => m.change < -3);
+      if (droppedKeywords.length > 0) {
+        risks.push(`ASO: "${droppedKeywords[0].keyword}" dropped ${droppedKeywords[0].change} positions on ${droppedKeywords[0].store === 'google' ? 'Play' : 'iOS'} — consider content push`);
+      }
+      if (improvedKeywords.length > 0) {
+        highlights.push(`ASO: "${improvedKeywords[0].keyword}" improved ${Math.abs(improvedKeywords[0].change)} positions — keyword gaining traction`);
+      }
+    }
+
+    // Attribution highlights
+    const attrPayload = attributionEntry?.payload as Record<string, unknown> | null;
+    if (attrPayload) {
+      const bySource = attrPayload.bySource as Array<{ source: string; count: number }> | undefined;
+      if (bySource && bySource.length > 0) {
+        const topSource = bySource[0];
+        if (topSource.count > 0) {
+          highlights.push(`Attribution: ${topSource.count} new user(s) came from ${topSource.source} this week`);
+        }
+      }
+    }
 
     const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -135,6 +163,25 @@ export async function runFounderBrief(): Promise<void> {
 
             ${sectionHeader('Code Health')}
             ${statRow('Code Review Findings', codeReviewSummary ? `${codeReviewSummary.total} total` : 'N/A', codeReviewSummary && codeReviewSummary.high > 0 ? `<span style="color:#EF4444;font-size:12px;">🔴 ${codeReviewSummary.high} high</span>` : '')}
+
+            ${asoSummary ? `
+            ${sectionHeader('ASO — Keyword Rankings')}
+            ${asoSummary.topKeywords.slice(0, 3).map((kw, i) => {
+              const data = asoSummary.keywords.find(k => k.keyword === kw && k.store === 'apple') ||
+                           asoSummary.keywords.find(k => k.keyword === kw);
+              return statRow(`#${i + 1}: ${kw}`, data ? `traffic ${data.traffic.toFixed(0)}, difficulty ${data.difficulty.toFixed(0)}` : '—');
+            }).join('')}
+            ${asoSummary.biggestMovers.length > 0 ? statRow('Biggest Mover', `${asoSummary.biggestMovers[0].keyword}`, asoSummary.biggestMovers[0].change < 0 ? `<span style="color:#10B981;font-size:12px;">▲ improved</span>` : `<span style="color:#EF4444;font-size:12px;">▼ dropped</span>`) : ''}
+            ${asoSummary.competitors.length > 0 ? statRow('Competitors Tracked', `${asoSummary.competitors.length} apps`) : ''}
+            ` : ''}
+
+            ${attrPayload ? `
+            ${sectionHeader('Attribution — Where Users Came From (7d)')}
+            ${(attrPayload.bySource as Array<{ source: string; count: number }> || []).slice(0, 4).map(s =>
+              statRow(s.source || 'unknown', `${s.count} signup(s)`)
+            ).join('')}
+            ${statRow('Total Attributed', `${(attrPayload.totalAttributed as number) || 0}`)}
+            ` : ''}
           </table>
         </div>
         <div style="background:#F5EDE7;padding:20px 40px;text-align:center;">

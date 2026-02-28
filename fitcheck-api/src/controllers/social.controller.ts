@@ -28,11 +28,7 @@ const ReportSchema = z.object({
 // Search for public users
 export async function searchUsers(req: AuthenticatedRequest, res: Response) {
   try {
-    const { q } = req.query;
-
-    if (!q || typeof q !== 'string' || q.trim().length < 2 || q.trim().length > 100) {
-      throw new AppError(400, 'Search query must be between 2 and 100 characters');
-    }
+    const { q } = req.query as { q: string };
 
     const users = await prisma.user.findMany({
       where: {
@@ -200,8 +196,11 @@ export async function getPublicOutfit(req: AuthenticatedRequest, res: Response) 
 export async function getCommunityFeed(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
-    const { limit: limitParam = '20', offset = '0', filter = 'recent' } = req.query;
-    const limit = String(Math.min(parseInt(limitParam as string) || 20, 100));
+    const { limit, offset, filter } = req.query as unknown as {
+      limit: number;
+      offset: number;
+      filter: 'recent' | 'popular' | 'top-rated' | 'inner_circle';
+    };
 
     // Get blocked user IDs
     const blockedUsers = await prisma.blockedUser.findMany({
@@ -233,15 +232,15 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
           _count: { select: { communityFeedback: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: parseInt(limit as string),
-        skip: parseInt(offset as string),
+        take: limit,
+        skip: offset,
       });
 
       const total = await prisma.outfitCheck.count({
         where: { isPublic: true, isDeleted: false, visibility: 'inner_circle', userId: { in: ownerIds } },
       });
 
-      res.json({ outfits, total, hasMore: total > parseInt(offset as string) + outfits.length });
+      res.json({ outfits, total, hasMore: total > offset + outfits.length });
       return;
     }
 
@@ -313,8 +312,8 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
         },
       },
       orderBy,
-      take: parseInt(limit as string),
-      skip: parseInt(offset as string),
+      take: limit,
+      skip: offset,
     });
 
     const total = await prisma.outfitCheck.count({ where: feedWhere });
@@ -322,7 +321,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
     res.json({
       outfits,
       total,
-      hasMore: total > parseInt(offset as string) + outfits.length,
+      hasMore: total > offset + outfits.length,
     });
   } catch (error) {
     throw error;
@@ -528,8 +527,10 @@ export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response
 // Get leaderboard
 export async function getLeaderboard(req: AuthenticatedRequest, res: Response) {
   try {
-    const { type = 'top-rated', limit = '50' } = req.query;
-    const limitNum = Math.min(parseInt(limit as string) || 50, 100);
+    const { type, limit: limitNum } = req.query as unknown as {
+      type: 'top-rated' | 'most-active' | 'most-helpful' | 'most-popular' | 'weekly';
+      limit: number;
+    };
 
     let leaderboard: any[] = [];
 

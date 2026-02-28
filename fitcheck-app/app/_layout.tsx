@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SecureStore from 'expo-secure-store';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -114,6 +115,32 @@ function AuthGate() {
       reset();
     }
   }, [isSignedIn, userId, isLoaded]);
+
+  // Send first-touch UTM attribution to backend on fresh sign-in
+  useEffect(() => {
+    if (!isSignedIn || !userId) return;
+    // prevUserIdRef.current is null when this is a fresh sign-in (no previous user)
+    if (prevUserIdRef.current !== null) return;
+
+    (async () => {
+      try {
+        const stored = await SecureStore.getItemAsync('orthis_attribution');
+        if (!stored) return;
+        const attribution = JSON.parse(stored) as Record<string, string>;
+        const token = await getToken();
+        if (!token) return;
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://fitcheck-production-0f92.up.railway.app';
+        await fetch(`${apiUrl}/api/user/attribution`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(attribution),
+        });
+        await SecureStore.deleteItemAsync('orthis_attribution');
+      } catch {
+        // Non-fatal — attribution is best-effort
+      }
+    })();
+  }, [isSignedIn, userId]);
 
   useEffect(() => {
     if (!isLoaded) return;

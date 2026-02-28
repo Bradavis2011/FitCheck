@@ -56,17 +56,18 @@ async function detectSignals(): Promise<number> {
   try {
     const limitHitters = await prisma.user.findMany({
       where: { tier: 'free', dailyChecksUsed: { gte: 3 } },
-      select: { id: true },
+      select: { id: true, attribution: true },
     });
 
-    for (const { id } of limitHitters) {
+    for (const u of limitHitters) {
       const alreadyToday = await prisma.conversionSignal.findFirst({
-        where: { userId: id, signalType: 'hit_daily_limit', createdAt: { gte: todayStart } },
+        where: { userId: u.id, signalType: 'hit_daily_limit', createdAt: { gte: todayStart } },
       });
       if (!alreadyToday) {
         const strength = await getSignalStrength('hit_daily_limit');
+        const attrSource = (u.attribution as Record<string, unknown> | null)?.source as string | undefined;
         await prisma.conversionSignal.create({
-          data: { userId: id, signalType: 'hit_daily_limit', strength, outcome: 'pending' },
+          data: { userId: u.id, signalType: 'hit_daily_limit', strength, outcome: 'pending', metadata: attrSource ? { source: attrSource } : undefined },
         });
         signalsCreated++;
       }
@@ -80,24 +81,25 @@ async function detectSignals(): Promise<number> {
   try {
     const freeUsers = await prisma.user.findMany({
       where: { tier: 'free' },
-      select: { id: true },
+      select: { id: true, attribution: true },
     });
 
-    for (const { id } of freeUsers) {
+    for (const u of freeUsers) {
       const checks = await prisma.outfitCheck.findMany({
-        where: { userId: id, isDeleted: false, createdAt: { gte: sevenDaysAgo } },
+        where: { userId: u.id, isDeleted: false, createdAt: { gte: sevenDaysAgo } },
         select: { createdAt: true },
       });
 
       const activeDays = new Set(checks.map(c => c.createdAt.toISOString().slice(0, 10)));
       if (activeDays.size >= 5) {
         const alreadyToday = await prisma.conversionSignal.findFirst({
-          where: { userId: id, signalType: 'high_engagement', createdAt: { gte: todayStart } },
+          where: { userId: u.id, signalType: 'high_engagement', createdAt: { gte: todayStart } },
         });
         if (!alreadyToday) {
           const strength = await getSignalStrength('high_engagement');
+          const attrSource = (u.attribution as Record<string, unknown> | null)?.source as string | undefined;
           await prisma.conversionSignal.create({
-            data: { userId: id, signalType: 'high_engagement', strength, outcome: 'pending' },
+            data: { userId: u.id, signalType: 'high_engagement', strength, outcome: 'pending', metadata: attrSource ? { source: attrSource } : undefined },
           });
           signalsCreated++;
         }
@@ -118,16 +120,17 @@ async function detectSignals(): Promise<number> {
     });
 
     for (const { userId } of loyalUsers) {
-      const isFree = await prisma.user.findUnique({ where: { id: userId }, select: { tier: true } });
-      if (!isFree || isFree.tier !== 'free') continue;
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { tier: true, attribution: true } });
+      if (!user || user.tier !== 'free') continue;
 
       const alreadyToday = await prisma.conversionSignal.findFirst({
         where: { userId, signalType: 'loyal_free', createdAt: { gte: todayStart } },
       });
       if (!alreadyToday) {
         const strength = await getSignalStrength('loyal_free');
+        const attrSource = (user.attribution as Record<string, unknown> | null)?.source as string | undefined;
         await prisma.conversionSignal.create({
-          data: { userId, signalType: 'loyal_free', strength, outcome: 'pending' },
+          data: { userId, signalType: 'loyal_free', strength, outcome: 'pending', metadata: attrSource ? { source: attrSource } : undefined },
         });
         signalsCreated++;
       }
@@ -154,16 +157,17 @@ async function detectSignals(): Promise<number> {
       });
 
       for (const { userId } of outfits) {
-        const isFree = await prisma.user.findUnique({ where: { id: userId }, select: { tier: true } });
-        if (!isFree || isFree.tier !== 'free') continue;
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { tier: true, attribution: true } });
+        if (!user || user.tier !== 'free') continue;
 
         const alreadyToday = await prisma.conversionSignal.findFirst({
           where: { userId, signalType: 'power_user', createdAt: { gte: todayStart } },
         });
         if (!alreadyToday) {
           const strength = await getSignalStrength('power_user');
+          const attrSource = (user.attribution as Record<string, unknown> | null)?.source as string | undefined;
           await prisma.conversionSignal.create({
-            data: { userId, signalType: 'power_user', strength, outcome: 'pending' },
+            data: { userId, signalType: 'power_user', strength, outcome: 'pending', metadata: attrSource ? { source: attrSource } : undefined },
           });
           signalsCreated++;
         }

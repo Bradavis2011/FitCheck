@@ -217,6 +217,12 @@ httpServer.listen(PORT, () => {
     console.log(`⚠️  S3 not configured - using base64 fallback (not recommended for production)`);
     console.log(`   Set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET to enable cloud storage`);
   }
+
+  // Warn if admin dashboard token is too short
+  const adminToken = process.env.ADMIN_DASHBOARD_TOKEN;
+  if (adminToken && adminToken.length < 32) {
+    console.warn(`⚠️  SECURITY: ADMIN_DASHBOARD_TOKEN is only ${adminToken.length} chars — use at least 32 random chars (e.g. openssl rand -hex 32)`);
+  }
 });
 
 // Graceful shutdown — flush PostHog before exit

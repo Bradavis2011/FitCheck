@@ -40,10 +40,6 @@ export async function claimReferral(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
   const { referralCode } = req.body;
 
-  if (!referralCode || typeof referralCode !== 'string') {
-    throw new AppError(400, 'referralCode is required');
-  }
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, referredById: true },

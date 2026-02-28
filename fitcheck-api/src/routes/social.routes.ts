@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { validateRequest } from '../middleware/validateRequest.js';
+import {
+  SearchUsersQuerySchema,
+  CommunityFeedQuerySchema,
+  LeaderboardQuerySchema,
+} from '../schemas/index.js';
 import {
   searchUsers,
   getUserProfile,
@@ -30,12 +36,12 @@ const router = Router();
 router.use(authenticateToken);
 
 // User search and profiles
-router.get('/users/search', asyncHandler(searchUsers));
+router.get('/users/search', validateRequest({ query: SearchUsersQuerySchema }), asyncHandler(searchUsers));
 router.get('/users/username/:username', asyncHandler(getUserProfileByUsername));
 router.get('/users/:id/profile', asyncHandler(getUserProfile));
 
 // Community feed
-router.get('/community/feed', asyncHandler(getCommunityFeed));
+router.get('/community/feed', validateRequest({ query: CommunityFeedQuerySchema }), asyncHandler(getCommunityFeed));
 
 // Public outfit details
 router.get('/outfits/:id', asyncHandler(getPublicOutfit));
@@ -45,7 +51,7 @@ router.post('/community/feedback', asyncHandler(submitCommunityFeedback));
 router.get('/outfits/:id/feedback', asyncHandler(getOutfitFeedback));
 
 // Leaderboard
-router.get('/leaderboard', asyncHandler(getLeaderboard));
+router.get('/leaderboard', validateRequest({ query: LeaderboardQuerySchema }), asyncHandler(getLeaderboard));
 
 // Moderation
 router.post('/report', asyncHandler(reportContent));

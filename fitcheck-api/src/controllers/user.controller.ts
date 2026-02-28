@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
@@ -378,6 +379,44 @@ export async function getDailyGoals(req: AuthenticatedRequest, res: Response) {
     const progress = await gamificationService.getDailyGoalsProgress(userId);
 
     res.json(progress);
+  } catch (error) {
+    throw error;
+  }
+}
+
+// POST /api/user/attribution - Store first-touch UTM attribution (set-once)
+export async function setAttribution(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const schema = z.object({
+      source: z.string().max(100).optional(),
+      medium: z.string().max(100).optional(),
+      campaign: z.string().max(200).optional(),
+      content: z.string().max(200).optional(),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid attribution data' });
+      return;
+    }
+
+    // Only set if not already set — first-touch attribution wins
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { attribution: true } });
+    if (!user) throw new AppError(404, 'User not found');
+
+    if (user.attribution !== null) {
+      res.json({ set: false, reason: 'already_set' });
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { attribution: parsed.data as unknown as Prisma.InputJsonValue },
+    });
+
+    res.json({ set: true });
   } catch (error) {
     throw error;
   }

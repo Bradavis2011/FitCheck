@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import * as Sentry from '@sentry/node';
 import { AuthenticatedRequest } from '../types/index.js';
-import { AppError } from '../middleware/errorHandler.js';
 import { processWebhookEvent, syncSubscriptionFromClient } from '../services/subscription.service.js';
 import { getTierLimits } from '../constants/tiers.js';
 import { trackServerEvent } from '../lib/posthog.js';
@@ -74,10 +73,6 @@ export async function handleWebhook(req: Request, res: Response) {
 export async function syncSubscription(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
   const { entitlementIds, productId, expiresAt } = req.body;
-
-  if (!Array.isArray(entitlementIds)) {
-    throw new AppError(400, 'entitlementIds must be an array');
-  }
 
   const result = await syncSubscriptionFromClient(
     userId,

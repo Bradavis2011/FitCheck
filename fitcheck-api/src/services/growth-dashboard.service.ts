@@ -1,5 +1,7 @@
 import { Resend } from 'resend';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
+import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 interface GrowthMetrics {
   newSignups24h: number;
@@ -109,6 +111,50 @@ async function getGrowthMetrics(): Promise<GrowthMetrics> {
   };
 }
 
+// ─── Attribution Metrics ──────────────────────────────────────────────────────
+
+interface AttributionSource {
+  source: string;
+  count: number;
+  firstOutfitRate: number;
+}
+
+async function getAttributionMetrics(ago7d: Date): Promise<AttributionSource[]> {
+  // Query users with attribution set who signed up in the last 7 days
+  const recentUsers = await prisma.user.findMany({
+    where: {
+      createdAt: { gte: ago7d },
+      attribution: { not: Prisma.JsonNull },
+    },
+    select: { id: true, attribution: true },
+  });
+
+  if (recentUsers.length === 0) return [];
+
+  // Group by source
+  const sourceMap = new Map<string, { userIds: string[] }>();
+  for (const u of recentUsers) {
+    const attr = u.attribution as Record<string, unknown> | null;
+    const source = (attr?.source as string) || 'unknown';
+    if (!sourceMap.has(source)) sourceMap.set(source, { userIds: [] });
+    sourceMap.get(source)!.userIds.push(u.id);
+  }
+
+  const results: AttributionSource[] = [];
+  for (const [source, { userIds }] of sourceMap) {
+    // Count how many made their first outfit check
+    const withOutfit = await prisma.outfitCheck.findMany({
+      where: { userId: { in: userIds }, isDeleted: false },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    const firstOutfitRate = userIds.length > 0 ? Math.round((withOutfit.length / userIds.length) * 100) : 0;
+    results.push({ source, count: userIds.length, firstOutfitRate });
+  }
+
+  return results.sort((a, b) => b.count - a.count);
+}
+
 function trendArrow(pct: number): string {
   if (pct > 5) return `<span style="color:#10B981;">▲ ${pct}%</span>`;
   if (pct < -5) return `<span style="color:#EF4444;">▼ ${Math.abs(pct)}%</span>`;
@@ -124,11 +170,27 @@ function card(label: string, value: string, noteHtml = '', width = '33%'): strin
   </td>`;
 }
 
-function buildGrowthDashboardEmail(m: GrowthMetrics): string {
+function buildGrowthDashboardEmail(m: GrowthMetrics, attribution: AttributionSource[]): string {
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const convColor = m.signupToFirstOutfit >= 50 ? '#10B981' : m.signupToFirstOutfit >= 30 ? '#F59E0B' : '#EF4444';
   const r1Color = (m.retention1d ?? 0) >= 30 ? '#10B981' : '#F59E0B';
   const r7Color = (m.retention7d ?? 0) >= 20 ? '#10B981' : '#F59E0B';
+
+  const attributionSection = attribution.length > 0 ? `
+    <div style="font-size:13px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Acquisition Sources (7d)</div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border-collapse:collapse;">
+      <tr style="background:#F5EDE7;">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Source</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Signups</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">1st Outfit</th>
+      </tr>
+      ${attribution.slice(0, 5).map(s => `<tr>
+        <td style="padding:8px 12px;font-size:13px;color:#2D2D2D;">${s.source}</td>
+        <td style="padding:8px 12px;font-size:13px;font-weight:600;color:#1A1A1A;text-align:right;">${s.count}</td>
+        <td style="padding:8px 12px;font-size:13px;text-align:right;font-weight:600;color:${s.firstOutfitRate >= 50 ? '#10B981' : s.firstOutfitRate >= 30 ? '#F59E0B' : '#6B7280'};">${s.firstOutfitRate}%</td>
+      </tr>`).join('')}
+    </table>
+  ` : '';
 
   return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#FBF7F4;padding:40px;">
     <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
@@ -184,6 +246,8 @@ function buildGrowthDashboardEmail(m: GrowthMetrics): string {
           </td>
         </tr></table>
 
+        ${attributionSection}
+
       </div>
       <div style="background:#F5EDE7;padding:20px 40px;text-align:center;">
         <div style="font-size:12px;color:#6B7280;">Or This? · Growth Dashboard Agent · ${new Date().toISOString()}</div>
@@ -202,15 +266,32 @@ export async function runGrowthDashboard(): Promise<void> {
   }
 
   try {
-    const metrics = await getGrowthMetrics();
+    const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [metrics, attributionSources] = await Promise.all([
+      getGrowthMetrics(),
+      getAttributionMetrics(ago7d),
+    ]);
+
+    // Publish attribution metrics to bus for consumption by other agents
+    if (attributionSources.length > 0) {
+      await publishToIntelligenceBus('growth-dashboard', 'attribution_metrics', {
+        measuredAt: new Date().toISOString(),
+        periodDays: 7,
+        bySource: attributionSources,
+        totalAttributed: attributionSources.reduce((s, a) => s + a.count, 0),
+      });
+    }
+
     const from = process.env.REPORT_FROM_EMAIL || 'growth@orthis.app';
     const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    const html = buildGrowthDashboardEmail(metrics, attributionSources);
 
     await resend.emails.send({
       from,
       to: recipient,
       subject: `Or This? Growth — ${dateStr} | ${metrics.newSignups24h} new users, ${metrics.signupToFirstOutfit}% converted`,
-      html: buildGrowthDashboardEmail(metrics),
+      html,
     });
 
     console.log('✅ [GrowthDashboard] Sent growth dashboard');
