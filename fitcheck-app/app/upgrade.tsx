@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   planCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sharp,
+    borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     borderWidth: 1,
     borderColor: Colors.border,

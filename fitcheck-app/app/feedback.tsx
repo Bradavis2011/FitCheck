@@ -27,7 +27,7 @@ let Sharing: any = null;
 try { Sharing = require('expo-sharing'); } catch { /* unavailable in Expo Go */ }
 import { useAppStore } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
-import { Colors, Spacing, Fonts, getScoreColor } from '../src/constants/theme';
+import { Colors, Spacing, Fonts, BorderRadius, getScoreColor } from '../src/constants/theme';
 import AdBanner from '../src/components/AdBanner';
 import { recordOutfitCheck } from '../src/lib/adManager';
 import FeedbackCard from '../src/components/FeedbackCard';
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 0,
+    borderRadius: BorderRadius.md,
   },
   shareRow: {
     flexDirection: 'row',
@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 0,
+    borderRadius: BorderRadius.md,
   },
   inviteSectionLabel: {
     fontFamily: Fonts.sansMedium,

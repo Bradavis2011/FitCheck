@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 0,
   },
   chipText: {
     fontFamily: Fonts.sans,

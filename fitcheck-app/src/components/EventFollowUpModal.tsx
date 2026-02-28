@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, ActivityIndicator } from 'react-native';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Fonts, Spacing, FontSize, BorderRadius } from '../constants/theme';
 import { useRespondToEventFollowUp } from '../hooks/useApi';
 import { EventFollowUpResponse } from '../services/api.service';
 
@@ -104,8 +104,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
   },
