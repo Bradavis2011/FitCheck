@@ -40,7 +40,7 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - name: Wait for Postgres to be fully ready
-        run: sleep 2
+        run: until pg_isready -h localhost -p 5432 -U test; do sleep 1; done
       - name: Run migrations against test DB
         run: npx prisma migrate deploy
       - name: Notify success
