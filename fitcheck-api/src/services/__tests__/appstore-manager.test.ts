@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { generateKeyPairSync } from 'crypto';
 
 // ─── Hoisted Mocks ────────────────────────────────────────────────────────────
 
@@ -53,10 +54,12 @@ vi.mock('../aso-intelligence.service.js', () => ({
 
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors } from '../appstore-manager.service.js';
 
-// ─── Real EC P-256 key for JWT signing in tests ────────────────────────────────
-// Generated once with crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' })
-const TEST_EC_PRIVATE_KEY_B64 =
-  'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZy9wU1M2U1FjdGxaMHZueVgKZGxlQmFCb1R1NUM1bG5xZWVDN2tVeDlDVmU2aFJBTkNBQVNObkJINVZraXAydXNST2dlTzhUbWRZdGdUKzZQNwpRcTdhYnl1TDBTTTJRM3NpWTJkcXJVd1VRVGxtYTF0bHRXWmZ6OHRlSmZ0cWxtS1Vyak5iZjF0QwotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==';
+// ─── Throwaway EC P-256 key generated fresh each test run ─────────────────────
+// Never hardcode private keys in source — generate at runtime instead.
+const { privateKey: _testEcKeyObj } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+const TEST_EC_PRIVATE_KEY_B64 = Buffer.from(
+  _testEcKeyObj.export({ type: 'pkcs8', format: 'pem' }) as string,
+).toString('base64');
 
 // ─── Setup / Teardown ─────────────────────────────────────────────────────────
 
