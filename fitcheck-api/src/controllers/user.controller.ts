@@ -518,14 +518,11 @@ export async function deleteAccount(req: AuthenticatedRequest, res: Response) {
     // userStats, communityFeedback, notifications, pushTokens, etc.
     await prisma.user.delete({ where: { id: userId } });
 
-    // Attempt Clerk deletion (best-effort — don't fail the response)
-    try {
-      const { createClerkClient } = await import('@clerk/express');
-      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-      await clerk.users.deleteUser(userId);
-    } catch (clerkError) {
-      console.error('Failed to delete Clerk user (non-fatal):', clerkError);
-    }
+    // GDPR pipeline: S3 images, Clerk, PostHog, compliance log (best-effort — non-fatal)
+    const { initiateDataDeletion } = await import('../services/data-deletion.service.js');
+    initiateDataDeletion(userId, user.email).catch(err =>
+      console.error('[deleteAccount] GDPR deletion pipeline failed (non-fatal):', err)
+    );
 
     res.json({ success: true, message: 'Account permanently deleted' });
   } catch (error) {

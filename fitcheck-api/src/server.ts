@@ -36,6 +36,9 @@ import adminRoutes from './routes/admin.routes.js';
 import agentAdminRoutes from './routes/agent-admin.routes.js';
 import trendsRoutes from './routes/trends.routes.js';
 import referralRoutes from './routes/referral.routes.js';
+import legalRoutes from './routes/legal.routes.js';
+import feedbackRoutes from './routes/feedback.routes.js';
+import supportRoutes from './routes/support.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
@@ -168,6 +171,37 @@ app.get('/api/follow-up/:id/respond/:response', asyncHandler(async (req, res) =>
   </body></html>`);
 }));
 
+// Email unsubscribe (unauthenticated — link from email)
+app.get('/api/email/unsubscribe/:token', asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  if (!token || token.length < 16) {
+    res.status(400).send('Invalid unsubscribe link.');
+    return;
+  }
+  try {
+    const result = await prisma.user.updateMany({
+      where: { unsubscribeToken: token },
+      data: { emailOptOut: true },
+    });
+    if (result.count === 0) {
+      // Token not found — still show success page to avoid enumeration
+      console.warn(`[Unsubscribe] Token not found: ${token.slice(0, 8)}...`);
+    } else {
+      console.log(`[Unsubscribe] User opted out via token`);
+    }
+  } catch (err) {
+    console.error('[Unsubscribe] DB update failed:', err);
+  }
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;border-radius:16px;">
+      <div style="font-size:48px;">✉️</div>
+      <h2 style="color:#E85D4C;">Unsubscribed</h2>
+      <p style="color:#2D2D2D;">You've been removed from our marketing emails. Transactional emails (account security, billing) will continue.</p>
+      <a href="https://orthis.app" style="color:#E85D4C;font-weight:600;">Return to Or This? →</a>
+    </div>
+  </body></html>`);
+}));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/outfits', outfitRoutes);
@@ -189,6 +223,9 @@ app.use('/api/admin/agents', agentAdminRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/trends', trendsRoutes);
 app.use('/api/referral', referralRoutes);
+app.use('/api/legal', legalRoutes);
+app.use('/api/user/feedback', feedbackRoutes);
+app.use('/api/support', supportRoutes);
 
 // 404 handler
 app.use((_req, res) => {

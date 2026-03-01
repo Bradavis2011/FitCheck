@@ -8,76 +8,85 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  username  String?  @unique
-  bio       String?
-  passwordHash String?  @map("password_hash") // Optional: null for Clerk users
+  id              String  @id @default(uuid())
+  email           String  @unique
+  name            String?
+  username        String? @unique
+  bio             String?
+  passwordHash    String? @map("password_hash") // Optional: null for Clerk users
   profileImageUrl String? @map("profile_image_url")
-  isPublic  Boolean  @default(false) @map("is_public")
+  isPublic        Boolean @default(false) @map("is_public")
 
   // Preferences
-  stylePreferences Json? @default("{}") @map("style_preferences")
-  bodyType         String? @map("body_type")
-  colorSeason      String? @map("color_season")
+  stylePreferences Json?    @default("{}") @map("style_preferences")
+  bodyType         String?  @map("body_type")
+  colorSeason      String?  @map("color_season")
   height           String? // "petite", "average", "tall"
   lifestyle        String[] @default([]) // ["Student", "Office worker", "Creative professional", etc.]
   fashionGoals     String[] @default([]) @map("fashion_goals") // ["Look professional", "Express creativity", etc.]
-  fitPreference    String? @map("fit_preference") // "relaxed", "fitted", "balanced"
-  budgetLevel      String? @map("budget_level") // "budget", "mid-range", "investment"
+  fitPreference    String?  @map("fit_preference") // "relaxed", "fitted", "balanced"
+  budgetLevel      String?  @map("budget_level") // "budget", "mid-range", "investment"
 
   // Privacy Settings
   privacySettings Json? @default("{\"blurFaceDefault\":true,\"visibility\":\"all\",\"autoDelete\":\"never\"}") @map("privacy_settings")
   // privacySettings fields: { blurFaceDefault: boolean, visibility: "all"|"followers"|"trusted", autoDelete: "never"|"24h"|"7d"|"30d" }
 
   // Subscription
-  tier                  String   @default("free") // free, plus, pro
+  tier                  String    @default("free") // free, plus, pro
   subscriptionExpiresAt DateTime? @map("subscription_expires_at")
-  revenuecatId          String?  @unique @map("revenuecat_id")
-  subscriptionProductId String?  @map("subscription_product_id")
-  subscriptionStore     String?  @map("subscription_store")
+  revenuecatId          String?   @unique @map("revenuecat_id")
+  subscriptionProductId String?   @map("subscription_product_id")
+  subscriptionStore     String?   @map("subscription_store")
 
   // Usage tracking
-  dailyChecksUsed   Int      @default(0) @map("daily_checks_used")
+  dailyChecksUsed    Int      @default(0) @map("daily_checks_used")
   dailyChecksResetAt DateTime @default(now()) @map("daily_checks_reset_at") @db.Date
 
   // Nudge personalization
-  preferredNudgeHour Int?    @map("preferred_nudge_hour") // UTC hour with most outfit check activity (0-23)
+  preferredNudgeHour Int? @map("preferred_nudge_hour") // UTC hour with most outfit check activity (0-23)
 
   // Referral system
-  referralCode      String?  @unique @map("referral_code")
-  referredById      String?  @map("referred_by_id")
-  referredBy        User?    @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referredUsers     User[]   @relation("UserReferrals")
-  bonusDailyChecks  Int      @default(0) @map("bonus_daily_checks")
+  referralCode     String? @unique @map("referral_code")
+  referredById     String? @map("referred_by_id")
+  referredBy       User?   @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referredUsers    User[]  @relation("UserReferrals")
+  bonusDailyChecks Int     @default(0) @map("bonus_daily_checks")
 
   // UTM Attribution (first touch — set once on signup)
-  attribution       Json?    // { source, medium, campaign, content, socialPostId? }
+  attribution Json? // { source, medium, campaign, content, socialPostId? }
+
+  // Email compliance (CAN-SPAM / GDPR)
+  emailOptOut      Boolean @default(false) @map("email_opt_out")
+  unsubscribeToken String? @unique @map("unsubscribe_token")
+
+  // Privacy/Terms versioning (app store + GDPR)
+  privacyPolicyVersion String?   @map("privacy_policy_version")
+  tosVersion           String?   @map("tos_version")
+  tosAcceptedAt        DateTime? @map("tos_accepted_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  outfitChecks OutfitCheck[]
-  userStats    UserStats?
-  communityFeedbackGiven CommunityFeedback[] @relation("UserFeedbackGiven")
-  reports      Report[]
-  blockedUsers BlockedUser[]  @relation("UserBlocks")
-  blockedBy    BlockedUser[]  @relation("UserBlockedBy")
-  followers        Follow[]            @relation("UserFollowers")
-  following        Follow[]            @relation("UserFollowing")
-  notifications    Notification[]      @relation("UserNotifications")
-  pushTokens       PushToken[]         @relation("UserPushTokens")
-  hostedSessions   LiveSession[]       @relation("UserLiveSessions")
-  liveChatMessages LiveChatMessage[]   @relation("UserLiveChatMessages")
-  liveSessionViews LiveSessionViewer[] @relation("UserLiveSessionViews")
-  subscriptionEvents SubscriptionEvent[]
-  comparisonPosts    ComparisonPost[]   @relation("UserComparisonPosts")
-  comparisonVotes    ComparisonVote[]   @relation("UserComparisonVotes")
-  innerCircle         InnerCircleMember[] @relation("UserInnerCircle")
-  innerCircleMemberOf InnerCircleMember[] @relation("InnerCircleMemberOf")
-  stylistProfile     Stylist?
-  expertReviewsRequested ExpertReview[] @relation("UserExpertReviews")
+  outfitChecks           OutfitCheck[]
+  userStats              UserStats?
+  communityFeedbackGiven CommunityFeedback[]   @relation("UserFeedbackGiven")
+  reports                Report[]
+  blockedUsers           BlockedUser[]         @relation("UserBlocks")
+  blockedBy              BlockedUser[]         @relation("UserBlockedBy")
+  followers              Follow[]              @relation("UserFollowers")
+  following              Follow[]              @relation("UserFollowing")
+  notifications          Notification[]        @relation("UserNotifications")
+  pushTokens             PushToken[]           @relation("UserPushTokens")
+  hostedSessions         LiveSession[]         @relation("UserLiveSessions")
+  liveChatMessages       LiveChatMessage[]     @relation("UserLiveChatMessages")
+  liveSessionViews       LiveSessionViewer[]   @relation("UserLiveSessionViews")
+  subscriptionEvents     SubscriptionEvent[]
+  comparisonPosts        ComparisonPost[]      @relation("UserComparisonPosts")
+  comparisonVotes        ComparisonVote[]      @relation("UserComparisonVotes")
+  innerCircle            InnerCircleMember[]   @relation("UserInnerCircle")
+  innerCircleMemberOf    InnerCircleMember[]   @relation("InnerCircleMemberOf")
+  stylistProfile         Stylist?
+  expertReviewsRequested ExpertReview[]        @relation("UserExpertReviews")
   challengeSubmissions   ChallengeSubmission[]
   challengeVotes         ChallengeVote[]
   wardrobeItems          WardrobeItem[]
@@ -86,9 +95,13 @@ model User {
   eventFollowUps         EventFollowUp[]
   styleNarratives        StyleNarrative[]
   milestoneMessages      MilestoneMessage[]
+  supportTickets         SupportTicket[]
+  churnRiskScore         ChurnRiskScore?
+  userFeedback           UserFeedback[]
 
-  @@map("users")
   @@index([tier])
+  @@index([emailOptOut])
+  @@map("users")
 }
 
 model OutfitCheck {
@@ -97,61 +110,61 @@ model OutfitCheck {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Image data
-  imageUrl  String? @map("image_url")
-  imageData String? @db.Text
-  thumbnailUrl String? @map("thumbnail_url")
-  thumbnailData String? @db.Text @map("thumbnail_data")
-  imageType String @default("photo") @map("image_type") // photo, video
-  blurFace  Boolean @default(false) @map("blur_face") // Whether face is blurred in this outfit
+  imageUrl      String? @map("image_url")
+  imageData     String? @db.Text
+  thumbnailUrl  String? @map("thumbnail_url")
+  thumbnailData String? @map("thumbnail_data") @db.Text
+  imageType     String  @default("photo") @map("image_type") // photo, video
+  blurFace      Boolean @default(false) @map("blur_face") // Whether face is blurred in this outfit
 
   // Context provided by user
   occasions        String[]
   setting          String?
   weather          String?
   vibe             String?
-  specificConcerns String? @map("specific_concerns")
+  specificConcerns String?   @map("specific_concerns")
   eventDate        DateTime? @map("event_date")
 
   // AI Feedback
-  aiFeedback     Json?     @map("ai_feedback")
-  aiScore        Float?    @map("ai_score")
-  aiProcessedAt  DateTime? @map("ai_processed_at")
-  promptVersion  String?   @map("prompt_version")
+  aiFeedback    Json?     @map("ai_feedback")
+  aiScore       Float?    @map("ai_score")
+  aiProcessedAt DateTime? @map("ai_processed_at")
+  promptVersion String?   @map("prompt_version")
 
   // User rating of feedback
   feedbackHelpful Boolean? @map("feedback_helpful")
   feedbackRating  Int?     @map("feedback_rating") // 1-5
 
   // Piggyback Judge scores (Self-Improving Engine)
-  judgeScores     Json?    @map("judge_scores")
-  judgeEvaluated  Boolean  @default(false) @map("judge_evaluated")
+  judgeScores    Json?   @map("judge_scores")
+  judgeEvaluated Boolean @default(false) @map("judge_evaluated")
 
   // Community scores (cached)
   communityAvgScore   Float? @map("community_avg_score")
   communityScoreCount Int    @default(0) @map("community_score_count")
 
   // Metadata
-  isFavorite Boolean @default(false) @map("is_favorite")
-  isDeleted  Boolean @default(false) @map("is_deleted")
-  isPublic   Boolean @default(false) @map("is_public")
-  visibility String  @default("all") // "all", "followers", "trusted" - who can see when public
+  isFavorite Boolean   @default(false) @map("is_favorite")
+  isDeleted  Boolean   @default(false) @map("is_deleted")
+  isPublic   Boolean   @default(false) @map("is_public")
+  visibility String    @default("all") // "all", "followers", "trusted" - who can see when public
   expiresAt  DateTime? @map("expires_at") // Auto-delete timestamp based on user's autoDelete setting
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  followUps FollowUp[]
-  communityFeedback CommunityFeedback[]
-  styleDNA StyleDNA?
-  expertReviews ExpertReview[]
+  followUps            FollowUp[]
+  communityFeedback    CommunityFeedback[]
+  styleDNA             StyleDNA?
+  expertReviews        ExpertReview[]
   challengeSubmissions ChallengeSubmission[]
   eventOutfits         EventOutfit[]
   wardrobeLinks        WardrobeItemOutfit[]
   eventFollowUps       EventFollowUp[]
 
-  @@map("outfit_checks")
   @@index([userId, createdAt])
   @@index([userId, isDeleted])
   @@index([isPublic, createdAt])
+  @@map("outfit_checks")
 }
 
 model FollowUp {
@@ -159,13 +172,13 @@ model FollowUp {
   outfitCheckId String      @map("outfit_check_id")
   outfitCheck   OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
 
-  userQuestion String @map("user_question")
+  userQuestion String  @map("user_question")
   aiResponse   String? @map("ai_response")
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("follow_ups")
   @@index([outfitCheckId])
+  @@map("follow_ups")
 }
 
 model UserStats {
@@ -177,36 +190,36 @@ model UserStats {
   totalHelpfulVotes  Int @default(0) @map("total_helpful_votes")
 
   // Gamification
-  points             Int @default(0)
-  level              Int @default(1)
-  xpToNextLevel      Int @default(100) @map("xp_to_next_level")
+  points        Int @default(0)
+  level         Int @default(1)
+  xpToNextLevel Int @default(100) @map("xp_to_next_level")
 
   // Streaks
-  currentStreak      Int @default(0) @map("current_streak")
-  longestStreak      Int @default(0) @map("longest_streak")
-  lastActiveDate     DateTime? @map("last_active_date") @db.Date
-  streakFreezeUsed   Boolean @default(false) @map("streak_freeze_used") // Resets weekly
+  currentStreak    Int       @default(0) @map("current_streak")
+  longestStreak    Int       @default(0) @map("longest_streak")
+  lastActiveDate   DateTime? @map("last_active_date") @db.Date
+  streakFreezeUsed Boolean   @default(false) @map("streak_freeze_used") // Resets weekly
 
   // Leaderboards
-  weeklyPoints       Int @default(0) @map("weekly_points")
-  monthlyPoints      Int @default(0) @map("monthly_points")
-  lastWeeklyReset    DateTime @default(now()) @map("last_weekly_reset")
-  lastMonthlyReset   DateTime @default(now()) @map("last_monthly_reset")
+  weeklyPoints     Int      @default(0) @map("weekly_points")
+  monthlyPoints    Int      @default(0) @map("monthly_points")
+  lastWeeklyReset  DateTime @default(now()) @map("last_weekly_reset")
+  lastMonthlyReset DateTime @default(now()) @map("last_monthly_reset")
 
   // Badges
-  badges             String[] @default([]) // Array of badge IDs like ["early_bird", "streak_master"]
+  badges String[] @default([]) // Array of badge IDs like ["early_bird", "streak_master"]
 
   // Daily Goals
-  dailyFeedbackCount Int @default(0) @map("daily_feedback_count")
-  dailyHelpfulVotes  Int @default(0) @map("daily_helpful_votes")
+  dailyFeedbackCount Int      @default(0) @map("daily_feedback_count")
+  dailyHelpfulVotes  Int      @default(0) @map("daily_helpful_votes")
   dailyGoalsResetAt  DateTime @default(now()) @map("daily_goals_reset_at") @db.Date
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("user_stats")
   @@index([weeklyPoints(sort: Desc)])
   @@index([monthlyPoints(sort: Desc)])
   @@index([points(sort: Desc)])
+  @@map("user_stats")
 }
 
 model CommunityFeedback {
@@ -229,13 +242,13 @@ model Report {
   reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
   targetType String   @map("target_type") // "outfit" or "user"
   targetId   String   @map("target_id")
-  reason     String   // "inappropriate", "spam", "other"
+  reason     String // "inappropriate", "spam", "other"
   details    String?
   status     String   @default("pending") // "pending", "reviewed", "resolved"
   createdAt  DateTime @default(now()) @map("created_at")
 
-  @@map("reports")
   @@index([status, createdAt])
+  @@map("reports")
 }
 
 model BlockedUser {
@@ -266,7 +279,7 @@ model Notification {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // "feedback", "follow", "milestone", "live"
+  type      String // "feedback", "follow", "milestone", "live"
   title     String
   body      String
   linkType  String?  @map("link_type") // "outfit", "user", "live_session"
@@ -274,10 +287,10 @@ model Notification {
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("notifications")
   @@index([userId, createdAt])
   @@index([userId, isRead])
   @@index([type, createdAt])
+  @@map("notifications")
 }
 
 model PushToken {
@@ -285,34 +298,34 @@ model PushToken {
   userId    String   @map("user_id")
   user      User     @relation("UserPushTokens", fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
-  platform  String   // "ios" or "android"
+  platform  String // "ios" or "android"
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("push_tokens")
   @@index([userId])
+  @@map("push_tokens")
 }
 
 model LiveSession {
-  id            String    @id @default(uuid())
-  hostId        String    @map("host_id")
-  host          User      @relation("UserLiveSessions", fields: [hostId], references: [id], onDelete: Cascade)
-  title         String
-  status        String    @default("waiting") // "waiting", "live", "ended"
-  livekitRoom   String?   @map("livekit_room")
-  aiAnalysisId  String?   @map("ai_analysis_id")
-  aiAnalyzedAt  DateTime? @map("ai_analyzed_at")
-  peakViewers   Int       @default(0) @map("peak_viewers")
-  totalViewers  Int       @default(0) @map("total_viewers")
-  startedAt     DateTime? @map("started_at")
-  endedAt       DateTime? @map("ended_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           String    @id @default(uuid())
+  hostId       String    @map("host_id")
+  host         User      @relation("UserLiveSessions", fields: [hostId], references: [id], onDelete: Cascade)
+  title        String
+  status       String    @default("waiting") // "waiting", "live", "ended"
+  livekitRoom  String?   @map("livekit_room")
+  aiAnalysisId String?   @map("ai_analysis_id")
+  aiAnalyzedAt DateTime? @map("ai_analyzed_at")
+  peakViewers  Int       @default(0) @map("peak_viewers")
+  totalViewers Int       @default(0) @map("total_viewers")
+  startedAt    DateTime? @map("started_at")
+  endedAt      DateTime? @map("ended_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
-  chatMessages  LiveChatMessage[]
-  viewers       LiveSessionViewer[]
+  chatMessages LiveChatMessage[]
+  viewers      LiveSessionViewer[]
 
-  @@map("live_sessions")
   @@index([hostId, status])
   @@index([status, startedAt])
+  @@map("live_sessions")
 }
 
 model LiveChatMessage {
@@ -326,8 +339,8 @@ model LiveChatMessage {
   content     String      @db.Text
   createdAt   DateTime    @default(now()) @map("created_at")
 
-  @@map("live_chat_messages")
   @@index([sessionId, createdAt])
+  @@map("live_chat_messages")
 }
 
 model LiveSessionViewer {
@@ -340,37 +353,37 @@ model LiveSessionViewer {
   leftAt    DateTime?   @map("left_at")
 
   @@unique([sessionId, userId])
-  @@map("live_session_viewers")
   @@index([sessionId])
   @@index([userId])
+  @@map("live_session_viewers")
 }
 
 model StyleDNA {
-  id             String   @id @default(uuid())
-  outfitCheckId  String   @unique @map("outfit_check_id")
-  outfitCheck    OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
-  userId         String   @map("user_id")
+  id            String      @id @default(uuid())
+  outfitCheckId String      @unique @map("outfit_check_id")
+  outfitCheck   OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  userId        String      @map("user_id")
 
   // Colors extracted from image
-  dominantColors String[] @map("dominant_colors")   // ["navy", "white", "tan"]
-  colorHarmony   String?  @map("color_harmony")     // "complementary", "analogous", "monochromatic", "neutral"
+  dominantColors String[] @map("dominant_colors") // ["navy", "white", "tan"]
+  colorHarmony   String?  @map("color_harmony") // "complementary", "analogous", "monochromatic", "neutral"
   colorCount     Int?     @map("color_count")
 
   // Style classification
-  formalityLevel Int?     @map("formality_level")    // 1-5 (1=very casual, 5=black tie)
-  styleArchetypes String[] @map("style_archetypes")  // ["minimalist", "classic", "streetwear"]
-  silhouetteType String?  @map("silhouette_type")    // "fitted", "relaxed", "layered", "structured"
+  formalityLevel  Int?     @map("formality_level") // 1-5 (1=very casual, 5=black tie)
+  styleArchetypes String[] @map("style_archetypes") // ["minimalist", "classic", "streetwear"]
+  silhouetteType  String?  @map("silhouette_type") // "fitted", "relaxed", "layered", "structured"
 
   // Garments detected
-  garments       String[]                             // ["blazer", "chinos", "sneakers", "watch"]
-  patterns       String[]                             // ["solid", "striped", "plaid"]
-  textures       String[]                             // ["denim", "cotton", "leather", "knit"]
+  garments String[] // ["blazer", "chinos", "sneakers", "watch"]
+  patterns String[] // ["solid", "striped", "plaid"]
+  textures String[] // ["denim", "cotton", "leather", "knit"]
 
   // Scores (from AI analysis)
-  colorScore       Float? @map("color_score")         // 1-10
-  proportionScore  Float? @map("proportion_score")    // 1-10
-  fitScore         Float? @map("fit_score")           // 1-10
-  coherenceScore   Float? @map("coherence_score")     // 1-10
+  colorScore      Float? @map("color_score") // 1-10
+  proportionScore Float? @map("proportion_score") // 1-10
+  fitScore        Float? @map("fit_score") // 1-10
+  coherenceScore  Float? @map("coherence_score") // 1-10
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -382,12 +395,12 @@ model StyleDNA {
 
 model CalibrationSnapshot {
   id           String   @id @default(uuid())
-  period       String   // "2026-02-W07", "2026-02"
+  period       String // "2026-02-W07", "2026-02"
   sampleSize   Int      @map("sample_size")
   avgAiScore   Float    @map("avg_ai_score")
   avgCommunity Float    @map("avg_community_score")
-  delta        Float    // avgAiScore - avgCommunity (positive = AI scores higher)
-  correlation  Float?   // Pearson correlation coefficient
+  delta        Float // avgAiScore - avgCommunity (positive = AI scores higher)
+  correlation  Float? // Pearson correlation coefficient
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@unique([period])
@@ -395,34 +408,34 @@ model CalibrationSnapshot {
 }
 
 model ComparisonPost {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  user       User     @relation("UserComparisonPosts", fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation("UserComparisonPosts", fields: [userId], references: [id], onDelete: Cascade)
 
   // Both outfit images
-  imageAUrl  String?  @db.Text @map("image_a_url")
-  imageAData String?  @db.Text @map("image_a_data")
-  imageBUrl  String?  @db.Text @map("image_b_url")
-  imageBData String?  @db.Text @map("image_b_data")
+  imageAUrl  String? @map("image_a_url") @db.Text
+  imageAData String? @map("image_a_data") @db.Text
+  imageBUrl  String? @map("image_b_url") @db.Text
+  imageBData String? @map("image_b_data") @db.Text
 
-  question   String?
-  occasions  String[]
+  question  String?
+  occasions String[]
 
   // Cached vote counts
-  votesA     Int      @default(0) @map("votes_a")
-  votesB     Int      @default(0) @map("votes_b")
+  votesA Int @default(0) @map("votes_a")
+  votesB Int @default(0) @map("votes_b")
 
   // AI verdict (from analyzeComparison — stored for learning loop calibration)
-  aiVerdict  String?  @map("ai_verdict") // "A" or "B"
+  aiVerdict String? @map("ai_verdict") // "A" or "B"
 
-  isDeleted  Boolean  @default(false) @map("is_deleted")
-  createdAt  DateTime @default(now()) @map("created_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  votes      ComparisonVote[]
+  votes ComparisonVote[]
 
-  @@map("comparison_posts")
   @@index([userId, createdAt])
   @@index([createdAt])
+  @@map("comparison_posts")
 }
 
 model ComparisonVote {
@@ -431,13 +444,13 @@ model ComparisonVote {
   post      ComparisonPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String         @map("user_id")
   user      User           @relation("UserComparisonVotes", fields: [userId], references: [id], onDelete: Cascade)
-  choice    String         // "A" or "B"
+  choice    String // "A" or "B"
   createdAt DateTime       @default(now()) @map("created_at")
 
   @@unique([postId, userId])
-  @@map("comparison_votes")
   @@index([postId])
   @@index([userId])
+  @@map("comparison_votes")
 }
 
 model InnerCircleMember {
@@ -449,9 +462,9 @@ model InnerCircleMember {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([userId, memberId])
-  @@map("inner_circle_members")
   @@index([userId])
   @@index([memberId])
+  @@map("inner_circle_members")
 }
 
 model Stylist {
@@ -467,7 +480,7 @@ model Stylist {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  reviews      ExpertReview[]
+  reviews ExpertReview[]
 
   @@map("stylists")
 }
@@ -481,11 +494,11 @@ model ExpertReview {
   stylistId     String      @map("stylist_id")
   stylist       Stylist     @relation(fields: [stylistId], references: [id], onDelete: Cascade)
 
-  status        String    @default("pending") // "pending", "in_progress", "completed", "cancelled"
-  score         Int?
-  feedback      String?   @db.Text
-  completedAt   DateTime? @map("completed_at")
-  requestedAt   DateTime  @default(now()) @map("requested_at")
+  status      String    @default("pending") // "pending", "in_progress", "completed", "cancelled"
+  score       Int?
+  feedback    String?   @db.Text
+  completedAt DateTime? @map("completed_at")
+  requestedAt DateTime  @default(now()) @map("requested_at")
 
   @@index([userId, requestedAt])
   @@index([stylistId, status])
@@ -494,26 +507,26 @@ model ExpertReview {
 }
 
 model Event {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  date      DateTime
-  dressCode String?  @map("dress_code") // "casual", "smart_casual", "business_casual", "formal", "black_tie"
-  type      String?  // "wedding", "job_interview", "date_night", "conference", "party", "vacation", "other"
-  notes     String?  @db.Text
-  status    String   @default("upcoming") // "upcoming", "past"
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  date          DateTime
+  dressCode     String?   @map("dress_code") // "casual", "smart_casual", "business_casual", "formal", "black_tie"
+  type          String? // "wedding", "job_interview", "date_night", "conference", "party", "vacation", "other"
+  notes         String?   @db.Text
+  status        String    @default("upcoming") // "upcoming", "past"
   // Cached AI comparison result
-  compareResult Json? @map("compare_result")
+  compareResult Json?     @map("compare_result")
   compareRunAt  DateTime? @map("compare_run_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   outfitOptions EventOutfit[]
 
-  @@map("events")
   @@index([userId, date])
   @@index([userId, status])
+  @@map("events")
 }
 
 model EventOutfit {
@@ -527,9 +540,9 @@ model EventOutfit {
   addedAt       DateTime    @default(now()) @map("added_at")
 
   @@unique([eventId, outfitCheckId])
-  @@map("event_outfits")
   @@index([eventId])
   @@index([userId])
+  @@map("event_outfits")
 }
 
 model WardrobeItem {
@@ -537,9 +550,9 @@ model WardrobeItem {
   userId         String    @map("user_id")
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
-  category       String    // "tops" | "bottoms" | "shoes" | "accessories" | "outerwear"
+  category       String // "tops" | "bottoms" | "shoes" | "accessories" | "outerwear"
   color          String?
-  imageUrl       String?   @db.Text @map("image_url")
+  imageUrl       String?   @map("image_url") @db.Text
   timesWorn      Int       @default(0) @map("times_worn")
   lastWorn       DateTime? @map("last_worn")
   source         String    @default("manual") // "manual" | "ai-detected"
@@ -549,25 +562,25 @@ model WardrobeItem {
 
   outfitLinks WardrobeItemOutfit[]
 
-  @@map("wardrobe_items")
   @@index([userId, category])
   @@index([userId, timesWorn(sort: Desc)])
   @@index([userId, normalizedName])
+  @@map("wardrobe_items")
 }
 
 model WardrobeItemOutfit {
-  id              String      @id @default(uuid())
-  wardrobeItemId  String      @map("wardrobe_item_id")
-  wardrobeItem    WardrobeItem @relation(fields: [wardrobeItemId], references: [id], onDelete: Cascade)
-  outfitCheckId   String      @map("outfit_check_id")
-  outfitCheck     OutfitCheck @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
-  detectedName    String      @map("detected_name")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id             String       @id @default(uuid())
+  wardrobeItemId String       @map("wardrobe_item_id")
+  wardrobeItem   WardrobeItem @relation(fields: [wardrobeItemId], references: [id], onDelete: Cascade)
+  outfitCheckId  String       @map("outfit_check_id")
+  outfitCheck    OutfitCheck  @relation(fields: [outfitCheckId], references: [id], onDelete: Cascade)
+  detectedName   String       @map("detected_name")
+  createdAt      DateTime     @default(now()) @map("created_at")
 
   @@unique([wardrobeItemId, outfitCheckId])
-  @@map("wardrobe_item_outfits")
   @@index([wardrobeItemId])
   @@index([outfitCheckId])
+  @@map("wardrobe_item_outfits")
 }
 
 model Challenge {
@@ -584,9 +597,9 @@ model Challenge {
 
   submissions ChallengeSubmission[]
 
-  @@map("challenges")
   @@index([status, startsAt])
   @@index([status, endsAt])
+  @@map("challenges")
 }
 
 model ChallengeSubmission {
@@ -604,9 +617,9 @@ model ChallengeSubmission {
 
   @@unique([challengeId, userId])
   @@unique([challengeId, outfitCheckId])
-  @@map("challenge_submissions")
   @@index([challengeId, votes(sort: Desc)])
   @@index([userId])
+  @@map("challenge_submissions")
 }
 
 model ChallengeVote {
@@ -618,23 +631,23 @@ model ChallengeVote {
   createdAt    DateTime            @default(now()) @map("created_at")
 
   @@unique([submissionId, userId])
-  @@map("challenge_votes")
   @@index([submissionId])
   @@index([userId])
+  @@map("challenge_votes")
 }
 
 model FashionTrend {
-  id               String    @id @default(uuid())
-  period           String    @unique  // "2026-W08"
-  region           String    @default("global")
-  seasonalColors   String[]  @map("seasonal_colors")
-  trendingStyles   String[]  @map("trending_styles")
-  keyPieces        String[]  @map("key_pieces")
-  trendingPatterns String[]  @map("trending_patterns")
-  fadingTrends     String[]  @map("fading_trends")
-  rawAnalysis      Json?     @map("raw_analysis")
-  platformTrends   Json?     @map("platform_trends")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id               String   @id @default(uuid())
+  period           String   @unique // "2026-W08"
+  region           String   @default("global")
+  seasonalColors   String[] @map("seasonal_colors")
+  trendingStyles   String[] @map("trending_styles")
+  keyPieces        String[] @map("key_pieces")
+  trendingPatterns String[] @map("trending_patterns")
+  fadingTrends     String[] @map("fading_trends")
+  rawAnalysis      Json?    @map("raw_analysis")
+  platformTrends   Json?    @map("platform_trends")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   @@map("fashion_trends")
 }
@@ -642,35 +655,35 @@ model FashionTrend {
 // ─── Autonomous Agent Workforce Models ───────────────────────────────────────
 
 model AgentAction {
-  id          String    @id @default(uuid())
-  agent       String
-  actionType  String    @map("action_type")
-  riskLevel   String    @default("low") @map("risk_level")
-  status      String    @default("pending") // "pending", "approved", "executed", "rejected", "failed"
-  payload     Json
-  result      Json?
-  reviewedBy  String?   @map("reviewed_by")
-  reviewedAt  DateTime? @map("reviewed_at")
-  executedAt  DateTime? @map("executed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id         String    @id @default(uuid())
+  agent      String
+  actionType String    @map("action_type")
+  riskLevel  String    @default("low") @map("risk_level")
+  status     String    @default("pending") // "pending", "approved", "executed", "rejected", "failed"
+  payload    Json
+  result     Json?
+  reviewedBy String?   @map("reviewed_by")
+  reviewedAt DateTime? @map("reviewed_at")
+  executedAt DateTime? @map("executed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
-  @@map("agent_actions")
   @@index([agent, status])
   @@index([status, createdAt])
   @@index([riskLevel, status])
+  @@map("agent_actions")
 }
 
 model AgentConfig {
-  id               String    @id @default(uuid())
-  agent            String    @unique
-  enabled          Boolean   @default(true)
-  maxActionsPerDay Int       @default(50) @map("max_actions_per_day")
-  maxActionsPerHour Int      @default(10) @map("max_actions_per_hour")
-  autoApproveRisk  String    @default("medium") @map("auto_approve_risk") // max risk level to auto-approve
-  config           Json      @default("{}")
-  lastRunAt        DateTime? @map("last_run_at")
-  lastError        String?   @map("last_error")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  agent             String    @unique
+  enabled           Boolean   @default(true)
+  maxActionsPerDay  Int       @default(50) @map("max_actions_per_day")
+  maxActionsPerHour Int       @default(10) @map("max_actions_per_hour")
+  autoApproveRisk   String    @default("medium") @map("auto_approve_risk") // max risk level to auto-approve
+  config            Json      @default("{}")
+  lastRunAt         DateTime? @map("last_run_at")
+  lastError         String?   @map("last_error")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   @@map("agent_configs")
 }
@@ -678,17 +691,17 @@ model AgentConfig {
 model EmailSequence {
   id          String    @id @default(uuid())
   userId      String    @map("user_id")
-  sequence    String    // "welcome", "onboarding", "reengagement", "upgrade", "churn_prevention"
+  sequence    String // "welcome", "onboarding", "reengagement", "upgrade", "churn_prevention"
   currentStep Int       @default(0) @map("current_step")
   status      String    @default("active") // "active", "completed", "cancelled", "paused"
   startedAt   DateTime  @default(now()) @map("started_at")
   nextSendAt  DateTime? @map("next_send_at")
   completedAt DateTime? @map("completed_at")
 
-  @@map("email_sequences")
   @@unique([userId, sequence])
   @@index([userId])
   @@index([status, nextSendAt])
+  @@map("email_sequences")
 }
 
 model EmailEvent {
@@ -700,8 +713,8 @@ model EmailEvent {
   status   String   @default("sent") // "sent", "delivered", "opened", "clicked", "bounced"
   sentAt   DateTime @default(now()) @map("sent_at")
 
-  @@map("email_events")
   @@index([userId, sequence])
+  @@map("email_events")
 }
 
 model ConversionSignal {
@@ -711,18 +724,18 @@ model ConversionSignal {
   strength    Float
   actedOn     Boolean   @default(false) @map("acted_on")
   convertedAt DateTime? @map("converted_at") // when user actually upgraded
-  outcome     String?                         // "converted", "ignored", "pending"
+  outcome     String? // "converted", "ignored", "pending"
   metadata    Json?     @map("signal_metadata") // e.g. { source: "twitter" }
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  @@map("conversion_signals")
   @@index([userId, actedOn])
   @@index([signalType, createdAt])
+  @@map("conversion_signals")
 }
 
 model SocialPost {
   id           String    @id @default(uuid())
-  platform     String    // "twitter", "instagram", "tiktok"
+  platform     String // "twitter", "instagram", "tiktok"
   content      String    @db.Text
   mediaUrl     String?   @map("media_url")
   hashtags     String[]
@@ -731,33 +744,33 @@ model SocialPost {
   postedAt     DateTime? @map("posted_at")
   externalId   String?   @map("external_id")
   engagement   Json?
-  contentType  String?   @map("content_type")  // "founder_story" | "fashion_news" | "community_spotlight" | "style_data_drop" | "wardrobe_insight" | "conversation_starter" | "behind_the_scenes"
-  sourceData   Json?     @map("source_data")   // Raw data that generated the post (commits, headlines, stats)
-  trackingUrl  String?   @map("tracking_url")  // UTM-tagged link appended to post for attribution
+  contentType  String?   @map("content_type") // "founder_story" | "fashion_news" | "community_spotlight" | "style_data_drop" | "wardrobe_insight" | "conversation_starter" | "behind_the_scenes"
+  sourceData   Json?     @map("source_data") // Raw data that generated the post (commits, headlines, stats)
+  trackingUrl  String?   @map("tracking_url") // UTM-tagged link appended to post for attribution
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  @@map("social_posts")
   @@index([status, scheduledFor])
   @@index([contentType, createdAt])
+  @@map("social_posts")
 }
 
 model AppReview {
   id          String    @id @default(uuid())
-  store       String    // "apple", "google"
+  store       String // "apple", "google"
   externalId  String    @unique @map("external_id")
   rating      Int
   title       String?
   body        String?   @db.Text
   author      String?
-  draftReply  String?   @db.Text @map("draft_reply")
+  draftReply  String?   @map("draft_reply") @db.Text
   replyStatus String    @default("pending") @map("reply_status") // "pending", "approved", "posted", "skipped"
   postedAt    DateTime? @map("posted_at")
   reviewDate  DateTime  @map("review_date")
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  @@map("app_reviews")
   @@index([store, replyStatus])
   @@index([rating, createdAt])
+  @@map("app_reviews")
 }
 
 // ─── End Agent Workforce Models ───────────────────────────────────────────────
@@ -773,16 +786,16 @@ model EventFollowUp {
   occasion      String
   eventDate     DateTime?   @map("event_date")
   followUpAt    DateTime    @map("follow_up_at")
-  response      String?     // "crushed_it" | "felt_good" | "meh" | "not_great"
+  response      String? // "crushed_it" | "felt_good" | "meh" | "not_great"
   respondedAt   DateTime?   @map("responded_at")
   pushSentAt    DateTime?   @map("push_sent_at")
   emailSentAt   DateTime?   @map("email_sent_at")
   status        String      @default("pending") // "pending" | "push_sent" | "email_sent" | "completed" | "expired"
   createdAt     DateTime    @default(now()) @map("created_at")
 
-  @@map("event_follow_ups")
   @@index([followUpAt, status])
   @@index([userId, status])
+  @@map("event_follow_ups")
 }
 
 model StyleNarrative {
@@ -790,13 +803,13 @@ model StyleNarrative {
   userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   narrative   String   @db.Text
-  period      String   // "2026-W08"
+  period      String // "2026-W08"
   outfitCount Int      @map("outfit_count")
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([userId, period])
-  @@map("style_narratives")
   @@index([userId])
+  @@map("style_narratives")
 }
 
 model MilestoneMessage {
@@ -809,42 +822,42 @@ model MilestoneMessage {
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@unique([userId, milestoneKey])
-  @@map("milestone_messages")
   @@index([userId])
+  @@map("milestone_messages")
 }
 
 // ─── End Relationship System Models ──────────────────────────────────────────
 
 model DailyMetricsSnapshot {
-  id             String   @id @default(uuid())
-  date           DateTime @unique @db.Date // The date this snapshot covers (UTC midnight)
+  id   String   @id @default(uuid())
+  date DateTime @unique @db.Date // The date this snapshot covers (UTC midnight)
 
   // Users
-  totalUsers     Int      @map("total_users")
-  newUsersToday  Int      @map("new_users_today")
-  freeUsers      Int      @map("free_users")
-  plusUsers      Int      @map("plus_users")
-  proUsers       Int      @map("pro_users")
+  totalUsers    Int @map("total_users")
+  newUsersToday Int @map("new_users_today")
+  freeUsers     Int @map("free_users")
+  plusUsers     Int @map("plus_users")
+  proUsers      Int @map("pro_users")
 
   // Engagement
-  dau            Int      // Daily Active Users (checked outfit or gave feedback)
-  wau            Int      // Weekly Active Users
-  checksToday    Int      @map("checks_today")
-  feedbacksToday Int      @map("feedbacks_today")
-  avgAiScore     Float?   @map("avg_ai_score")
+  dau            Int // Daily Active Users (checked outfit or gave feedback)
+  wau            Int // Weekly Active Users
+  checksToday    Int    @map("checks_today")
+  feedbacksToday Int    @map("feedbacks_today")
+  avgAiScore     Float? @map("avg_ai_score")
 
   // Streaks
-  usersWithStreak Int     @map("users_with_streak")
-  avgStreak       Float?  @map("avg_streak")
+  usersWithStreak Int    @map("users_with_streak")
+  avgStreak       Float? @map("avg_streak")
 
   // Revenue events (counts from subscription_events today)
-  newSubscriptions   Int  @default(0) @map("new_subscriptions")
-  cancellations      Int  @default(0)
-  renewals           Int  @default(0)
+  newSubscriptions Int @default(0) @map("new_subscriptions")
+  cancellations    Int @default(0)
+  renewals         Int @default(0)
 
   // Community
-  comparisonPosts    Int  @default(0) @map("comparison_posts")
-  liveSessions       Int  @default(0) @map("live_sessions")
+  comparisonPosts Int @default(0) @map("comparison_posts")
+  liveSessions    Int @default(0) @map("live_sessions")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -852,9 +865,9 @@ model DailyMetricsSnapshot {
 }
 
 model SubscriptionEvent {
-  id             String   @id @default(uuid())
-  userId         String   @map("user_id")
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   eventType      String   @map("event_type")
   productId      String?  @map("product_id")
@@ -862,31 +875,31 @@ model SubscriptionEvent {
   store          String?
   environment    String?
 
-  rawPayload     Json?    @map("raw_payload")
+  rawPayload Json? @map("raw_payload")
 
-  processedAt    DateTime @default(now()) @map("processed_at")
+  processedAt DateTime @default(now()) @map("processed_at")
 
-  @@map("subscription_events")
   @@index([userId, processedAt])
+  @@map("subscription_events")
 }
 
 model WaitlistEntry {
   id           String   @id @default(uuid())
   email        String   @unique
   referralCode String   @unique @map("referral_code") // code others use to sign up via this person
-  referredBy   String?  @map("referred_by")           // referralCode of the person who referred them
-  position     Int      @default(0)                    // queue position (lower = earlier access)
+  referredBy   String?  @map("referred_by") // referralCode of the person who referred them
+  position     Int      @default(0) // queue position (lower = earlier access)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  @@map("waitlist_entries")
   @@index([createdAt])
+  @@map("waitlist_entries")
 }
 
 // ─── Recursive AI Self-Improvement Models ─────────────────────────────────────
 
 model DiscoveredRule {
   id             String   @id @default(uuid())
-  category       String   // "color", "proportion", "occasion_matching", etc.
+  category       String // "color", "proportion", "occasion_matching", etc.
   rule           String   @db.Text
   confidence     Float
   sampleSize     Int      @map("sample_size")
@@ -895,9 +908,9 @@ model DiscoveredRule {
   incorporatedIn String?  @map("incorporated_in")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  @@map("discovered_rules")
   @@index([category])
   @@index([incorporated])
+  @@map("discovered_rules")
 }
 
 model PromptVersion {
@@ -905,7 +918,7 @@ model PromptVersion {
   version           String    @unique
   parentVersion     String?   @map("parent_version")
   cohort            String?   @map("cohort") // C1: null = global, e.g. "minimalist-classic"
-  promptText        String    @db.Text @map("prompt_text")
+  promptText        String    @map("prompt_text") @db.Text
   source            String    @default("manual") // "manual", "auto-optimize"
   trafficPct        Int       @default(0) @map("traffic_pct")
   isActive          Boolean   @default(true) @map("is_active")
@@ -919,15 +932,15 @@ model PromptVersion {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  @@map("prompt_versions")
   @@index([isActive, trafficPct])
   @@index([parentVersion])
   @@index([cohort])
+  @@map("prompt_versions")
 }
 
 model ImprovementCycle {
   id                 String    @id @default(uuid())
-  trigger            String    // "scheduled", "manual", "quality-drop"
+  trigger            String // "scheduled", "manual", "quality-drop"
   status             String    @default("running") // "running", "completed", "failed"
   log                String?   @db.Text
   triggerMetrics     Json?     @map("trigger_metrics")
@@ -938,8 +951,8 @@ model ImprovementCycle {
   startedAt          DateTime  @default(now()) @map("started_at")
   completedAt        DateTime? @map("completed_at")
 
-  @@map("improvement_cycles")
   @@index([status, startedAt])
+  @@map("improvement_cycles")
 }
 
 // ─── End Recursive AI Self-Improvement Models ──────────────────────────────────
@@ -947,32 +960,32 @@ model ImprovementCycle {
 // ─── Self-Improving StyleDNA Engine Models ──────────────────────────────────
 
 model IntelligenceBusEntry {
-  id          String   @id @default(uuid())
-  agent       String
-  entryType   String   @map("entry_type")
-  payload     Json
-  consumedBy  String[] @default([]) @map("consumed_by")
-  expiresAt   DateTime @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  agent      String
+  entryType  String   @map("entry_type")
+  payload    Json
+  consumedBy String[] @default([]) @map("consumed_by")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  @@map("intelligence_bus_entries")
   @@index([entryType, createdAt])
   @@index([expiresAt])
+  @@map("intelligence_bus_entries")
 }
 
 model PromptSection {
-  id             String    @id @default(uuid())
-  sectionKey     String    @map("section_key")
-  version        Int       @default(1)
-  content        String    @db.Text
-  isActive       Boolean   @default(true) @map("is_active")
-  parentVersion  Int?      @map("parent_version")
-  source         String    @default("manual")
-  arenaWinRate   Float?    @map("arena_win_rate")
+  id             String   @id @default(uuid())
+  sectionKey     String   @map("section_key")
+  version        Int      @default(1)
+  content        String   @db.Text
+  isActive       Boolean  @default(true) @map("is_active")
+  parentVersion  Int?     @map("parent_version")
+  source         String   @default("manual")
+  arenaWinRate   Float?   @map("arena_win_rate")
   changelog      String?
-  failedAttempts Json      @default("[]") @map("failed_attempts")
-  orderIndex     Int       @default(0) @map("order_index")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  failedAttempts Json     @default("[]") @map("failed_attempts")
+  orderIndex     Int      @default(0) @map("order_index")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@unique([sectionKey, version])
   @@index([sectionKey, isActive])
@@ -980,11 +993,11 @@ model PromptSection {
 }
 
 model LearningMemory {
-  id             String   @id @default(uuid())
-  compiledText   String   @db.Text @map("compiled_text")
-  bulletCount    Int      @default(0) @map("bullet_count")
-  sourceEntries  Int      @default(0) @map("source_entries")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  compiledText  String   @map("compiled_text") @db.Text
+  bulletCount   Int      @default(0) @map("bullet_count")
+  sourceEntries Int      @default(0) @map("source_entries")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("learning_memory")
 }
@@ -1003,18 +1016,18 @@ model CritiqueReport {
 }
 
 model ArenaSession {
-  id                    String   @id @default(uuid())
-  challengerSectionKey  String   @map("challenger_section_key")
-  challengerVersion     Int      @map("challenger_version")
-  baselineVersion       Int      @map("baseline_version")
-  trigger               String   @default("surgeon")
-  status                String   @default("running")
-  winRate               Float?   @map("win_rate")
-  matchCount            Int      @default(0) @map("match_count")
-  regressionPassed      Boolean? @map("regression_passed")
-  deployed              Boolean  @default(false)
-  resultSummary         String?  @map("result_summary")
-  createdAt             DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid())
+  challengerSectionKey String   @map("challenger_section_key")
+  challengerVersion    Int      @map("challenger_version")
+  baselineVersion      Int      @map("baseline_version")
+  trigger              String   @default("surgeon")
+  status               String   @default("running")
+  winRate              Float?   @map("win_rate")
+  matchCount           Int      @default(0) @map("match_count")
+  regressionPassed     Boolean? @map("regression_passed")
+  deployed             Boolean  @default(false)
+  resultSummary        String?  @map("result_summary")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   matches ArenaMatch[]
 
@@ -1022,17 +1035,17 @@ model ArenaSession {
 }
 
 model ArenaMatch {
-  id                  String       @id @default(uuid())
-  sessionId           String       @map("session_id")
-  session             ArenaSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  scenarioType        String       @default("synthetic") @map("scenario_type")
-  contextSnapshot     Json         @map("context_snapshot")
-  baselineResponse    String       @db.Text @map("baseline_response")
-  challengerResponse  String       @db.Text @map("challenger_response")
-  winner              String
-  scoreDelta          Json?        @map("score_delta")
-  judgeRationale      String?      @db.Text @map("judge_rationale")
-  createdAt           DateTime     @default(now()) @map("created_at")
+  id                 String       @id @default(uuid())
+  sessionId          String       @map("session_id")
+  session            ArenaSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioType       String       @default("synthetic") @map("scenario_type")
+  contextSnapshot    Json         @map("context_snapshot")
+  baselineResponse   String       @map("baseline_response") @db.Text
+  challengerResponse String       @map("challenger_response") @db.Text
+  winner             String
+  scoreDelta         Json?        @map("score_delta")
+  judgeRationale     String?      @map("judge_rationale") @db.Text
+  createdAt          DateTime     @default(now()) @map("created_at")
 
   @@index([sessionId])
   @@map("arena_matches")
@@ -1081,16 +1094,16 @@ model DailyTokenUsage {
 
 model EmailTemplateVariant {
   id          String   @id @default(uuid())
-  sequence    String                        // "welcome", "reengagement", etc.
-  step        Int                           // which step in the sequence
-  field       String                        // "subject", "headline", "ctaText"
-  variant     String   @db.Text            // the variant content
-  isControl   Boolean  @default(false)     // is this the original?
+  sequence    String // "welcome", "reengagement", etc.
+  step        Int // which step in the sequence
+  field       String // "subject", "headline", "ctaText"
+  variant     String   @db.Text // the variant content
+  isControl   Boolean  @default(false) // is this the original?
   impressions Int      @default(0)
-  opens       Int      @default(0)         // times opened (for subject variants)
-  clicks      Int      @default(0)         // times clicked (for CTA variants)
-  conversions Int      @default(0)         // outfit checks within 48h
-  isWinner    Boolean? @map("is_winner")   // null=testing, true=promoted, false=retired
+  opens       Int      @default(0) // times opened (for subject variants)
+  clicks      Int      @default(0) // times clicked (for CTA variants)
+  conversions Int      @default(0) // outfit checks within 48h
+  isWinner    Boolean? @map("is_winner") // null=testing, true=promoted, false=retired
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([sequence, step, field, isControl])
@@ -1099,24 +1112,24 @@ model EmailTemplateVariant {
 
 model NudgeVariant {
   id          String   @id @default(uuid())
-  segment     String                       // "new_no_outfit", "inactive_3d", etc.
+  segment     String // "new_no_outfit", "inactive_3d", etc.
   title       String
   body        String
   isControl   Boolean  @default(false)
   impressions Int      @default(0)
-  conversions Int      @default(0)        // outfit checks within 6h
+  conversions Int      @default(0) // outfit checks within 6h
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
 
-  @@map("nudge_variants")
   @@index([segment, isActive])
+  @@map("nudge_variants")
 }
 
 model SocialPromptVariant {
   id            String   @id @default(uuid())
   contentType   String   @unique @map("content_type") // "founder_story", etc.
-  promptText    String   @db.Text @map("prompt_text")
-  parentPrompt  String?  @db.Text @map("parent_prompt")
+  promptText    String   @map("prompt_text") @db.Text
+  parentPrompt  String?  @map("parent_prompt") @db.Text
   avgEngagement Float?   @map("avg_engagement")
   sampleSize    Int      @default(0)
   isActive      Boolean  @default(true)
@@ -1134,8 +1147,8 @@ model ConversionCalibration {
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
 
-  @@map("conversion_calibrations")
   @@index([signalType, isActive])
+  @@map("conversion_calibrations")
 }
 
 // ─── End Ops Learning Loop Models ────────────────────────────────────────────
@@ -1144,15 +1157,107 @@ model ConversionCalibration {
 
 model AsoSnapshot {
   id          String   @id @default(uuid())
-  store       String   // "apple" | "google"
+  store       String // "apple" | "google"
   keyword     String
   difficulty  Float?
   traffic     Float?
   currentRank Int?     @map("current_rank")
-  rankChange  Int?     @map("rank_change")  // vs prior week (positive = rank dropped, negative = rank improved)
-  competitors Json?    // top apps for this keyword
+  rankChange  Int?     @map("rank_change") // vs prior week (positive = rank dropped, negative = rank improved)
+  competitors Json? // top apps for this keyword
   createdAt   DateTime @default(now()) @map("created_at")
 
-  @@map("aso_snapshots")
   @@index([keyword, store, createdAt])
+  @@map("aso_snapshots")
+}
+
+// ─── AI Workforce: Tier 0–2 Models ────────────────────────────────────────────
+
+model DataDeletionLog {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  userEmail      String    @map("user_email")
+  requestedAt    DateTime  @default(now()) @map("requested_at")
+  status         String    @default("pending") // pending | completed | failed
+  stepsCompleted Json      @default("[]") @map("steps_completed")
+  error          String?
+  completedAt    DateTime? @map("completed_at")
+
+  @@index([status])
+  @@map("data_deletion_logs")
+}
+
+model SupportTicket {
+  id          String    @id @default(uuid())
+  userId      String?   @map("user_id")
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  question    String
+  aiResponse  String?   @map("ai_response")
+  status      String    @default("open") // open | escalated | closed
+  escalatedAt DateTime? @map("escalated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([userId])
+  @@map("support_tickets")
+}
+
+model MonthlyFinancials {
+  id          String   @id @default(uuid())
+  month       String   @unique // "YYYY-MM"
+  mrr         Float    @default(0)
+  geminiCost  Float    @default(0) @map("gemini_cost")
+  hostingCost Float    @default(0) @map("hosting_cost")
+  netMargin   Float    @default(0) @map("net_margin")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("monthly_financials")
+}
+
+model ChurnRiskScore {
+  id            String    @id @default(uuid())
+  userId        String    @unique @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  riskScore     Float     @default(0) @map("risk_score") // 0.0–1.0
+  riskFactors   Json      @default("[]") @map("risk_factors")
+  actionTaken   String?   @map("action_taken")
+  actionTakenAt DateTime? @map("action_taken_at")
+  computedAt    DateTime  @default(now()) @map("computed_at")
+
+  @@index([riskScore(sort: Desc)])
+  @@map("churn_risk_scores")
+}
+
+model UserFeedback {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type       String   @default("general") // general | bug | feature | praise
+  text       String
+  sentiment  String? // positive | neutral | negative
+  aiCategory String?  @map("ai_category")
+  status     String   @default("open") // open | reviewed | actioned
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([userId])
+  @@map("user_feedback")
+}
+
+model BlogDraft {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  content         String
+  metaDescription String?  @map("meta_description")
+  ogTitle         String?  @map("og_title")
+  status          String   @default("draft") // draft | pending_review | published | archived
+  sourceData      Json?    @map("source_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([slug])
+  @@map("blog_drafts")
 }

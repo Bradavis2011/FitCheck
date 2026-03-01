@@ -17,13 +17,21 @@ export interface RevenueMetrics {
 
 const PLUS_PRICE = 4.99;
 const PRO_PRICE = 9.99;
-// gemini-2.5-flash: ~$0.15/1M input tokens, $0.60/1M output; avg ~6000 input + ~400 output per analysis
-// Real token counts now logged to PostHog via usageMetadata; update this when enough data is collected
-const GEMINI_COST_PER_ANALYSIS = 0.000225; // placeholder — ~$0.15*6k/1M + $0.60*400/1M ≈ $0.00115 actual; adjust after observing PostHog data
+// Gemini cost: blended $0.20/1M tokens (80% input @ $0.15/1M + 20% output @ $0.60/1M for Flash)
+// Uses real token counts from DailyTokenUsage (30-day sum) when available; falls back to outfit-count estimate
+const GEMINI_BLENDED_COST_PER_TOKEN = 0.00000020; // $0.20 per 1M tokens
+const GEMINI_COST_PER_ANALYSIS_FALLBACK = 0.000225; // fallback if no DailyTokenUsage data
 
 async function getRevenueMetrics(): Promise<RevenueMetrics> {
   const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const ago30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  // Generate list of date strings for last 30 days to query DailyTokenUsage
+  const dateStrings: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    dateStrings.push(d.toISOString().slice(0, 10));
+  }
 
   const [
     totalUsers,
@@ -32,6 +40,7 @@ async function getRevenueMetrics(): Promise<RevenueMetrics> {
     newSubs7d,
     cancellations7d,
     totalOutfitChecks30d,
+    tokenUsageRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { tier: 'plus' } }),
@@ -43,10 +52,22 @@ async function getRevenueMetrics(): Promise<RevenueMetrics> {
       where: { processedAt: { gte: ago7d }, eventType: { in: ['CANCELLATION', 'cancellation'] } },
     }),
     prisma.outfitCheck.count({ where: { createdAt: { gte: ago30d }, isDeleted: false } }),
+    prisma.dailyTokenUsage.findMany({ where: { date: { in: dateStrings } } }).catch(() => []),
   ]);
 
   const estimatedMRR = (plusUsers * PLUS_PRICE) + (proUsers * PRO_PRICE);
-  const estimatedGeminiCost = totalOutfitChecks30d * GEMINI_COST_PER_ANALYSIS;
+
+  // Use real token counts if available, otherwise fall back to per-analysis estimate
+  let estimatedGeminiCost: number;
+  if (tokenUsageRows.length > 0) {
+    const totalTokens = tokenUsageRows.reduce(
+      (sum, row) => sum + row.userTokens + row.learningTokens + row.reservedTokens, 0
+    );
+    estimatedGeminiCost = totalTokens * GEMINI_BLENDED_COST_PER_TOKEN;
+  } else {
+    estimatedGeminiCost = totalOutfitChecks30d * GEMINI_COST_PER_ANALYSIS_FALLBACK;
+  }
+
   const estimatedCostPerUser = totalUsers > 0 ? estimatedGeminiCost / totalUsers : 0;
 
   let trialToPaidConversion: number | null = null;

@@ -24,6 +24,15 @@ import { runSocialMediaManager, registerExecutors as registerSocialExecutors } f
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
+import { runUptimeCheck, trackDailyUptime } from './uptime-monitor.service.js';
+import { retryFailedDeletions } from './data-deletion.service.js';
+import { runChurnPrediction } from './churn-prediction.service.js';
+import { runFeedbackAnalyst } from './feedback-analyst.service.js';
+import { runSeoContentAgent } from './seo-content.service.js';
+import { runInfraMonitor } from './infra-monitor.service.js';
+import { runOnboardingOptimizer } from './onboarding-optimizer.service.js';
+import { runCompetitiveIntel } from './competitive-intel.service.js';
+import { runE2eTests } from './e2e-test.service.js';
 import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.service.js';
 import { runMilestoneScanner } from './milestone-message.service.js';
@@ -638,6 +647,72 @@ export function initializeScheduler(): void {
     console.log('📊 [Scheduler] Running ASO intelligence...');
     try { await runAsoIntelligence(); }
     catch (err) { console.error('[Scheduler] ASO intelligence failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 0: Uptime Monitor — every 5 minutes ─────────────────────────────
+  cron.schedule('*/5 * * * *', async () => {
+    try { await runUptimeCheck(); }
+    catch (err) { console.error('[Scheduler] Uptime check failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // Track daily uptime percentage at 11:55pm UTC
+  cron.schedule('55 23 * * *', async () => {
+    try { await trackDailyUptime(); }
+    catch (err) { console.error('[Scheduler] Track daily uptime failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 0: Data Deletion Retry — Daily 6:30am UTC ───────────────────────
+  cron.schedule('30 6 * * *', async () => {
+    try { await retryFailedDeletions(); }
+    catch (err) { console.error('[Scheduler] Data deletion retry failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 2: Churn Prediction — Daily 7:30am UTC ───────────────────────────
+  cron.schedule('30 7 * * *', async () => {
+    console.log('📉 [Scheduler] Running churn prediction...');
+    try { await runChurnPrediction(); }
+    catch (err) { console.error('[Scheduler] Churn prediction failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 2: Feedback Analyst — Thursday 9am UTC ───────────────────────────
+  cron.schedule('0 9 * * 4', async () => {
+    console.log('💬 [Scheduler] Running feedback analyst...');
+    try { await runFeedbackAnalyst(); }
+    catch (err) { console.error('[Scheduler] Feedback analyst failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 2: SEO Content Agent — Friday 7am UTC ────────────────────────────
+  cron.schedule('0 7 * * 5', async () => {
+    console.log('📝 [Scheduler] Running SEO content agent...');
+    try { await runSeoContentAgent(); }
+    catch (err) { console.error('[Scheduler] SEO content agent failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 3: Infra Monitor — Every 30 minutes ─────────────────────────────
+  cron.schedule('*/30 * * * *', async () => {
+    try { await runInfraMonitor(); }
+    catch (err) { console.error('[Scheduler] Infra monitor failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 3: Onboarding Optimizer — Daily 8:30am UTC ──────────────────────
+  cron.schedule('30 8 * * *', async () => {
+    console.log('🚀 [Scheduler] Running onboarding optimizer...');
+    try { await runOnboardingOptimizer(); }
+    catch (err) { console.error('[Scheduler] Onboarding optimizer failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 3: Competitive Intel — Saturday 9am UTC ─────────────────────────
+  cron.schedule('0 9 * * 6', async () => {
+    console.log('🔍 [Scheduler] Running competitive intel...');
+    try { await runCompetitiveIntel(); }
+    catch (err) { console.error('[Scheduler] Competitive intel failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Tier 3: E2E Tests — Thursday 4am UTC ─────────────────────────────────
+  cron.schedule('0 4 * * 4', async () => {
+    console.log('🧪 [Scheduler] Running E2E tests...');
+    try { await runE2eTests(); }
+    catch (err) { console.error('[Scheduler] E2E tests failed:', err); }
   }, { timezone: 'UTC' });
 
   console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence)');

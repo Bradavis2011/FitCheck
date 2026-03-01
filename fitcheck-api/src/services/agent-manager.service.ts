@@ -381,6 +381,21 @@ const ALL_AGENT_NAMES = [
   'code-reviewer',
   // Marketing Intelligence
   'aso-intelligence',
+  // Tier 0: Compliance & Ops
+  'uptime-monitor',
+  'data-deletion',
+  'legal',
+  // Tier 1: Launch Week
+  'support-bot',
+  // Tier 2: Post-Launch Growth
+  'churn-prediction',
+  'feedback-analyst',
+  'seo-content',
+  // Tier 3: Infrastructure
+  'infra-monitor',
+  'onboarding-optimizer',
+  'competitive-intel',
+  'e2e-test',
 ];
 
 export async function killAllAgents(): Promise<void> {

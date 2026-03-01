@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Webhook } from 'svix';
+import { randomBytes } from 'crypto';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 import { trackServerEvent } from '../lib/posthog.js';
@@ -66,9 +67,10 @@ export async function handleClerkWebhook(req: Request, res: Response) {
         console.log(`✓ Deleted stale user ${stale.id} (${email}) before re-register`);
       }
 
+      const unsubscribeToken = randomBytes(16).toString('hex');
       const user = await prisma.user.upsert({
         where: { id },
-        create: { id, email, name: fullName },
+        create: { id, email, name: fullName, unsubscribeToken },
         update: { email, name: fullName },
       });
 

@@ -7,6 +7,11 @@ import { getSecurityAuditSummary } from './security-auditor.service.js';
 import { getCodeReviewSummary } from './code-reviewer.service.js';
 import { getAsoSummary } from './aso-intelligence.service.js';
 import { getLatestBusEntry } from './intelligence-bus.service.js';
+import { getUptimeSummary } from './uptime-monitor.service.js';
+import { getInfraSummary } from './infra-monitor.service.js';
+import { getE2eSummary } from './e2e-test.service.js';
+import { getChurnSummary } from './churn-prediction.service.js';
+import { getSupportSummary } from './support-bot.service.js';
 
 function statRow(label: string, value: string, noteHtml = ''): string {
   return `<tr>
@@ -32,7 +37,7 @@ export async function runFounderBrief(): Promise<void> {
     const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const ago14d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary, asoSummary, attributionEntry] = await Promise.all([
+    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary, asoSummary, attributionEntry, uptimeSummary, infraSummary, e2eSummary, churnSummary, supportSummary] = await Promise.all([
       getMetricsSnapshot(),
       getAiQualitySummary(),
       getRevenueSummary(),
@@ -42,6 +47,11 @@ export async function runFounderBrief(): Promise<void> {
       getCodeReviewSummary(),
       getAsoSummary(),
       getLatestBusEntry('attribution_metrics'),
+      getUptimeSummary(),
+      getInfraSummary(),
+      getE2eSummary(),
+      getChurnSummary(),
+      getSupportSummary(),
     ]);
 
     const userGrowthPct = newUsersPriorWeek > 0
@@ -73,6 +83,11 @@ export async function runFounderBrief(): Promise<void> {
     if (securitySummary && securitySummary.critical > 0) risks.push(`${securitySummary.critical} CRITICAL security finding(s) — check Security Auditor email`);
     if (securitySummary && securitySummary.high > 0) risks.push(`${securitySummary.high} high-severity security finding(s) need attention`);
     if (codeReviewSummary && codeReviewSummary.high > 0) risks.push(`${codeReviewSummary.high} high-severity code review finding(s) — check Code Reviewer email`);
+    if (uptimeSummary.failureCount > 0) risks.push(`Uptime monitor: ${uptimeSummary.failureCount} health check failures today`);
+    if (infraSummary.heapUsedPct > 0.80) risks.push(`Memory at ${Math.round(infraSummary.heapUsedPct * 100)}% — potential memory leak`);
+    if (e2eSummary && !e2eSummary.lastRunPassed) risks.push(`E2E tests failing: ${e2eSummary.failureCount} endpoint(s) down`);
+    if (churnSummary.highRiskCount > 0) risks.push(`${churnSummary.highRiskCount} paid user(s) at high churn risk — retention emails triggered`);
+    if (supportSummary.escalated7d > 0) risks.push(`${supportSummary.escalated7d} support ticket(s) escalated this week`);
 
     // ASO keyword alerts
     if (asoSummary) {
@@ -155,6 +170,14 @@ export async function runFounderBrief(): Promise<void> {
             ${statRow('5xx Errors', metrics.errorCount5xx.toString())}
             ${statRow('Pending Reports 24h+', metrics.pendingReportsOlderThan24h.toString())}
             ${statRow('Expert Reviews Pending', metrics.expertReviewsPending.toString())}
+            ${statRow('Uptime Failures (today)', uptimeSummary.failureCount.toString(), uptimeSummary.failureCount > 0 ? '<span style="color:#EF4444;font-size:12px;">⚠️</span>' : '')}
+            ${statRow('Heap Usage', `${Math.round(infraSummary.heapUsedPct * 100)}%`, infraSummary.heapUsedPct > 0.80 ? '<span style="color:#F59E0B;font-size:12px;">⚠️ high</span>' : '')}
+            ${e2eSummary ? statRow('E2E Tests', e2eSummary.lastRunPassed ? '✅ Passing' : `❌ ${e2eSummary.failureCount} failing`) : ''}
+
+            ${sectionHeader('Retention & Support')}
+            ${statRow('High Churn Risk (paid)', churnSummary.highRiskCount.toString(), churnSummary.highRiskCount > 0 ? '<span style="color:#F59E0B;font-size:12px;">⚠️</span>' : '')}
+            ${statRow('Support Tickets Open', supportSummary.openTickets.toString())}
+            ${statRow('Escalated (7d)', supportSummary.escalated7d.toString(), supportSummary.escalated7d > 0 ? '<span style="color:#EF4444;font-size:12px;">needs attention</span>' : '')}
 
             ${sectionHeader('Security')}
             ${statRow('Security Findings', securitySummary ? `${securitySummary.total} total` : 'N/A', securitySummary && securitySummary.critical > 0 ? `<span style="color:#EF4444;font-size:12px;">🔴 ${securitySummary.critical} critical</span>` : '')}

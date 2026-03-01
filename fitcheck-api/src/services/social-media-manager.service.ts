@@ -247,3 +247,66 @@ export function registerExecutors(): void {
 // Auto-register at module load time — ensures executor is available even if
 // initScheduler() hasn't been called yet (e.g. ENABLE_CRON=false on Railway)
 registerExecutors();
+
+// ─── Instagram Graph API ──────────────────────────────────────────────────────
+
+export async function postToInstagram(socialPostId: string): Promise<{ posted: boolean; postId?: string; error?: string }> {
+  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const accountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+
+  if (!accessToken || !accountId) {
+    return { posted: false, error: 'INSTAGRAM_ACCESS_TOKEN or INSTAGRAM_BUSINESS_ACCOUNT_ID not configured' };
+  }
+
+  const post = await prisma.socialPost.findUnique({ where: { id: socialPostId } });
+  if (!post) return { posted: false, error: 'Post not found' };
+
+  try {
+    // Step 1: Create media container
+    const caption = `${post.content}${post.hashtags?.length ? '\n\n' + (post.hashtags as string[]).map(h => `#${h}`).join(' ') : ''}`;
+    const imageUrl = post.trackingUrl || '';
+
+    if (!imageUrl.startsWith('http')) {
+      return { posted: false, error: 'Instagram posts require a public image URL' };
+    }
+
+    const containerRes = await fetch(
+      `https://graph.facebook.com/v19.0/${accountId}/media`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: imageUrl, caption, access_token: accessToken }),
+      }
+    );
+    const container = await containerRes.json() as { id?: string; error?: { message: string } };
+    if (!container.id) {
+      return { posted: false, error: container.error?.message || 'Failed to create media container' };
+    }
+
+    // Step 2: Publish media container
+    const publishRes = await fetch(
+      `https://graph.facebook.com/v19.0/${accountId}/media_publish`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creation_id: container.id, access_token: accessToken }),
+      }
+    );
+    const published = await publishRes.json() as { id?: string; error?: { message: string } };
+    if (!published.id) {
+      return { posted: false, error: published.error?.message || 'Failed to publish media' };
+    }
+
+    await prisma.socialPost.update({
+      where: { id: socialPostId },
+      data: { status: 'posted', postedAt: new Date() },
+    });
+
+    console.log(`[SocialMediaManager] Instagram post published: ${published.id}`);
+    return { posted: true, postId: published.id };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[SocialMediaManager] Failed to post to Instagram:', err);
+    return { posted: false, error: errMsg };
+  }
+}

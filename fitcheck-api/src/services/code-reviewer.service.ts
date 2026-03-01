@@ -307,7 +307,7 @@ export async function runCodeReview(): Promise<void> {
 export async function getCodeReviewSummary(): Promise<{ total: number; high: number } | null> {
   try {
     const { prisma } = await import('../utils/prisma.js');
-    const entry = await (prisma as any).intelligenceBusEntry.findFirst({
+    const entry = await prisma.intelligenceBusEntry.findFirst({
       where: { agent: 'code-reviewer', entryType: 'code_review' },
       orderBy: { createdAt: 'desc' },
     });

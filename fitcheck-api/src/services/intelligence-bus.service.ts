@@ -37,7 +37,18 @@ export type BusEntryType =
   | 'code_review'
   // Marketing Intelligence
   | 'aso_metrics'
-  | 'attribution_metrics';
+  | 'attribution_metrics'
+  // Tier 1-2 Agent types
+  | 'support_metrics'
+  | 'churn_metrics'
+  | 'product_feedback'
+  | 'seo_metrics'
+  // Infrastructure & Ops
+  | 'infra_metrics'
+  | 'onboarding_metrics'
+  | 'competitive_intel'
+  | 'e2e_metrics'
+  | 'uptime_metrics';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

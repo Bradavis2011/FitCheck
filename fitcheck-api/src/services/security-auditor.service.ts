@@ -386,7 +386,7 @@ export async function runSecurityAudit(): Promise<void> {
 export async function getSecurityAuditSummary(): Promise<{ total: number; critical: number; high: number } | null> {
   try {
     const { prisma } = await import('../utils/prisma.js');
-    const entry = await (prisma as any).intelligenceBusEntry.findFirst({
+    const entry = await prisma.intelligenceBusEntry.findFirst({
       where: { agent: 'security-auditor', entryType: 'security_audit' },
       orderBy: { createdAt: 'desc' },
     });

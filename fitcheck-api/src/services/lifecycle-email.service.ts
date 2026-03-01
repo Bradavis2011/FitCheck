@@ -8,7 +8,7 @@ import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 interface EmailStep {
   delayMs: number; // delay from previous step (0 for first step)
   subject: string;
-  buildHtml: (user: { email: string; name?: string | null }, extraData?: unknown) => string;
+  buildHtml: (user: { email: string; name?: string | null; unsubscribeToken?: string }, extraData?: unknown) => string;
 }
 
 interface SequenceDef {
@@ -230,7 +230,12 @@ const SEQUENCES: Record<string, SequenceDef> = {
 
 // ─── Email HTML Builder ───────────────────────────────────────────────────────
 
-function buildEmail(_title: string, headline: string, bodyHtml: string): string {
+function buildEmail(_title: string, headline: string, bodyHtml: string, unsubscribeToken?: string): string {
+  const baseUrl = process.env.API_BASE_URL || 'https://fitcheck-production-0f92.up.railway.app';
+  const unsubscribeUrl = unsubscribeToken
+    ? `${baseUrl}/api/email/unsubscribe/${unsubscribeToken}`
+    : `https://orthis.app/unsubscribe`;
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -254,7 +259,8 @@ function buildEmail(_title: string, headline: string, bodyHtml: string): string 
           <td style="padding:20px 40px 28px;border-top:1px solid #F5EDE7;">
             <p style="color:#6B7280;font-size:12px;margin:0;line-height:1.5;">
               You're receiving this because you signed up for Or This?.<br>
-              Questions? Reply to this email or visit <a href="https://orthis.app" style="color:#E85D4C;text-decoration:none;">orthis.app</a>
+              Questions? Reply to this email or visit <a href="https://orthis.app" style="color:#E85D4C;text-decoration:none;">orthis.app</a><br>
+              <a href="${unsubscribeUrl}" style="color:#9CA3AF;text-decoration:underline;font-size:11px;">Unsubscribe from marketing emails</a>
             </p>
           </td>
         </tr>
@@ -533,10 +539,19 @@ async function processDueSequences(): Promise<void> {
 
       const user = await prisma.user.findUnique({
         where: { id: seq.userId },
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, name: true, emailOptOut: true, unsubscribeToken: true },
       });
 
       if (!user || !user.email) {
+        await prisma.emailSequence.update({
+          where: { id: seq.id },
+          data: { status: 'cancelled' },
+        });
+        continue;
+      }
+
+      // GDPR/CAN-SPAM: skip opted-out users
+      if (user.emailOptOut) {
         await prisma.emailSequence.update({
           where: { id: seq.id },
           data: { status: 'cancelled' },
@@ -552,7 +567,7 @@ async function processDueSequences(): Promise<void> {
         ? topStyles
         : undefined;
 
-      const htmlBody = step.buildHtml(user, extraData);
+      const htmlBody = step.buildHtml({ ...user, unsubscribeToken: user.unsubscribeToken ?? undefined }, extraData);
       const payload = {
         seqId: seq.id,
         userId: seq.userId,
