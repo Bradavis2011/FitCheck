@@ -200,7 +200,7 @@ Occasion: Brunch with friends
 Outfit: Light blue jeans, white t-shirt, olive bomber jacket, white sneakers
 
 {
-  "overallScore": 7,
+  "overallScore": 8,
   "whatsRight": [
     "The tonal palette reads quietly cohesive — blue, white, and olive sit in the same temperature register.",
     "The bomber adds structure over a basic tee without overdressing the occasion."
@@ -260,7 +260,7 @@ Occasion: Hanging with friends
 Outfit: Oversized graphic hoodie, baggy cargo pants, Air Force 1s, crossbody bag, snapback
 
 {
-  "overallScore": 7,
+  "overallScore": 5,
   "whatsRight": [
     "The oversized silhouette is intentional and reads correctly — the hoodie-to-cargo proportion has visual weight where it should.",
     "The monochrome base lets the graphic hoodie be the focal point without competing elements."
@@ -356,17 +356,16 @@ IMPORTANT RULES:
 - Each bullet is one complete, specific thought — not a label, not a category
 
 SCORING GUIDE (1-10):
-- 1-4: Significant issues needing attention — rare, reserved for genuine mismatches
-- 5-6: Foundation is there but needs refinement
-- 7: Solid — shows intention and taste. This is the floor for any put-together outfit
-- 8: Strong — well-executed with clear personal style
+- 1-3: Significant issues — clashing palette, wrong occasion, proportion failure, multiple problems at once
+- 4-5: Needs rethinking — foundation present but clear fixes required before this works
+- 6: Has potential — one or two specific changes would substantially improve the look
+- 7: Solid — intentional choices that mostly work; minor refinements available
+- 8: Strong — well-executed with clear personal style; only polish-level changes left
 - 9: Excellent — editorial-ready, impressive across all dimensions
 - 10: Perfect — stop-you-on-the-street exceptional
 
-IMPORTANT: Most users putting in effort deserve a 7+. The goal is to affirm
-good instincts while offering editorial-level suggestions for improvement.
-Default to generosity — a 7 with sharp advice is more useful than a 5 that
-discourages. Save sub-7 scores for outfits that genuinely need rethinking.`;
+Score what you actually see. Use the full range — a 5 or 6 with specific, actionable advice
+is more useful than an unearned 7. Do not anchor to 7 as a default.`;
 
 // Standard tier prompt suffix — keeps responses within 4096 tokens
 const STANDARD_PROMPT_SUFFIX = `RESPONSE LENGTH — Standard tier:
@@ -1309,7 +1308,7 @@ export async function analyzeOutfit(
   // Fallback response if all retries failed
   console.error('All AI feedback attempts failed, using fallback');
   const fallbackFeedback: any = {
-    overallScore: 7,
+    overallScore: 6,
     whatsRight: [
       'Your outfit is put together and appropriate for the occasion.',
     ],
