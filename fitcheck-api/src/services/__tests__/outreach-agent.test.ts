@@ -86,16 +86,16 @@ describe('runOutreachAgent', () => {
     expect(mockExecuteOrQueue).not.toHaveBeenCalled();
   });
 
-  it('calls generateContent 3 times (once per target)', async () => {
+  it('calls generateContent 4 times (once per target)', async () => {
     await runOutreachAgent();
 
-    expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+    expect(mockGenerateContent).toHaveBeenCalledTimes(4);
   });
 
-  it('calls executeOrQueue 3 times with "high" risk level', async () => {
+  it('calls executeOrQueue 4 times with "high" risk level', async () => {
     await runOutreachAgent();
 
-    expect(mockExecuteOrQueue).toHaveBeenCalledTimes(3);
+    expect(mockExecuteOrQueue).toHaveBeenCalledTimes(4);
     for (const call of mockExecuteOrQueue.mock.calls) {
       const [agent, actionType, riskLevel] = call;
       expect(agent).toBe('outreach-agent');
@@ -115,8 +115,8 @@ describe('runOutreachAgent', () => {
       });
 
     await expect(runOutreachAgent()).resolves.toBeUndefined();
-    // Only 2 successful drafts → executeOrQueue called twice
-    expect(mockExecuteOrQueue).toHaveBeenCalledTimes(2);
+    // Only 3 successful drafts → executeOrQueue called 3 times
+    expect(mockExecuteOrQueue).toHaveBeenCalledTimes(3);
   });
 
   it('does not call executeOrQueue when Gemini returns invalid JSON (no JSON match)', async () => {

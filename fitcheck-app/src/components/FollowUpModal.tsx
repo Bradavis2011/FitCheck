@@ -444,7 +444,6 @@ export default function FollowUpModal({
                     multiline
                     maxLength={200}
                     editable={!isLoading}
-                    fontFamily={Fonts.sans}
                   />
                   <TouchableOpacity
                     style={[

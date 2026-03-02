@@ -14,6 +14,23 @@ interface OutreachTarget {
 
 const OUTREACH_TARGETS: OutreachTarget[] = [
   {
+    type: 'nano_creator',
+    label: 'TikTok/IG Nano-Creator (1K-10K)',
+    pitch: `Write a TikTok DM for a creator who posts "rate my outfit", "fit check",
+"which outfit" or "this or that" content with 1K-10K followers.
+
+You're NOT asking them to promote anything. You're offering them:
+1. A new content format: their audience votes on outfits and they film the AI score reveal
+2. Early access to an app nobody else has yet (TestFlight only)
+3. "Founding Creator" status — featured placement when the app launches
+
+Tone: casual, peer-to-peer, excited. Reference a SPECIFIC video they would post (use a plausible example).
+Keep under 80 words. No "partnership" or "collab" language.
+End with: "want early access? i can add you to testflight today"
+
+This is a DM, not an email. No subject line. No sign-off. No emojis.`,
+  },
+  {
     type: 'fashion_blogger',
     label: 'Fashion Blogger',
     pitch: `Pitch them on covering Or This? for their audience who wants AI-powered style advice.
@@ -40,18 +57,36 @@ Mention key stats that would interest a journalist: saves time, builds confidenc
 
 // ─── Draft Generation ─────────────────────────────────────────────────────────
 
+const DM_TARGET_TYPES = new Set(['nano_creator']);
+
 interface OutreachDraft {
   type: string;
   subject: string;
   body: string;
+  isDm?: boolean;
 }
 
 async function generateOutreachDraft(target: OutreachTarget): Promise<OutreachDraft | null> {
   if (!process.env.GEMINI_API_KEY) return null;
 
+  const isDm = DM_TARGET_TYPES.has(target.type);
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-    const prompt = `Write a cold outreach email for "Or This?", an AI-powered outfit feedback app.
+
+    let prompt: string;
+    if (isDm) {
+      prompt = `Write a TikTok/Instagram DM for "Or This?", an AI-powered outfit feedback app (TestFlight only).
+
+App: Or This? gives users instant AI outfit feedback with a confidence score and specific styling tips. Currently invite-only on TestFlight.
+
+Target: ${target.label}
+Pitch guidance: ${target.pitch}
+
+Return JSON only (no markdown):
+{"body": "string (under 80 words, use \\n for line breaks, casual DM style, no subject line)"}`;
+    } else {
+      prompt = `Write a cold outreach email for "Or This?", an AI-powered outfit feedback app.
 
 App description: Or This? gives users instant AI outfit feedback with a confidence score and specific styling tips. Like having a personal stylist in your pocket. Free to use.
 
@@ -67,6 +102,7 @@ Requirements:
 
 Return JSON only (no markdown):
 {"subject": "string", "body": "string (use \\n for line breaks)"}`;
+    }
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
@@ -77,9 +113,14 @@ Return JSON only (no markdown):
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as { subject?: string; body?: string };
-    if (!parsed.subject || !parsed.body) return null;
+    if (!parsed.body) return null;
 
-    return { type: target.type, subject: parsed.subject.slice(0, 100), body: parsed.body };
+    return {
+      type: target.type,
+      subject: isDm ? '' : (parsed.subject?.slice(0, 100) || ''),
+      body: parsed.body,
+      isDm,
+    };
   } catch (err) {
     console.error(`[OutreachAgent] Gemini draft failed for ${target.type}:`, err);
     return null;
@@ -95,6 +136,20 @@ function buildReviewEmail(draft: OutreachDraft, targetLabel: string): string {
     .replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>');
 
+  const isDm = draft.isDm === true;
+
+  const subjectSection = isDm ? '' : `
+            <div style="margin-bottom:20px;">
+              <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Subject Line</div>
+              <div style="background:#F5EDE7;border-radius:8px;padding:12px 16px;font-size:15px;font-weight:600;color:#1A1A1A;">${draft.subject}</div>
+            </div>`;
+
+  const instructions = isDm
+    ? '<strong>DM Template — copy/paste to TikTok:</strong> Open TikTok → find the creator → tap Message → paste this text. Personalize the creator\'s name and reference one of their specific recent videos before sending.'
+    : '<strong>Review and send:</strong> This outreach email was drafted by your AI outreach agent. Copy the subject line and body below to send via your email client.';
+
+  const bodyLabel = isDm ? 'DM Text (copy/paste)' : 'Email Body';
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
@@ -105,20 +160,17 @@ function buildReviewEmail(draft: OutreachDraft, targetLabel: string): string {
         <tr>
           <td style="background:linear-gradient(135deg,#E85D4C,#FF7A6B);padding:28px 40px;text-align:center;">
             <div style="font-size:26px;font-weight:700;color:#fff;">Or This?</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.8);margin-top:4px;">Outreach Draft — ${targetLabel}</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.8);margin-top:4px;">${isDm ? 'DM Template' : 'Outreach Draft'} — ${targetLabel}</div>
           </td>
         </tr>
         <tr>
           <td style="padding:32px 40px;">
             <p style="color:#6B7280;font-size:13px;margin:0 0 24px;padding:12px 16px;background:#F5EDE7;border-radius:8px;line-height:1.5;">
-              <strong>Review and send:</strong> This outreach email was drafted by your AI outreach agent. Copy the subject line and body below to send via your email client.
+              ${instructions}
             </p>
-            <div style="margin-bottom:20px;">
-              <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Subject Line</div>
-              <div style="background:#F5EDE7;border-radius:8px;padding:12px 16px;font-size:15px;font-weight:600;color:#1A1A1A;">${draft.subject}</div>
-            </div>
+            ${subjectSection}
             <div>
-              <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Email Body</div>
+              <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">${bodyLabel}</div>
               <div style="background:#F5EDE7;border-radius:8px;padding:16px;font-size:14px;color:#2D2D2D;line-height:1.7;">${escapedBody}</div>
             </div>
           </td>
@@ -172,15 +224,18 @@ export async function runOutreachAgent(): Promise<void> {
         'outreach-agent',
         'outreach_draft',
         'high',
-        { type: target.type, label: target.label, subject: draft.subject, body: draft.body } as unknown as Record<string, unknown>,
+        { type: target.type, label: target.label, subject: draft.subject, body: draft.body, isDm: draft.isDm ?? false } as unknown as Record<string, unknown>,
         async (payload) => {
-          const p = payload as { type: string; label: string; subject: string; body: string };
-          const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body }, p.label);
+          const p = payload as { type: string; label: string; subject: string; body: string; isDm?: boolean };
+          const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body, isDm: p.isDm }, p.label);
+          const emailSubject = p.isDm
+            ? `Or This? DM Template: ${p.label}`
+            : `Or This? Outreach Draft: ${p.label} — "${p.subject}"`;
 
           await resend.emails.send({
             from: fromEmail,
             to: recipient,
-            subject: `Or This? Outreach Draft: ${p.label} — "${p.subject}"`,
+            subject: emailSubject,
             html,
           });
 
@@ -202,7 +257,7 @@ export async function runOutreachAgent(): Promise<void> {
 export function registerExecutors(): void {
   // Also called at module load time below
   registerExecutor('outreach-agent', 'outreach_draft', async (payload) => {
-    const p = payload as { type: string; label: string; subject: string; body: string };
+    const p = payload as { type: string; label: string; subject: string; body: string; isDm?: boolean };
     const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
     if (!resend) {
       console.warn('[OutreachAgent] RESEND_API_KEY not set — cannot send outreach email');
@@ -213,11 +268,14 @@ export function registerExecutors(): void {
     if (!recipient) {
       return { sent: false, note: 'no_recipient' };
     }
-    const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body }, p.label);
+    const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body, isDm: p.isDm }, p.label);
+    const emailSubject = p.isDm
+      ? `Or This? DM Template: ${p.label}`
+      : `Or This? Outreach Draft: ${p.label} — "${p.subject}"`;
     await resend.emails.send({
       from: fromEmail,
       to: recipient,
-      subject: `Or This? Outreach Draft: ${p.label} — "${p.subject}"`,
+      subject: emailSubject,
       html,
     });
     return { type: p.type, sent: true, preview: p.body.slice(0, 100) };

@@ -256,6 +256,19 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
       const { runCodeReview } = await import('../services/code-reviewer.service.js');
       await runCodeReview();
     },
+    // ── Creator Program ──────────────────────────────────────────────────
+    'creator-hooks': async () => {
+      const { generateCreatorHooks } = await import('../services/social-content-engine.service.js');
+      await generateCreatorHooks();
+    },
+    'creator-hook-distribution': async () => {
+      const { runCreatorHookDistribution } = await import('../services/creator-manager.service.js');
+      await runCreatorHookDistribution();
+    },
+    'creator-performance-digest': async () => {
+      const { runCreatorPerformanceDigest } = await import('../services/creator-manager.service.js');
+      await runCreatorPerformanceDigest();
+    },
   };
 
   const agentFn = agentMap[name];

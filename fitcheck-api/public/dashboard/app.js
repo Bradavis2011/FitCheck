@@ -10,6 +10,7 @@ const AGENT_NAMES = [
   'social-media-manager',
   'appstore-manager',
   'outreach-agent',
+  'creator-manager',
 ];
 
 // Trigger name to use when "Run Now" is pressed for each operator agent
@@ -20,6 +21,7 @@ const AGENT_TRIGGER_NAME = {
   'social-media-manager':    'social-media-manager',
   'appstore-manager':        'appstore-manager',
   'outreach-agent':          'outreach-agent',
+  'creator-manager':         'creator-hooks',
 };
 
 const AGENT_META = {
@@ -29,6 +31,7 @@ const AGENT_META = {
   'social-media-manager':    { icon: '📱', label: 'Social Media' },
   'appstore-manager':        { icon: '⭐', label: 'App Store' },
   'outreach-agent':          { icon: '📨', label: 'Outreach' },
+  'creator-manager':         { icon: '🎬', label: 'Creator Program' },
 };
 
 // Reporting agents — email results directly, no action queue
@@ -44,6 +47,8 @@ const REPORTING_AGENTS = [
   { name: 'fashion-trends',           icon: '👗', label: 'Fashion Trends' },
   { name: 'calibration-snapshot',     icon: '📐', label: 'Calibration' },
   { name: 'founder-brief',            icon: '📝', label: 'Founder Brief' },
+  { name: 'creator-hook-distribution', icon: '📤', label: 'Hook Distribution' },
+  { name: 'creator-performance-digest', icon: '🏅', label: 'Creator Digest' },
 ];
 
 function agentLabel(name) { return AGENT_META[name]?.label || name; }
@@ -57,6 +62,8 @@ const CONTENT_TYPE_LABELS = {
   wardrobe_insight:     'Wardrobe Insight',
   conversation_starter: 'Conversation Starter',
   behind_the_scenes:    'Behind the Scenes',
+  creator_hook:         'Creator Hook',
+  viral_replication:    'Viral Replication',
 };
 
 const PLATFORM_META = {
@@ -73,6 +80,7 @@ const AGENT_IMAGES = {
   'social-media-manager':    'editorial-orange.jpg',
   'appstore-manager':        'editorial-teal.jpg',
   'outreach-agent':          'editorial-sketches.jpg',
+  'creator-manager':         'editorial-tan.jpg',
 };
 
 const PAGE_ORDER = ['overview', 'social', 'queue', 'log'];

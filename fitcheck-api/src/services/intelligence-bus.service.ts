@@ -48,7 +48,9 @@ export type BusEntryType =
   | 'onboarding_metrics'
   | 'competitive_intel'
   | 'e2e_metrics'
-  | 'uptime_metrics';
+  | 'uptime_metrics'
+  // UGC Creator Program
+  | 'creator_metrics';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

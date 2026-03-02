@@ -22,7 +22,7 @@ type Props = {
 
 export default function OutfitFeedCard({ outfit, onPress }: Props) {
   const hasScore = outfit.score != null && outfit.score > 0;
-  const scoreColor = hasScore ? getScoreColor(outfit.score) : Colors.textMuted;
+  const scoreColor = hasScore ? getScoreColor(outfit.score!) : Colors.textMuted;
   const rawThumb = outfit.thumbnailData;
   const thumbUri = rawThumb
     ? (rawThumb.startsWith('data:') ? rawThumb : `data:image/jpeg;base64,${rawThumb}`)
@@ -55,7 +55,7 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
           {/* Score badge */}
           {hasScore && (
             <View style={[styles.scoreBadge, { backgroundColor: scoreColor }]}>
-              <Text style={styles.scoreText}>{outfit.score.toFixed(1)}</Text>
+              <Text style={styles.scoreText}>{outfit.score!.toFixed(1)}</Text>
             </View>
           )}
         </View>

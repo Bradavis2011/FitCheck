@@ -481,7 +481,6 @@ export default function CompareScreen() {
             onChangeText={setQuestion}
             multiline
             maxLength={150}
-            fontFamily={Fonts.sans}
           />
           <Text style={styles.charCount}>{question.length}/150</Text>
         </View>

@@ -26,6 +26,27 @@ function getAppUrl(): string {
   return (process.env.APP_URL || 'https://orthis.app').trim().replace(/\/$/, '');
 }
 
+// Referral tier milestones
+const REFERRAL_TIERS = [
+  { count: 3, label: 'Early Access', description: 'Skip the queue — first wave of invites' },
+  { count: 5, label: 'Founding Member', description: 'Permanent founding member badge in the app' },
+  { count: 10, label: 'Inner Circle', description: 'Private group access with the Or This? team' },
+  { count: 25, label: 'Featured', description: 'Featured in the app and on our social media' },
+];
+
+function getNextTier(referralCount: number): { count: number; label: string; description: string } | null {
+  return REFERRAL_TIERS.find(t => t.count > referralCount) ?? null;
+}
+
+function getCurrentTier(referralCount: number): { count: number; label: string; description: string } | null {
+  const achieved = REFERRAL_TIERS.filter(t => t.count <= referralCount);
+  return achieved.length > 0 ? achieved[achieved.length - 1] : null;
+}
+
+async function getReferralCount(referralCode: string): Promise<number> {
+  return prisma.waitlistEntry.count({ where: { referredBy: referralCode } });
+}
+
 // POST /api/waitlist
 export async function joinWaitlist(req: Request, res: Response) {
   const parsed = JoinSchema.safeParse(req.body);
@@ -40,10 +61,14 @@ export async function joinWaitlist(req: Request, res: Response) {
   // Check if already on the waitlist — return same shape as new entry to avoid enumeration
   const existing = await prisma.waitlistEntry.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
+    const referralCount = await getReferralCount(existing.referralCode);
     res.json({
       position: existing.position,
       referralCode: existing.referralCode,
       referralLink: `${getAppUrl()}?ref=${existing.referralCode}`,
+      referralCount,
+      currentTier: getCurrentTier(referralCount),
+      nextTier: getNextTier(referralCount),
     });
     return;
   }
@@ -105,6 +130,9 @@ export async function joinWaitlist(req: Request, res: Response) {
     position: newEntry.position,
     referralCode: newEntry.referralCode,
     referralLink: `${getAppUrl()}?ref=${newEntry.referralCode}`,
+    referralCount: 0,
+    currentTier: null,
+    nextTier: getNextTier(0),
   });
 }
 
@@ -122,9 +150,13 @@ export async function getWaitlistStatus(req: Request, res: Response) {
     return;
   }
 
+  const referralCount = await getReferralCount(entry.referralCode);
   res.json({
     position: entry.position,
     referralCode: entry.referralCode,
     referralLink: `${getAppUrl()}?ref=${entry.referralCode}`,
+    referralCount,
+    currentTier: getCurrentTier(referralCount),
+    nextTier: getNextTier(referralCount),
   });
 }

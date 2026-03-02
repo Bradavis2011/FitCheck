@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,11 +8,12 @@ import { useAuth } from '@clerk/clerk-expo';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import { Colors, Spacing, Fonts } from '../../src/constants/theme';
+import { Colors, Spacing, Fonts, FontSize } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { logOutPurchases } from '../../src/services/purchases.service';
-import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals, useClaimReferral } from '../../src/hooks/useApi';
+import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals, useClaimReferral, useSubmitFeedback } from '../../src/hooks/useApi';
+import type { FeedbackType } from '../../src/services/api.service';
 import PillButton from '../../src/components/PillButton';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 import ReferralCard from '../../src/components/ReferralCard';
@@ -41,6 +42,10 @@ export default function ProfileScreen() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editIsPublic, setEditIsPublic] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>('general');
+  const [feedbackText, setFeedbackText] = useState('');
+  const submitFeedback = useSubmitFeedback();
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -160,6 +165,19 @@ export default function ProfileScreen() {
     const parts = name.split(' ');
     if (parts.length >= 2) return parts[0][0] + parts[1][0];
     return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) return;
+    try {
+      await submitFeedback.mutateAsync({ type: feedbackType, text: feedbackText.trim() });
+      setShowFeedback(false);
+      setFeedbackText('');
+      setFeedbackType('general');
+      Alert.alert('Thanks!', 'Your feedback has been submitted.');
+    } catch {
+      Alert.alert('Error', 'Failed to submit feedback. Please try again.');
+    }
   };
 
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
@@ -395,6 +413,11 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.rowDivider} />
+          <TouchableOpacity style={styles.listRow} onPress={() => setShowFeedback(true)}>
+            <Text style={styles.listRowText}>Send Feedback</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <View style={styles.rowDivider} />
           {__DEV__ && (
             <TouchableOpacity style={styles.listRow} onPress={handleResetOnboarding}>
               <Text style={[styles.listRowText, { color: Colors.warning }]}>Reset Onboarding (Test)</Text>
@@ -408,6 +431,65 @@ export default function ProfileScreen() {
 
         <Text style={styles.version}>Or This? v1.1.0</Text>
       </ScrollView>
+
+      {/* Feedback Modal */}
+      <Modal
+        visible={showFeedback}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFeedback(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowFeedback(false)}>
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Send Feedback</Text>
+              <TouchableOpacity onPress={handleSubmitFeedback} disabled={submitFeedback.isPending || !feedbackText.trim()}>
+                {submitFeedback.isPending
+                  ? <ActivityIndicator size="small" color={Colors.primary} />
+                  : <Text style={[styles.modalSave, !feedbackText.trim() && { opacity: 0.4 }]}>Send</Text>
+                }
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Type</Text>
+                <View style={styles.feedbackTypeRow}>
+                  {(['feature', 'bug', 'general', 'praise'] as FeedbackType[]).map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.feedbackTypeChip, feedbackType === t && styles.feedbackTypeChipActive]}
+                      onPress={() => setFeedbackType(t)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.feedbackTypeText, feedbackType === t && styles.feedbackTypeTextActive]}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Message</Text>
+                <TextInput
+                  style={[styles.modalInput, styles.modalTextArea]}
+                  value={feedbackText}
+                  onChangeText={setFeedbackText}
+                  placeholder="Tell us what you think..."
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  maxLength={2000}
+                  numberOfLines={6}
+                  autoFocus
+                />
+                <Text style={styles.modalHint}>{feedbackText.length}/2000 characters</Text>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
 
       {/* Edit Profile Modal */}
       <Modal
@@ -903,5 +985,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  feedbackTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  feedbackTypeChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  feedbackTypeChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  feedbackTypeText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  feedbackTypeTextActive: {
+    color: Colors.white,
   },
 });

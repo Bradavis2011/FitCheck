@@ -23,6 +23,7 @@ import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community
 import { runSocialMediaManager, registerExecutors as registerSocialExecutors } from './social-media-manager.service.js';
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
+import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors } from './creator-manager.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runUptimeCheck, trackDailyUptime } from './uptime-monitor.service.js';
 import { retryFailedDeletions } from './data-deletion.service.js';
@@ -214,6 +215,7 @@ export function initializeScheduler(): void {
   registerSocialExecutors();
   registerAppstoreExecutors();
   registerOutreachExecutors();
+  registerCreatorExecutors();
 
   console.log('⏰ [Scheduler] Initializing cron jobs...');
 
@@ -715,5 +717,19 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] E2E tests failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence)');
+  // ── Creator Manager: Weekly hook distribution — Sunday 6pm UTC ───────────────
+  cron.schedule('0 18 * * 0', async () => {
+    console.log('🎬 [Scheduler] Running creator hook distribution...');
+    try { await runCreatorHookDistribution(); }
+    catch (err) { console.error('[Scheduler] Creator hook distribution failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Creator Manager: Performance digest — Friday 9am UTC ─────────────────────
+  cron.schedule('0 9 * * 5', async () => {
+    console.log('📊 [Scheduler] Running creator performance digest...');
+    try { await runCreatorPerformanceDigest(); }
+    catch (err) { console.error('[Scheduler] Creator performance digest failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program)');
 }

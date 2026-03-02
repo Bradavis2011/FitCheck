@@ -198,6 +198,7 @@ export default function ImageCropPreview({ uri, onAccept, onRetake }: ImageCropP
   // ── Crop & accept ─────────────────────────────────────────────────────────
 
   const doCrop = useCallback(async (currentScale: number, currentTx: number, currentTy: number) => {
+    if (!naturalWidth || !naturalHeight) return;
     setIsCropping(true);
 
     try {

@@ -112,8 +112,10 @@ export default function CommunityScreen() {
           <Text style={styles.sectionSubtitle}>Help others decide</Text>
         </View>
         {comparisonPosts.slice(0, 3).map((post) => {
-          const imageA = post.imageAUrl || (post.imageAData ? `data:image/jpeg;base64,${post.imageAData}` : '');
-          const imageB = post.imageBUrl || (post.imageBData ? `data:image/jpeg;base64,${post.imageBData}` : '');
+          const toUri = (url?: string | null, data?: string | null) =>
+            url || (data ? (data.startsWith('data:') ? data : `data:image/jpeg;base64,${data}`) : '');
+          const imageA = toUri(post.imageAUrl, post.imageAData);
+          const imageB = toUri(post.imageBUrl, post.imageBData);
           return (
             <ComparisonCard
               key={post.id}

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, referralService, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, referralService, supportService, feedbackService, legalService, FeedbackType, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -676,6 +676,41 @@ export function useClaimReferral() {
     mutationFn: (referralCode: string) => referralService.claimReferral(referralCode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['referral'] });
+    },
+  });
+}
+
+// Support Bot
+export function useAskSupport() {
+  return useMutation({
+    mutationFn: (question: string) => supportService.ask(question),
+  });
+}
+
+// User Feedback
+export function useSubmitFeedback() {
+  return useMutation({
+    mutationFn: ({ type, text }: { type: FeedbackType; text: string }) =>
+      feedbackService.submit(type, text),
+  });
+}
+
+// Legal / Terms
+export function useLegalVersions() {
+  return useQuery({
+    queryKey: ['legal', 'versions'],
+    queryFn: () => legalService.getCurrentVersions(),
+    staleTime: 1000 * 60 * 60, // 1 hour — versions rarely change
+  });
+}
+
+export function useAcceptLegal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tosVersion, privacyVersion }: { tosVersion: string; privacyVersion: string }) =>
+      legalService.acceptTerms(tosVersion, privacyVersion),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legal'] });
     },
   });
 }

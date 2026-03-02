@@ -1117,3 +1117,216 @@ Suggested format: [e.g., "Talking to camera", "Screen recording + voiceover", "T
     },
   ];
 }
+
+// ─── Generator 8: Creator Hook Library ────────────────────────────────────────
+
+/**
+ * Seed hooks — always included, hardcoded.
+ * These are the OrThis? equivalent of Wispr's proven viral formats.
+ */
+const SEED_HOOKS = [
+  {
+    title: 'The Score Reveal',
+    hook: 'Film yourself taking a photo, adding context, waiting for "Reading your look..." dots, then REACTING to the score.',
+    setup: 'Open the app, take a real photo of your current outfit. Add your occasion — date night, work meeting, whatever. Let the suspense build.',
+    payoff: 'Your genuine reaction to the score IS the content. Don\'t fake it. If you got a 4, show the 4.',
+    cta: 'Link in bio for early access. I can add you to TestFlight today.',
+    onScreen: '"I let an AI judge my outfit and this is what happened"',
+    audioDirection: 'Trending suspense sound → swap to reaction sound at the score reveal',
+  },
+  {
+    title: 'The Mom Test',
+    hook: 'Wear the outfit your mom/partner/roommate says is "too much." Film their eye-roll.',
+    setup: 'Show the eye-roll, the judgement, the skepticism. "They said this was too much."',
+    payoff: 'Show the OrThis? score. Film THEIR reaction when it scores a 9.',
+    cta: 'Get OrThis? — link in bio',
+    onScreen: '"POV: the AI disagrees with your mom"',
+    audioDirection: 'Original audio — their actual reaction is the sound',
+  },
+  {
+    title: 'The Closet Roulette',
+    hook: 'Close your eyes, grab two random things. Put them on.',
+    setup: '"This is what 500 strangers are choosing between." Post both looks to OrThis?.',
+    payoff: 'Reveal the winner. Show the score gap. React.',
+    cta: 'Try it yourself — TestFlight link in bio',
+    onScreen: '"Letting AI decide my outfit (it goes wrong)"',
+    audioDirection: 'Spin wheel sound effect → "ding" when winner revealed',
+  },
+  {
+    title: 'The Group Chat Betrayal',
+    hook: 'Show a screenshot of your group chat where everyone said "cute!!!"',
+    setup: '"My friends said this was cute. The AI said..."',
+    payoff: 'Show the OrThis? score: 4/10. Caption: "My friends are LIARS."',
+    cta: 'Get the honest opinion — link in bio',
+    onScreen: '"Friends: cute!! AI: 4/10"',
+    audioDirection: '"Liar" by Camila Cabello or similar betrayal anthem',
+  },
+  {
+    title: 'The Date Night Decision',
+    hook: 'GRWM for a date but you can\'t decide between two outfits.',
+    setup: '"I\'m not leaving until the internet decides. I posted both to OrThis?."',
+    payoff: 'Show both scores. Wear the winner. Bonus: film the date.',
+    cta: 'Make the AI decide for you — link in bio',
+    onScreen: '"AI: outfit 1 wins by 2 points. OK then."',
+    audioDirection: 'Trending GRWM audio → swap to calm/confident audio for reveal',
+  },
+  {
+    title: 'The Comeback',
+    hook: 'Show an outfit that scored low. Then show what you changed based on the AI feedback.',
+    setup: '"It said my proportions were off and my shoes weren\'t landing. So I changed both."',
+    payoff: 'Post the new version. Film the score going UP. "From a 5 to an 8."',
+    cta: 'Get your glow-up feedback — link in bio',
+    onScreen: '"Low score → glow up (AI actually helps)"',
+    audioDirection: 'Glow-up montage audio — something triumphant',
+  },
+  {
+    title: 'The AI vs. Human',
+    hook: 'Ask your most fashionable friend to rate your outfit 1-10. Then show the AI score.',
+    setup: '"My friend who always looks amazing gave me a 7. The AI gave me..."',
+    payoff: 'Big reveal. Who was closer? Film both reactions.',
+    cta: 'Find out if your friends are honest — link in bio',
+    onScreen: '"Friend: 7/10. AI: [score]. Who do I trust?"',
+    audioDirection: 'Game show reveal sound',
+  },
+];
+
+interface CreatorHook {
+  title: string;
+  hook: string;
+  setup: string;
+  payoff: string;
+  cta: string;
+  onScreen: string;
+  audioDirection: string;
+  isGeminiGenerated?: boolean;
+}
+
+/**
+ * Generate 5-7 TikTok creator hooks per batch.
+ * Includes all 7 seed hooks + Gemini-generated variations.
+ * Stored as SocialPost records with contentType: 'creator_hook'.
+ */
+export async function generateCreatorHooks(): Promise<GeneratedPost[]> {
+  console.log('[ContentEngine] Generating creator hook library...');
+
+  const results: GeneratedPost[] = [];
+
+  // Store all 7 seed hooks
+  for (const hook of SEED_HOOKS) {
+    const content = formatHookAsScript(hook);
+    try {
+      await prisma.socialPost.create({
+        data: {
+          platform: 'tiktok',
+          content,
+          hashtags: ['fitcheck', 'ratemyoutfit', 'OOTD', 'OrThis', 'whichoutfit'],
+          contentType: 'creator_hook',
+          status: 'draft',
+          sourceData: JSON.stringify({ type: 'seed', title: hook.title }),
+        },
+      });
+    } catch (err) {
+      // Ignore duplicates — seed hooks are idempotent
+      console.warn(`[ContentEngine] Seed hook "${hook.title}" may already exist:`, (err as Error).message?.slice(0, 80));
+    }
+    results.push({
+      platform: 'tiktok',
+      content,
+      hashtags: ['fitcheck', 'ratemyoutfit', 'OOTD', 'OrThis', 'whichoutfit'],
+      contentType: 'creator_hook',
+      sourceData: { type: 'seed', title: hook.title },
+    });
+  }
+
+  // Generate 3 Gemini variations if API key available
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('[ContentEngine] No GEMINI_API_KEY — returning seed hooks only');
+    return results;
+  }
+
+  const recentTitles = SEED_HOOKS.map(h => h.title).join(', ');
+
+  const geminiPrompt = `${BRAND_VOICE}
+
+You are a TikTok content strategist for "Or This?", an AI outfit feedback app available on TestFlight (iOS only for now).
+
+The app lets users: take a photo of their outfit → add context (occasion, vibe) → get an AI score out of 10 with specific feedback → share a score card → ask follow-up questions.
+
+Generate 3 highly specific TikTok creator hook scripts. These are for nano-creators (1K-10K followers) who post outfit, style, OOTD, or "fit check" content.
+
+ALREADY DONE (don't repeat these concepts): ${recentTitles}
+
+Requirements for each hook:
+- Creates genuine emotion (surprise, vindication, humor, or relatability)
+- Shows a specific app feature organically — don't describe the app, SHOW it being used
+- Works for creators with 0-10K followers and no fancy production
+- The authentic moment IS the content (reactions, reveals, spirals, betrayals)
+- Under 80 words total for hook + setup + payoff combined
+- End with curiosity about OrThis? (not a hard sell)
+- No generic "AI told me..." — be specific about the experience
+
+Return a JSON array of 3 objects (no markdown):
+[
+  {
+    "title": "short memorable name",
+    "hook": "first 2 seconds — the scroll-stop",
+    "setup": "next 10 seconds — build the scenario",
+    "payoff": "reveal/reaction moment",
+    "cta": "soft CTA under 10 words",
+    "onScreen": "exact on-screen text overlay",
+    "audioDirection": "trending sound type or vibe"
+  }
+]`;
+
+  try {
+    const raw = await callGemini(geminiPrompt);
+    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const hooks = JSON.parse(jsonMatch[0]) as CreatorHook[];
+      for (const hook of hooks.slice(0, 3)) {
+        if (!hook.title || !hook.hook) continue;
+        hook.isGeminiGenerated = true;
+        const content = formatHookAsScript(hook);
+        await prisma.socialPost.create({
+          data: {
+            platform: 'tiktok',
+            content,
+            hashtags: ['fitcheck', 'ratemyoutfit', 'OOTD', 'OrThis', 'whichoutfit'],
+            contentType: 'creator_hook',
+            status: 'draft',
+            sourceData: JSON.stringify({ type: 'gemini', title: hook.title }),
+          },
+        });
+        results.push({
+          platform: 'tiktok',
+          content,
+          hashtags: ['fitcheck', 'ratemyoutfit', 'OOTD', 'OrThis', 'whichoutfit'],
+          contentType: 'creator_hook',
+          sourceData: { type: 'gemini', title: hook.title },
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[ContentEngine] Gemini hook generation failed:', err);
+  }
+
+  console.log(`[ContentEngine] Creator hook library: ${results.length} hooks generated`);
+  return results;
+}
+
+function formatHookAsScript(hook: CreatorHook): string {
+  return `## ${hook.title}
+
+**HOOK (0-2s):** ${hook.hook}
+
+**SETUP (2-12s):** ${hook.setup}
+
+**PAYOFF (12-22s):** ${hook.payoff}
+
+**CTA (22-25s):** ${hook.cta}
+
+**On-screen text:** ${hook.onScreen}
+
+**Audio:** ${hook.audioDirection}`;
+}

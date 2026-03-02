@@ -396,6 +396,8 @@ const ALL_AGENT_NAMES = [
   'onboarding-optimizer',
   'competitive-intel',
   'e2e-test',
+  // UGC Creator Program
+  'creator-manager',
 ];
 
 export async function killAllAgents(): Promise<void> {

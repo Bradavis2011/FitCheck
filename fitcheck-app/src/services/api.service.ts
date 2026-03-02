@@ -1040,6 +1040,56 @@ export interface ReferralStats {
   maxBonusChecks: number;
 }
 
+// ─── Support Bot ──────────────────────────────────────────────────────────────
+
+export const supportService = {
+  async ask(question: string): Promise<{ response: string; escalated: boolean }> {
+    const response = await api.post<{ response: string; escalated: boolean }>(
+      '/api/support/question',
+      { question }
+    );
+    return response.data;
+  },
+};
+
+// ─── User Feedback ────────────────────────────────────────────────────────────
+
+export type FeedbackType = 'bug' | 'feature' | 'general' | 'complaint' | 'praise';
+
+export const feedbackService = {
+  async submit(type: FeedbackType, text: string): Promise<{ success: boolean; id: string }> {
+    const response = await api.post<{ success: boolean; id: string }>(
+      '/api/user/feedback',
+      { type, text }
+    );
+    return response.data;
+  },
+};
+
+// ─── Legal / Terms ────────────────────────────────────────────────────────────
+
+export interface LegalVersions {
+  tosVersion: string;
+  privacyVersion: string;
+}
+
+export const legalService = {
+  async getCurrentVersions(): Promise<LegalVersions> {
+    const response = await api.get<LegalVersions>('/api/legal/current-versions');
+    return response.data;
+  },
+
+  async acceptTerms(tosVersion: string, privacyVersion: string): Promise<{ success: boolean }> {
+    const response = await api.post<{ success: boolean }>('/api/legal/accept', {
+      tosVersion,
+      privacyVersion,
+    });
+    return response.data;
+  },
+};
+
+// ─── Referral ─────────────────────────────────────────────────────────────────
+
 export const referralService = {
   async getStats(): Promise<ReferralStats> {
     const response = await api.get<ReferralStats>('/api/referral/stats');

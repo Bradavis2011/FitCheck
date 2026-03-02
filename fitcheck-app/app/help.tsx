@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
+import { useAskSupport } from '../src/hooks/useApi';
 
 export default function HelpScreen() {
   const router = useRouter();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [question, setQuestion] = useState('');
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [wasEscalated, setWasEscalated] = useState(false);
+  const askSupport = useAskSupport();
 
   const faqs = [
     {
@@ -35,6 +40,19 @@ export default function HelpScreen() {
 
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
+  };
+
+  const handleAskSupport = async () => {
+    if (!question.trim() || askSupport.isPending) return;
+    try {
+      const result = await askSupport.mutateAsync(question.trim());
+      setAiResponse(result.response);
+      setWasEscalated(result.escalated);
+      setQuestion('');
+    } catch {
+      setAiResponse("Sorry, something went wrong. Please try emailing us at support@orthis.app.");
+      setWasEscalated(false);
+    }
   };
 
   return (
@@ -76,13 +94,53 @@ export default function HelpScreen() {
           ))}
         </View>
 
-        {/* Contact Section */}
+        {/* Support Bot Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Support</Text>
+          <Text style={styles.sectionTitle}>Ask Support</Text>
           <Text style={styles.sectionText}>
-            Can't find what you're looking for? Our support team is here to help!
+            Ask a question and get an instant answer.
           </Text>
 
+          {aiResponse && (
+            <View style={[styles.responseCard, wasEscalated && styles.responseCardEscalated]}>
+              <Text style={styles.responseText}>{aiResponse}</Text>
+              {wasEscalated && (
+                <Text style={styles.escalatedNote}>Your question has been flagged for human review — we'll follow up by email.</Text>
+              )}
+              <TouchableOpacity onPress={() => { setAiResponse(null); setWasEscalated(false); }}>
+                <Text style={styles.clearResponse}>Ask another question</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!aiResponse && (
+            <View style={styles.chatInputRow}>
+              <TextInput
+                style={styles.chatInput}
+                value={question}
+                onChangeText={setQuestion}
+                placeholder="What do you need help with?"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                maxLength={1000}
+                returnKeyType="send"
+                onSubmitEditing={handleAskSupport}
+              />
+              <TouchableOpacity
+                style={[styles.chatSendButton, (!question.trim() || askSupport.isPending) && styles.chatSendButtonDisabled]}
+                onPress={handleAskSupport}
+                activeOpacity={0.7}
+                disabled={!question.trim() || askSupport.isPending}
+              >
+                {askSupport.isPending
+                  ? <ActivityIndicator size="small" color={Colors.white} />
+                  : <Ionicons name="arrow-up" size={20} color={Colors.white} />
+                }
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Email fallback */}
           <TouchableOpacity
             style={styles.contactButton}
             onPress={() => Linking.openURL('mailto:support@orthis.app?subject=Or This? Support Request')}
@@ -219,6 +277,68 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     lineHeight: 22,
+  },
+  chatInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    maxHeight: 100,
+  },
+  chatSendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.sharp,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatSendButtonDisabled: {
+    backgroundColor: Colors.textMuted,
+  },
+  responseCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  responseCardEscalated: {
+    borderColor: Colors.warning,
+  },
+  responseText: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 22,
+    marginBottom: Spacing.sm,
+  },
+  escalatedNote: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.warning,
+    marginBottom: Spacing.sm,
+    lineHeight: 18,
+  },
+  clearResponse: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   contactButton: {
     flexDirection: 'row',

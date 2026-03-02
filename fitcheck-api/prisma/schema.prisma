@@ -1261,3 +1261,50 @@ model BlogDraft {
   @@index([slug])
   @@map("blog_drafts")
 }
+
+// ─── UGC Creator Program Models ───────────────────────────────────────────────
+
+model Creator {
+  id           String    @id @default(uuid())
+  name         String
+  handle       String    // @username
+  platform     String    // tiktok, instagram
+  followers    Int       @default(0)
+  status       String    @default("prospect")
+  // prospect → contacted → accepted → active → paused → cut
+  tier         String    @default("nano") // nano|micro|macro
+  referralCode String?   @unique @map("referral_code")
+  email        String?
+  notes        String?   @db.Text
+  contactedAt  DateTime? @map("contacted_at")
+  acceptedAt   DateTime? @map("accepted_at")
+  lastPostDate DateTime? @map("last_post_date")
+  totalViews   Int       @default(0) @map("total_views")
+  totalPosts   Int       @default(0) @map("total_posts")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  posts        CreatorPost[]
+
+  @@index([status])
+  @@map("creators")
+}
+
+model CreatorPost {
+  id          String    @id @default(uuid())
+  creatorId   String    @map("creator_id")
+  creator     Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  platform    String
+  externalUrl String?   @map("external_url")
+  hookUsed    String?   @map("hook_used")
+  views       Int       @default(0)
+  likes       Int       @default(0)
+  shares      Int       @default(0)
+  comments    Int       @default(0)
+  isViral     Boolean   @default(false) @map("is_viral")
+  postedAt    DateTime? @map("posted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([creatorId])
+  @@index([isViral])
+  @@map("creator_posts")
+}

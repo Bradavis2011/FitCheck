@@ -80,7 +80,7 @@ export default function FeedbackScreen() {
   const [isReanalyzing, setIsReanalyzing] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const pollInterval = useRef<NodeJS.Timeout | null>(null);
+  const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const wasAnalyzingRef = useRef(false);
   const hasLoadedRef = useRef(false);
   const interstitialRef = useRef<any>(null);

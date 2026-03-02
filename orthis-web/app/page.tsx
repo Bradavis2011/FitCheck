@@ -101,13 +101,22 @@ function WaitlistPage() {
       <nav className={`nav-sticky fixed top-0 left-0 right-0 z-50 ${scrolled ? "scrolled" : ""}`}>
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <Logo />
-          <a
-            href="#waitlist"
-            onClick={scrollToWaitlist}
-            className="text-sm font-medium text-clarity hover:text-coral transition-colors"
-          >
-            Join
-          </a>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/journal"
+              className="text-sm font-medium transition-colors"
+              style={{ color: "rgba(26,26,26,0.5)" }}
+            >
+              Journal
+            </Link>
+            <a
+              href="#waitlist"
+              onClick={scrollToWaitlist}
+              className="text-sm font-medium text-clarity hover:text-coral transition-colors"
+            >
+              Join
+            </a>
+          </div>
         </div>
       </nav>
 
@@ -420,8 +429,11 @@ function WaitlistPage() {
             </div>
             <div className="flex flex-col gap-2.5">
               <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "rgba(26,26,26,0.3)" }}>
-                Legal
+                Company
               </p>
+              <Link href="/journal" className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
+                Journal
+              </Link>
               <Link href="/privacy" className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
                 Privacy Policy
               </Link>
@@ -503,6 +515,9 @@ function WaitlistForm({ refCode, variant = "light" }: { refCode: string; variant
     referralCode: string;
     referralLink: string;
     alreadyJoined?: boolean;
+    referralCount?: number;
+    currentTier?: { count: number; label: string; description: string } | null;
+    nextTier?: { count: number; label: string; description: string } | null;
   } | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -568,9 +583,44 @@ function WaitlistForm({ refCode, variant = "light" }: { refCode: string; variant
         <p className={`text-lg font-semibold mb-1 ${isDark ? "text-white/70" : "text-clarity"}`}>
           Position #{result?.position}
         </p>
-        <p className={`text-sm mb-6 ${isDark ? "text-white/50" : "text-clarity/50"}`}>
+        <p className={`text-sm mb-4 ${isDark ? "text-white/50" : "text-clarity/50"}`}>
           Share your link &mdash; every friend who joins moves you up 5 spots.
         </p>
+        {/* Referral tier milestone progress */}
+        {result?.nextTier && (
+          <div
+            className="mb-6 px-4 py-3 text-left"
+            style={{
+              background: isDark ? "rgba(255,255,255,0.06)" : "rgba(26,26,26,0.04)",
+              borderLeft: "2px solid #E85D4C",
+            }}
+          >
+            {result.currentTier && (
+              <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "#E85D4C" }}>
+                {result.currentTier.label} unlocked
+              </p>
+            )}
+            <p className={`text-xs ${isDark ? "text-white/60" : "text-clarity/60"}`}>
+              Invite {result.nextTier.count - (result.referralCount ?? 0)} more{" "}
+              {(result.nextTier.count - (result.referralCount ?? 0)) === 1 ? "person" : "people"}{" "}
+              to unlock <strong>{result.nextTier.label}</strong>{" "}
+              — {result.nextTier.description}.
+            </p>
+          </div>
+        )}
+        {result?.currentTier && !result?.nextTier && (
+          <div
+            className="mb-6 px-4 py-3 text-left"
+            style={{
+              background: isDark ? "rgba(255,255,255,0.06)" : "rgba(26,26,26,0.04)",
+              borderLeft: "2px solid #10B981",
+            }}
+          >
+            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "#10B981" }}>
+              {result.currentTier.label} — all milestones unlocked
+            </p>
+          </div>
+        )}
         <div
           className={`flex items-center gap-2 px-4 py-3 mb-4 border ${
             isDark ? "border-white/20" : "border-clarity/20"

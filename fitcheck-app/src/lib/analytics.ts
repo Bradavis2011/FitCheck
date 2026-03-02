@@ -11,7 +11,8 @@ export type AnalyticsEvent =
   | 'feature_used'
   | 'share_tapped'
   | 'score_card_shared'
-  | 'follow_up_asked';
+  | 'follow_up_asked'
+  | 'ai_comparison_complete';
 
 // Per-event property shapes
 export type EventProperties = {
@@ -25,6 +26,7 @@ export type EventProperties = {
   share_tapped: { score: number; method?: string };
   score_card_shared: { score: number; method?: string };
   follow_up_asked: { outfit_id: string; question_number: number };
+  ai_comparison_complete: { winner?: string };
 };
 
 let _client: PostHog | null = null;

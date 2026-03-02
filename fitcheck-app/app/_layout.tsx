@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Modal, Text, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
 import { useFonts } from 'expo-font';
@@ -22,11 +22,12 @@ import * as Sentry from '@sentry/react-native';
 import { tokenCache } from '../src/lib/clerk';
 import { initAnalytics, identify, track, reset } from '../src/lib/analytics';
 import { setClerkTokenGetter } from '../src/lib/api';
-import { Colors } from '../src/constants/theme';
+import { Colors, Fonts, FontSize, Spacing } from '../src/constants/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+import { useLegalVersions, useAcceptLegal } from '../src/hooks/useApi';
 
 // Keep splash screen visible until fonts are loaded
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -55,6 +56,8 @@ const queryClient = new QueryClient({
   },
 });
 
+const TERMS_ACCEPTED_KEY = 'orthis_tos_accepted_version';
+
 function AuthGate() {
   const { isSignedIn, isLoaded, getToken, userId } = useAuth();
   const { hasCompletedOnboarding, loadAuth } = useAuthStore();
@@ -63,6 +66,12 @@ function AuthGate() {
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [pendingTerms, setPendingTerms] = useState<{ tosVersion: string; privacyVersion: string } | null>(null);
+  const termsCheckedRef = useRef(false);
+
+  const { data: legalVersions } = useLegalVersions();
+  const acceptLegal = useAcceptLegal();
 
   // Track previous userId to detect account switches
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
@@ -74,6 +83,23 @@ function AuthGate() {
   useEffect(() => {
     setClerkTokenGetter(getToken);
   }, [getToken]);
+
+  // Check legal terms acceptance for signed-in users
+  useEffect(() => {
+    if (!isSignedIn || !hasCompletedOnboarding || !legalVersions || termsCheckedRef.current) return;
+    termsCheckedRef.current = true;
+    (async () => {
+      try {
+        const accepted = await SecureStore.getItemAsync(TERMS_ACCEPTED_KEY);
+        if (accepted !== legalVersions.tosVersion) {
+          setPendingTerms(legalVersions);
+          setShowTermsModal(true);
+        }
+      } catch {
+        // Non-fatal — skip terms check on SecureStore error
+      }
+    })();
+  }, [isSignedIn, hasCompletedOnboarding, legalVersions]);
 
   // Re-run loadAuth when sign-in state changes so Zustand stays in sync
   useEffect(() => {
@@ -158,6 +184,20 @@ function AuthGate() {
     }
   }, [isSignedIn, isLoaded, hasCompletedOnboarding, segments, navigationState?.key]);
 
+  const handleAcceptTerms = async () => {
+    if (!pendingTerms) return;
+    try {
+      await acceptLegal.mutateAsync(pendingTerms);
+      await SecureStore.setItemAsync(TERMS_ACCEPTED_KEY, pendingTerms.tosVersion);
+      setShowTermsModal(false);
+      setPendingTerms(null);
+    } catch {
+      // Non-fatal — still dismiss the modal so the user isn't blocked
+      setShowTermsModal(false);
+      setPendingTerms(null);
+    }
+  };
+
   if (!isLoaded) {
     return (
       <View style={styles.loading}>
@@ -166,7 +206,42 @@ function AuthGate() {
     );
   }
 
-  return <Slot />;
+  return (
+    <>
+      <Slot />
+      <Modal visible={showTermsModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => {}}>
+        <View style={styles.termsModal}>
+          <Text style={styles.termsTitle}>Updated Terms & Privacy</Text>
+          <Text style={styles.termsSubtitle}>
+            We've updated our Terms of Service and Privacy Policy. Please review and accept to continue.
+          </Text>
+          <ScrollView style={styles.termsScroll} showsVerticalScrollIndicator={false}>
+            <Text style={styles.termsBody}>
+              By tapping "Accept", you agree to the Or This? Terms of Service and Privacy Policy. These govern your use of the app, including how we process your outfit photos and personal data.
+            </Text>
+          </ScrollView>
+          <View style={styles.termsLinks}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://orthis.app/terms')}>
+              <Text style={styles.termsLink}>Terms of Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://orthis.app/privacy')}>
+              <Text style={styles.termsLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.termsAcceptButton}
+            onPress={handleAcceptTerms}
+            activeOpacity={0.85}
+          >
+            {acceptLegal.isPending
+              ? <ActivityIndicator color={Colors.white} />
+              : <Text style={styles.termsAcceptText}>Accept & Continue</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    </>
+  );
 }
 
 export default function RootLayout() {
@@ -223,5 +298,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
+  },
+  termsModal: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    padding: Spacing.xl,
+    paddingTop: Spacing.xl * 2,
+  },
+  termsTitle: {
+    fontFamily: Fonts.serifItalic,
+    fontSize: FontSize.xl,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  termsSubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  termsScroll: {
+    flex: 1,
+    marginBottom: Spacing.md,
+  },
+  termsBody: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    lineHeight: 24,
+  },
+  termsLinks: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  termsLink: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+  },
+  termsAcceptButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    borderRadius: 0,
+    marginBottom: Spacing.xl,
+  },
+  termsAcceptText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.md,
+    color: Colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });
