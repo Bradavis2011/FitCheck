@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getStyleProfile, StyleProfileResponse } from '../src/services/style-intelligence.service';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { track } from '../src/lib/analytics';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts, getScoreColor } from '../src/constants/theme';
 
 export default function StyleProfileScreen() {
   const { tier } = useSubscriptionStore();
@@ -33,27 +34,21 @@ export default function StyleProfileScreen() {
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return '#10B981';  // Green
-    if (score >= 6) return '#F59E0B';  // Amber
-    return '#EF4444';                   // Red
-  };
-
   if (tier !== 'pro') {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ title: 'Style Profile' }} />
         <View style={styles.errorContainer}>
-          <Ionicons name="diamond-outline" size={64} color="#E85D4C" />
+          <Ionicons name="diamond-outline" size={64} color={Colors.primary} />
           <Text style={styles.errorText}>Pro Feature</Text>
           <Text style={styles.errorSubtext}>
             Style Analytics requires a Pro subscription. Upgrade to unlock your Style DNA, color analysis, and more.
           </Text>
           <TouchableOpacity
-            style={upgradeButtonStyle}
+            style={styles.upgradeButton}
             onPress={() => router.push('/upgrade' as any)}
           >
-            <Text style={upgradeButtonTextStyle}>Upgrade to Pro</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -65,7 +60,7 @@ export default function StyleProfileScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ title: 'Style Profile' }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#E85D4C" />
+          <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Loading your style profile...</Text>
         </View>
       </View>
@@ -77,7 +72,7 @@ export default function StyleProfileScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ title: 'Style Profile' }} />
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={64} color="#EF4444" />
+          <Ionicons name="alert-circle" size={64} color={Colors.error} />
           <Text style={styles.errorText}>{error || 'No style data yet'}</Text>
           <Text style={styles.errorSubtext}>
             Submit a few outfits to build your style profile!
@@ -179,13 +174,13 @@ export default function StyleProfileScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.evolutionIcon}>
-          <Ionicons name="sparkles" size={24} color="#FF7A6B" />
+          <Ionicons name="sparkles" size={24} color={Colors.primaryLight} />
         </View>
         <View style={styles.evolutionText}>
           <Text style={styles.evolutionTitle}>Get Outfit Recommendations</Text>
           <Text style={styles.evolutionSubtitle}>AI-powered suggestions based on your style DNA</Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#64748B" />
+        <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
       </TouchableOpacity>
 
       {/* Style Evolution Link */}
@@ -195,13 +190,13 @@ export default function StyleProfileScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.evolutionIcon}>
-          <Ionicons name="trending-up" size={24} color="#E85D4C" />
+          <Ionicons name="trending-up" size={24} color={Colors.primary} />
         </View>
         <View style={styles.evolutionText}>
           <Text style={styles.evolutionTitle}>View Style Evolution</Text>
           <Text style={styles.evolutionSubtitle}>See how your style changes over time</Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#64748B" />
+        <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -209,24 +204,10 @@ export default function StyleProfileScreen() {
   );
 }
 
-const upgradeButtonStyle = {
-  marginTop: 24,
-  backgroundColor: '#E85D4C',
-  paddingHorizontal: 32,
-  paddingVertical: 14,
-  borderRadius: 12,
-};
-
-const upgradeButtonTextStyle = {
-  color: '#FFF',
-  fontSize: 16,
-  fontWeight: '700' as const,
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -234,7 +215,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#94A3B8',
+    fontFamily: Fonts.sans,
+    color: Colors.textMuted,
     marginTop: 16,
     fontSize: 16,
   },
@@ -245,76 +227,101 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: {
-    color: '#EF4444',
+    fontFamily: Fonts.sansSemiBold,
+    color: Colors.error,
     fontSize: 18,
-    fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
   },
   errorSubtext: {
-    color: '#94A3B8',
+    fontFamily: Fonts.sans,
+    color: Colors.textMuted,
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
   },
+  upgradeButton: {
+    marginTop: 24,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.sharp,
+  },
+  upgradeButtonText: {
+    fontFamily: Fonts.sansBold,
+    color: Colors.white,
+    fontSize: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+  },
   header: {
-    padding: 24,
+    padding: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: Colors.border,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#F1F5F9',
+    fontFamily: Fonts.serif,
+    fontSize: 30,
+    lineHeight: 38,
+    color: Colors.text,
     marginBottom: 4,
   },
   subtitle: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
-    color: '#94A3B8',
+    color: Colors.textMuted,
   },
   section: {
-    padding: 24,
+    padding: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: Colors.border,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#F1F5F9',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
     marginBottom: 4,
   },
   sectionSubtitle: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
-    color: '#94A3B8',
+    color: Colors.textMuted,
     marginBottom: 16,
   },
   scoresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginTop: 12,
   },
   scoreCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
     padding: 16,
     alignItems: 'center',
   },
   scoreLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 8,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
   },
   scoreValue: {
+    fontFamily: Fonts.sansBold,
     fontSize: 32,
-    fontWeight: 'bold',
   },
   scoreMax: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
-    color: '#64748B',
+    color: Colors.textMuted,
     marginTop: -4,
   },
   colorRow: {
@@ -323,7 +330,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: Colors.border,
   },
   colorInfo: {
     flexDirection: 'row',
@@ -335,11 +342,12 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: Colors.borderSolid,
   },
   colorName: {
+    fontFamily: Fonts.sans,
     fontSize: 16,
-    color: '#F1F5F9',
+    color: Colors.text,
     textTransform: 'capitalize',
   },
   colorStats: {
@@ -348,12 +356,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   colorScore: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 18,
-    fontWeight: '600',
   },
   colorCount: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
-    color: '#94A3B8',
+    color: Colors.textMuted,
   },
   archetypeRow: {
     marginBottom: 16,
@@ -364,42 +373,42 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   archetypeName: {
+    fontFamily: Fonts.sansMedium,
     fontSize: 16,
-    color: '#F1F5F9',
+    color: Colors.text,
     textTransform: 'capitalize',
-    fontWeight: '500',
   },
   archetypePercentage: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 14,
-    color: '#E85D4C',
-    fontWeight: '600',
+    color: Colors.primary,
   },
   archetypeBar: {
     height: 8,
-    backgroundColor: '#1E293B',
-    borderRadius: 4,
+    backgroundColor: Colors.backgroundSecondary,
     overflow: 'hidden',
   },
   archetypeBarFill: {
     height: '100%',
-    backgroundColor: '#E85D4C',
-    borderRadius: 4,
+    backgroundColor: Colors.primary,
   },
   evolutionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    marginHorizontal: 24,
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.lg,
     marginTop: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
     gap: 12,
   },
   evolutionIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -407,13 +416,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   evolutionTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#F1F5F9',
+    color: Colors.text,
     marginBottom: 2,
   },
   evolutionSubtitle: {
+    fontFamily: Fonts.sans,
     fontSize: 13,
-    color: '#94A3B8',
+    color: Colors.textMuted,
   },
 });

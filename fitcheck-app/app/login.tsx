@@ -12,15 +12,20 @@ import {
   ActivityIndicator,
   BackHandler,
 } from 'react-native';
-import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-expo';
+import { useSignIn, useSignUp, useAuth, useSSO } from '@clerk/clerk-expo';
+import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import OrThisLogo from '../src/components/OrThisLogo';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
+
+// Required for OAuth redirect handling on both iOS and Android
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp();
   const { signOut } = useAuth();
+  const { startSSOFlow } = useSSO();
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -33,6 +38,7 @@ export default function LoginScreen() {
   const [pendingReset, setPendingReset] = useState(false);
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
 
   // Intercept Android hardware back during email verification or password reset
   useEffect(() => {
@@ -227,6 +233,23 @@ export default function LoginScreen() {
     }
   };
 
+  const handleSocialLogin = async (provider: 'oauth_google' | 'oauth_apple') => {
+    const key = provider === 'oauth_google' ? 'google' : 'apple';
+    setSocialLoading(key);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy: provider });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/(tabs)');
+      }
+    } catch (error: any) {
+      const msg = error.errors?.[0]?.message || error.message || `Failed to sign in with ${key}`;
+      Alert.alert('Sign In Error', msg);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
   const handleSubmit = () => {
     if (pendingVerification) {
       handleVerifyEmail();
@@ -401,6 +424,39 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.form}>
+          {/* Social Login Buttons */}
+          <TouchableOpacity
+            style={[styles.socialButton, styles.socialButtonGoogle, socialLoading === 'google' && styles.buttonDisabled]}
+            onPress={() => handleSocialLogin('oauth_google')}
+            disabled={socialLoading !== null}
+            activeOpacity={0.8}
+          >
+            {socialLoading === 'google'
+              ? <ActivityIndicator size="small" color={Colors.text} />
+              : <Text style={styles.socialButtonTextDark}>Continue with Google</Text>
+            }
+          </TouchableOpacity>
+
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={[styles.socialButton, styles.socialButtonApple, socialLoading === 'apple' && styles.buttonDisabled]}
+              onPress={() => handleSocialLogin('oauth_apple')}
+              disabled={socialLoading !== null}
+              activeOpacity={0.8}
+            >
+              {socialLoading === 'apple'
+                ? <ActivityIndicator size="small" color={Colors.white} />
+                : <Text style={styles.socialButtonTextLight}>Continue with Apple</Text>
+              }
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or continue with email</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           {isRegister && (
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Name (optional)</Text>
@@ -549,6 +605,51 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  socialButton: {
+    borderRadius: BorderRadius.sharp,
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+  },
+  socialButtonGoogle: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+  },
+  socialButtonApple: {
+    backgroundColor: Colors.black,
+    borderColor: Colors.black,
+  },
+  socialButtonTextDark: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.text,
+  },
+  socialButtonTextLight: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.white,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
     color: Colors.textMuted,
   },
 });

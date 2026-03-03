@@ -8,6 +8,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { OutfitFeedbackV3 } from '../types/index.js';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { trackedGenerateContent } from './token-budget.service.js';
@@ -238,7 +239,7 @@ function buildCritiquePrompt(weakDimensions: Array<{ dim: string; avg: number }>
   const dimList = weakDimensions.map(d => `- ${d.dim}: avg ${d.avg.toFixed(1)}/10`).join('\n');
 
   const examples = weakExamples.map((o, i) => {
-    const feedback = o.aiFeedback as any;
+    const feedback = o.aiFeedback as OutfitFeedbackV3 | null;
     const scores = o.judgeScores as any;
     return `
 Example ${i + 1}:

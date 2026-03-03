@@ -11,6 +11,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { OutfitFeedbackV3 } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { trackedGenerateContent } from './token-budget.service.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
@@ -142,7 +143,7 @@ export async function runPiggybackJudge(): Promise<void> {
 
 function buildBatchJudgePrompt(outfits: any[]): string {
   const cases = outfits.map((o, i) => {
-    const feedback = o.aiFeedback as any;
+    const feedback = o.aiFeedback as OutfitFeedbackV3 | null;
     return `
 Case ${i + 1} (ID: ${o.id}):
 Occasion: ${(o.occasions || []).join(', ') || 'unspecified'}

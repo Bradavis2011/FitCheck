@@ -62,6 +62,14 @@ export interface OutfitFeedbackV3 {
   styleDNA: StyleDNAExtraction;
 }
 
+// Union type covering both v2 (OutfitFeedback) and v3 (OutfitFeedbackV3) shapes
+export type AiFeedback = OutfitFeedbackV3 | OutfitFeedback;
+
+// Type guard — v3 responses have whatsRight; v2 responses have whatsWorking
+export function isV3Feedback(fb: AiFeedback): fb is OutfitFeedbackV3 {
+  return Array.isArray((fb as OutfitFeedbackV3).whatsRight);
+}
+
 export interface OutfitCheckInput {
   imageUrl?: string;
   imageBase64?: string;

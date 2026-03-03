@@ -1,4 +1,5 @@
 import { prisma } from '../utils/prisma.js';
+import { AiFeedback, OutfitFeedback, OutfitFeedbackV3 } from '../types/index.js';
 
 export interface OutfitMemory {
   id: string;
@@ -57,9 +58,11 @@ export async function getOutfitMemory(
 
   const matchingOccasion =
     occasions.find((o) => match.occasions.includes(o)) || match.occasions[0];
-  const feedback = match.aiFeedback as any;
-  // Support both v3.0 (editorialSummary) and legacy v2.0 (summary) formats
-  const summary: string | null = feedback?.editorialSummary || feedback?.summary || null;
+  const feedback = match.aiFeedback as AiFeedback | null;
+  // Prefer v3.0 editorialSummary; fall back to legacy v2.0 summary
+  const summary: string | null = feedback
+    ? ((feedback as OutfitFeedbackV3).editorialSummary || (feedback as OutfitFeedback).summary) || null
+    : null;
 
   return {
     id: match.id,

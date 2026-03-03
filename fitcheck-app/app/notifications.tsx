@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../src/hooks/useApi';
 
 type NotificationType =
@@ -240,18 +240,21 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   headerTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.serif,
+    fontSize: 24,
     color: Colors.text,
   },
   unreadCount: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.primary,
     marginTop: 2,
   },
   markAllRead: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.primary,
   },
   filterContainer: {
@@ -263,15 +266,20 @@ const styles = StyleSheet.create({
   filterButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
     backgroundColor: Colors.surface,
   },
   filterButtonActive: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   filterText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.text,
   },
   filterTextActive: {
@@ -290,7 +298,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginTop: Spacing.sm,
     borderWidth: 1,
@@ -313,20 +321,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.md,
-    fontWeight: '500',
     color: Colors.text,
     marginBottom: 4,
   },
   titleUnread: {
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   message: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
   timestamp: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },
@@ -344,12 +354,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   emptyTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.lg,
-    fontWeight: '600',
     color: Colors.text,
     marginTop: Spacing.md,
   },
   emptyText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',

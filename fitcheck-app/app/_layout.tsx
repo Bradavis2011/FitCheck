@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Modal, Text, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -259,6 +260,14 @@ export default function RootLayout() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
+
+  // Warm up the browser for faster OAuth flows (Android optimization)
+  useEffect(() => {
+    WebBrowser.warmUpAsync().catch(() => {});
+    return () => {
+      WebBrowser.coolDownAsync().catch(() => {});
+    };
+  }, []);
 
   if (!fontsLoaded) {
     return (

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getRecommendations, OutfitRecommendation } from '../src/services/style-intelligence.service';
-import { Colors } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { track } from '../src/lib/analytics';
 
@@ -297,19 +297,19 @@ const recUpgradeButtonStyle = {
   backgroundColor: Colors.primary,
   paddingHorizontal: 32,
   paddingVertical: 14,
-  borderRadius: 12,
+  borderRadius: BorderRadius.sharp,
 };
 
 const recUpgradeButtonTextStyle = {
   color: '#FFF',
   fontSize: 16,
-  fontWeight: '700' as const,
+  fontFamily: Fonts.sansBold,
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -320,6 +320,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 16,
     fontSize: 16,
+    fontFamily: Fonts.sans,
   },
   errorContainer: {
     flex: 1,
@@ -330,13 +331,14 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.text,
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     marginTop: 16,
     textAlign: 'center',
   },
   errorSubtext: {
     color: Colors.textMuted,
     fontSize: 14,
+    fontFamily: Fonts.sans,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -346,36 +348,40 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: BorderRadius.sharp,
     marginTop: 20,
     gap: 8,
   },
   retryText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   header: {
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: Colors.border,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: Fonts.serif,
+    fontSize: 30,
+    lineHeight: 38,
     color: Colors.text,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: Fonts.sans,
     color: Colors.textMuted,
   },
   recommendationCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: Colors.surface,
     margin: 16,
     marginTop: 16,
     marginBottom: 0,
-    borderRadius: 16,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
     padding: 20,
   },
   cardHeader: {
@@ -386,8 +392,8 @@ const styles = StyleSheet.create({
   iconBadge: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -397,32 +403,33 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     marginBottom: 2,
   },
   cardDescription: {
     fontSize: 14,
+    fontFamily: Fonts.sans,
     color: Colors.textMuted,
   },
   confidenceBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: BorderRadius.md,
   },
   confidenceText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   reasoningSection: {
     marginBottom: 16,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontFamily: Fonts.sansMedium,
     color: Colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2.2,
     marginBottom: 8,
   },
   reasonItem: {
@@ -437,6 +444,7 @@ const styles = StyleSheet.create({
   reasonText: {
     flex: 1,
     fontSize: 14,
+    fontFamily: Fonts.sans,
     color: Colors.text,
     lineHeight: 20,
   },
@@ -451,10 +459,12 @@ const styles = StyleSheet.create({
   colorItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   colorDot: {
     width: 16,
@@ -462,10 +472,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: Colors.borderSolid,
   },
   colorName: {
     fontSize: 13,
+    fontFamily: Fonts.sans,
     color: Colors.text,
     textTransform: 'capitalize',
   },
@@ -477,21 +488,21 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: Colors.primaryAlpha10,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: BorderRadius.sharp,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: Colors.primaryAlpha30,
   },
   harmonyTag: {
-    backgroundColor: 'rgba(236, 72, 153, 0.1)',
-    borderColor: 'rgba(236, 72, 153, 0.2)',
+    backgroundColor: Colors.primaryAlpha10,
+    borderColor: Colors.primaryAlpha30,
   },
   tagText: {
     fontSize: 12,
+    fontFamily: Fonts.sansMedium,
     color: Colors.primary,
-    fontWeight: '500',
     textTransform: 'capitalize',
   },
   garmentList: {
@@ -502,33 +513,36 @@ const styles = StyleSheet.create({
   garmentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(100, 116, 139, 0.1)',
+    backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 12,
+    borderRadius: BorderRadius.sharp,
+    borderWidth: 1,
+    borderColor: Colors.border,
     gap: 6,
   },
   garmentText: {
     fontSize: 12,
+    fontFamily: Fonts.sans,
     color: Colors.textMuted,
     textTransform: 'capitalize',
   },
   // Skeleton loader styles
   skeletonHeader: {
     height: 60,
-    backgroundColor: 'rgba(100, 116, 139, 0.2)',
-    borderRadius: 12,
+    backgroundColor: Colors.surfaceLight,
+    borderRadius: BorderRadius.md,
   },
   skeletonLine: {
     height: 12,
-    backgroundColor: 'rgba(100, 116, 139, 0.2)',
-    borderRadius: 6,
+    backgroundColor: Colors.surfaceLight,
+    borderRadius: BorderRadius.sm,
     marginTop: 8,
   },
   skeletonPill: {
     height: 28,
     width: 80,
-    backgroundColor: 'rgba(100, 116, 139, 0.2)',
-    borderRadius: 14,
+    backgroundColor: Colors.surfaceLight,
+    borderRadius: BorderRadius.sharp,
   },
 });

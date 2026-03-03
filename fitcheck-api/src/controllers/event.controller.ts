@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AuthenticatedRequest } from '../types/index.js';
+import { AuthenticatedRequest, AiFeedback, OutfitFeedback, isV3Feedback } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
 
@@ -277,16 +277,17 @@ export async function compareOutfits(req: AuthenticatedRequest, res: Response) {
   // Build prompt from stored AI feedback — no image re-upload needed
   const outfitSummaries = event.outfitOptions.map((eo, i) => {
     const oc = eo.outfitCheck;
-    const fb = oc.aiFeedback as any;
+    const fb = oc.aiFeedback as AiFeedback | null;
     // Support both v3.0 (editorialSummary / whatsRight / couldImprove) and legacy v2.0 formats
-    const summary = fb?.editorialSummary ?? fb?.summary ?? 'No AI summary available';
+    const v3 = fb != null && isV3Feedback(fb);
+    const summary = v3 ? fb.editorialSummary : ((fb as OutfitFeedback | null)?.summary ?? 'No AI summary available');
     const score = oc.aiScore ?? 'Unknown';
-    const working = Array.isArray(fb?.whatsRight)
+    const working = v3
       ? fb.whatsRight.join(', ')
-      : (fb?.whatsWorking?.map((w: any) => w.point).join(', ') ?? '');
-    const concerns = Array.isArray(fb?.couldImprove)
+      : ((fb as OutfitFeedback | null)?.whatsWorking?.map((w) => w.point).join(', ') ?? '');
+    const concerns = v3
       ? fb.couldImprove.join(', ')
-      : (fb?.consider?.map((c: any) => c.point).join(', ') ?? '');
+      : ((fb as OutfitFeedback | null)?.consider?.map((c) => c.point).join(', ') ?? '');
     return `Outfit ${i + 1} (ID: ${oc.id}):
   - AI Score: ${score}/10
   - Summary: ${summary}

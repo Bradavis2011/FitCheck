@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, SchemaType, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { OutfitFeedback, OutfitCheckInput } from '../types/index.js';
+import { OutfitFeedback, OutfitFeedbackV3, AiFeedback, isV3Feedback, OutfitCheckInput } from '../types/index.js';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
 import { trackServerEvent } from '../lib/posthog.js';
@@ -436,7 +437,7 @@ interface UserContext {
 
 // ─── Season & Date ────────────────────────────────────────────────────────────
 
-function getSeasonContext(): string {
+export function getSeasonContext(): string {
   const now = new Date();
   const month = now.getMonth() + 1; // 1-12
 
@@ -463,7 +464,7 @@ function getSeasonContext(): string {
 
 // ─── Rating weight helper ─────────────────────────────────────────────────────
 
-function getRatingWeight(feedbackHelpful: boolean | null, feedbackRating: number | null): number {
+export function getRatingWeight(feedbackHelpful: boolean | null, feedbackRating: number | null): number {
   if (feedbackHelpful === false) return 0.3;
   if (feedbackRating !== null && feedbackRating <= 2) return 0.4;
   if (feedbackRating !== null && feedbackRating >= 4) return 1.2;
@@ -567,7 +568,7 @@ async function getRatingCalibration(userId: string): Promise<string | null> {
 // ─── Cold-start personalization ───────────────────────────────────────────────
 
 // Profile-based insights when there's no StyleDNA history yet
-function getColdStartInsights(user?: UserContext): string[] {
+export function getColdStartInsights(user?: UserContext): string[] {
   if (!user) return [];
 
   const insights: string[] = [];
@@ -692,7 +693,7 @@ async function getSimilarUserInsights(userId: string, user?: UserContext): Promi
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 
-function buildUserPrompt(
+export function buildUserPrompt(
   input: OutfitCheckInput,
   user?: UserContext,
   feedbackHistory?: string[],
@@ -826,7 +827,7 @@ function buildUserPrompt(
 
 // ─── JSON repair utilities ────────────────────────────────────────────────────
 
-function repairTruncatedJSON(raw: string): string | null {
+export function repairTruncatedJSON(raw: string): string | null {
   let s = raw.trim();
 
   // Step 1: Close unclosed string if cursor is mid-string
@@ -862,18 +863,18 @@ function repairTruncatedJSON(raw: string): string | null {
   try { JSON.parse(s); return s; } catch { return null; }
 }
 
-function fillMissingFeedbackFields(feedback: any): any {
-  const filled = { ...feedback };
-  if (!filled.overallScore) filled.overallScore = 6;
+export function fillMissingFeedbackFields(feedback: Partial<OutfitFeedbackV3>): OutfitFeedbackV3 {
+  const filled = { ...feedback } as OutfitFeedbackV3;
+  if (filled.overallScore == null) filled.overallScore = 6;
   if (!filled.whatsRight || !Array.isArray(filled.whatsRight)) filled.whatsRight = ['Your color choices are consistent.'];
   if (!filled.couldImprove || !Array.isArray(filled.couldImprove)) filled.couldImprove = ['Consider the overall proportions of the outfit.'];
   if (!filled.takeItFurther || !Array.isArray(filled.takeItFurther)) filled.takeItFurther = [];
   if (!filled.editorialSummary) filled.editorialSummary = 'A solid foundation to build on.';
-  if (!filled.styleDNA) filled.styleDNA = { dominantColors: [], styleArchetypes: ['Casual'], garments: [], patterns: ['solid'], textures: ['cotton'], colorHarmony: 'neutral', formalityLevel: 2, colorCount: 1 };
+  if (!filled.styleDNA) filled.styleDNA = { dominantColors: [], styleArchetypes: ['Casual'], garments: [], patterns: ['solid'], textures: ['cotton'], colorHarmony: 'neutral', formalityLevel: 2, colorCount: 1, silhouetteType: null, colorScore: null, proportionScore: null, fitScore: null, coherenceScore: null };
   return filled;
 }
 
-function stripMarkdownFences(text: string): string {
+export function stripMarkdownFences(text: string): string {
   return text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
 }
 
@@ -994,7 +995,7 @@ export async function analyzeOutfit(
   input: OutfitCheckInput,
   user?: UserContext,
   hasPriorityProcessing?: boolean
-): Promise<OutfitFeedback> {
+): Promise<OutfitFeedbackV3> {
   // Mock mode for testing (bypasses Gemini API quota limits)
   if (process.env.USE_MOCK_AI === 'true') {
     console.log('Using mock AI feedback (quota bypass enabled)');
@@ -1027,7 +1028,7 @@ export async function analyzeOutfit(
         fitScore: 8.5,
         coherenceScore: 8.0
       }
-    } as unknown as OutfitFeedback;
+    };
   }
 
   let feedbackHistory: string[] = [];
@@ -1157,9 +1158,8 @@ export async function analyzeOutfit(
 
       const cleanContent = stripMarkdownFences(content);
 
-      // v3.0 responses use whatsRight/couldImprove/takeItFurther/editorialSummary;
-      // typed as any here since the function signature is kept for backwards compat
-      let feedback: any;
+      // v3.0 responses use whatsRight/couldImprove/takeItFurther/editorialSummary
+      let feedback: OutfitFeedbackV3;
       try {
         feedback = JSON.parse(cleanContent);
       } catch (parseError) {
@@ -1190,7 +1190,7 @@ export async function analyzeOutfit(
       await prisma.outfitCheck.update({
         where: { id: outfitCheckId },
         data: {
-          aiFeedback: feedback as any,
+          aiFeedback: feedback as unknown as Prisma.InputJsonValue,
           aiScore: feedback.overallScore,
           aiProcessedAt: new Date(),
           promptVersion: activePromptVersion,
@@ -1214,10 +1214,10 @@ export async function analyzeOutfit(
           userId: user.id,
           type: 'analysis_complete',
           title: `${emoji} Your outfit scored ${score}/10`,
-          body: (feedback as any).editorialSummary
-            ? ((feedback as any).editorialSummary.length > 80
-              ? (feedback as any).editorialSummary.slice(0, 77) + '...'
-              : (feedback as any).editorialSummary)
+          body: feedback.editorialSummary
+            ? (feedback.editorialSummary.length > 80
+              ? feedback.editorialSummary.slice(0, 77) + '...'
+              : feedback.editorialSummary)
             : 'Your outfit analysis is ready.',
           linkType: 'outfit',
           linkId: outfitCheckId,
@@ -1295,7 +1295,7 @@ export async function analyzeOutfit(
         console.log(`[AI] tokens — input: ${usage.promptTokenCount}, output: ${usage.candidatesTokenCount}, total: ${usage.totalTokenCount}`);
       }
 
-      return feedback as unknown as OutfitFeedback;
+      return feedback as unknown as OutfitFeedbackV3;
     } catch (error) {
       console.error(`AI feedback attempt ${attempt} failed:`, error);
 
@@ -1307,7 +1307,7 @@ export async function analyzeOutfit(
 
   // Fallback response if all retries failed
   console.error('All AI feedback attempts failed, using fallback');
-  const fallbackFeedback: any = {
+  const fallbackFeedback: OutfitFeedbackV3 = {
     overallScore: 6,
     whatsRight: [
       'Your outfit is put together and appropriate for the occasion.',
@@ -1337,7 +1337,7 @@ export async function analyzeOutfit(
   await prisma.outfitCheck.update({
     where: { id: outfitCheckId },
     data: {
-      aiFeedback: fallbackFeedback as any,
+      aiFeedback: fallbackFeedback as unknown as Prisma.InputJsonValue,
       aiScore: fallbackFeedback.overallScore,
       aiProcessedAt: new Date(),
       promptVersion: PROMPT_VERSION,
@@ -1364,7 +1364,7 @@ export async function analyzeOutfit(
     prompt_version: PROMPT_VERSION,
   });
 
-  return fallbackFeedback as unknown as OutfitFeedback;
+  return fallbackFeedback;
 }
 
 // ─── Follow-up conversations (with memory) ────────────────────────────────────
@@ -1386,7 +1386,7 @@ export async function handleFollowUpQuestion(
     throw new Error('Outfit check not found');
   }
 
-  const previousFeedback = outfitCheck.aiFeedback as any;
+  const previousFeedback = outfitCheck.aiFeedback as AiFeedback | null;
   const previousScore = outfitCheck.aiScore;
 
   // Build outfit context for system prompt
@@ -1398,15 +1398,18 @@ export async function handleFollowUpQuestion(
   ].filter((l): l is string => l !== null);
 
   // Support both v3.0 (whatsRight / couldImprove) and legacy v2.0 (whatsWorking / consider) formats
-  const workingPoints = Array.isArray(previousFeedback?.whatsRight)
-    ? previousFeedback.whatsRight.join(', ')
-    : (previousFeedback?.whatsWorking || []).map((w: any) => w.point || w).join(', ')
+  const isV3 = previousFeedback != null && isV3Feedback(previousFeedback);
+  const workingPoints = isV3
+    ? (previousFeedback as OutfitFeedbackV3).whatsRight.join(', ')
+    : ((previousFeedback as OutfitFeedback | null)?.whatsWorking || []).map((w) => w.point || '').join(', ')
     || 'N/A';
-  const improvementPoints = Array.isArray(previousFeedback?.couldImprove)
-    ? previousFeedback.couldImprove.join(', ')
-    : (previousFeedback?.consider || []).map((c: any) => c.point || c).join(', ')
+  const improvementPoints = isV3
+    ? (previousFeedback as OutfitFeedbackV3).couldImprove.join(', ')
+    : ((previousFeedback as OutfitFeedback | null)?.consider || []).map((c) => c.point || '').join(', ')
     || 'N/A';
-  const editorialSummary = previousFeedback?.editorialSummary || previousFeedback?.summary || 'N/A';
+  const editorialSummary = isV3
+    ? ((previousFeedback as OutfitFeedbackV3).editorialSummary || 'N/A')
+    : ((previousFeedback as OutfitFeedback | null)?.summary || 'N/A');
 
   const systemPrompt = `You are the Or This? fashion editor continuing a conversation about an outfit you previously analyzed. Maintain the same editorial, Vogue-desk voice: decisive, specific, no hedging.
 

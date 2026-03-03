@@ -4,7 +4,7 @@ import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getStyleEvolution, StyleEvolutionResponse } from '../src/services/style-intelligence.service';
 import SimpleLineChart from '../src/components/SimpleLineChart';
-import { Colors } from '../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 
 type MetricKey = 'avgOverallScore' | 'avgColorScore' | 'avgFitScore' | 'avgProportionScore' | 'avgCoherenceScore';
@@ -65,10 +65,10 @@ export default function StyleEvolutionScreen() {
             Style Evolution tracking requires a Pro subscription. Upgrade to see how your style improves over time.
           </Text>
           <TouchableOpacity
-            style={evolUpgradeButtonStyle}
+            style={styles.upgradeButton}
             onPress={() => router.push('/upgrade' as any)}
           >
-            <Text style={evolUpgradeButtonTextStyle}>Upgrade to Pro</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -107,7 +107,7 @@ export default function StyleEvolutionScreen() {
               onPress={loadEvolution}
               activeOpacity={0.7}
             >
-              <Ionicons name="refresh" size={20} color="#FFF" />
+              <Ionicons name="refresh" size={20} color={Colors.white} />
               <Text style={styles.retryText}>Try Again</Text>
             </TouchableOpacity>
           )}
@@ -135,101 +135,101 @@ export default function StyleEvolutionScreen() {
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* Header */}
         <View style={styles.header}>
-        <Text style={styles.title}>Your Style Journey</Text>
-        <Text style={styles.subtitle}>
-          {evolution.weeklyData.length} weeks of data
-        </Text>
-      </View>
-
-      {/* Metric Selector */}
-      <View style={styles.metricSelector}>
-        <Text style={styles.sectionLabel}>Select Metric</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.metricButtons}>
-            {METRICS.map(metric => (
-              <TouchableOpacity
-                key={metric.key}
-                style={[
-                  styles.metricButton,
-                  selectedMetric === metric.key && {
-                    backgroundColor: metric.color,
-                    borderColor: metric.color,
-                  },
-                ]}
-                onPress={() => setSelectedMetric(metric.key)}
-              >
-                <Text
-                  style={[
-                    styles.metricButtonText,
-                    selectedMetric === metric.key && styles.metricButtonTextActive,
-                  ]}
-                >
-                  {metric.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-
-      {/* Trend Indicator */}
-      <View style={styles.trendCard}>
-        <View style={styles.trendHeader}>
-          <Ionicons
-            name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
-            size={24}
-            color={trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : Colors.textMuted}
-          />
-          <Text style={styles.trendLabel}>
-            {trend === 'up' ? 'Improving' : trend === 'down' ? 'Declining' : 'Stable'}
+          <Text style={styles.title}>Your Style Journey</Text>
+          <Text style={styles.subtitle}>
+            {evolution.weeklyData.length} weeks of data
           </Text>
         </View>
-        <Text style={styles.trendText}>
-          {trendPercent > 1 && (
-            <>
-              {trend === 'up' ? '↗' : '↘'} {trendPercent.toFixed(1)}% vs earlier weeks
-            </>
-          )}
-          {trendPercent <= 1 && 'Consistent performance'}
-        </Text>
-      </View>
 
-      {/* Chart */}
-      <View style={styles.chartSection}>
-        <SimpleLineChart
-          data={chartData}
-          height={250}
-          color={selectedMetricData.color}
-          label={`${selectedMetricData.label} Over Time`}
-        />
-      </View>
+        {/* Metric Selector */}
+        <View style={styles.metricSelector}>
+          <Text style={styles.sectionLabel}>Select Metric</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.metricButtons}>
+              {METRICS.map(metric => (
+                <TouchableOpacity
+                  key={metric.key}
+                  style={[
+                    styles.metricButton,
+                    selectedMetric === metric.key && {
+                      backgroundColor: metric.color,
+                      borderColor: metric.color,
+                    },
+                  ]}
+                  onPress={() => setSelectedMetric(metric.key)}
+                >
+                  <Text
+                    style={[
+                      styles.metricButtonText,
+                      selectedMetric === metric.key && styles.metricButtonTextActive,
+                    ]}
+                  >
+                    {metric.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
 
-      {/* Weekly Stats */}
-      <View style={styles.statsSection}>
-        <Text style={styles.sectionLabel}>Weekly Breakdown</Text>
-        {evolution.weeklyData.slice().reverse().map((week, index) => (
-          <View key={week.week} style={styles.weekCard}>
-            <View style={styles.weekHeader}>
-              <Text style={styles.weekLabel}>{week.week}</Text>
-              <Text style={styles.weekCount}>{week.outfitCount} outfits</Text>
-            </View>
-            <View style={styles.weekScores}>
-              <View style={styles.scoreRow}>
-                <Text style={styles.scoreLabel}>Overall</Text>
-                <Text style={styles.scoreValue}>{week.avgOverallScore.toFixed(1)}</Text>
-              </View>
-              <View style={styles.scoreRow}>
-                <Text style={styles.scoreLabel}>Color</Text>
-                <Text style={styles.scoreValue}>{week.avgColorScore.toFixed(1)}</Text>
-              </View>
-              <View style={styles.scoreRow}>
-                <Text style={styles.scoreLabel}>Fit</Text>
-                <Text style={styles.scoreValue}>{week.avgFitScore.toFixed(1)}</Text>
-              </View>
-            </View>
+        {/* Trend Indicator */}
+        <View style={styles.trendCard}>
+          <View style={styles.trendHeader}>
+            <Ionicons
+              name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
+              size={24}
+              color={trend === 'up' ? Colors.success : trend === 'down' ? Colors.error : Colors.textMuted}
+            />
+            <Text style={styles.trendLabel}>
+              {trend === 'up' ? 'Improving' : trend === 'down' ? 'Declining' : 'Stable'}
+            </Text>
           </View>
-        ))}
-      </View>
+          <Text style={styles.trendText}>
+            {trendPercent > 1 && (
+              <>
+                {trend === 'up' ? '↗' : '↘'} {trendPercent.toFixed(1)}% vs earlier weeks
+              </>
+            )}
+            {trendPercent <= 1 && 'Consistent performance'}
+          </Text>
+        </View>
+
+        {/* Chart */}
+        <View style={styles.chartSection}>
+          <SimpleLineChart
+            data={chartData}
+            height={250}
+            color={selectedMetricData.color}
+            label={`${selectedMetricData.label} Over Time`}
+          />
+        </View>
+
+        {/* Weekly Stats */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionLabel}>Weekly Breakdown</Text>
+          {evolution.weeklyData.slice().reverse().map((week, index) => (
+            <View key={week.week} style={styles.weekCard}>
+              <View style={styles.weekHeader}>
+                <Text style={styles.weekLabel}>{week.week}</Text>
+                <Text style={styles.weekCount}>{week.outfitCount} outfits</Text>
+              </View>
+              <View style={styles.weekScores}>
+                <View style={styles.scoreRow}>
+                  <Text style={styles.scoreLabel}>Overall</Text>
+                  <Text style={styles.scoreValue}>{week.avgOverallScore.toFixed(1)}</Text>
+                </View>
+                <View style={styles.scoreRow}>
+                  <Text style={styles.scoreLabel}>Color</Text>
+                  <Text style={styles.scoreValue}>{week.avgColorScore.toFixed(1)}</Text>
+                </View>
+                <View style={styles.scoreRow}>
+                  <Text style={styles.scoreLabel}>Fit</Text>
+                  <Text style={styles.scoreValue}>{week.avgFitScore.toFixed(1)}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
 
         <View style={{ height: 40 }} />
       </Animated.View>
@@ -237,24 +237,10 @@ export default function StyleEvolutionScreen() {
   );
 }
 
-const evolUpgradeButtonStyle = {
-  marginTop: 24,
-  backgroundColor: Colors.primary,
-  paddingHorizontal: 32,
-  paddingVertical: 14,
-  borderRadius: 12,
-};
-
-const evolUpgradeButtonTextStyle = {
-  color: '#FFF',
-  fontSize: 16,
-  fontWeight: '700' as const,
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -262,6 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
+    fontFamily: Fonts.sans,
     color: Colors.textMuted,
     marginTop: 16,
     fontSize: 16,
@@ -273,43 +260,60 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: {
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.text,
     fontSize: 18,
-    fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
   },
   errorSubtext: {
+    fontFamily: Fonts.sans,
     color: Colors.textMuted,
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
   },
+  upgradeButton: {
+    marginTop: 24,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.sharp,
+  },
+  upgradeButtonText: {
+    fontFamily: Fonts.sansBold,
+    color: Colors.white,
+    fontSize: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+  },
   header: {
-    padding: 24,
+    padding: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: Colors.border,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: Fonts.serif,
+    fontSize: 30,
+    lineHeight: 38,
     color: Colors.text,
     marginBottom: 4,
   },
   subtitle: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
     color: Colors.textMuted,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textMuted,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
     marginBottom: 12,
   },
   metricSelector: {
-    padding: 24,
+    padding: Spacing.lg,
     paddingBottom: 16,
   },
   metricButtons: {
@@ -319,26 +323,30 @@ const styles = StyleSheet.create({
   metricButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: BorderRadius.sharp,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: Colors.borderSolid,
     backgroundColor: 'transparent',
   },
   metricButtonText: {
-    fontSize: 14,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
     color: Colors.textMuted,
-    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
   },
   metricButtonTextActive: {
-    color: '#FFF',
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
+    color: Colors.white,
   },
   trendCard: {
-    marginHorizontal: 24,
+    marginHorizontal: Spacing.lg,
     marginBottom: 16,
     padding: 16,
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   trendHeader: {
     flexDirection: 'row',
@@ -347,24 +355,27 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   trendLabel: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.text,
   },
   trendText: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
     color: Colors.textMuted,
   },
   chartSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.lg,
     marginBottom: 24,
   },
   statsSection: {
-    padding: 24,
+    padding: Spacing.lg,
   },
   weekCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
     padding: 16,
     marginBottom: 12,
   },
@@ -374,11 +385,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   weekLabel: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 14,
-    fontWeight: '600',
     color: Colors.text,
   },
   weekCount: {
+    fontFamily: Fonts.sans,
     fontSize: 12,
     color: Colors.textMuted,
   },
@@ -390,12 +402,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   scoreLabel: {
+    fontFamily: Fonts.sans,
     fontSize: 13,
     color: Colors.textMuted,
   },
   scoreValue: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 13,
-    fontWeight: '600',
     color: Colors.primary,
   },
   retryButton: {
@@ -404,13 +417,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: BorderRadius.sharp,
     marginTop: 20,
     gap: 8,
   },
   retryText: {
-    color: '#FFF',
+    fontFamily: Fonts.sansSemiBold,
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
   },
 });

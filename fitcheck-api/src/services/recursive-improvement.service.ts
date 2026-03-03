@@ -15,6 +15,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { AiFeedback } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { SYSTEM_PROMPT, PROMPT_VERSION } from './ai-feedback.service.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
@@ -114,8 +115,10 @@ async function measurePromptPerformance(version?: string): Promise<PerformanceMe
 
   // Fallback rate (feedback is the generic fallback object)
   const fallbacks = outfits.filter(o => {
-    const fb = o.aiFeedback as any;
-    return fb?.summary?.includes('having trouble analyzing') || fb?.summary?.includes('technical difficulties');
+    const fb = o.aiFeedback as AiFeedback | null;
+    // Legacy v2.0 fallback detection via summary field (v3.0 uses editorialSummary)
+    const summary = (fb as { summary?: string } | null)?.summary;
+    return summary?.includes('having trouble analyzing') || summary?.includes('technical difficulties');
   });
   const fallbackRate = fallbacks.length / outfits.length;
 
