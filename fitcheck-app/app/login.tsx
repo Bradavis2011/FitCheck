@@ -103,17 +103,24 @@ export default function LoginScreen() {
       // Clear any stale session — prevents "session already exists" error
       try { await signOut(); } catch {}
 
-      // Clerk persists sign-up state in SecureStore between app launches.
-      // If a previous sign-up was left mid-flow (pending email verification),
-      // calling signUp.create() again throws "Invalid action".
-      // Detect and recover: if the email matches, just resend and show verification.
+      // Clerk persists sign-up state in SecureStore between app launches (and
+      // across installs on iOS via Keychain). If a pending sign-up exists for a
+      // DIFFERENT email, create() will throw "Invalid action". Handle upfront.
       if (signUp.status === 'missing_requirements') {
         if (signUp.emailAddress === email) {
+          // Same email — resend code and resume verification
           await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
           setPendingVerification(true);
           return;
+        } else {
+          // Different email stuck in Keychain from a previous install/session.
+          // We cannot abandon it via the SDK — guide the user to an alternative.
+          Alert.alert(
+            'Account Pending',
+            `A previous sign-up for ${signUp.emailAddress} is still awaiting verification on this device. Please verify that account, or sign up with Google or Apple instead.`
+          );
+          return;
         }
-        // Different email — fall through and let create() replace the stale attempt
       }
 
       await signUp.create({
@@ -136,9 +143,35 @@ export default function LoginScreen() {
         return;
       }
 
-      // Stale sign-up session for a different email — try to recover by
-      // continuing the existing verification flow.
+      // Email already registered — offer to switch to sign-in
+      if (clerkCode === 'form_identifier_exists' || clerkMsg.toLowerCase().includes('taken')) {
+        Alert.alert(
+          'Account Exists',
+          'That email is already registered. Sign in instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Sign In',
+              onPress: () => {
+                setIsRegister(false);
+                setPassword('');
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // Stale sign-up for the same email surfaced at create() time — resend code
       if (clerkMsg === 'Invalid action' || clerkCode === 'session_exists') {
+        const staleEmail = signUp.emailAddress;
+        if (staleEmail && staleEmail !== email) {
+          Alert.alert(
+            'Account Pending',
+            `A previous sign-up for ${staleEmail} is still pending on this device. Please verify that account, or sign up with Google or Apple instead.`
+          );
+          return;
+        }
         try {
           await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
           setPendingVerification(true);
