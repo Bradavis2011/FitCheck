@@ -240,7 +240,9 @@ export default function LoginScreen() {
       const { createdSessionId, setActive } = await startSSOFlow({ strategy: provider });
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
-        router.replace('/(tabs)');
+        // Don't navigate manually — AuthGate watches isSignedIn and routes to
+        // /(tabs) or /onboarding once the Clerk session (and its token) are ready.
+        // Navigating here races ahead of token propagation and causes 401s.
       }
     } catch (error: any) {
       const msg = error.errors?.[0]?.message || error.message || `Failed to sign in with ${key}`;
