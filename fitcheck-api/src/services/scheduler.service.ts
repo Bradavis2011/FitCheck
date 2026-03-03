@@ -24,6 +24,8 @@ import { runSocialMediaManager, registerExecutors as registerSocialExecutors } f
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors } from './creator-manager.service.js';
+import { runLearningContentAgent } from './learning-content.service.js';
+import { sendFounderContentDigest } from './founder-content-digest.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runUptimeCheck, trackDailyUptime } from './uptime-monitor.service.js';
 import { retryFailedDeletions } from './data-deletion.service.js';
@@ -731,5 +733,21 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Creator performance digest failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program)');
+  // ── Learning Content Agent — Tuesday 8am UTC ─────────────────────────────
+  // Runs after Mon 7am fashion trends. Generates trend report, style tips, TikTok scripts.
+  cron.schedule('0 8 * * 2', async () => {
+    console.log('📚 [Scheduler] Running learning content agent...');
+    try { await runLearningContentAgent(); }
+    catch (err) { console.error('[Scheduler] Learning content agent failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Founder Content Digest — Tuesday 10am UTC ────────────────────────────
+  // Sent after content is generated. Includes TikTok scripts, trend report, tips, pending posts.
+  cron.schedule('0 10 * * 2', async () => {
+    console.log('📧 [Scheduler] Running founder content digest...');
+    try { await sendFounderContentDigest(); }
+    catch (err) { console.error('[Scheduler] Founder content digest failed:', err); }
+  }, { timezone: 'UTC' });
+
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest)');
 }

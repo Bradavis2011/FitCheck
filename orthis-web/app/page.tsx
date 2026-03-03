@@ -130,6 +130,13 @@ function WaitlistPage() {
           <Logo />
           <div className="flex items-center gap-6">
             <Link
+              href="/learn"
+              className="text-sm font-medium transition-colors"
+              style={{ color: "rgba(26,26,26,0.5)" }}
+            >
+              Learn
+            </Link>
+            <Link
               href="/journal"
               className="text-sm font-medium transition-colors"
               style={{ color: "rgba(26,26,26,0.5)" }}

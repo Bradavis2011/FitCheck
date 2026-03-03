@@ -1246,19 +1246,35 @@ model UserFeedback {
 }
 
 model BlogDraft {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   title           String
-  slug            String   @unique
-  content         String
-  metaDescription String?  @map("meta_description")
-  ogTitle         String?  @map("og_title")
-  status          String   @default("draft") // draft | pending_review | published | archived
-  sourceData      Json?    @map("source_data")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  slug            String    @unique
+  content         String    @db.Text
+  metaDescription String?   @map("meta_description")
+  ogTitle         String?   @map("og_title")
+  status          String    @default("draft") // draft | pending_review | published | archived
+  sourceData      Json?     @map("source_data")
+
+  // Learning Center extensions
+  contentType   String   @default("article") @map("content_type")
+  // "trend_report" | "style_tip" | "style_guide" | "article" | "tiktok_script"
+  category      String?
+  // "color-theory" | "fit-guide" | "occasion-guide" | "archetype-guide" | etc.
+  excerpt       String?  @db.Text
+  seoKeywords   String[] @default([]) @map("seo_keywords")
+  publishedAt   DateTime? @map("published_at")
+  trendPeriod   String?   @map("trend_period") // ties to FashionTrend.period
+  sourceRuleIds String[]  @default([]) @map("source_rule_ids")
+  scriptData    Json?     @map("script_data")
+  // { hook, body, cta, visualDirections, estimatedDuration, dataPoint, caption }
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([slug])
+  @@index([contentType, status])
+  @@index([publishedAt])
   @@map("blog_drafts")
 }
 
