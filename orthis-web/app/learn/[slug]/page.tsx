@@ -233,7 +233,7 @@ export default async function LearnContentPage({ params }: Props) {
         <div className="max-w-3xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="text-xl font-medium">
             <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display" style={{ color: "#E85D4C" }}>This?</span>
+            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
           </Link>
           <p className="text-xs" style={{ color: "rgba(26,26,26,0.3)" }}>
             &copy; {new Date().getFullYear()} Or This?

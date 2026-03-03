@@ -1,18 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#E85D4C"/>
-      <stop offset="100%" stop-color="#FF7A6B"/>
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="7" fill="url(#g)"/>
-  <!-- Playfair Display Italic ? — hand-traced key points for crisp SVG rendering -->
-  <!-- Falls back to Georgia italic which is visually close in browser tab context -->
-  <text x="16" y="24"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#FBF7F4"/>
+  <!-- "Or" in DM Sans Bold — falls back to Arial/Helvetica in browser tabs -->
+  <text
+    x="256"
+    y="246"
+    font-family="'DM Sans', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="700"
+    font-size="168"
+    fill="#1A1A1A"
+    text-anchor="middle"
+    letter-spacing="-4">Or</text>
+  <!-- "This?" in Playfair Display Italic — falls back to Georgia italic in browser tabs -->
+  <text
+    x="256"
+    y="374"
     font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
     font-style="italic"
-    font-weight="700"
-    font-size="22"
-    fill="white"
-    text-anchor="middle">?</text>
+    font-weight="400"
+    font-size="112"
+    fill="#E85D4C"
+    text-anchor="middle"
+    letter-spacing="-2">This?</text>
 </svg>

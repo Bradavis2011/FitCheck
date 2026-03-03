@@ -240,7 +240,7 @@ export default async function LearnHubPage() {
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between flex-wrap gap-4">
           <Link href="/" className="text-xl font-medium">
             <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display" style={{ color: "#E85D4C" }}>This?</span>
+            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/journal" className="text-xs" style={{ color: "rgba(26,26,26,0.4)" }}>Journal</Link>
