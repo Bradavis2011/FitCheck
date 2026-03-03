@@ -550,12 +550,6 @@ export async function runLearningContentAgent(): Promise<void> {
   }
 
   try {
-    await generateStyleTips();
-  } catch (err) {
-    console.error('[LearningContent] Style tips failed:', err);
-  }
-
-  try {
     await generateTikTokScripts();
   } catch (err) {
     console.error('[LearningContent] TikTok scripts failed:', err);

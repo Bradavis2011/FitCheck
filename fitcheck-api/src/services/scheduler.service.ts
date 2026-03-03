@@ -24,7 +24,7 @@ import { runSocialMediaManager, registerExecutors as registerSocialExecutors } f
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors } from './creator-manager.service.js';
-import { runLearningContentAgent } from './learning-content.service.js';
+import { runLearningContentAgent, generateStyleTips } from './learning-content.service.js';
 import { sendFounderContentDigest } from './founder-content-digest.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runUptimeCheck, trackDailyUptime } from './uptime-monitor.service.js';
@@ -733,8 +733,15 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Creator performance digest failed:', err); }
   }, { timezone: 'UTC' });
 
+  // ── Style Tips — Daily 11:30am UTC (picks up new DiscoveredRules as they accumulate) ──
+  cron.schedule('30 11 * * *', async () => {
+    try { await generateStyleTips(); }
+    catch (err) { console.error('[Scheduler] Style tips failed:', err); }
+  }, { timezone: 'UTC' });
+
   // ── Learning Content Agent — Tuesday 8am UTC ─────────────────────────────
-  // Runs after Mon 7am fashion trends. Generates trend report, style tips, TikTok scripts.
+  // Runs after Mon 7am fashion trends. Generates trend report + TikTok scripts.
+  // (Style tips run daily above — no need to duplicate here.)
   cron.schedule('0 8 * * 2', async () => {
     console.log('📚 [Scheduler] Running learning content agent...');
     try { await runLearningContentAgent(); }
