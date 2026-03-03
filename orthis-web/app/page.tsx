@@ -178,8 +178,8 @@ function WaitlistPage() {
             </span>
             You already know<br />the question.
           </h1>
-          <p className="pull-quote text-4xl sm:text-5xl lg:text-6xl mb-14 fade-in-up">
-            <span className="text-clarity">Or </span>
+          <p className="text-4xl sm:text-5xl lg:text-6xl mb-14 fade-in-up">
+            <span className="font-sans font-medium text-clarity">Or </span>
             <span className="font-display italic text-coral">This?</span>
           </p>
           <div className="w-full max-w-md fade-in-up">
@@ -767,8 +767,8 @@ function WaitlistForm({ refCode, variant = "light" }: { refCode: string; variant
 
 function Logo() {
   return (
-    <span className="pull-quote text-xl select-none">
-      <span className="text-clarity">Or </span>
+    <span className="text-xl select-none">
+      <span className="font-sans font-medium text-clarity">Or </span>
       <span className="font-display italic text-coral">This?</span>
     </span>
   );
