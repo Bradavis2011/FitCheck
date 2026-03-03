@@ -52,7 +52,7 @@ jobs:
           curl -s -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] API deploying ✓\",\"html\":\"<p>Migrations validated. Railway auto-deploy triggered at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p><p>${{ github.event.head_commit.message }}</p>\"}"
+            -d "{\"from\":\"deploy@orthis.app\",\"to\":\"$ALERT_EMAIL\",\"subject\":\"[Or This?] API deploying ✓\",\"html\":\"<p>Migrations validated. Railway auto-deploy triggered at $(date -u).</p><p>Commit: <code>${{ github.sha }}</code></p>\"}"
       - name: Notify failure
         if: failure()
         env:
