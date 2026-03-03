@@ -238,9 +238,11 @@ export default function LoginScreen() {
     const key = provider === 'oauth_google' ? 'google' : 'apple';
     setSocialLoading(key);
     try {
+      const redirectUrl = Linking.createURL('');
+      console.log(`[Social login ${key}] redirectUrl:`, redirectUrl);
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: provider,
-        redirectUrl: Linking.createURL('/'),
+        redirectUrl,
       });
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
