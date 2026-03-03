@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   orText: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
   },

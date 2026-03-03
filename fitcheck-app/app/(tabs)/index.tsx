@@ -246,7 +246,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionLabel}>Or This?</Text>
             <View style={styles.rule} />
             <Text style={styles.orThisTitle}>
-              <Text style={{ fontFamily: Fonts.serif }}>Or </Text>
+              <Text style={{ fontFamily: Fonts.sansMedium }}>Or </Text>
               <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
             </Text>
             <Text style={styles.orThisSubtitle}>Can't decide between two looks? Get an honest verdict.</Text>

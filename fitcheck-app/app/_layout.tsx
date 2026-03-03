@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl * 2,
   },
   termsTitle: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
     color: Colors.text,
     marginBottom: Spacing.sm,
