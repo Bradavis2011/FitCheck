@@ -48,8 +48,8 @@ export const metadata: Metadata = {
     title: "Or This? — AI Outfit Feedback & Style Advice App",
     description:
       "Or This? is the AI outfit feedback app that tells you the truth. Snap a photo, get a score out of 10, and know what to wear — before you walk out the door.",
-    site: "@orthisapp",
-    creator: "@orthisapp",
+    site: "@OrThisApp",
+    creator: "@OrThisApp",
   },
 };
 

@@ -361,6 +361,9 @@ function WaitlistPage() {
         </div>
       </section>
 
+      {/* ── 5b. Download / TestFlight — shown only when env vars are set ── */}
+      <DownloadSection />
+
       {/* ── 6. Early Access — Black bg ── */}
       <section className="py-28 sm:py-36 bg-clarity" id="waitlist">
         <div className="max-w-5xl mx-auto px-6">
@@ -540,6 +543,111 @@ function WaitlistPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   DOWNLOAD SECTION
+   ───────────────────────────────────────────── */
+
+function DownloadSection() {
+  const appStoreUrl = process.env.NEXT_PUBLIC_APPSTORE_URL;
+  const testFlightUrl = process.env.NEXT_PUBLIC_TESTFLIGHT_URL;
+  const playStoreUrl = process.env.NEXT_PUBLIC_PLAYSTORE_URL;
+
+  if (!appStoreUrl && !testFlightUrl && !playStoreUrl) return null;
+
+  return (
+    <section className="py-24 sm:py-32 bg-white">
+      <div className="max-w-2xl mx-auto px-6 text-center fade-in-up">
+        <span
+          className="editorial-rule mb-8 mx-auto"
+          style={{ backgroundColor: "#E85D4C", display: "block", width: 40 }}
+        />
+        <p className="section-label mb-4" style={{ color: "rgba(26,26,26,0.4)" }}>
+          Available now
+        </p>
+        <h2 className="pull-quote text-4xl sm:text-5xl text-clarity leading-tight mb-10">
+          Get the app.
+        </h2>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          {appStoreUrl && (
+            <a
+              href={appStoreUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download on the App Store"
+              className="inline-flex items-center gap-3 px-6 py-3 bg-clarity text-white transition-opacity hover:opacity-80"
+              style={{ borderRadius: 0 }}
+            >
+              {/* Apple icon */}
+              <svg width="20" height="24" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-42.8-162.6-115.3c-47.8-59.2-88.3-150.9-88.3-238.9 0-181.5 115.6-308.8 251.4-308.8 64.6 0 117.8 40.8 158.6 40.8 39.5 0 101.1-43.2 176.7-43.2 28.2 0 130.3 2.6 195.8 85.8zm-234.3-166c28.2-26.9 46.8-64.6 46.8-102.3 0-5.2-.6-10.4-1.3-15.6-44.5 1.9-97 30.8-128.1 60.9-25.6 23.1-48.1 61.3-48.1 99.5 0 5.8.6 11.7 1.3 13.6 3.2.6 7.1.6 11 .6 40.8 0 90.3-27.5 118.4-56.7z" />
+              </svg>
+              <span className="flex flex-col text-left">
+                <span className="text-xs opacity-70 leading-none mb-0.5">Download on the</span>
+                <span className="text-base font-semibold leading-none">App Store</span>
+              </span>
+            </a>
+          )}
+          {testFlightUrl && !appStoreUrl && (
+            <a
+              href={testFlightUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-6 py-3 bg-clarity text-white transition-opacity hover:opacity-80"
+              style={{ borderRadius: 0 }}
+            >
+              <svg width="20" height="24" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-42.8-162.6-115.3c-47.8-59.2-88.3-150.9-88.3-238.9 0-181.5 115.6-308.8 251.4-308.8 64.6 0 117.8 40.8 158.6 40.8 39.5 0 101.1-43.2 176.7-43.2 28.2 0 130.3 2.6 195.8 85.8zm-234.3-166c28.2-26.9 46.8-64.6 46.8-102.3 0-5.2-.6-10.4-1.3-15.6-44.5 1.9-97 30.8-128.1 60.9-25.6 23.1-48.1 61.3-48.1 99.5 0 5.8.6 11.7 1.3 13.6 3.2.6 7.1.6 11 .6 40.8 0 90.3-27.5 118.4-56.7z" />
+              </svg>
+              <span className="flex flex-col text-left">
+                <span className="text-xs opacity-70 leading-none mb-0.5">Try the beta on</span>
+                <span className="text-base font-semibold leading-none">TestFlight</span>
+              </span>
+            </a>
+          )}
+          {playStoreUrl && (
+            <a
+              href={playStoreUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get it on Google Play"
+              className="inline-flex items-center gap-3 px-6 py-3 transition-opacity hover:opacity-80"
+              style={{ borderRadius: 0, background: "#1A1A1A", color: "white" }}
+            >
+              {/* Play Store icon */}
+              <svg width="20" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M3 20.5v-17c0-.83 1-.83 1.5-.5l14 8.5-14 8.5c-.5.33-1.5.33-1.5-.5z" />
+              </svg>
+              <span className="flex flex-col text-left">
+                <span className="text-xs opacity-70 leading-none mb-0.5">Get it on</span>
+                <span className="text-base font-semibold leading-none">Google Play</span>
+              </span>
+            </a>
+          )}
+        </div>
+        {testFlightUrl && appStoreUrl && (
+          <p className="mt-6 text-sm" style={{ color: "rgba(26,26,26,0.4)" }}>
+            Also available on{" "}
+            <a
+              href={testFlightUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-coral transition-colors"
+            >
+              TestFlight
+            </a>
+            {" "}(iOS beta)
+          </p>
+        )}
+        {!playStoreUrl && (
+          <p className="mt-4 text-sm" style={{ color: "rgba(26,26,26,0.3)" }}>
+            Android coming soon.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
