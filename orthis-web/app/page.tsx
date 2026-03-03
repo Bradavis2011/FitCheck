@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import posthog from "posthog-js";
+import { JsonLd } from "./components/JsonLd";
 
 // Local illustration assets
 import illustrationDuo from "../assets/images/fabian-kunzel-zeller-Kd0oUzb2Bfg-unsplash.jpg";
@@ -96,6 +97,32 @@ function WaitlistPage() {
 
   return (
     <div className="min-h-screen bg-white" ref={pageRef}>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Or This?",
+          applicationCategory: "LifestyleApplication",
+          operatingSystem: "iOS, Android",
+          description:
+            "AI outfit feedback app — snap a photo, get a score out of 10, and honest style advice before you leave.",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+            description: "Free with optional Plus subscription",
+          },
+          creator: { "@id": "https://orthis.app/#organization" },
+          url: "https://orthis.app",
+          featureList: [
+            "AI outfit scoring out of 10",
+            "Personalized style advice",
+            "Follow-up questions about your outfit",
+            "Style DNA that learns over time",
+            "AI-built wardrobe tracking",
+          ],
+        }}
+      />
 
       {/* ── 1. Nav ── */}
       <nav className={`nav-sticky fixed top-0 left-0 right-0 z-50 ${scrolled ? "scrolled" : ""}`}>
@@ -127,6 +154,8 @@ function WaitlistPage() {
           muted
           loop
           playsInline
+          preload="auto"
+          poster="/video/hero-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src="/video/7305164-uhd_4096_2160_25fps.mp4" type="video/mp4" />
@@ -137,6 +166,9 @@ function WaitlistPage() {
             For everyone who&apos;s ever changed three times before leaving
           </p>
           <h1 className="pull-quote text-6xl sm:text-7xl lg:text-8xl text-white leading-tight mb-6 fade-in-up max-w-4xl">
+            <span className="sr-only">
+              Or This? — AI outfit feedback app. Get an honest outfit check and style advice before you leave.{" "}
+            </span>
             You already know<br />the question.
           </h1>
           <p className="pull-quote text-4xl sm:text-5xl lg:text-6xl mb-14 fade-in-up">
@@ -183,7 +215,7 @@ function WaitlistPage() {
             >
               <Image
                 src={illustrationDuo}
-                alt="Two women in editorial fashion illustration"
+                alt="Two women choosing outfits — Or This? AI outfit feedback"
                 fill
                 className="object-cover object-top"
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -237,7 +269,7 @@ function WaitlistPage() {
             >
               <Image
                 src={illustrationBlue}
-                alt="Fashion illustration — woman in dark jacket, navy background"
+                alt="Woman in dark tailored jacket — styled with confidence"
                 fill
                 className="object-cover object-top"
                 sizes="(max-width: 640px) 100vw, 50vw"
@@ -262,7 +294,7 @@ function WaitlistPage() {
             >
               <Image
                 src={illustrationTan}
-                alt="Fashion illustration — woman looking over shoulder"
+                alt="Woman looking over shoulder in styled outfit"
                 fill
                 className="object-cover object-top"
                 sizes="(max-width: 640px) 100vw, 50vw"
@@ -276,7 +308,7 @@ function WaitlistPage() {
             >
               <Image
                 src={illustrationPurple}
-                alt="Fashion illustration — woman in editorial style"
+                alt="Woman in editorial fashion — personal style advice"
                 fill
                 className="object-cover object-top"
                 sizes="(max-width: 640px) 100vw, 50vw"
@@ -290,7 +322,7 @@ function WaitlistPage() {
             >
               <Image
                 src={charlotaPhoto}
-                alt="Fashion editorial photograph by Charlota Blunarova"
+                alt="Fashion editorial photograph — outfit inspiration by Charlota Blunarova"
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 640px) 100vw, 100vw"
@@ -386,6 +418,8 @@ function WaitlistPage() {
           muted
           loop
           playsInline
+          preload="none"
+          poster="/video/cinematic-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src="/video/5822800-hd_1920_1080_25fps.mp4" type="video/mp4" />

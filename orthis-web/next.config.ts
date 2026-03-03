@@ -9,6 +9,14 @@ const MONOREPO_ROOT = path.resolve(__dirname, "..");
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: MONOREPO_ROOT,
+  webpack(config) {
+    // Allow .js imports to resolve .ts/.tsx files (required for moduleResolution: "bundler")
+    config.resolve.extensionAlias = {
+      ".js": [".js", ".ts", ".tsx"],
+      ".jsx": [".jsx", ".tsx"],
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

@@ -1,14 +1,65 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { JsonLd } from "../components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "Support — Or This?",
+  title: "Support",
+  description:
+    "Get help with Or This? — outfit check limits, account deletion, photo issues, subscription management, and data privacy.",
   alternates: { canonical: "/support" },
 };
 
 export default function SupportPage() {
   return (
     <div style={{ backgroundColor: "#FBF7F4", minHeight: "100vh" }}>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            {
+              "@type": "Question",
+              name: "How many outfit checks do I get?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Free accounts get 3 outfit checks per day. Plus and Pro subscribers get unlimited checks.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "How do I delete my Or This? account?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "You can delete your account from the Profile screen in the app, or visit orthis.app/delete-account.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "Why isn't my photo uploading?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Make sure the app has camera and photo library permissions. Photos must be under 10MB.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "How do I cancel my subscription?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Manage subscriptions through the App Store (iOS) or Google Play (Android). Access continues until end of billing period.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "Is my outfit photo data private?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Yes. Photos are stored securely, never shared with third parties or used to train AI models.",
+              },
+            },
+          ],
+        }}
+      />
       <nav className="flex items-center justify-between px-6 py-5 max-w-3xl mx-auto">
         <Link href="/" className="text-xl font-medium">
           <span style={{ color: "#1A1A1A" }}>Or </span>

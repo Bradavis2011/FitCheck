@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Or This?",
+  title: "Terms of Service",
+  description:
+    "Terms of Service for Or This?, the AI outfit feedback app. Covers subscriptions, user content, and AI disclaimers.",
   alternates: { canonical: "/terms" },
 };
 

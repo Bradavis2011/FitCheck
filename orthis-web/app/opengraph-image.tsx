@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Or This? — AI Outfit Feedback';
+export const alt = 'Or This? — AI outfit feedback and style advice app';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
