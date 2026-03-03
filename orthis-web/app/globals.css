@@ -19,6 +19,10 @@
 :root {
   --background: #ffffff;
   --foreground: #1A1A1A;
+  /* Safety net: Next.js sets these via body className, but declaring here ensures
+     var(--font-display) resolves even if the font class hasn't applied yet. */
+  --font-playfair: "Playfair Display", "Playfair Display Fallback", ui-serif, Georgia, serif;
+  --font-dm-sans: "DM Sans", "DM Sans Fallback", ui-sans-serif, system-ui, sans-serif;
 }
 
 body {

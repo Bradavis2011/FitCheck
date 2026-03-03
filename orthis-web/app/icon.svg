@@ -1,24 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#FBF7F4"/>
-  <!-- "Or" in DM Sans Bold — falls back to Arial/Helvetica in browser tabs -->
+  <!-- Single oversized Playfair Display Italic ? in Decision Coral — falls back to Georgia italic -->
   <text
     x="256"
-    y="246"
-    font-family="'DM Sans', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="700"
-    font-size="168"
-    fill="#1A1A1A"
-    text-anchor="middle"
-    letter-spacing="-4">Or</text>
-  <!-- "This?" in Playfair Display Italic — falls back to Georgia italic in browser tabs -->
-  <text
-    x="256"
-    y="374"
+    y="267"
     font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
     font-style="italic"
     font-weight="400"
-    font-size="112"
+    font-size="384"
     fill="#E85D4C"
     text-anchor="middle"
-    letter-spacing="-2">This?</text>
+    dominant-baseline="middle">?</text>
 </svg>
