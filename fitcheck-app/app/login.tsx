@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSignIn, useSignUp, useAuth, useSSO } from '@clerk/clerk-expo';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import OrThisLogo from '../src/components/OrThisLogo';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
@@ -237,7 +238,10 @@ export default function LoginScreen() {
     const key = provider === 'oauth_google' ? 'google' : 'apple';
     setSocialLoading(key);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({ strategy: provider });
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: provider,
+        redirectUrl: Linking.createURL('/'),
+      });
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
         // Don't navigate manually — AuthGate watches isSignedIn and routes to
@@ -245,6 +249,7 @@ export default function LoginScreen() {
         // Navigating here races ahead of token propagation and causes 401s.
       }
     } catch (error: any) {
+      console.error(`[Social login ${key}] error:`, JSON.stringify(error?.errors ?? error?.message ?? error));
       const msg = error.errors?.[0]?.message || error.message || `Failed to sign in with ${key}`;
       Alert.alert('Sign In Error', msg);
     } finally {
