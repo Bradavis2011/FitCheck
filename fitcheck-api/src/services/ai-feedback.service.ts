@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { OutfitFeedback, OutfitCheckInput } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { createNotification } from '../controllers/notification.controller.js';
@@ -1424,42 +1424,66 @@ Answer follow-up questions with editorial precision. Be specific — cite garmen
 Keep responses concise (2-4 sentences) and decisive.`;
 
   // Build conversation history from prior follow-ups (last 5 Q&A turns)
+  // Filter out empty/error responses to avoid corrupting the Gemini chat history
   const recentFollowUps = outfitCheck.followUps.slice(-5);
-  const history = recentFollowUps.flatMap(fu => [
-    { role: 'user' as const, parts: [{ text: fu.userQuestion }] },
-    { role: 'model' as const, parts: [{ text: fu.aiResponse || '' }] },
-  ]);
+  const history = recentFollowUps
+    .filter(fu => fu.aiResponse && !fu.aiResponse.startsWith('I apologize'))
+    .flatMap(fu => [
+      { role: 'user' as const, parts: [{ text: fu.userQuestion }] },
+      { role: 'model' as const, parts: [{ text: fu.aiResponse! }] },
+    ]);
 
-  try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      systemInstruction: systemPrompt,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 800,
-      },
-    });
+  const maxRetries = 2;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash-lite',
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 800,
+        },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+        ],
+      });
 
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(question);
-    const response = await result.response;
-    const answer = response.text() || 'I apologize, but I could not generate a response. Please try again.';
-    const followUpUsage = response.usageMetadata;
-    if (followUpUsage) {
-      console.log(`[AI] follow-up tokens — input: ${followUpUsage.promptTokenCount}, output: ${followUpUsage.candidatesTokenCount}, total: ${followUpUsage.totalTokenCount}`);
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(question);
+      const response = await result.response;
+      const answer = response.text();
+      if (!answer) throw new Error('Empty Gemini response');
+
+      const followUpUsage = response.usageMetadata;
+      if (followUpUsage) {
+        console.log(`[AI] follow-up tokens — input: ${followUpUsage.promptTokenCount}, output: ${followUpUsage.candidatesTokenCount}, total: ${followUpUsage.totalTokenCount}`);
+      }
+
+      await prisma.followUp.create({
+        data: {
+          outfitCheckId,
+          userQuestion: question,
+          aiResponse: answer,
+        },
+      });
+
+      return answer;
+    } catch (error) {
+      console.error(`[AI] Follow-up attempt ${attempt}/${maxRetries} failed:`, error);
+      if (attempt === maxRetries) {
+        const Sentry = await import('@sentry/node');
+        Sentry.captureException(error, {
+          tags: { feature: 'follow-up', outfitCheckId },
+          extra: { question, attempt },
+        });
+        return 'I wasn\'t able to answer that — please try rephrasing your question or try again shortly.';
+      }
+      await new Promise(r => setTimeout(r, 1000));
     }
-
-    await prisma.followUp.create({
-      data: {
-        outfitCheckId,
-        userQuestion: question,
-        aiResponse: answer,
-      },
-    });
-
-    return answer;
-  } catch (error) {
-    console.error('Follow-up question failed:', error);
-    return 'I apologize, but I encountered an issue processing your question. Please try again in a moment.';
   }
+
+  return 'I wasn\'t able to answer that — please try rephrasing your question or try again shortly.';
 }
