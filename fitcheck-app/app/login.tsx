@@ -34,6 +34,9 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingSignInVerification, setPendingSignInVerification] = useState(false);
+  const [signInEmailAddressId, setSignInEmailAddressId] = useState<string | null>(null);
+  const [isSecondFactor, setIsSecondFactor] = useState(false);
   const [code, setCode] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [pendingReset, setPendingReset] = useState(false);
@@ -43,14 +46,15 @@ export default function LoginScreen() {
 
   // Intercept Android hardware back during email verification or password reset
   useEffect(() => {
-    if (!pendingVerification && !isForgotPassword) return;
+    if (!pendingVerification && !pendingSignInVerification && !isForgotPassword) return;
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (pendingSignInVerification) { setPendingSignInVerification(false); setSignInEmailAddressId(null); setIsSecondFactor(false); setCode(''); }
       if (pendingVerification) { setPendingVerification(false); setCode(''); }
       if (isForgotPassword) { setIsForgotPassword(false); setPendingReset(false); setResetCode(''); setNewPassword(''); }
       return true;
     });
     return () => handler.remove();
-  }, [pendingVerification, isForgotPassword]);
+  }, [pendingVerification, pendingSignInVerification, isForgotPassword]);
 
   const handleSignIn = async () => {
     if (!signInLoaded) return;
@@ -73,13 +77,58 @@ export default function LoginScreen() {
       if (signInAttempt.status === 'complete') {
         await setActiveSignIn({ session: signInAttempt.createdSessionId });
         router.replace('/(tabs)');
+      } else if (signInAttempt.status === 'needs_first_factor') {
+        // Account exists but email unverified — send verification code via sign-in flow
+        const emailFactor = signInAttempt.supportedFirstFactors?.find(
+          (f) => f.strategy === 'email_code'
+        );
+        if (emailFactor && 'emailAddressId' in emailFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: 'email_code',
+            emailAddressId: emailFactor.emailAddressId,
+          });
+          setSignInEmailAddressId(emailFactor.emailAddressId);
+          setIsSecondFactor(false);
+          setPendingSignInVerification(true);
+        } else {
+          Alert.alert('Error', 'Please verify your email. Check your inbox or try signing in with Google or Apple.');
+        }
+      } else if (signInAttempt.status === 'needs_second_factor') {
+        // MFA required — send email code as second factor
+        const emailFactor = signInAttempt.supportedSecondFactors?.find(
+          (f: any) => f.strategy === 'email_code'
+        );
+        if (emailFactor && 'emailAddressId' in (emailFactor as any)) {
+          await signIn.prepareSecondFactor({
+            strategy: 'email_code',
+            emailAddressId: (emailFactor as any).emailAddressId,
+          });
+          setSignInEmailAddressId((emailFactor as any).emailAddressId);
+          setIsSecondFactor(true);
+          setPendingSignInVerification(true);
+        } else {
+          Alert.alert('Error', 'Two-factor authentication is required. Please try signing in with Google or Apple.');
+        }
       } else {
         console.error('Sign in not complete:', signInAttempt);
         Alert.alert('Error', 'Sign in failed. Please try again.');
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
-      Alert.alert('Sign In Error', error.errors?.[0]?.message || error.message || 'Failed to sign in');
+      const clerkCode = error.errors?.[0]?.code;
+      const clerkMsg: string = error.errors?.[0]?.message || '';
+      if (clerkCode === 'form_password_incorrect' || clerkMsg.toLowerCase().includes('password')) {
+        Alert.alert(
+          'Incorrect Password',
+          'That password is incorrect. Try "Forgot Password" or sign in with Google or Apple.',
+          [
+            { text: 'Forgot Password', onPress: () => { setIsRegister(false); setIsForgotPassword(true); } },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+      } else {
+        Alert.alert('Sign In Error', clerkMsg || error.message || 'Failed to sign in');
+      }
     } finally {
       setLoading(false);
     }
@@ -143,22 +192,55 @@ export default function LoginScreen() {
         return;
       }
 
-      // Email already registered — offer to switch to sign-in
+      // Email already registered — auto-attempt sign-in with the same credentials
       if (clerkCode === 'form_identifier_exists' || clerkMsg.toLowerCase().includes('taken')) {
-        Alert.alert(
-          'Account Exists',
-          'That email is already registered. Sign in instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Sign In',
-              onPress: () => {
-                setIsRegister(false);
-                setPassword('');
-              },
-            },
-          ]
-        );
+        try {
+          const signInAttempt = await signIn.create({ identifier: email, password });
+          if (signInAttempt.status === 'complete') {
+            await setActiveSignIn({ session: signInAttempt.createdSessionId });
+            router.replace('/(tabs)');
+            return;
+          }
+          if (signInAttempt.status === 'needs_first_factor') {
+            const emailFactor = signInAttempt.supportedFirstFactors?.find(
+              (f) => f.strategy === 'email_code'
+            );
+            if (emailFactor && 'emailAddressId' in emailFactor) {
+              await signIn.prepareFirstFactor({
+                strategy: 'email_code',
+                emailAddressId: emailFactor.emailAddressId,
+              });
+              setSignInEmailAddressId(emailFactor.emailAddressId);
+              setPendingSignInVerification(true);
+              return;
+            }
+          }
+        } catch (signInErr: any) {
+          const signInErrCode: string = signInErr.errors?.[0]?.code || '';
+          const signInMsg: string = signInErr.errors?.[0]?.message || '';
+          if (signInErrCode === 'form_identifier_not_found') {
+            // Email taken in Clerk but not findable via sign-in — unverified/orphaned account.
+            Alert.alert(
+              'Verification Required',
+              'Your account needs email verification. Check your inbox for a verification link, or sign in with Google or Apple.',
+              [{ text: 'OK', style: 'cancel' }]
+            );
+            return;
+          }
+          if (signInErrCode === 'form_password_incorrect' || signInMsg.toLowerCase().includes('password')) {
+            Alert.alert(
+              'Account Exists',
+              "This email is already registered but the password doesn't match. Try \"Forgot Password\" or sign in with Google or Apple.",
+              [
+                { text: 'Forgot Password', onPress: () => { setIsRegister(false); setIsForgotPassword(true); } },
+                { text: 'OK', style: 'cancel' },
+              ]
+            );
+            return;
+          }
+        }
+        // Fallback — couldn't auto-resolve
+        Alert.alert('Account Exists', 'This email is already registered. Try signing in, or use Google or Apple.');
         return;
       }
 
@@ -212,6 +294,56 @@ export default function LoginScreen() {
     } catch (error: any) {
       console.error('Verification error:', error);
       Alert.alert('Verification Error', error.errors?.[0]?.message || error.message || 'Failed to verify email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySignIn = async () => {
+    if (!signInLoaded || !code) return;
+    setLoading(true);
+    try {
+      const result = isSecondFactor
+        ? await signIn.attemptSecondFactor({ strategy: 'email_code', code })
+        : await signIn.attemptFirstFactor({ strategy: 'email_code', code });
+      if (result.status === 'complete') {
+        await setActiveSignIn({ session: result.createdSessionId });
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'Verification failed. Please try again.');
+      }
+    } catch (error: any) {
+      Alert.alert('Verification Error', error.errors?.[0]?.message || 'Invalid code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSignInCode = async () => {
+    if (!signInLoaded || !signInEmailAddressId) return;
+    setLoading(true);
+    try {
+      if (isSecondFactor) {
+        await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: signInEmailAddressId });
+      } else {
+        await signIn.prepareFirstFactor({ strategy: 'email_code', emailAddressId: signInEmailAddressId });
+      }
+      Alert.alert('Code Sent', 'A new verification code has been sent to your email.');
+    } catch (error: any) {
+      Alert.alert('Error', error.errors?.[0]?.message || 'Failed to resend code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSignUpCode = async () => {
+    if (!signUpLoaded) return;
+    setLoading(true);
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      Alert.alert('Code Sent', 'A new verification code has been sent to your email.');
+    } catch (error: any) {
+      Alert.alert('Error', error.errors?.[0]?.message || 'Failed to resend code');
     } finally {
       setLoading(false);
     }
@@ -293,7 +425,9 @@ export default function LoginScreen() {
   };
 
   const handleSubmit = () => {
-    if (pendingVerification) {
+    if (pendingSignInVerification) {
+      handleVerifySignIn();
+    } else if (pendingVerification) {
       handleVerifyEmail();
     } else if (isRegister) {
       handleSignUp();
@@ -391,6 +525,57 @@ export default function LoginScreen() {
     );
   }
 
+  // ── Sign-in verification (unverified account) ─────────────────────────────
+  if (pendingSignInVerification) {
+    return (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <Text style={styles.title}>Verify Email</Text>
+            <Text style={styles.subtitle}>We sent a verification code to {email}</Text>
+          </View>
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Verification Code</Text>
+              <TextInput
+                style={styles.input}
+                value={code}
+                onChangeText={setCode}
+                placeholder="Enter 6-digit code"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify Email'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.switchButton}
+              onPress={handleResendSignInCode}
+              disabled={loading}
+            >
+              <Text style={styles.switchText}>Resend code</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.switchButton}
+              onPress={() => { setPendingSignInVerification(false); setSignInEmailAddressId(null); setIsSecondFactor(false); setCode(''); }}
+            >
+              <Text style={styles.switchText}>Back to sign in</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
   if (pendingVerification) {
     return (
       <KeyboardAvoidingView
@@ -430,6 +615,14 @@ export default function LoginScreen() {
               <Text style={styles.buttonText}>
                 {loading ? 'Verifying...' : 'Verify Email'}
               </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.switchButton}
+              onPress={handleResendSignUpCode}
+              disabled={loading}
+            >
+              <Text style={styles.switchText}>Resend code</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
