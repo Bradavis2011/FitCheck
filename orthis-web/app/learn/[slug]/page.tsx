@@ -148,7 +148,7 @@ export default async function LearnContentPage({ params }: Props) {
             )}
           </div>
           <h1
-            className="font-display italic mb-6"
+            className="font-display mb-6"
             style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#1A1A1A", lineHeight: 1.1 }}
           >
             {item.title}
@@ -197,7 +197,7 @@ export default async function LearnContentPage({ params }: Props) {
             Get personalised advice
           </p>
           <h3
-            className="font-display italic mb-3"
+            className="font-display mb-3"
             style={{ color: "#fff", fontSize: "1.75rem", lineHeight: 1.2 }}
           >
             Score your actual outfit.
@@ -232,8 +232,8 @@ export default async function LearnContentPage({ params }: Props) {
       >
         <div className="max-w-3xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="text-xl font-medium">
-            <span style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
+            <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
+            <span className="font-display" style={{ color: "#E85D4C" }}>This?</span>
           </Link>
           <p className="text-xs" style={{ color: "rgba(26,26,26,0.3)" }}>
             &copy; {new Date().getFullYear()} Or This?

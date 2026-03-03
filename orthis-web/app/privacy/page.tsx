@@ -15,13 +15,13 @@ export default function PrivacyPage() {
     <div style={{ backgroundColor: "#FBF7F4", minHeight: "100vh" }}>
       <nav className="flex items-center justify-between px-6 py-5 max-w-3xl mx-auto">
         <Link href="/" className="text-xl font-medium">
-          <span style={{ color: "#1A1A1A" }}>Or </span>
+          <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
           <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
         </Link>
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-display italic mb-2" style={{ color: "#1A1A1A" }}>Privacy Policy</h1>
+        <h1 className="text-4xl font-display mb-2" style={{ color: "#1A1A1A" }}>Privacy Policy</h1>
         <p className="text-xs uppercase tracking-widest mb-10" style={{ color: "#9B9B9B" }}>Effective {EFFECTIVE_DATE}</p>
 
         <div className="prose-custom space-y-8">

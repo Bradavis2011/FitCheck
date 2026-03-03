@@ -21,7 +21,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
       elements.push(
         <h2
           key={i}
-          className="font-display italic mt-12 mb-4"
+          className="font-display mt-12 mb-4"
           style={{ fontSize: "clamp(1.35rem, 2.5vw, 1.75rem)", color: "#1A1A1A", lineHeight: 1.25 }}
         >
           {line.slice(3)}

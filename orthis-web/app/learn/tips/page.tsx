@@ -60,7 +60,7 @@ export default async function LearnTipsPage() {
             Style Tips
           </p>
           <h1
-            className="font-display italic mb-4"
+            className="font-display mb-4"
             style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#1A1A1A", lineHeight: 1.05 }}
           >
             What the data<br />actually says.
@@ -124,7 +124,7 @@ export default async function LearnTipsPage() {
             See how your outfit actually scores
           </p>
           <h2
-            className="font-display italic mb-4"
+            className="font-display mb-4"
             style={{ color: "#fff", fontSize: "1.75rem", lineHeight: 1.2 }}
           >
             These tips are universal.<br />Or This? is personal.
@@ -154,8 +154,8 @@ export default async function LearnTipsPage() {
       >
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="text-xl font-medium">
-            <span style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
+            <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
+            <span className="font-display" style={{ color: "#E85D4C" }}>This?</span>
           </Link>
           <p className="text-xs" style={{ color: "rgba(26,26,26,0.3)" }}>
             &copy; {new Date().getFullYear()} Or This?

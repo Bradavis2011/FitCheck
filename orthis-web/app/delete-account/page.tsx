@@ -12,20 +12,20 @@ export default function DeleteAccountPage() {
     <div style={{ backgroundColor: "#FBF7F4", minHeight: "100vh" }}>
       <nav className="flex items-center justify-between px-6 py-5 max-w-3xl mx-auto">
         <Link href="/" className="text-xl font-medium">
-          <span style={{ color: "#1A1A1A" }}>Or </span>
+          <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
           <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
         </Link>
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-bold mb-4" style={{ color: "#1A1A1A" }}>Delete Your Account</h1>
+        <h1 className="text-4xl font-display mb-4" style={{ color: "#1A1A1A" }}>Delete Your Account</h1>
         <p className="text-lg mb-10" style={{ color: "#555" }}>
           You can delete your Or This? account and all associated data at any time. Here&apos;s how.
         </p>
 
         {/* In-app deletion */}
         <section className="mb-10">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: "#1A1A1A" }}>Option 1 — Delete In-App (Recommended)</h2>
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: "#1A1A1A" }}>Option 1 — Delete In-App (Recommended)</h2>
           <p className="mb-4" style={{ color: "#555" }}>
             The fastest way to delete your account is directly inside the Or This? app:
           </p>
@@ -43,7 +43,7 @@ export default function DeleteAccountPage() {
 
         {/* Email deletion */}
         <section className="mb-10">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: "#1A1A1A" }}>Option 2 — Request via Email</h2>
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: "#1A1A1A" }}>Option 2 — Request via Email</h2>
           <p className="mb-4" style={{ color: "#555" }}>
             If you no longer have access to the app, email us and we will delete your account within 30 days:
           </p>
@@ -58,7 +58,7 @@ export default function DeleteAccountPage() {
 
         {/* What gets deleted */}
         <section className="mb-10">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: "#1A1A1A" }}>What Gets Deleted</h2>
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: "#1A1A1A" }}>What Gets Deleted</h2>
           <p className="mb-3" style={{ color: "#555" }}>When you delete your account, the following data is permanently removed:</p>
           <ul className="list-disc list-inside space-y-1" style={{ color: "#555" }}>
             <li>Your profile (name, email, username)</li>
@@ -77,7 +77,7 @@ export default function DeleteAccountPage() {
 
         {/* Clear history only */}
         <section className="mb-10">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: "#1A1A1A" }}>Clear History Without Deleting Account</h2>
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: "#1A1A1A" }}>Clear History Without Deleting Account</h2>
           <p style={{ color: "#555" }}>
             If you only want to delete your outfit history but keep your account, go to{" "}
             <strong>Profile → Settings → Privacy &amp; Data → Clear Outfit History</strong> in the app.

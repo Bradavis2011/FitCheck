@@ -69,7 +69,7 @@ export default async function LearnHubPage() {
             Style Hub
           </p>
           <h1
-            className="font-display italic mb-6"
+            className="font-display mb-6"
             style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", color: "#1A1A1A", lineHeight: 1.05 }}
           >
             Style guides backed<br />by real data.
@@ -100,7 +100,7 @@ export default async function LearnHubPage() {
                 Trend Report · {latestTrend.trendPeriod || ""}
               </p>
               <h2
-                className="font-display italic mb-4"
+                className="font-display mb-4"
                 style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)", color: "#fff", lineHeight: 1.15 }}
               >
                 {latestTrend.title}
@@ -213,7 +213,7 @@ export default async function LearnHubPage() {
             Get personalised advice
           </p>
           <h2
-            className="font-display italic mb-4"
+            className="font-display mb-4"
             style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)", color: "#fff", lineHeight: 1.15 }}
           >
             Your outfit scored in seconds.
@@ -239,8 +239,8 @@ export default async function LearnHubPage() {
       >
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between flex-wrap gap-4">
           <Link href="/" className="text-xl font-medium">
-            <span style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
+            <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
+            <span className="font-display" style={{ color: "#E85D4C" }}>This?</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/journal" className="text-xs" style={{ color: "rgba(26,26,26,0.4)" }}>Journal</Link>

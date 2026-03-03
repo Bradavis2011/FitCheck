@@ -82,7 +82,7 @@ export default function ContentCard({
 
       {/* Title */}
       <h2
-        className={size === "lg" ? "font-display italic mb-3" : "font-medium mb-2"}
+        className={size === "lg" ? "font-display mb-3" : "font-medium mb-2"}
         style={{
           fontSize: size === "lg" ? "clamp(1.25rem, 2.5vw, 1.75rem)" : size === "sm" ? "0.9rem" : "1rem",
           color: "#1A1A1A",

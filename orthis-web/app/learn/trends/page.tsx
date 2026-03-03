@@ -43,7 +43,7 @@ export default async function LearnTrendsPage() {
             Trend Reports
           </p>
           <h1
-            className="font-display italic mb-4"
+            className="font-display mb-4"
             style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#1A1A1A", lineHeight: 1.05 }}
           >
             What's trending<br />in fashion right now.
@@ -91,8 +91,8 @@ export default async function LearnTrendsPage() {
       >
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="text-xl font-medium">
-            <span style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
+            <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
+            <span className="font-display" style={{ color: "#E85D4C" }}>This?</span>
           </Link>
           <p className="text-xs" style={{ color: "rgba(26,26,26,0.3)" }}>
             &copy; {new Date().getFullYear()} Or This?

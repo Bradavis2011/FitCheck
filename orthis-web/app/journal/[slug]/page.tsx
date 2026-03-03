@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 function Logo() {
   return (
-    <Link href="/" className="text-xl font-medium">
-      <span style={{ color: "#1A1A1A" }}>Or </span>
+    <Link href="/" className="text-xl">
+      <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
       <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
     </Link>
   );
@@ -46,7 +46,7 @@ function renderSection(section: PostSection, index: number) {
       return (
         <h2
           key={index}
-          className="font-display italic mt-14 mb-5"
+          className="font-display mt-14 mb-5"
           style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", color: "#1A1A1A", lineHeight: 1.2 }}
         >
           {section.text}
@@ -86,7 +86,7 @@ function renderSection(section: PostSection, index: number) {
           }}
         >
           <p
-            className="font-display italic text-2xl leading-relaxed m-0"
+            className="font-display text-2xl leading-relaxed m-0"
             style={{ color: "#1A1A1A" }}
           >
             {section.text}
@@ -182,7 +182,7 @@ export default async function JournalPostPage({ params }: Props) {
             </span>
           </div>
           <h1
-            className="font-display italic mb-6"
+            className="font-display mb-6"
             style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#1A1A1A", lineHeight: 1.1 }}
           >
             {post.title}
@@ -204,7 +204,7 @@ export default async function JournalPostPage({ params }: Props) {
             Early Access
           </p>
           <h3
-            className="font-display italic mb-3"
+            className="font-display mb-3"
             style={{ color: "#fff", fontSize: "1.75rem", lineHeight: 1.2 }}
           >
             Try it before the public does.
@@ -226,7 +226,7 @@ export default async function JournalPostPage({ params }: Props) {
             Join the waitlist
           </p>
           <h3
-            className="font-display italic mb-4"
+            className="font-display mb-4"
             style={{ color: "#1A1A1A", fontSize: "2rem", lineHeight: 1.2 }}
           >
             Be first when we launch.

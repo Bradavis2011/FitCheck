@@ -125,7 +125,7 @@ export default function ContentGate({ children, threshold = 0.4 }: ContentGatePr
             </p>
 
             <h3
-              className="font-display italic mb-3"
+              className="font-display mb-3"
               style={{ fontSize: "1.5rem", color: "#1A1A1A", lineHeight: 1.2 }}
             >
               Unlock the full guide

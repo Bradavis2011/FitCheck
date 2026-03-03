@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 function Logo() {
   return (
-    <Link href="/" className="text-xl font-medium">
-      <span style={{ color: "#1A1A1A" }}>Or </span>
+    <Link href="/" className="text-xl">
+      <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
       <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
     </Link>
   );
@@ -42,7 +42,7 @@ export default function JournalPage() {
             The Journal
           </p>
           <h1
-            className="font-display italic mb-4"
+            className="font-display mb-4"
             style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", color: "#1A1A1A", lineHeight: 1.1 }}
           >
             Thoughts on style,<br />AI, and building.
