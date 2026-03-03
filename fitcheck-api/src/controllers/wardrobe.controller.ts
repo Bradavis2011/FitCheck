@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../utils/prisma.js';
+import { suggestOutfitFromWardrobe, analyzeVirtualOutfit } from '../services/wardrobe-intelligence.service.js';
 
 const VALID_CATEGORIES = ['tops', 'bottoms', 'shoes', 'accessories', 'outerwear'] as const;
 
@@ -42,10 +43,18 @@ export async function listWardrobeItems(req: AuthenticatedRequest, res: Response
   res.json({ items });
 }
 
+// Feature thresholds: how many outfit checks unlock each feature
+const FEATURE_THRESHOLDS = {
+  manual_wardrobe: 0,       // Day 1 — add/edit/delete/view
+  outfit_builder: 0,        // Day 1 — requires 3+ items in wardrobe
+  ai_item_sync: 1,          // First check auto-populates wardrobe
+  virtual_analysis: 3,      // Text AI feedback on outfit combos
+  ai_outfit_suggestions: 5, // Gemini proposes combos
+} as const;
+
 // GET /api/wardrobe/progress
 export async function getWardrobeProgress(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;
-  const UNLOCK_THRESHOLD = 10;
 
   const [outfitCheckCount, wardrobeItemCount, categoryCounts] = await Promise.all([
     prisma.outfitCheck.count({ where: { userId, isDeleted: false } }),
@@ -57,22 +66,80 @@ export async function getWardrobeProgress(req: AuthenticatedRequest, res: Respon
     }),
   ]);
 
-  const isUnlocked = outfitCheckCount >= UNLOCK_THRESHOLD;
-  const progress = Math.min(outfitCheckCount, UNLOCK_THRESHOLD);
-
   const categoryCountsMap: Record<string, number> = {};
   for (const row of categoryCounts) {
     categoryCountsMap[row.category] = row._count.id;
   }
 
+  // Build feature unlock map
+  const features: Record<string, { unlocked: boolean; threshold: number }> = {};
+  for (const [key, threshold] of Object.entries(FEATURE_THRESHOLDS)) {
+    features[key] = { unlocked: outfitCheckCount >= threshold, threshold };
+  }
+
+  // Next milestone: the lowest threshold the user hasn't reached yet
+  const nextMilestone = Object.values(FEATURE_THRESHOLDS)
+    .filter((t) => t > outfitCheckCount)
+    .sort((a, b) => a - b)[0] ?? null;
+
+  // Backward-compat: isUnlocked = ai_item_sync unlocked (1+ checks)
+  const isUnlocked = outfitCheckCount >= FEATURE_THRESHOLDS.ai_item_sync;
+
   res.json({
     outfitCheckCount,
     wardrobeItemCount,
-    unlockThreshold: UNLOCK_THRESHOLD,
+    // Legacy fields — kept for backward compat
+    unlockThreshold: FEATURE_THRESHOLDS.ai_item_sync,
     isUnlocked,
-    progress,
+    progress: Math.min(outfitCheckCount, FEATURE_THRESHOLDS.ai_item_sync),
     categoryCounts: categoryCountsMap,
+    // New fields
+    features,
+    nextMilestone,
   });
+}
+
+// POST /api/wardrobe/suggest-outfit
+export async function suggestOutfit(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user!.id;
+
+  // Threshold check: 5 outfit checks required
+  const checkCount = await prisma.outfitCheck.count({ where: { userId, isDeleted: false } });
+  if (checkCount < FEATURE_THRESHOLDS.ai_outfit_suggestions) {
+    throw new AppError(403, `Complete ${FEATURE_THRESHOLDS.ai_outfit_suggestions} outfit checks to unlock AI outfit suggestions. You have ${checkCount}.`);
+  }
+
+  const { occasion, weather, vibe } = req.body as { occasion?: string; weather?: string; vibe?: string };
+  const context = { occasion, weather, vibe };
+
+  const suggestion = await suggestOutfitFromWardrobe(userId, context);
+  res.json(suggestion);
+}
+
+// POST /api/wardrobe/analyze-outfit
+export async function analyzeOutfit(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user!.id;
+
+  // Threshold check: 3 outfit checks required
+  const checkCount = await prisma.outfitCheck.count({ where: { userId, isDeleted: false } });
+  if (checkCount < FEATURE_THRESHOLDS.virtual_analysis) {
+    throw new AppError(403, `Complete ${FEATURE_THRESHOLDS.virtual_analysis} outfit checks to unlock virtual outfit analysis. You have ${checkCount}.`);
+  }
+
+  const BodySchema = z.object({
+    itemIds: z.array(z.string().uuid()).min(2).max(6),
+    occasion: z.string().optional(),
+    weather: z.string().optional(),
+    vibe: z.string().optional(),
+  });
+  const body = BodySchema.parse(req.body);
+
+  const result = await analyzeVirtualOutfit(userId, body.itemIds, {
+    occasion: body.occasion,
+    weather: body.weather,
+    vibe: body.vibe,
+  });
+  res.json(result);
 }
 
 // GET /api/wardrobe/:id/outfits

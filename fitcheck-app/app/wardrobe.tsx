@@ -145,9 +145,14 @@ export default function WardrobeScreen() {
           <Ionicons name="arrow-back" size={20} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>The Closet</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.addLabel}>+ ADD</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <TouchableOpacity onPress={() => router.push('/outfit-builder' as any)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.addLabel}>BUILD</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowAddModal(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.addLabel}>+ ADD</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Editorial rule */}
@@ -240,6 +245,19 @@ export default function WardrobeScreen() {
             </View>
           </>
         )}
+        {/* Style Journal entry card */}
+        <TouchableOpacity
+          style={styles.journalEntryCard}
+          onPress={() => router.push('/style-journal' as any)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.journalEntryContent}>
+            <Text style={styles.journalEntryLabel}>STYLE JOURNAL</Text>
+            <Text style={styles.journalEntryTitle}>Personalized articles from your closet</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+        </TouchableOpacity>
+
         <View style={{ height: 48 }} />
       </ScrollView>
 
@@ -526,7 +544,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   placeholderCategory: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.sansMedium,
     fontSize: 13,
     color: Colors.textMuted,
     letterSpacing: 0.2,
@@ -591,6 +609,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.8,
     color: Colors.white,
+  },
+
+  journalEntryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: Colors.white,
+  },
+  journalEntryContent: {
+    flex: 1,
+    gap: 2,
+  },
+  journalEntryLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: Colors.primary,
+  },
+  journalEntryTitle: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.text,
   },
 
   // Outfit rows (inside outfits modal)

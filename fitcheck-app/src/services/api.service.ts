@@ -843,6 +843,11 @@ export interface WardrobeItem {
   _count?: { outfitLinks: number };
 }
 
+export interface WardrobeFeature {
+  unlocked: boolean;
+  threshold: number;
+}
+
 export interface WardrobeProgress {
   outfitCheckCount: number;
   wardrobeItemCount: number;
@@ -850,6 +855,72 @@ export interface WardrobeProgress {
   isUnlocked: boolean;
   progress: number;
   categoryCounts: Record<string, number>;
+  features: {
+    manual_wardrobe: WardrobeFeature;
+    outfit_builder: WardrobeFeature;
+    ai_item_sync: WardrobeFeature;
+    virtual_analysis: WardrobeFeature;
+    ai_outfit_suggestions: WardrobeFeature;
+  };
+  nextMilestone: number | null;
+}
+
+// Wardrobe AI types
+export interface OutfitSuggestionItem {
+  wardrobeItemId: string;
+  name: string;
+  category: string;
+  color: string | null;
+  role: string;
+}
+
+export interface OutfitSuggestion {
+  items: OutfitSuggestionItem[];
+  reasoning: string;
+  styleNotes: string[];
+  missingPieces?: string[];
+}
+
+export interface VirtualOutfitAnalysis {
+  overallScore: number;
+  editorialSummary: string;
+  whatsRight: string[];
+  couldImprove: string[];
+  quickSwaps: Array<{ current: string; swap: string; reason: string }>;
+}
+
+// Style Journal types
+export type StyleArticleType =
+  | 'wardrobe_snapshot'
+  | 'color_story'
+  | 'capsule_builder'
+  | 'monthly_report'
+  | 'occasion_playbook';
+
+export interface StyleArticle {
+  id: string;
+  userId: string;
+  articleType: StyleArticleType;
+  title: string;
+  content: string;
+  data: Record<string, unknown> | null;
+  version: number;
+  generatedAt: string;
+  validUntil: string;
+  inputHash: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StyleArticleOverviewItem {
+  type: StyleArticleType;
+  title: string;
+  previewDescription: string;
+  dataThresholdMet: boolean;
+  dataThresholdMessage: string;
+  hasArticle: boolean;
+  isStale: boolean;
+  generatedAt: string | null;
 }
 
 export const wardrobeService = {
@@ -904,6 +975,39 @@ export const wardrobeService = {
 
   async logWear(id: string) {
     const response = await api.post<{ item: WardrobeItem }>(`/api/wardrobe/${id}/wear`);
+    return response.data;
+  },
+
+  async suggestOutfit(context?: { occasion?: string; weather?: string; vibe?: string }) {
+    const response = await api.post<OutfitSuggestion>('/api/wardrobe/suggest-outfit', context ?? {});
+    return response.data;
+  },
+
+  async analyzeOutfit(data: {
+    itemIds: string[];
+    occasion?: string;
+    weather?: string;
+    vibe?: string;
+  }) {
+    const response = await api.post<VirtualOutfitAnalysis>('/api/wardrobe/analyze-outfit', data);
+    return response.data;
+  },
+};
+
+// Style Journal Service
+export const styleJournalService = {
+  async listJournal() {
+    const response = await api.get<{ articles: StyleArticleOverviewItem[] }>('/api/style-journal');
+    return response.data;
+  },
+
+  async getArticle(type: StyleArticleType) {
+    const response = await api.get<{ article: StyleArticle }>(`/api/style-journal/${type}`);
+    return response.data;
+  },
+
+  async generateArticle(type: StyleArticleType) {
+    const response = await api.post<{ article: StyleArticle }>(`/api/style-journal/${type}/generate`);
     return response.data;
   },
 };

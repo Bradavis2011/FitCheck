@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, eventService, referralService, supportService, feedbackService, legalService, FeedbackType, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, styleJournalService, eventService, referralService, supportService, feedbackService, legalService, FeedbackType, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse, StyleArticleType } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -575,6 +575,49 @@ export function useLogWear() {
     mutationFn: (id: string) => wardrobeService.logWear(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wardrobe'] });
+    },
+  });
+}
+
+export function useSuggestOutfit() {
+  return useMutation({
+    mutationFn: (context?: { occasion?: string; weather?: string; vibe?: string }) =>
+      wardrobeService.suggestOutfit(context),
+  });
+}
+
+export function useAnalyzeOutfit() {
+  return useMutation({
+    mutationFn: (data: { itemIds: string[]; occasion?: string; weather?: string; vibe?: string }) =>
+      wardrobeService.analyzeOutfit(data),
+  });
+}
+
+// Style Journal hooks
+export function useStyleJournal() {
+  return useQuery({
+    queryKey: ['styleJournal'],
+    queryFn: () => styleJournalService.listJournal(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useStyleArticle(type: StyleArticleType | null) {
+  return useQuery({
+    queryKey: ['styleArticle', type],
+    queryFn: () => styleJournalService.getArticle(type!),
+    enabled: !!type,
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+export function useGenerateStyleArticle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (type: StyleArticleType) => styleJournalService.generateArticle(type),
+    onSuccess: (_data, type) => {
+      queryClient.invalidateQueries({ queryKey: ['styleJournal'] });
+      queryClient.invalidateQueries({ queryKey: ['styleArticle', type] });
     },
   });
 }

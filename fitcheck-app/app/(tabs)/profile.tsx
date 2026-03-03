@@ -364,6 +364,19 @@ export default function ProfileScreen() {
           <WardrobeProgressCard />
         </View>
 
+        {/* Style Journal */}
+        <TouchableOpacity
+          style={styles.journalRow}
+          onPress={() => router.push('/style-journal' as any)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.journalRowContent}>
+            <Text style={styles.journalRowLabel}>STYLE JOURNAL</Text>
+            <Text style={styles.journalRowSub}>Personalized editorial articles</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+        </TouchableOpacity>
+
         {/* Upgrade — editorial style */}
         {tier === 'free' && (
           <View style={styles.upgradeBlock}>
@@ -909,6 +922,31 @@ const styles = StyleSheet.create({
   // Wardrobe section
   wardrobeSection: {
     marginBottom: Spacing.sm,
+  },
+  journalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  journalRowContent: {
+    gap: 2,
+  },
+  journalRowLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.primary,
+  },
+  journalRowSub: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
   },
   version: {
     fontFamily: Fonts.sans,

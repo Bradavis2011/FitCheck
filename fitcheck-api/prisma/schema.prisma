@@ -98,6 +98,7 @@ model User {
   supportTickets         SupportTicket[]
   churnRiskScore         ChurnRiskScore?
   userFeedback           UserFeedback[]
+  styleArticles          StyleArticle[]
 
   @@index([tier])
   @@index([emailOptOut])
@@ -1323,4 +1324,24 @@ model CreatorPost {
   @@index([creatorId])
   @@index([isViral])
   @@map("creator_posts")
+}
+
+model StyleArticle {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articleType String   @map("article_type")
+  title       String
+  content     String   @db.Text
+  data        Json?
+  version     Int      @default(1)
+  generatedAt DateTime @default(now()) @map("generated_at")
+  validUntil  DateTime @map("valid_until")
+  inputHash   String?  @map("input_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, articleType])
+  @@index([userId])
+  @@map("style_articles")
 }

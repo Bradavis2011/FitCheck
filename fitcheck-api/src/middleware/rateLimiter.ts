@@ -30,3 +30,12 @@ export const waitlistLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Wardrobe AI endpoints — 10 per hour. Does NOT count against daily outfit check limits.
+export const wardrobeAiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many AI wardrobe requests. Please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});

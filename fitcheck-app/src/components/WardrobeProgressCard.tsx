@@ -12,38 +12,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   outerwear: 'Outerwear',
 };
 
+function getMilestoneTeaser(outfitCheckCount: number, wardrobeItemCount: number): string | null {
+  if (outfitCheckCount < 1) return '1 check to enable AI item detection';
+  if (outfitCheckCount < 3) return `${3 - outfitCheckCount} more check${3 - outfitCheckCount !== 1 ? 's' : ''} to unlock virtual outfit analysis`;
+  if (outfitCheckCount < 5) return `${5 - outfitCheckCount} more check${5 - outfitCheckCount !== 1 ? 's' : ''} to unlock AI outfit suggestions`;
+  if (wardrobeItemCount === 0) return 'Add items to seed your closet';
+  return null;
+}
+
 export default function WardrobeProgressCard() {
   const router = useRouter();
   const { data: progress, isLoading } = useWardrobeProgress();
 
   if (isLoading || !progress) return null;
 
-  const { outfitCheckCount, wardrobeItemCount, unlockThreshold, isUnlocked, categoryCounts } = progress;
-  const pct = Math.min((outfitCheckCount / unlockThreshold) * 100, 100);
-
-  if (!isUnlocked) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.sectionLabel}>The Closet</Text>
-        <View style={styles.rule} />
-
-        <Text style={styles.title}>Your Closet is Building</Text>
-
-        {wardrobeItemCount > 0 && (
-          <Text style={styles.teaser}>{wardrobeItemCount} item{wardrobeItemCount !== 1 ? 's' : ''} detected so far</Text>
-        )}
-
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
-        </View>
-        <Text style={styles.progressLabel}>{outfitCheckCount}/{unlockThreshold} outfit checks</Text>
-        <Text style={styles.subtitle}>Keep checking outfits to unlock your AI-built wardrobe</Text>
-      </View>
-    );
-  }
-
-  // Unlocked state
+  const { outfitCheckCount, wardrobeItemCount, categoryCounts } = progress;
   const categoryEntries = Object.entries(categoryCounts).filter(([, count]) => count > 0);
+  const teaser = getMilestoneTeaser(outfitCheckCount, wardrobeItemCount);
+  const aiActive = outfitCheckCount >= 5;
 
   return (
     <TouchableOpacity
@@ -51,23 +37,48 @@ export default function WardrobeProgressCard() {
       onPress={() => router.push('/wardrobe' as any)}
       activeOpacity={0.8}
     >
-      <View style={styles.unlockedHeader}>
-        <Text style={styles.sectionLabel}>The Closet</Text>
-        <View style={styles.itemCountRow}>
-          <Text style={styles.itemCount}>{wardrobeItemCount} items</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.sectionLabel}>The Closet</Text>
+          <View style={styles.rule} />
+        </View>
+        <View style={styles.headerRight}>
+          {wardrobeItemCount > 0 && (
+            <Text style={styles.itemCount}>{wardrobeItemCount} items</Text>
+          )}
           <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
         </View>
       </View>
-      <View style={styles.rule} />
 
-      {categoryEntries.length > 0 && (
-        <View style={styles.chips}>
-          {categoryEntries.map(([cat, count]) => (
-            <View key={cat} style={styles.chip}>
-              <Text style={styles.chipText}>{count} {CATEGORY_LABELS[cat] ?? cat}</Text>
-            </View>
-          ))}
+      {wardrobeItemCount === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Seed your closet</Text>
+          <Text style={styles.emptySubtitle}>Add items from day 1 — no outfit checks needed</Text>
+          <View style={styles.addCta}>
+            <Text style={styles.addCtaText}>ADD ITEMS</Text>
+          </View>
         </View>
+      ) : (
+        categoryEntries.length > 0 && (
+          <View style={styles.chips}>
+            {categoryEntries.map(([cat, count]) => (
+              <View key={cat} style={styles.chip}>
+                <Text style={styles.chipText}>{count} {CATEGORY_LABELS[cat] ?? cat}</Text>
+              </View>
+            ))}
+          </View>
+        )
+      )}
+
+      {aiActive && (
+        <View style={styles.aiActiveRow}>
+          <Ionicons name="sparkles" size={12} color={Colors.primary} />
+          <Text style={styles.aiActiveText}>AI styling active</Text>
+        </View>
+      )}
+
+      {!aiActive && teaser && (
+        <Text style={styles.teaser}>{teaser}</Text>
       )}
     </TouchableOpacity>
   );
@@ -83,6 +94,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  itemCount: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
   sectionLabel: {
     fontFamily: Fonts.sansMedium,
     fontSize: 11,
@@ -95,61 +123,40 @@ const styles = StyleSheet.create({
     width: 60,
     height: 1,
     backgroundColor: Colors.primary,
-    marginBottom: Spacing.md,
   },
-  unlockedHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  emptyState: {
+    gap: 4,
   },
-  itemCountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: 1,
-  },
-  itemCount: {
-    fontFamily: Fonts.sans,
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-  },
-  title: {
+  emptyTitle: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
     color: Colors.text,
-    marginBottom: 6,
   },
-  teaser: {
-    fontFamily: Fonts.sansMedium,
+  emptySubtitle: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-  },
-  progressBar: {
-    height: 2,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    overflow: 'hidden',
+    color: Colors.textMuted,
     marginBottom: 8,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
+  addCta: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 0,
   },
-  progressLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontFamily: Fonts.sans,
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
+  addCtaText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: Colors.primary,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginBottom: 8,
   },
   chip: {
     borderWidth: 1,
@@ -162,5 +169,22 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: FontSize.xs,
     color: Colors.text,
+  },
+  teaser: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+  aiActiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  aiActiveText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.xs,
+    color: Colors.primary,
   },
 });

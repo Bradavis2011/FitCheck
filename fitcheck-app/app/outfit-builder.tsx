@@ -1,12 +1,22 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Alert,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
-import { useWardrobeItems } from '../src/hooks/useApi';
-import type { WardrobeItem, WardrobeCategory } from '../src/services/api.service';
+import { useWardrobeItems, useWardrobeProgress, useSuggestOutfit, useAnalyzeOutfit } from '../src/hooks/useApi';
+import type { WardrobeItem, WardrobeCategory, VirtualOutfitAnalysis } from '../src/services/api.service';
 
 type SlotCategory = WardrobeCategory;
 
@@ -24,6 +34,9 @@ const SLOT_DEFINITIONS: { category: SlotCategory; label: string; icon: string }[
   { category: 'outerwear', label: 'Layer', icon: 'layers-outline' },
 ];
 
+const OCCASION_OPTIONS = ['Casual', 'Work', 'Date Night', 'Going Out', 'Event', 'Weekend'];
+const WEATHER_OPTIONS = ['Cold', 'Cool', 'Mild', 'Warm', 'Hot'];
+
 export default function OutfitBuilderScreen() {
   const router = useRouter();
   const [slots, setSlots] = useState<OutfitSlot[]>(
@@ -31,9 +44,28 @@ export default function OutfitBuilderScreen() {
   );
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
 
-  // Load all wardrobe items at once — group by category in-component
+  // Context bar
+  const [showContext, setShowContext] = useState(false);
+  const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
+  const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
+
+  // AI suggestion state
+  const [missingPieces, setMissingPieces] = useState<string[] | undefined>();
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null);
+
+  // Feedback modal state
+  const [feedbackModal, setFeedbackModal] = useState<VirtualOutfitAnalysis | null>(null);
+
+  // Load all wardrobe items + progress
   const { data, isLoading } = useWardrobeItems();
+  const { data: progress } = useWardrobeProgress();
   const allItems: WardrobeItem[] = data?.items ?? [];
+  const outfitCheckCount = progress?.outfitCheckCount ?? 0;
+  const canSuggest = outfitCheckCount >= 5;
+  const canAnalyze = outfitCheckCount >= 3;
+
+  const suggestOutfit = useSuggestOutfit();
+  const analyzeOutfit = useAnalyzeOutfit();
 
   const itemsByCategory = useMemo(() => {
     const map: Record<SlotCategory, WardrobeItem[]> = {
@@ -88,22 +120,103 @@ export default function OutfitBuilderScreen() {
     );
   }
 
-  function handleCheckOutfit() {
+  async function handleAiSuggest() {
+    if (!canSuggest) {
+      Alert.alert(
+        'Not Unlocked Yet',
+        `Complete ${5 - outfitCheckCount} more outfit check${5 - outfitCheckCount !== 1 ? 's' : ''} to unlock AI outfit suggestions.`
+      );
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      const result = await suggestOutfit.mutateAsync({
+        occasion: selectedOccasion ?? undefined,
+        weather: selectedWeather ?? undefined,
+      });
+
+      if (result.items.length === 0) {
+        Alert.alert('Add More Items', result.reasoning || 'Add at least 3 wardrobe items for AI suggestions.');
+        return;
+      }
+
+      // Map suggestion items back to wardrobe items and populate slots
+      const itemMap = new Map(allItems.map((i) => [i.id, i]));
+      setSlots((prev) =>
+        prev.map((slot) => {
+          const suggestion = result.items.find(
+            (s) => s.category === slot.category
+          );
+          if (suggestion) {
+            const wardrobeItem = itemMap.get(suggestion.wardrobeItemId);
+            if (wardrobeItem) return { ...slot, selected: wardrobeItem };
+          }
+          return slot;
+        })
+      );
+
+      setAiReasoning(result.reasoning);
+      setMissingPieces(result.missingPieces);
+      setActiveSlot(null);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      Alert.alert('AI Suggest Failed', err?.message ?? 'Please try again.');
+    }
+  }
+
+  async function handleCheckOutfit() {
     const filled = slots.filter((s) => s.selected !== null);
     if (filled.length < 2) {
       Alert.alert('Add More Items', 'Select at least 2 items to check your outfit.');
       return;
     }
-    // Navigate to camera/context with wardrobe mode
-    // For now, navigate to the main camera tab and let them know
-    Alert.alert(
-      'Outfit Ready',
-      'Take a photo wearing these pieces, then use the camera to get AI feedback!',
-      [
-        { text: 'Go to Camera', onPress: () => router.push('/(tabs)' as any) },
-        { text: 'OK', style: 'cancel' },
-      ]
+
+    if (!canAnalyze) {
+      // Under threshold — send them to camera
+      Alert.alert(
+        'Take a Photo Instead',
+        `Complete ${3 - outfitCheckCount} more outfit check${3 - outfitCheckCount !== 1 ? 's' : ''} to unlock virtual analysis. For now, take a photo to get AI feedback!`,
+        [
+          { text: 'Go to Camera', onPress: () => router.push('/(tabs)' as any) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    const itemIds = filled.map((s) => s.selected!.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      const result = await analyzeOutfit.mutateAsync({
+        itemIds,
+        occasion: selectedOccasion ?? undefined,
+        weather: selectedWeather ?? undefined,
+      });
+      setFeedbackModal(result);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      Alert.alert('Analysis Failed', err?.message ?? 'Please try again.');
+    }
+  }
+
+  function handleQuickSwap(swapName: string) {
+    // Find item in wardrobe by name (case-insensitive)
+    const found = allItems.find((i) => i.name.toLowerCase() === swapName.toLowerCase());
+    if (!found) {
+      Alert.alert('Item Not Found', `"${swapName}" wasn't found in your wardrobe.`);
+      return;
+    }
+    // Replace the matching category slot
+    setSlots((prev) =>
+      prev.map((slot) => {
+        if (slot.category === found.category) return { ...slot, selected: found };
+        return slot;
+      })
     );
+    setFeedbackModal(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
   const filledCount = slots.filter((s) => s.selected !== null).length;
@@ -116,18 +229,97 @@ export default function OutfitBuilderScreen() {
           <Ionicons name="close" size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Build an Outfit</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleShuffle}
-          disabled={allItems.length === 0}
-        >
-          <Ionicons
-            name="shuffle"
-            size={24}
-            color={allItems.length === 0 ? Colors.textMuted : Colors.primary}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {/* AI Suggest */}
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleAiSuggest}
+            disabled={suggestOutfit.isPending}
+          >
+            {suggestOutfit.isPending ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <View style={styles.aiSuggestBtn}>
+                <Ionicons
+                  name={canSuggest ? 'sparkles' : 'lock-closed-outline'}
+                  size={16}
+                  color={canSuggest ? Colors.primary : Colors.textMuted}
+                />
+                <Text style={[styles.aiSuggestText, !canSuggest && styles.aiSuggestTextLocked]}>
+                  AI
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          {/* Shuffle */}
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleShuffle}
+            disabled={allItems.length === 0}
+          >
+            <Ionicons
+              name="shuffle"
+              size={24}
+              color={allItems.length === 0 ? Colors.textMuted : Colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Collapsible Context Bar */}
+      <TouchableOpacity
+        style={styles.contextToggle}
+        onPress={() => setShowContext((v) => !v)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.contextToggleText}>
+          {selectedOccasion || selectedWeather
+            ? [selectedOccasion, selectedWeather].filter(Boolean).join(' · ')
+            : 'Add context (occasion, weather)'}
+        </Text>
+        <Ionicons
+          name={showContext ? 'chevron-up' : 'chevron-down'}
+          size={14}
+          color={Colors.textMuted}
+        />
+      </TouchableOpacity>
+
+      {showContext && (
+        <View style={styles.contextBar}>
+          <Text style={styles.contextLabel}>OCCASION</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contextRow}>
+            {OCCASION_OPTIONS.map((occ) => (
+              <TouchableOpacity
+                key={occ}
+                style={[styles.contextChip, selectedOccasion === occ && styles.contextChipActive]}
+                onPress={() => setSelectedOccasion(selectedOccasion === occ ? null : occ)}
+              >
+                <Text
+                  style={[styles.contextChipText, selectedOccasion === occ && styles.contextChipTextActive]}
+                >
+                  {occ}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={[styles.contextLabel, { marginTop: 8 }]}>WEATHER</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contextRow}>
+            {WEATHER_OPTIONS.map((w) => (
+              <TouchableOpacity
+                key={w}
+                style={[styles.contextChip, selectedWeather === w && styles.contextChipActive]}
+                onPress={() => setSelectedWeather(selectedWeather === w ? null : w)}
+              >
+                <Text
+                  style={[styles.contextChipText, selectedWeather === w && styles.contextChipTextActive]}
+                >
+                  {w}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Loading state */}
@@ -205,6 +397,25 @@ export default function OutfitBuilderScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* AI reasoning + missing pieces */}
+            {aiReasoning && (
+              <View style={styles.aiReasoningCard}>
+                <View style={styles.aiReasoningHeader}>
+                  <Ionicons name="sparkles" size={14} color={Colors.primary} />
+                  <Text style={styles.aiReasoningLabel}>AI STYLED</Text>
+                </View>
+                <Text style={styles.aiReasoningText}>{aiReasoning}</Text>
+                {missingPieces && missingPieces.length > 0 && (
+                  <>
+                    <Text style={styles.missingLabel}>CONSIDER ADDING</Text>
+                    {missingPieces.map((piece, i) => (
+                      <Text key={i} style={styles.missingItem}>· {piece}</Text>
+                    ))}
+                  </>
+                )}
+              </View>
+            )}
           </View>
         )}
 
@@ -256,37 +467,127 @@ export default function OutfitBuilderScreen() {
         )}
 
         {/* Empty tap-to-start state */}
-        {!isLoading && allItems.length > 0 && activeSlot === null && slots.every((s) => s.selected === null) && (
+        {!isLoading && allItems.length > 0 && activeSlot === null && slots.every((s) => s.selected === null) && !aiReasoning && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
               <Ionicons name="layers-outline" size={48} color={Colors.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>Start Building</Text>
-            <Text style={styles.emptyText}>Tap a slot above to choose items</Text>
+            <Text style={styles.emptyText}>Tap a slot above to choose items, or use AI Suggest</Text>
           </View>
         )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Check Outfit Footer */}
+      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.checkButton, filledCount < 2 && styles.checkButtonDisabled]}
+          style={[styles.checkButton, (filledCount < 2 || analyzeOutfit.isPending) && styles.checkButtonDisabled]}
           onPress={handleCheckOutfit}
-          disabled={filledCount < 2}
+          disabled={filledCount < 2 || analyzeOutfit.isPending}
           activeOpacity={0.8}
         >
-          <Ionicons
-            name="sparkles"
-            size={20}
-            color={filledCount >= 2 ? Colors.white : Colors.textMuted}
-          />
+          {analyzeOutfit.isPending ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Ionicons
+              name={canAnalyze ? 'sparkles' : 'camera-outline'}
+              size={20}
+              color={filledCount >= 2 ? Colors.white : Colors.textMuted}
+            />
+          )}
           <Text style={[styles.checkButtonText, filledCount < 2 && styles.checkButtonTextDisabled]}>
-            {filledCount >= 2 ? `Check Outfit (${filledCount} pieces)` : 'Select at least 2 items'}
+            {analyzeOutfit.isPending
+              ? 'Analyzing…'
+              : canAnalyze
+              ? filledCount >= 2
+                ? `Check Outfit (${filledCount} pieces)`
+                : 'Select at least 2 items'
+              : 'Take a Photo Instead'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Feedback Modal */}
+      <Modal
+        visible={!!feedbackModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setFeedbackModal(null)}
+      >
+        {feedbackModal && (
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Virtual Analysis</Text>
+              <TouchableOpacity onPress={() => setFeedbackModal(null)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {/* Score */}
+              <View style={styles.scoreRow}>
+                <Text style={styles.scoreNumber}>{feedbackModal.overallScore.toFixed(1)}</Text>
+                <Text style={styles.scoreLabel}>/10 (text-only)</Text>
+              </View>
+
+              <Text style={styles.editorialSummary}>{feedbackModal.editorialSummary}</Text>
+
+              <View style={styles.rule} />
+
+              {/* What's Right */}
+              {feedbackModal.whatsRight.length > 0 && (
+                <View style={styles.feedbackSection}>
+                  <Text style={styles.feedbackSectionLabel}>WHAT'S RIGHT</Text>
+                  {feedbackModal.whatsRight.map((point, i) => (
+                    <Text key={i} style={styles.feedbackPoint}>· {point}</Text>
+                  ))}
+                </View>
+              )}
+
+              {/* Could Improve */}
+              {feedbackModal.couldImprove.length > 0 && (
+                <View style={styles.feedbackSection}>
+                  <Text style={styles.feedbackSectionLabel}>COULD IMPROVE</Text>
+                  {feedbackModal.couldImprove.map((point, i) => (
+                    <Text key={i} style={styles.feedbackPoint}>· {point}</Text>
+                  ))}
+                </View>
+              )}
+
+              {/* Quick Swaps */}
+              {feedbackModal.quickSwaps.length > 0 && (
+                <View style={styles.feedbackSection}>
+                  <Text style={styles.feedbackSectionLabel}>QUICK SWAPS</Text>
+                  {feedbackModal.quickSwaps.map((swap, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={styles.swapCard}
+                      onPress={() => handleQuickSwap(swap.swap)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.swapMain}>
+                        <Text style={styles.swapFrom} numberOfLines={1}>{swap.current}</Text>
+                        <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+                        <Text style={styles.swapTo} numberOfLines={1}>{swap.swap}</Text>
+                      </View>
+                      <Text style={styles.swapReason}>{swap.reason}</Text>
+                      <Text style={styles.swapCta}>TAP TO APPLY SWAP</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Disclaimer */}
+              <Text style={styles.disclaimer}>
+                📸 Take a photo for a precise visual analysis with an accurate score.
+              </Text>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </SafeAreaView>
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -311,10 +612,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
     color: Colors.text,
+  },
+  aiSuggestBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  aiSuggestText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: Colors.primary,
+  },
+  aiSuggestTextLocked: {
+    color: Colors.textMuted,
+  },
+  contextToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  contextToggleText: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  contextBar: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  contextLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: Colors.textMuted,
+    marginBottom: 6,
+    marginTop: 10,
+  },
+  contextRow: {
+    flexDirection: 'row',
+  },
+  contextChip: {
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginRight: 6,
+    borderRadius: 0,
+  },
+  contextChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  contextChipText: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.text,
+  },
+  contextChipTextActive: {
+    color: Colors.white,
   },
   scrollView: {
     flex: 1,
@@ -450,6 +822,44 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 0,
   },
+  aiReasoningCard: {
+    marginTop: Spacing.md,
+    backgroundColor: 'rgba(232,93,76,0.06)',
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.primary,
+    padding: Spacing.md,
+    gap: 4,
+  },
+  aiReasoningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  aiReasoningLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: Colors.primary,
+  },
+  aiReasoningText: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  missingLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: Colors.textMuted,
+    marginTop: 8,
+  },
+  missingItem: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
   selectorSection: {
     padding: Spacing.lg,
     paddingTop: 0,
@@ -553,5 +963,121 @@ const styles = StyleSheet.create({
   },
   checkButtonTextDisabled: {
     color: Colors.textMuted,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  modalScroll: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: Spacing.md,
+  },
+  scoreNumber: {
+    fontFamily: Fonts.serifItalic,
+    fontSize: 56,
+    color: Colors.primary,
+    lineHeight: 60,
+  },
+  scoreLabel: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  editorialSummary: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 24,
+    marginBottom: Spacing.lg,
+  },
+  rule: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginBottom: Spacing.lg,
+  },
+  feedbackSection: {
+    marginBottom: Spacing.lg,
+  },
+  feedbackSectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  feedbackPoint: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  swapCard: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: 4,
+  },
+  swapMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  swapFrom: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    flex: 1,
+    textDecorationLine: 'line-through',
+  },
+  swapTo: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    flex: 1,
+  },
+  swapReason: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    lineHeight: 18,
+  },
+  swapCta: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: Colors.primary,
+    marginTop: 4,
+  },
+  disclaimer: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: Spacing.md,
   },
 });
