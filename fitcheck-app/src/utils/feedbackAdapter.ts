@@ -1,3 +1,5 @@
+import type { RevisionNote } from '../services/api.service';
+
 export interface NormalizedFeedback {
   overallScore: number;
   whatsRight: string[];
@@ -5,6 +7,7 @@ export interface NormalizedFeedback {
   takeItFurther: string[];
   editorialSummary: string;
   styleDNA?: any;
+  revisionNotes?: RevisionNote[];
 }
 
 export function normalizeFeedback(raw: any): NormalizedFeedback {
@@ -17,6 +20,7 @@ export function normalizeFeedback(raw: any): NormalizedFeedback {
       takeItFurther: raw.takeItFurther ?? [],
       editorialSummary: raw.editorialSummary ?? '',
       styleDNA: raw.styleDNA,
+      revisionNotes: Array.isArray(raw.revisionNotes) ? raw.revisionNotes : undefined,
     };
   }
   // v1/v2 legacy format: has whatsWorking

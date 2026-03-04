@@ -3,7 +3,7 @@
     "name": "Or This?",
     "slug": "orthis",
     "scheme": "orthis",
-    "version": "1.1.3",
+    "version": "1.2.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -26,7 +26,6 @@
         "NSCameraUsageDescription": "Or This? uses your camera to take photos of your outfit for AI-powered style analysis.",
         "NSPhotoLibraryUsageDescription": "Or This? accesses your photo library so you can select outfit photos for AI style analysis.",
         "NSPhotoLibraryAddUsageDescription": "Or This? saves outfit score cards to your photo library.",
-        "NSUserTrackingUsageDescription": "Or This? uses this to show relevant ads on Android. On iOS no personalised ads are shown.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

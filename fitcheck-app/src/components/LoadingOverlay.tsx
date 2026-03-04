@@ -89,7 +89,7 @@ export default function LoadingOverlay({
 
           {/* Progress bar — editorial sharp edges */}
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress}%` as any }]} />
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
 
           {/* Stage dots */}

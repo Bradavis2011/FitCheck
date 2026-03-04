@@ -423,6 +423,29 @@ export const RESPONSE_SCHEMA = {
   required: ['overallScore', 'whatsRight', 'couldImprove', 'takeItFurther', 'editorialSummary', 'styleDNA']
 } as const;
 
+// Returns response schema — adds revisionNotes array for revision checks
+export function getResponseSchema(isRevision: boolean): object {
+  if (!isRevision) return RESPONSE_SCHEMA;
+  return {
+    ...RESPONSE_SCHEMA,
+    properties: {
+      ...(RESPONSE_SCHEMA as any).properties,
+      revisionNotes: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            adviceIndex: { type: SchemaType.NUMBER },
+            status: { type: SchemaType.STRING }, // "implemented" | "partial" | "not_addressed"
+            observation: { type: SchemaType.STRING },
+          },
+          required: ['adviceIndex', 'status', 'observation'],
+        },
+      },
+    },
+  };
+}
+
 interface UserContext {
   id?: string;
   stylePreferences?: any;
@@ -703,6 +726,7 @@ export function buildUserPrompt(
     trendContext?: string | null;
     userCalibrationContext?: string | null;
     ratingCalibration?: string | null;
+    revisionContext?: string | null;
   }
 ): string {
   const parts = [
@@ -818,6 +842,11 @@ export function buildUserPrompt(
   // Self-correction based on user's rating history
   if (options?.ratingCalibration) {
     parts.push('', `Feedback quality note: ${options.ratingCalibration}`);
+  }
+
+  // Revision context — injected last so it's salient
+  if (options?.revisionContext) {
+    parts.push('', options.revisionContext);
   }
 
   parts.push('', 'Provide your analysis as JSON, using all context above to personalize recommendations.');
@@ -994,7 +1023,8 @@ export async function analyzeOutfit(
   outfitCheckId: string,
   input: OutfitCheckInput,
   user?: UserContext,
-  hasPriorityProcessing?: boolean
+  hasPriorityProcessing?: boolean,
+  revisedFromId?: string
 ): Promise<OutfitFeedbackV3> {
   // Mock mode for testing (bypasses Gemini API quota limits)
   if (process.env.USE_MOCK_AI === 'true') {
@@ -1036,6 +1066,47 @@ export async function analyzeOutfit(
   let userCalibrationContext: string | null = null;
   let ratingCalibration: string | null = null;
   let trendContext: string | null = null;
+  let revisionContext: string | null = null;
+
+  // Load original advice for revision prompt injection
+  if (revisedFromId) {
+    try {
+      const original = await prisma.outfitCheck.findUnique({
+        where: { id: revisedFromId },
+        select: { aiFeedback: true },
+      });
+      if (original?.aiFeedback) {
+        const origFeedback = original.aiFeedback as any;
+        const adviceItems: string[] = [];
+        const couldImprove: string[] = Array.isArray(origFeedback.couldImprove) ? origFeedback.couldImprove : [];
+        const takeItFurther: string[] = Array.isArray(origFeedback.takeItFurther) ? origFeedback.takeItFurther : [];
+        couldImprove.forEach((item: string) => adviceItems.push(`[IMPROVE] ${item}`));
+        takeItFurther.forEach((item: string) => adviceItems.push(`[ELEVATE] ${item}`));
+
+        if (adviceItems.length > 0) {
+          revisionContext = [
+            '═════════════════════════════════════════════════════════',
+            'REVISION CONTEXT — This is a revised version of a previous outfit.',
+            'The user received the following advice and has attempted changes.',
+            'Score THIS photo on its own merit. Do NOT inflate the score.',
+            '═════════════════════════════════════════════════════════',
+            '',
+            'Previous advice given:',
+            ...adviceItems.map((item, i) => `${i + 1}. ${item}`),
+            '',
+            'For each advice item, include a revisionNote with adviceIndex (0-based), status',
+            '("implemented" | "partial" | "not_addressed"), and observation.',
+            '',
+            'IMPORTANT: Score purely on what you see. The revision context is for',
+            'evaluating advice adherence only — it must NOT bias the score.',
+          ].join('\n');
+          console.log(`[AI] Revision context injected (${adviceItems.length} advice items)`);
+        }
+      }
+    } catch (err) {
+      console.error('[AI] Failed to load revision context (non-fatal):', err);
+    }
+  }
 
   try {
     const outfitCheck = await prisma.outfitCheck.findUnique({
@@ -1104,7 +1175,7 @@ export async function analyzeOutfit(
           temperature: hasPriorityProcessing ? 0.3 : 0.5,
           maxOutputTokens: hasPriorityProcessing ? 8192 : 4096,
           responseMimeType: 'application/json',
-          responseSchema: RESPONSE_SCHEMA as any
+          responseSchema: getResponseSchema(!!revisedFromId) as any
         },
       });
 
@@ -1141,6 +1212,7 @@ export async function analyzeOutfit(
           trendContext,
           userCalibrationContext,
           ratingCalibration,
+          revisionContext,
         }),
         imagePart,
       ]);

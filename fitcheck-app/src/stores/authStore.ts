@@ -35,16 +35,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuth: async (token: string, user: User) => {
     try {
-      console.log('[AuthStore] setAuth called with:', { userId: user.id, email: user.email });
-      console.log('[AuthStore] Saving token to SecureStore...');
       await SecureStore.setItemAsync(TOKEN_KEY, token);
-      console.log('[AuthStore] Saving user to SecureStore...');
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
-      console.log('[AuthStore] Setting auth token in API client...');
       setAuthToken(token);
-      console.log('[AuthStore] Updating Zustand state...');
       set({ token, user, isAuthenticated: true });
-      console.log('[AuthStore] setAuth complete');
     } catch (error) {
       console.error('[AuthStore] Failed to save auth:', error);
       throw error;
@@ -68,12 +62,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
       const userJson = await SecureStore.getItemAsync(USER_KEY);
       const onboardingCompleted = await SecureStore.getItemAsync(ONBOARDING_KEY);
-
-      console.log('[AuthStore] Loading auth:', {
-        hasToken: !!token,
-        hasUser: !!userJson,
-        onboardingCompleted,
-      });
 
       if (token && userJson) {
         let user: User;

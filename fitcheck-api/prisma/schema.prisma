@@ -151,6 +151,11 @@ model OutfitCheck {
   visibility String    @default("all") // "all", "followers", "trusted" - who can see when public
   expiresAt  DateTime? @map("expires_at") // Auto-delete timestamp based on user's autoDelete setting
 
+  // Outfit revision system
+  revisedFromId String?      @map("revised_from_id")
+  revisedFrom   OutfitCheck? @relation("OutfitRevisions", fields: [revisedFromId], references: [id], onDelete: SetNull)
+  revisions     OutfitCheck[] @relation("OutfitRevisions")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   followUps            FollowUp[]
@@ -165,6 +170,7 @@ model OutfitCheck {
   @@index([userId, createdAt])
   @@index([userId, isDeleted])
   @@index([isPublic, createdAt])
+  @@index([revisedFromId])
   @@map("outfit_checks")
 }
 

@@ -25,7 +25,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 // expo-sharing requires native module — guard so Expo Go loads safely
 let Sharing: any = null;
 try { Sharing = require('expo-sharing'); } catch { /* unavailable in Expo Go */ }
-import { useAppStore } from '../src/stores/auth';
+import { useAppStore, type RevisionSource } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, Fonts, BorderRadius, getScoreColor } from '../src/constants/theme';
 import AdBanner from '../src/components/AdBanner';
@@ -34,11 +34,12 @@ import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import ShareableScoreCard from '../src/components/ShareableScoreCard';
+import RevisionNotesCard from '../src/components/RevisionNotesCard';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic, useCommunityFeedback, useReferralStats } from '../src/hooks/useApi';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
-import { normalizeFeedback, type NormalizedFeedback } from '../src/utils/feedbackAdapter';
+import { normalizeFeedback } from '../src/utils/feedbackAdapter';
 
 let _ads: any = null;
 try { _ads = require('react-native-google-mobile-ads'); } catch { /* native module unavailable */ }
@@ -62,7 +63,7 @@ export default function FeedbackScreen() {
   const params = useLocalSearchParams();
   const outfitId = params.outfitId as string;
 
-  const { resetCheckFlow } = useAppStore();
+  const { resetCheckFlow, setRevisionSource } = useAppStore();
   const { limits, tier } = useSubscriptionStore();
   const togglePublicMutation = useTogglePublic();
   const user = useAuthStore((s) => s.user);
@@ -324,6 +325,27 @@ export default function FeedbackScreen() {
     }
   };
 
+  const handleRevise = () => {
+    if (!outfit) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    track('revision_started', { outfit_id: outfit.id, score: outfit.aiScore ?? 0 });
+
+    // Build revision source from the current outfit's context
+    const source: RevisionSource = {
+      id: outfit.id,
+      occasions: outfit.occasions,
+      setting: outfit.setting ?? null,
+      weather: outfit.weather ?? null,
+      vibe: outfit.vibe ?? null,
+      concerns: outfit.specificConcerns ?? null,
+    };
+
+    // Reset flow first, then set revisionSource (reset clears it)
+    resetCheckFlow();
+    setRevisionSource(source);
+    router.replace('/(tabs)/camera' as any);
+  };
+
   if (isLoading || !outfit?.aiFeedback) {
     return (
       <View style={styles.loadingContainer}>
@@ -356,6 +378,23 @@ export default function FeedbackScreen() {
     normalized?.editorialSummary?.includes('trouble analyzing') ||
     (feedback as any)?.summary?.includes('trouble analyzing');
 
+  // Revision: score delta vs original
+  const originalScore = outfit.revisedFrom?.aiScore ?? null;
+  const scoreDelta = originalScore !== null ? score - originalScore : null;
+
+  // Original advice list for RevisionNotesCard (couldImprove + takeItFurther from original)
+  const originalAdviceList: string[] = (() => {
+    if (!outfit.revisedFrom?.aiFeedback) return [];
+    const orig = outfit.revisedFrom.aiFeedback as any;
+    return [
+      ...(Array.isArray(orig.couldImprove) ? orig.couldImprove : []),
+      ...(Array.isArray(orig.takeItFurther) ? orig.takeItFurther : []),
+    ];
+  })();
+
+  const hasRevisions = (outfit.revisions?.length ?? 0) > 0;
+  const latestRevision = outfit.revisions?.[0] ?? null;
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -386,6 +425,22 @@ export default function FeedbackScreen() {
                   {score.toFixed(1)}
                 </Text>
                 <Text style={styles.scoreOut}>/10</Text>
+                {scoreDelta !== null && (
+                  <View style={[
+                    styles.deltaBadge,
+                    {
+                      backgroundColor: scoreDelta > 0
+                        ? Colors.success
+                        : scoreDelta < 0
+                        ? Colors.error
+                        : Colors.textMuted,
+                    },
+                  ]}>
+                    <Text style={styles.deltaBadgeText}>
+                      {scoreDelta > 0 ? `+${scoreDelta.toFixed(1)}` : scoreDelta.toFixed(1)}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -443,6 +498,28 @@ export default function FeedbackScreen() {
                 </View>
               ))}
             </FeedbackCard>
+          )}
+
+          {/* Revision Notes — shown when this is a revision with notes */}
+          {normalized?.revisionNotes && normalized.revisionNotes.length > 0 && outfit.revisedFrom && (
+            <RevisionNotesCard
+              revisionNotes={normalized.revisionNotes}
+              originalAdvice={originalAdviceList}
+              originalOutfitId={outfit.revisedFrom.id}
+            />
+          )}
+
+          {/* Revised badge — shown on original when a revision exists */}
+          {hasRevisions && latestRevision && (
+            <TouchableOpacity
+              style={styles.revisedBadge}
+              onPress={() => router.push(`/feedback?outfitId=${latestRevision.id}` as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh-circle" size={16} color={Colors.primary} />
+              <Text style={styles.revisedBadgeText}>Revised — View Update</Text>
+              <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+            </TouchableOpacity>
           )}
 
           {/* Editorial Summary — Vogue pull quote, shown last */}
@@ -604,6 +681,16 @@ export default function FeedbackScreen() {
               color={isFavorite ? Colors.white : Colors.text}
             />
           </TouchableOpacity>
+          {/* Revise button — shown when there's advice to act on */}
+          {(normalized?.couldImprove?.length || normalized?.takeItFurther?.length) ? (
+            <TouchableOpacity
+              style={styles.reviseButton}
+              onPress={handleRevise}
+            >
+              <Ionicons name="refresh" size={16} color={Colors.primary} />
+              <Text style={styles.reviseButtonText}>Revise</Text>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={styles.shareButton}
             onPress={handleShareScore}
@@ -1146,5 +1233,57 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: -1000,
     top: 0,
+  },
+  // Score delta badge (revision system)
+  deltaBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 0,
+    alignSelf: 'center',
+  },
+  deltaBadgeText: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 13,
+    color: Colors.white,
+  },
+  // Revise button in action bar
+  reviseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 0,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  reviseButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: Colors.primary,
+  },
+  // Revised badge (shown on original when a revision exists)
+  revisedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.primaryAlpha10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 0,
+  },
+  revisedBadgeText: {
+    flex: 1,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13,
+    color: Colors.primary,
   },
 });

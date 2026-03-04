@@ -14,7 +14,6 @@ import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { logOutPurchases } from '../../src/services/purchases.service';
 import { useUserStats, useUser, useUpdateProfile, useBadges, useDailyGoals, useClaimReferral, useSubmitFeedback } from '../../src/hooks/useApi';
 import type { FeedbackType } from '../../src/services/api.service';
-import PillButton from '../../src/components/PillButton';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
 import ReferralCard from '../../src/components/ReferralCard';
 import UserAvatar from '../../src/components/UserAvatar';

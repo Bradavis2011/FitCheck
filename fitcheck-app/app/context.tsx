@@ -53,6 +53,8 @@ export default function ContextScreen() {
     setConcerns,
     setEventDate,
     isAnalyzing,
+    revisionSource,
+    setRevisionSource,
   } = useAppStore();
 
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -77,6 +79,23 @@ export default function ContextScreen() {
     });
     setPrefsApplied(true);
   }, [contextPrefs, prefsApplied, selectedOccasions.length]);
+
+  // Revision: pre-populate context from original outfit (runs once on mount)
+  const [revisionApplied, setRevisionApplied] = useState(false);
+  useEffect(() => {
+    if (revisionApplied || !revisionSource) return;
+    const vibesArray = revisionSource.vibe
+      ? revisionSource.vibe.split(',').map((v) => v.trim()).filter(Boolean)
+      : [];
+    useAppStore.setState({
+      selectedOccasions: [...revisionSource.occasions],
+      selectedSetting: revisionSource.setting,
+      selectedWeather: revisionSource.weather,
+      selectedVibes: vibesArray,
+      concerns: revisionSource.concerns ?? '',
+    });
+    setRevisionApplied(true);
+  }, [revisionSource, revisionApplied]);
 
   // Outfit memory — fetch best past outfit for selected occasions
   const { data: memoryData } = useOutfitMemory(selectedOccasions);
@@ -122,9 +141,7 @@ export default function ContextScreen() {
 
   // If no image, go back to camera
   useEffect(() => {
-    console.log('[Context] Captured image URI:', capturedImage);
     if (!capturedImage) {
-      console.log('[Context] No image, going back to camera');
       router.back();
     }
   }, [capturedImage]);
@@ -134,12 +151,9 @@ export default function ContextScreen() {
       // Start analysis
       useAppStore.getState().startAnalysis();
 
-      console.log('[Context] Starting image upload...');
       // Upload image and get base64
       const imageResult = await uploadImage(capturedImage!);
-      console.log('[Context] Image uploaded successfully, size:', imageResult.base64.length);
 
-      console.log('[Context] Submitting to API...');
       // Submit to API
       const response = await outfitService.submitCheck({
         imageBase64: imageResult.base64,
@@ -151,12 +165,11 @@ export default function ContextScreen() {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         eventDate: eventDate ? eventDate.toISOString() : undefined,
         shareWith,
+        revisedFromId: revisionSource?.id,
       });
-      console.log('[Context] API response received:', response.id);
-
-      // Clear isAnalyzing before navigating so the loading overlay doesn't
-      // persist if the user presses back from the feedback screen.
+      // Clear isAnalyzing + revisionSource before navigating
       useAppStore.setState({ isAnalyzing: false });
+      setRevisionSource(null);
       router.push(`/feedback?outfitId=${response.id}`);
     } catch (error: any) {
       console.error('[Context] Failed to submit outfit check:', error);
@@ -237,6 +250,16 @@ export default function ContextScreen() {
             </View>
           )}
 
+          {/* Revision banner — shown when revising a previous outfit */}
+          {revisionSource && (
+            <View style={styles.revisionBanner}>
+              <Ionicons name="refresh-circle" size={20} color={Colors.primary} />
+              <Text style={styles.revisionBannerText}>
+                Revising Your Look — context pre-filled from your previous outfit
+              </Text>
+            </View>
+          )}
+
           {/* Image preview — contain so the full outfit is always visible */}
           {capturedImage && (
             <View style={styles.imagePreviewContainer}>
@@ -245,11 +268,6 @@ export default function ContextScreen() {
                   source={{ uri: capturedImage }}
                   style={styles.image}
                   resizeMode="contain"
-                  onError={(error) => {
-                    console.error('[Context] Image load error:', error.nativeEvent.error);
-                    console.error('[Context] Image URI:', capturedImage);
-                  }}
-                  onLoad={() => console.log('[Context] Image loaded successfully')}
                 />
               </View>
             </View>
@@ -633,6 +651,26 @@ const styles = StyleSheet.create({
     color: Colors.warning,
     lineHeight: 18,
   },
+  revisionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: 0,
+    padding: Spacing.md,
+    backgroundColor: 'rgba(232, 93, 76, 0.07)',
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  revisionBannerText: {
+    flex: 1,
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    lineHeight: 18,
+  },
   imagePreviewContainer: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -966,7 +1004,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     width: '100%',
     gap: Spacing.md,
-    maxHeight: '80%' as any,
+    maxHeight: '80%',
   },
   consentTitle: {
     fontFamily: Fonts.serif,

@@ -70,6 +70,18 @@ export interface OutfitFeedback {
     notes: string;
   };
   styleDNA?: StyleDNA;
+  // v3.0 fields
+  whatsRight?: string[];
+  couldImprove?: string[];
+  takeItFurther?: string[];
+  editorialSummary?: string;
+  revisionNotes?: RevisionNote[];
+}
+
+export interface RevisionNote {
+  adviceIndex: number;
+  status: 'implemented' | 'partial' | 'not_addressed';
+  observation: string;
 }
 
 export interface OutfitCheck {
@@ -99,6 +111,24 @@ export interface OutfitCheck {
   expiresAt?: string;
   createdAt: string;
   followUps?: FollowUp[];
+  // Revision system
+  revisedFromId?: string;
+  revisedFrom?: {
+    id: string;
+    aiScore?: number;
+    aiFeedback?: OutfitFeedback;
+    occasions: string[];
+    thumbnailUrl?: string;
+    thumbnailData?: string;
+    createdAt: string;
+  };
+  revisions?: Array<{
+    id: string;
+    aiScore?: number;
+    createdAt: string;
+    thumbnailUrl?: string;
+    thumbnailData?: string;
+  }>;
 }
 
 export interface FollowUp {
@@ -122,6 +152,7 @@ export interface OutfitCheckInput {
   timezone?: string;
   eventDate?: string; // ISO 8601 datetime string
   shareWith?: ShareWith;
+  revisedFromId?: string;
 }
 
 export type EventFollowUpResponse = 'crushed_it' | 'felt_good' | 'meh' | 'not_great';

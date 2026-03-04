@@ -192,7 +192,7 @@ function DataVisualizations({ data, articleType }: { data: Record<string, unknow
             <View key={cat} style={styles.barRow}>
               <Text style={styles.barLabel}>{cat}</Text>
               <View style={styles.barTrack}>
-                <View style={[styles.barFill, { width: `${Math.round((count / total) * 100)}%` as any }]} />
+                <View style={[styles.barFill, { width: `${Math.round((count / total) * 100)}%` }]} />
               </View>
               <Text style={styles.barValue}>{count}</Text>
             </View>

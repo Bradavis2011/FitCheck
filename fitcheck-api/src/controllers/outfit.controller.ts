@@ -32,6 +32,8 @@ const OutfitCheckSchema = z.object({
   eventDate: z.string().datetime().optional(),
   // Sharing: 'private' (just me), 'inner_circle', 'public'
   shareWith: z.enum(['private', 'inner_circle', 'public']).optional(),
+  // Revision system: ID of the original outfit this is a revision of
+  revisedFromId: z.string().uuid().optional(),
 }).refine(data => data.imageUrl || data.imageBase64, {
   message: 'Either imageUrl or imageBase64 must be provided',
 });
@@ -224,6 +226,20 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     }
     } // end admin bypass else
 
+    // Validate revisedFromId — must exist, belong to user, and be analyzed
+    if (data.revisedFromId) {
+      const originalOutfit = await prisma.outfitCheck.findFirst({
+        where: { id: data.revisedFromId, userId, isDeleted: false },
+        select: { id: true, aiProcessedAt: true },
+      });
+      if (!originalOutfit) {
+        throw new AppError(404, 'Original outfit not found');
+      }
+      if (!originalOutfit.aiProcessedAt) {
+        throw new AppError(400, 'Original outfit has not been analyzed yet');
+      }
+    }
+
     // Generate UUID for the outfit (needed for S3 key)
     const { randomUUID } = await import('crypto');
     const outfitId = randomUUID();
@@ -314,6 +330,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         visibility: outfitVisibility,
         blurFace: blurFaceDefault,
         expiresAt,
+        revisedFromId: data.revisedFromId || null,
       },
     });
 
@@ -432,7 +449,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
 
     // Trigger AI analysis asynchronously (pass user for personalization + priority tier)
     const tierLimits = getTierLimits(user.tier);
-    analyzeOutfit(outfitCheck.id, aiData as OutfitCheckInput, user, tierLimits.hasPriorityProcessing).catch((error) => {
+    analyzeOutfit(outfitCheck.id, aiData as OutfitCheckInput, user, tierLimits.hasPriorityProcessing, data.revisedFromId).catch((error) => {
       console.error('Background AI analysis failed:', error);
     });
 
@@ -461,6 +478,29 @@ export async function getOutfitFeedback(req: AuthenticatedRequest, res: Response
     include: {
       followUps: {
         orderBy: { createdAt: 'asc' },
+      },
+      revisedFrom: {
+        select: {
+          id: true,
+          aiScore: true,
+          aiFeedback: true,
+          occasions: true,
+          thumbnailUrl: true,
+          thumbnailData: true,
+          createdAt: true,
+        },
+      },
+      revisions: {
+        where: { isDeleted: false },
+        select: {
+          id: true,
+          aiScore: true,
+          createdAt: true,
+          thumbnailUrl: true,
+          thumbnailData: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
       },
     },
   });

@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { FeedbackResponse } from '../lib/mockData';
 
+export interface RevisionSource {
+  id: string;
+  occasions: string[];
+  setting: string | null;
+  weather: string | null;
+  vibe: string | null;
+  concerns: string | null;
+}
+
 interface AppState {
   // Onboarding
   hasCompletedOnboarding: boolean;
@@ -16,6 +25,10 @@ interface AppState {
   eventDate: Date | null;
   isAnalyzing: boolean;
   currentFeedback: FeedbackResponse | null;
+
+  // Revision flow
+  revisionSource: RevisionSource | null;
+  setRevisionSource: (source: RevisionSource | null) => void;
 
   // Check flow actions
   setCapturedImage: (image: string | null) => void;
@@ -41,6 +54,7 @@ export const useAppStore = create<AppState>((set) => ({
   eventDate: null,
   isAnalyzing: false,
   currentFeedback: null,
+  revisionSource: null,
 
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
@@ -63,6 +77,7 @@ export const useAppStore = create<AppState>((set) => ({
   setEventDate: (date) => set({ eventDate: date }),
   startAnalysis: () => set({ isAnalyzing: true }),
   setFeedback: (feedback) => set({ currentFeedback: feedback, isAnalyzing: false }),
+  setRevisionSource: (source) => set({ revisionSource: source }),
 
   resetCheckFlow: () =>
     set({
@@ -75,5 +90,6 @@ export const useAppStore = create<AppState>((set) => ({
       eventDate: null,
       currentFeedback: null,
       isAnalyzing: false,
+      revisionSource: null,
     }),
 }));

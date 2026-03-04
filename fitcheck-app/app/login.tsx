@@ -195,6 +195,7 @@ export default function LoginScreen() {
       // Email already registered — auto-attempt sign-in with the same credentials
       if (clerkCode === 'form_identifier_exists' || clerkMsg.toLowerCase().includes('taken')) {
         try {
+          if (!signIn) return;
           const signInAttempt = await signIn.create({ identifier: email, password });
           if (signInAttempt.status === 'complete') {
             await setActiveSignIn({ session: signInAttempt.createdSessionId });
