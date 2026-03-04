@@ -442,7 +442,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Or This? v1.1.0</Text>
+        <Text style={styles.version}>Or This? v1.1.3</Text>
       </ScrollView>
 
       {/* Feedback Modal */}

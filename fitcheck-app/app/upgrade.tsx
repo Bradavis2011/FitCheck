@@ -226,6 +226,7 @@ export default function UpgradeScreen() {
             </TouchableOpacity>
           )}
           <Text style={styles.trialNote}>7 days free, then {plusPrice}</Text>
+          <Text style={styles.cancelNote}>Cancel anytime · Settings → Apple ID → Subscriptions</Text>
         </View>
 
         {/* LAUNCH: Pro tier hidden — re-enable when expert reviews, event planning, style DNA go live */}
@@ -468,6 +469,14 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     marginTop: Spacing.sm,
+  },
+  cancelNote: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16,
   },
   restoreLink: {
     paddingVertical: Spacing.md,

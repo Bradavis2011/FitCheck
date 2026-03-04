@@ -3,7 +3,7 @@
     "name": "Or This?",
     "slug": "orthis",
     "scheme": "orthis",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -23,10 +23,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bradavis.orthis",
       "infoPlist": {
-        "NSCameraUsageDescription": "Or This? uses your camera to analyze your outfit and provide AI-powered style feedback.",
-        "NSPhotoLibraryUsageDescription": "Or This? accesses your photo library so you can select outfit photos for analysis.",
+        "NSCameraUsageDescription": "Or This? uses your camera to take photos of your outfit for AI-powered style analysis.",
+        "NSPhotoLibraryUsageDescription": "Or This? accesses your photo library so you can select outfit photos for AI style analysis.",
         "NSPhotoLibraryAddUsageDescription": "Or This? saves outfit score cards to your photo library.",
-        "NSMicrophoneUsageDescription": "Or This? may use the microphone when recording video outfits.",
+        "NSUserTrackingUsageDescription": "Or This? uses this to show relevant ads on Android. On iOS no personalised ads are shown.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -52,6 +52,13 @@
       "expo-router",
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "color": "#E85D4C",
+          "iosDisplayInForeground": true
+        }
+      ],
+      [
         "@sentry/react-native",
         {
           "organization": "outfitcheck",
@@ -61,8 +68,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-1244039707249288~4992117276",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "androidAppId": "ca-app-pub-1244039707249288~4992117276"
         }
       ]
     ],
