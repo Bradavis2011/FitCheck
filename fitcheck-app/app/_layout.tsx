@@ -44,7 +44,7 @@ if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
     environment: process.env.NODE_ENV || 'development',
   });
 }
-// import OfflineIndicator from '../src/components/OfflineIndicator'; // Temporarily disabled
+import OfflineIndicator from '../src/components/OfflineIndicator';
 
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -218,7 +218,7 @@ function AuthGate() {
           </Text>
           <ScrollView style={styles.termsScroll} showsVerticalScrollIndicator={false}>
             <Text style={styles.termsBody}>
-              By tapping "Accept", you agree to the Or This? Terms of Service and Privacy Policy. These govern your use of the app, including how we process your outfit photos and personal data.
+              By tapping "Accept", you agree to the Or This? Terms of Service and Privacy Policy. These govern your use of the app, including how your outfit photos and style context are sent to Google Gemini for AI analysis.
             </Text>
           </ScrollView>
           <View style={styles.termsLinks}>
@@ -291,7 +291,7 @@ export default function RootLayout() {
         <ClerkLoaded>
           <QueryClientProvider client={queryClient}>
             <StatusBar style="dark" />
-            {/* <OfflineIndicator /> Temporarily disabled */}
+            <OfflineIndicator />
             <AuthGate />
           </QueryClientProvider>
         </ClerkLoaded>

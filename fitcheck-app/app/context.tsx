@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,9 +22,12 @@ import PillButton from '../src/components/PillButton';
 import { uploadImage } from '../src/services/image-upload.service';
 import { outfitService, ShareWith } from '../src/services/api.service';
 import { useUserStats, useOutfitMemory, useContextPreferences } from '../src/hooks/useApi';
+import * as SecureStore from 'expo-secure-store';
 
 // Occasions that get a follow-up the next morning
 const EVENT_OCCASIONS = ['Date Night', 'Interview', 'Event'];
+
+const AI_CONSENT_KEY = 'orthis_ai_consent';
 
 const SHARE_OPTIONS: { value: ShareWith; label: string; icon: string; description: string }[] = [
   { value: 'private', label: 'Just Me', icon: 'lock-closed-outline', description: 'Only you can see this' },
@@ -55,6 +59,7 @@ export default function ContextScreen() {
   const [shareWith, setShareWith] = useState<ShareWith>('private');
   const [showDateModal, setShowDateModal] = useState(false);
   const [customDateText, setCustomDateText] = useState('');
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
   const hasEventOccasion = selectedOccasions.some((o) => EVENT_OCCASIONS.includes(o));
 
@@ -124,26 +129,14 @@ export default function ContextScreen() {
     }
   }, [capturedImage]);
 
-  const handleSubmit = async () => {
-    if (selectedOccasions.length === 0 || !capturedImage) return;
-
-    // Guard against daily limit
-    if (isAtLimit) {
-      Alert.alert(
-        'Daily Limit Reached',
-        'Free accounts get 3 outfit checks per day. Upgrade to Plus for unlimited checks!',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
+  const doSubmit = async () => {
     try {
       // Start analysis
       useAppStore.getState().startAnalysis();
 
       console.log('[Context] Starting image upload...');
       // Upload image and get base64
-      const imageResult = await uploadImage(capturedImage);
+      const imageResult = await uploadImage(capturedImage!);
       console.log('[Context] Image uploaded successfully, size:', imageResult.base64.length);
 
       console.log('[Context] Submitting to API...');
@@ -188,6 +181,35 @@ export default function ContextScreen() {
 
       Alert.alert('Upload Failed', errorMessage, [{ text: 'OK' }]);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (selectedOccasions.length === 0 || !capturedImage) return;
+
+    // Guard against daily limit
+    if (isAtLimit) {
+      Alert.alert(
+        'Daily Limit Reached',
+        'Free accounts get 3 outfit checks per day. Upgrade to Plus for unlimited checks!',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Check AI data consent (one-time, stored in SecureStore)
+    const consent = await SecureStore.getItemAsync(AI_CONSENT_KEY);
+    if (!consent) {
+      setShowConsentModal(true);
+      return;
+    }
+
+    await doSubmit();
+  };
+
+  const handleConsentAgree = async () => {
+    await SecureStore.setItemAsync(AI_CONSENT_KEY, 'true');
+    setShowConsentModal(false);
+    await doSubmit();
   };
 
   const canSubmit = selectedOccasions.length > 0 && !isAtLimit;
@@ -522,6 +544,34 @@ export default function ContextScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalConfirm} onPress={confirmCustomDate}>
                 <Text style={styles.modalConfirmText}>Set Date</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* AI data consent modal */}
+      <Modal visible={showConsentModal} transparent animationType="fade">
+        <View style={styles.consentOverlay}>
+          <View style={styles.consentContent}>
+            <Text style={styles.consentTitle}>How Your Photos Are Analyzed</Text>
+            <ScrollView style={styles.consentScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.consentBody}>
+                To provide style feedback, Or This? sends your outfit photo and style details (occasion, setting, weather) to Google Gemini, Google&apos;s AI service, for analysis.{'\n\n'}Photos are processed in real-time and are not stored by Google. Your data is handled according to our Privacy Policy.
+              </Text>
+              <TouchableOpacity onPress={() => Linking.openURL('https://orthis.app/privacy')}>
+                <Text style={styles.consentLink}>Privacy Policy →</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            <View style={styles.consentButtons}>
+              <TouchableOpacity
+                style={styles.consentNotNow}
+                onPress={() => setShowConsentModal(false)}
+              >
+                <Text style={styles.consentNotNowText}>Not Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.consentAgree} onPress={handleConsentAgree}>
+                <Text style={styles.consentAgreeText}>I Agree</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -902,5 +952,76 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
     color: Colors.white,
+  },
+  // AI consent modal
+  consentOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  consentContent: {
+    backgroundColor: Colors.background,
+    padding: Spacing.xl,
+    width: '100%',
+    gap: Spacing.md,
+    maxHeight: '80%' as any,
+  },
+  consentTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  consentScroll: {
+    maxHeight: 180,
+  },
+  consentBody: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    lineHeight: 24,
+  },
+  consentLink: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+    marginTop: Spacing.sm,
+  },
+  consentButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  consentNotNow: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  consentNotNowText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  consentAgree: {
+    flex: 2,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 0,
+  },
+  consentAgreeText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.sm,
+    color: Colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });

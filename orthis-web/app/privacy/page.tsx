@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-const EFFECTIVE_DATE = "February 17, 2026";
+const EFFECTIVE_DATE = "March 3, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -47,8 +47,17 @@ export default function PrivacyPage() {
             </ul>
           </Section>
 
-          <Section title="4. AI Processing">
-            <p>Outfit photos you submit are sent to Google&apos;s Gemini API for analysis. Google&apos;s privacy policy governs their handling of this data. We do not use your photos to train AI models. Analysis results are stored in our database linked to your account.</p>
+          <Section title="4. Third-Party AI Processing">
+            <p><strong>Provider:</strong> Google LLC (Gemini API)</p>
+            <p><strong>Data sent:</strong> Each time you submit an outfit for analysis, Or This? transmits the following to Google Gemini:</p>
+            <ul>
+              <li>Your outfit photo (resized for processing; EXIF metadata and GPS location data are stripped before transmission)</li>
+              <li>Style context you provide: occasion, setting, weather, vibe, and any specific concerns</li>
+            </ul>
+            <p><strong>Purpose:</strong> Real-time outfit analysis and personalised style feedback. No other purpose.</p>
+            <p><strong>Retention:</strong> Photos are processed inline by Google Gemini and are not stored by Google beyond the duration of the API request. Or This? stores the AI-generated feedback text and your outfit thumbnail in our own database, linked to your account.</p>
+            <p><strong>Google&apos;s privacy policy:</strong> Google&apos;s handling of data submitted via the Gemini API is governed by the <a href="https://policies.google.com/privacy" style={{ color: "#E85D4C" }}>Google Privacy Policy</a> and the <a href="https://ai.google.dev/gemini-api/terms" style={{ color: "#E85D4C" }}>Gemini API Terms of Service</a>.</p>
+            <p>We do not use your photos or style data to train AI models.</p>
           </Section>
 
           <Section title="5. Data Sharing">
