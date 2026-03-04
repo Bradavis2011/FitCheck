@@ -1,5 +1,5 @@
 # Or This? — Launch Status
-*Last updated: February 20, 2026*
+*Last updated: March 3, 2026*
 
 ---
 
@@ -13,7 +13,7 @@
 | Custom domain | ✅ Live | Cloudflare DNS → Vercel (CNAME, proxy OFF) |
 | Waitlist API | ✅ Live | `POST /api/waitlist` returning positions + referral codes |
 | Android app | ✅ EAS build done | Play Store closed testing draft ready |
-| iOS app | ❌ Not submitted | App Store submission not started |
+| iOS app | ✅ TestFlight live | https://testflight.apple.com/join/2fXVAyvd — App Store submission pending |
 | Image storage | ✅ Cloudflare R2 | `pub-f3e1b7bd22ed4ab8977df01fc1a06464.r2.dev` |
 | OG image | ✅ Live | Auto-generated branded preview at /opengraph-image |
 
@@ -49,24 +49,26 @@
 
 ## What you need to do (no code)
 
-### This week
-1. **TikTok**: Create @orthisapp — 1-2 videos/day, stay authentic
-   - Topics: "I wore what AI told me to for a week", reaction to AI judging bad outfits, daily outfit checks
-   - TikTok Creative Center → search "outfit check" "OOTD" to see what's trending
-   - Bio: `Stop texting friends 'does this look ok?' ✨ AI outfit feedback before you walk out the door / OrThis.app`
-2. **Instagram**: Create @orthisapp — daily Stories, A/B outfit polls
-3. **Play Store**: Promote closed testing → open testing (Google review takes 1-7 days)
-4. **iOS**: Submit to App Store (need Apple Developer account, screenshots, review takes 1-7 days)
+### TODAY — March 3 (parallel tracks)
 
-### Week 2-3 (pre-launch)
-5. **DM 20-30 fashion nano-creators** (1K-10K followers) — outreach agent generates drafts, check `/api/admin/agents`
-6. **Reddit**: Genuinely participate in r/femalefashionadvice, r/malefashionadvice — NO app mentions yet, build karma first
-7. **Campus seeding**: Find fashion club presidents at 3-5 schools
+**Track A — Real Customers**:
+1. **TikTok DMs**: Search #outfitcheck #ootd — find 5–10 nano-creators (1K-10K followers), send the brief DM template (LAUNCH_SUBMISSIONS.md, Tier 4 "TikTok Creator DM")
+2. **Fashion Discord**: Join 2–3 servers, lurk first, introduce yourself genuinely
 
-### Launch day
-8. Email entire waitlist with Play Store / App Store links
-9. Product Hunt launch (still relevant — good for SEO backlinks)
-10. Post in r/SideProject + r/shamelessplug
+**Track B — Bug Testers**:
+3. Submit to **BetaList** — https://betalist.com/submit
+4. Submit to **BetaBound** — https://www.betabound.com/announce
+5. Submit to **BetaPage** — https://betapage.co
+
+### This week (parallel tracks continue)
+6. Post to **r/TestMyApp** + **r/alphaandbetausers** (Track B — Tier 2 copy ready)
+7. Continue engaging in fashion Discord servers (Track A)
+8. Post to **r/SideProject** (Track B)
+
+### March 16+ (only after AI quality validated by real users)
+9. **Product Hunt** — Tuesday/Wednesday 12:01am PT (Tier 1 copy ready)
+10. **Show HN** on Hacker News — same day or next day (Tier 1 copy ready)
+11. Email waitlist with App Store link (need App Store approval first)
 
 ---
 

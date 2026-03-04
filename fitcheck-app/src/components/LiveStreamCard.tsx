@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 import { LiveSession } from '../services/live.service';
 
 interface Props {
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   liveText: {
+    fontFamily: Fonts.sansBold,
     fontSize: 10,
-    fontWeight: '700',
     color: Colors.white,
   },
   viewerBadge: {
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   viewerText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 10,
-    fontWeight: '600',
     color: Colors.white,
   },
   avatarContainer: {
@@ -114,16 +114,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   avatarText: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.primary,
   },
   info: {
     marginTop: Spacing.sm,
   },
   title: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: 4,
   },

@@ -283,7 +283,7 @@ export async function getCommunityFeed(req: AuthenticatedRequest, res: Response)
       isDeleted: false,
       OR: visibilityFilter,
       user: { isPublic: true },
-      NOT: { userId: { in: blockedUserIds } },
+      NOT: { userId: { in: [...blockedUserIds, userId] } },
     };
 
     const outfits = await prisma.outfitCheck.findMany({
@@ -882,7 +882,7 @@ export async function followUser(req: AuthenticatedRequest, res: Response) {
       title: 'New Follower',
       body: `${follower?.username || follower?.name || 'Someone'} started following you`,
       linkType: 'user',
-      linkId: userId,
+      linkId: follower?.username || undefined,
     });
 
     res.json({ success: true, following: userToFollow.username });
@@ -1040,6 +1040,12 @@ export async function addToInnerCircle(req: AuthenticatedRequest, res: Response)
 
     await prisma.innerCircleMember.create({ data: { userId, memberId: target.id } });
 
+    // Get adder's username for notification link
+    const adder = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    });
+
     // Notify the person they were added
     await createNotification({
       userId: target.id,
@@ -1047,7 +1053,7 @@ export async function addToInnerCircle(req: AuthenticatedRequest, res: Response)
       title: 'You\'ve been added to an inner circle',
       body: 'Someone added you to their inner circle. You\'ll now see their private outfit posts.',
       linkType: 'user',
-      linkId: userId,
+      linkId: adder?.username || undefined,
     });
 
     res.json({ success: true, added: target.username });

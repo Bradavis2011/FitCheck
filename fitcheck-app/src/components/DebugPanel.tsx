@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 import { useSegments } from 'expo-router';
-import { Colors, Spacing, FontSize } from '../constants/theme';
+import { Colors, Spacing, FontSize, Fonts } from '../constants/theme';
 import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
 
@@ -94,14 +94,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
+    fontFamily: Fonts.sansBold,
     color: '#00ff00',
     fontSize: 14,
-    fontWeight: 'bold',
   },
   closeButton: {
+    fontFamily: Fonts.sansBold,
     color: '#00ff00',
     fontSize: 18,
-    fontWeight: 'bold',
   },
   content: {
     gap: 6,
@@ -116,9 +116,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   value: {
+    fontFamily: Fonts.sansSemiBold,
     color: '#fff',
     fontSize: 12,
-    fontWeight: '600',
   },
   buttons: {
     flexDirection: 'row',
@@ -138,9 +138,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#4444ff',
   },
   buttonText: {
+    fontFamily: Fonts.sansSemiBold,
     color: '#fff',
     fontSize: 11,
-    fontWeight: '600',
   },
   toggleButton: {
     position: 'absolute',

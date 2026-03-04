@@ -119,7 +119,8 @@ export default function FeedbackScreen() {
   }, []);
 
   useEffect(() => {
-    if (!limits?.hasAds || !InterstitialAd) return;
+    // iOS ad units are not configured — interstitials run on Android only
+    if (Platform.OS !== 'android' || !limits?.hasAds || !InterstitialAd) return;
     try {
       const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
         requestNonPersonalizedAdsOnly: true,
@@ -1075,7 +1076,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.12)',
   },
   editorialText: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: 17,
     lineHeight: 28,
     color: Colors.text,

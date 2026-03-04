@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -116,9 +116,9 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   message: {
+    fontFamily: Fonts.sansSemiBold,
     flex: 1,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.white,
   },
 });

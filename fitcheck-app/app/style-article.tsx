@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
     color: Colors.text,
   },
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   articleTitle: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: 28,
     color: Colors.text,
     lineHeight: 34,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   heading1: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
     color: Colors.text,
     lineHeight: 28,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyTitle: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
     color: Colors.text,
   },

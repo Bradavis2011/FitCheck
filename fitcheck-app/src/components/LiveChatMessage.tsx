@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 import { LiveChatMessage as MessageType } from '../services/live.service';
 
 interface Props {
@@ -40,8 +40,8 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   username: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xs,
-    fontWeight: '700',
     color: Colors.white,
     marginBottom: 2,
   },
@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   aiLabel: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xs,
-    fontWeight: '700',
     color: Colors.white,
   },
   aiMessage: {

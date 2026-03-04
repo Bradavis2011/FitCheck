@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -307,8 +307,8 @@ const styles = StyleSheet.create({
     fontSize: 64,
   },
   title: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xxl,
-    fontWeight: '700',
     color: Colors.text,
     marginBottom: Spacing.sm,
     textAlign: 'center',
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   highlight: {
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     color: Colors.primary,
   },
   levelName: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.primary,
     marginBottom: Spacing.lg,
     textAlign: 'center',
@@ -345,15 +345,15 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   statValue: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xxl,
-    fontWeight: '700',
     color: Colors.primary,
     marginBottom: 4,
   },
   statLabel: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.xs,
     color: Colors.textMuted,
-    fontWeight: '600',
   },
   encouragement: {
     fontSize: FontSize.md,
@@ -363,8 +363,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   badgeName: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.primary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
@@ -387,8 +387,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   achievementText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.success,
   },
   dismissButton: {
@@ -402,8 +402,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   dismissText: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.white,
   },
 });

@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, FontSize, BorderRadius, getScoreColor } from '../../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, getScoreColor, Fonts } from '../../src/constants/theme';
 import ScoreDisplay from '../../src/components/ScoreDisplay';
 import FeedbackCard from '../../src/components/FeedbackCard';
 import CommunityFeedbackCard from '../../src/components/CommunityFeedbackCard';
@@ -424,8 +424,8 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   headerTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.lg,
-    fontWeight: '700',
     color: Colors.text,
   },
   scrollView: {
@@ -446,16 +446,16 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   userAvatarText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.lg,
-    fontWeight: '600',
     color: Colors.primary,
   },
   userInfo: {
     flex: 1,
   },
   username: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
   timestamp: {
@@ -482,8 +482,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   sectionTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.lg,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
@@ -496,8 +496,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   feedbackItemTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
   feedbackItemDetail: {
@@ -518,8 +518,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   aggregateScore: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xxl * 1.5,
-    fontWeight: '700',
     color: Colors.primary,
   },
   aggregateText: {
@@ -542,8 +542,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   feedbackFormButtonText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.primary,
   },
   feedbackForm: {
@@ -552,8 +552,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   feedbackFormTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.lg,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: Spacing.md,
   },
@@ -589,8 +589,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   feedbackCancelText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
   feedbackSubmitButton: {
@@ -601,8 +601,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   feedbackSubmitText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.white,
   },
   ownOutfitNotice: {

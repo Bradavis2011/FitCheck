@@ -158,11 +158,11 @@ export async function runSeoContentAgent(): Promise<void> {
         },
       });
 
-      // Queue for high-risk review
+      // Medium risk — brand guard checks content, then auto-publishes
       await executeOrQueue(
         'seo-content',
         'publish_draft',
-        'high',
+        'medium',
         { blogDraftId: created.id, slug, title: draft.title },
         async (payload) => {
           const p = payload as { blogDraftId: string };
@@ -200,7 +200,10 @@ export async function runSeoContentAgent(): Promise<void> {
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
 
-export async function getSeoSummary(): Promise<{ pendingDrafts: number }> {
-  const pendingDrafts = await prisma.blogDraft.count({ where: { status: 'pending_review' } });
-  return { pendingDrafts };
+export async function getSeoSummary(): Promise<{ pendingDrafts: number; publishedDrafts: number }> {
+  const [pendingDrafts, publishedDrafts] = await Promise.all([
+    prisma.blogDraft.count({ where: { status: 'pending_review' } }),
+    prisma.blogDraft.count({ where: { status: 'published' } }),
+  ]);
+  return { pendingDrafts, publishedDrafts };
 }

@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 
@@ -78,8 +78,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   title: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.text,
     marginBottom: Spacing.sm,
     textAlign: 'center',
@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   buttonText: {
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.white,
     fontSize: FontSize.md,
-    fontWeight: '600',
   },
 });

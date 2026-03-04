@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, FontSize, BorderRadius, getScoreColor } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, getScoreColor, Fonts } from '../constants/theme';
 
 type Props = {
   value: number;
@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   label: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
   scoreBadge: {
@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   scoreText: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.md,
-    fontWeight: '700',
     color: Colors.white,
   },
   scoresRow: {
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   scoreButtonText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.text,
   },
 });

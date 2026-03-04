@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { Colors } from '../constants/theme';
+import { Colors, Fonts } from '../constants/theme';
 
 interface DataPoint {
   label: string;
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   label: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 14,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: 12,
   },

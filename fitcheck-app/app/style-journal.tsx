@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   headerTitle: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
     color: Colors.text,
   },
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   articleTitle: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
     color: Colors.text,
     lineHeight: 22,

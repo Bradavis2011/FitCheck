@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, FontSize, BorderRadius, getScoreColor } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, getScoreColor, Fonts } from '../constants/theme';
 
 type CommunityFeedback = {
   id: string;
@@ -89,13 +89,13 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   avatarText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.primary,
   },
   username: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.text,
   },
   timestamp: {
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   scoreText: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.sm,
-    fontWeight: '700',
     color: Colors.white,
   },
   comment: {

@@ -219,51 +219,7 @@ Or This? is an AI outfit feedback app. Take a photo of any outfit to get an hone
 
 ---
 
-## TIER 3 — FASHION COMMUNITIES (Value-first, not promotional)
-
-### r/femalefashionadvice
-
-**Post title** (discussion, not product post):
-```
-Has anyone used AI for outfit feedback? Curious what people think
-```
-
-**Body**:
-```
-I've been thinking a lot about how we get feedback on outfits before wearing them. Most of the time it's either texting a friend (who always says "cute!!!") or posting here.
-
-I recently started experimenting with AI for outfit feedback — not AI-generated looks, but actual photo analysis: "does this outfit work for X occasion?"
-
-Curious if anyone else has tried this. What did you find? Was the feedback actually useful, or did it feel generic?
-
-I'm particularly interested in whether AI can handle niche aesthetics well (dark academia, cottagecore, etc.) or if it defaults to generic "minimalist is always safe" advice.
-```
-
-**Note**: Wait to be accepted/trusted in the community before mentioning any app. If people ask what tool you used, then mention it.
-
----
-
-### r/malefashionadvice
-
-Same approach — ask a genuine question about AI feedback, listen first.
-
-**Post title**:
-```
-Honest question: would you use an AI to check your outfit before an important occasion?
-```
-
-**Body**:
-```
-Wondering how people here feel about AI style feedback. Not AI-generated fits, but just: "here's my outfit, does it work for a job interview?"
-
-The obvious arguments against: it can't feel fabric, doesn't know your body proportions well enough from a photo, might give generic advice.
-
-Arguments for: honest (won't spare feelings like a friend might), available at 6am when you're getting dressed for something important.
-
-Has anyone tried this seriously? What were your results?
-```
-
----
+## TIER 3 — FASHION COMMUNITIES (Discord only — subreddits like r/femalefashionadvice and r/malefashionadvice don't allow promotion or user research)
 
 ### Fashion Discord Servers
 
@@ -276,6 +232,28 @@ Hey! Just joined. I build apps and recently launched one that gives AI outfit fe
 ---
 
 ## TIER 4 — CONTENT TEMPLATES
+
+### TikTok Creator DM (Nano-creators 1K–10K followers)
+
+**How to find them**: Search TikTok for `#outfitcheck` `#ootd` `#whattowear`. Look for creators with 1K–10K followers who post genuine outfit content (not brand ads). Check their last 3 posts — are they engaging authentically with comments?
+
+**DM template**:
+```
+Hey [name] — been watching your outfit content, it's genuinely good.
+
+I built an app that gives AI feedback on outfits (score out of 10, honest breakdown). Thought you'd find it interesting or maybe annoying lol.
+
+TestFlight link if you want to try it: https://testflight.apple.com/join/2fXVAyvd
+
+No ask — just thought it fit what you do.
+```
+
+**Rules**:
+- Never pitch or ask for a post upfront
+- If they respond positively, then you can ask if they'd do a quick screen recording (script below)
+- Offer only early access as compensation — nano-creators often do this for free
+
+---
 
 ### TikTok Video Script (15-second screen recording)
 

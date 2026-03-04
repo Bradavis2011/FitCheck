@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 import { useUserStats } from '../hooks/useApi';
 
 export default function ProgressWidget() {
@@ -106,14 +106,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   levelBadge: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 2,
   },
   levelName: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: Colors.white,
   },
   streakBadge: {
@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   streakText: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.md,
-    fontWeight: '700',
     color: Colors.white,
   },
   xpSection: {
@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   xpText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
     color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '600',
   },
   ctaButton: {
     flexDirection: 'row',
@@ -163,9 +163,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   ctaText: {
+    fontFamily: Fonts.sansBold,
     flex: 1,
     fontSize: FontSize.md,
-    fontWeight: '700',
     color: Colors.primary,
   },
   goalsPreview: {
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   goalsTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
   },
 });

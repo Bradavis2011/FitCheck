@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend';
 import { executeOrQueue, registerExecutor } from './agent-manager.service.js';
+import { getTrendData } from './content-calendar.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -10,50 +11,104 @@ interface OutreachTarget {
   type: string;
   label: string;
   pitch: string;
+  searchInstructions: string;
 }
 
-const OUTREACH_TARGETS: OutreachTarget[] = [
-  {
-    type: 'nano_creator',
-    label: 'TikTok/IG Nano-Creator (1K-10K)',
-    pitch: `Write a TikTok DM for a creator who posts "rate my outfit", "fit check",
-"which outfit" or "this or that" content with 1K-10K followers.
+function generateOutreachTargets(trendStyles: string[], trendOccasions: string[]): OutreachTarget[] {
+  const styleList = trendStyles.slice(0, 3).join(', ') || 'casual, minimalist, classic';
+  const occasionList = trendOccasions.slice(0, 3).join(', ') || 'work, date night, weekend';
+  return [
+    {
+      type: 'nano_creator',
+      label: 'TikTok/IG Nano-Creator (1K-10K)',
+      pitch: `Write a TikTok/IG DM to a creator who posts outfit check or "this or that" content with 1K-10K followers.
 
-You're NOT asking them to promote anything. You're offering them:
-1. A new content format: their audience votes on outfits and they film the AI score reveal
-2. Early access to an app nobody else has yet (TestFlight only)
-3. "Founding Creator" status — featured placement when the app launches
+Context about the app:
+- Or This? gives a score out of 10 + honest style feedback for any outfit photo
+- Currently TestFlight only (invite-only iOS beta)
+- The creator's audience gets to vote, then the creator films the AI score reveal — that's the content format
 
-Tone: casual, peer-to-peer, excited. Reference a SPECIFIC video they would post (use a plausible example).
-Keep under 80 words. No "partnership" or "collab" language.
-End with: "want early access? i can add you to testflight today"
+What you're offering:
+1. A new content format their audience will engage with (AI score reveal)
+2. First access to something nobody else has yet
+3. "Founding Creator" status when the app publicly launches
 
-This is a DM, not an email. No subject line. No sign-off. No emojis.`,
-  },
-  {
-    type: 'fashion_blogger',
-    label: 'Fashion Blogger',
-    pitch: `Pitch them on covering Or This? for their audience who wants AI-powered style advice.
-Angle: their readers can get instant, free AI outfit feedback from a personal AI stylist.
-The subject line should be intriguing and personal — not a mass-pitch.
-The email body should feel like a genuine personal message, mention their audience's interest in style/fashion, and include a clear CTA (try the app for free).`,
-  },
-  {
-    type: 'micro_influencer',
-    label: 'Micro-Influencer (10k-100k followers)',
-    pitch: `Pitch micro-influencers on getting featured on the Or This? community feed.
-Angle: they share an outfit in our app, get AI feedback, we feature them prominently on our community page and social media. Mutually beneficial — they get exposure, we get content.
-Tone: excited, collegial, not transactional. Make them feel like they're joining something cool.`,
-  },
-  {
-    type: 'press_tech',
-    label: 'Tech / Lifestyle Press',
-    pitch: `Pitch tech and lifestyle press on the AI fashion advisor app launch story.
-Angle: democratizing personal styling with AI — what used to cost $500/hour is now free and instant.
-Include a compelling hook about the problem being solved (decision fatigue around fashion, lack of honest feedback).
-Mention key stats that would interest a journalist: saves time, builds confidence, community-driven.`,
-  },
-];
+Current trending styles in the app: ${styleList}
+Popular occasions users ask about: ${occasionList}
+
+Rules:
+- Casual, peer-to-peer tone. Not corporate.
+- Do NOT make up a specific video they posted. Instead reference their CONTENT TYPE (e.g. "saw your fit checks")
+- Under 80 words
+- No "collab" or "partnership" language
+- End with: "want early access? i can add you to testflight today"
+- No subject line. No emojis. No sign-off.`,
+      searchInstructions: `WHERE TO FIND THEM:\n• TikTok search: #outfitcheck, #ratemyoutfit, #thisorthat, #fitcheck — sort by "most recent"\n• Look for creators posting at least 2x/week about outfit choices, 1K-10K followers\n• IG Reels: same hashtags, filter by under 10K followers\n• DO NOT message anyone over 50K — they get too many DMs`,
+    },
+    {
+      type: 'fashion_blogger',
+      label: 'Fashion Blogger / Newsletter',
+      pitch: `Write a cold email pitching Or This? to a fashion blogger or newsletter writer whose audience cares about personal style, getting dressed, and looking their best.
+
+Context:
+- Or This? gives instant AI outfit feedback — score + specific tips — from a photo on your phone
+- Free to use (3 outfit checks/day free tier)
+- Best angle for their audience: "your readers never have to wonder if the outfit works again"
+- Trending styles users are getting rated: ${styleList}
+
+Requirements:
+- Subject line: personal, curious, under 60 chars — NOT "I'd love to collaborate"
+- Body: 3-4 tight paragraphs, genuine voice
+- Lead with the problem their audience has (outfit doubt, decision fatigue), not with what the app does
+- Soft CTA: try it free, worth writing about
+- Sign off as: The Or This? Team
+- No buzzwords (synergy, leverage, disruptive, game-changing)`,
+      searchInstructions: `WHERE TO FIND THEM:\n• Substack: search "fashion", "style", "outfit" — filter newsletters with 1K-10K subscribers\n• Google: "fashion newsletter" + site:substack.com, site:beehiiv.com\n• Bloggers: search "personal style blog" + city name, or "[style archetype] fashion blog"\n• Instagram: bio says "fashion blogger" or "style tips" with link to website`,
+    },
+    {
+      type: 'micro_influencer',
+      label: 'Micro-Influencer (10K-100K followers)',
+      pitch: `Write a cold email to a fashion/lifestyle micro-influencer (10K-100K followers) pitching being featured on the Or This? community feed.
+
+Context:
+- Or This? has a community feed where public outfits get highlighted
+- The pitch: they post an outfit in the app → get an AI score + feedback → we feature their look + profile in the community highlight
+- Trending styles being featured: ${styleList}
+- Occasions people dress for: ${occasionList}
+
+What they get:
+- Featured on our community feed (exposure to our growing user base)
+- A score card they can share on their own social media
+- Early access to the app while it's invite-only
+
+Tone: excited, collegial. They're joining something, not being sold to.
+No transactional language. Subject line should feel like it came from a real person, not a marketing team.`,
+      searchInstructions: `WHERE TO FIND THEM:\n• TikTok/IG: #${trendStyles[0] || 'minimalist'}fashion, #${trendStyles[1] || 'ootd'}, #styleinspo — filter 10K-100K followers\n• Look for people who post outfit-of-the-day content regularly (at least weekly)\n• Avoid mega-niche accounts (only post about one brand, etc.) — want lifestyle/style mix\n• Check if their engagement rate is decent (likes + comments / followers > 2%)`,
+    },
+    {
+      type: 'press_tech',
+      label: 'Tech / Lifestyle Press',
+      pitch: `Write a press pitch email for Or This? targeting tech, lifestyle, or women's interest publications.
+
+Context:
+- Or This? is an AI outfit feedback app: take a photo, get a score out of 10 + honest styling advice in under 10 seconds
+- Currently in iOS TestFlight (beta), pending App Store review
+- The human angle: most people have outfit decision fatigue — they change 3 times and still aren't sure. This app gives the honest feedback a friend won't give you.
+- Trending styles users are getting rated: ${styleList}
+
+Angle: not "new AI app" — that's noise. The angle is: the gap between what we own and what we feel confident in.
+Journalists want: a problem, a person it affects, a surprising solution.
+
+Requirements:
+- Subject: story-first, under 60 chars — pitch the angle, not the app
+- Lead with the problem / relatable moment, not the technology
+- One paragraph on what the app actually does
+- Soft hook for a "try it" call — TestFlight available for review
+- Sign off as: The Or This? Team`,
+      searchInstructions: `WHERE TO FIND THEM:\n• Refinery29, Who What Wear, The Zoe Report, InStyle, Glamour — look for staff writers covering "fashion tech" or "AI style"\n• TechCrunch, The Verge, Fast Company — search "AI fashion" + author name\n• Google: "write for us" + "fashion tech" or "AI lifestyle"\n• Twitter/X: search "fashion tech journalist" or check bylines on articles about AI apps`,
+    },
+  ];
+}
 
 // ─── Draft Generation ─────────────────────────────────────────────────────────
 
@@ -129,7 +184,7 @@ Return JSON only (no markdown):
 
 // ─── Founder Review Email Builder ─────────────────────────────────────────────
 
-function buildReviewEmail(draft: OutreachDraft, targetLabel: string): string {
+function buildReviewEmail(draft: OutreachDraft, targetLabel: string, searchInstructions?: string): string {
   const escapedBody = draft.body
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -145,10 +200,17 @@ function buildReviewEmail(draft: OutreachDraft, targetLabel: string): string {
             </div>`;
 
   const instructions = isDm
-    ? '<strong>DM Template — copy/paste to TikTok:</strong> Open TikTok → find the creator → tap Message → paste this text. Personalize the creator\'s name and reference one of their specific recent videos before sending.'
-    : '<strong>Review and send:</strong> This outreach email was drafted by your AI outreach agent. Copy the subject line and body below to send via your email client.';
+    ? '<strong>DM Template — copy/paste to TikTok/IG:</strong> Find a creator using the search instructions below → tap Message → paste this text. Add their name and mention one specific video before sending.'
+    : '<strong>Review and send:</strong> Use the search instructions below to find a specific target, personalise the first line with something specific about them, then send.';
 
   const bodyLabel = isDm ? 'DM Text (copy/paste)' : 'Email Body';
+
+  const searchSection = searchInstructions
+    ? `<div style="margin-top:24px;padding:16px;background:#F0F9FF;border-radius:8px;border-left:3px solid #3B82F6;">
+        <div style="font-size:12px;font-weight:600;color:#3B82F6;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">How to Find Your Target</div>
+        <div style="font-size:13px;color:#1A1A1A;line-height:1.7;white-space:pre-line;">${searchInstructions.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+      </div>`
+    : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -173,6 +235,7 @@ function buildReviewEmail(draft: OutreachDraft, targetLabel: string): string {
               <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">${bodyLabel}</div>
               <div style="background:#F5EDE7;border-radius:8px;padding:16px;font-size:14px;color:#2D2D2D;line-height:1.7;">${escapedBody}</div>
             </div>
+            ${searchSection}
           </td>
         </tr>
         <tr>
@@ -210,7 +273,10 @@ export async function runOutreachAgent(): Promise<void> {
   const fromEmail = process.env.REPORT_FROM_EMAIL || 'reports@orthis.app';
   let drafted = 0;
 
-  for (const target of OUTREACH_TARGETS) {
+  const trendData = await getTrendData();
+  const outreachTargets = generateOutreachTargets(trendData.topStyles, trendData.popularOccasions);
+
+  for (const target of outreachTargets) {
     try {
       const draft = await generateOutreachDraft(target);
       if (!draft) {
@@ -224,10 +290,10 @@ export async function runOutreachAgent(): Promise<void> {
         'outreach-agent',
         'outreach_draft',
         'high',
-        { type: target.type, label: target.label, subject: draft.subject, body: draft.body, isDm: draft.isDm ?? false } as unknown as Record<string, unknown>,
+        { type: target.type, label: target.label, subject: draft.subject, body: draft.body, isDm: draft.isDm ?? false, searchInstructions: target.searchInstructions } as unknown as Record<string, unknown>,
         async (payload) => {
-          const p = payload as { type: string; label: string; subject: string; body: string; isDm?: boolean };
-          const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body, isDm: p.isDm }, p.label);
+          const p = payload as { type: string; label: string; subject: string; body: string; isDm?: boolean; searchInstructions?: string };
+          const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body, isDm: p.isDm }, p.label, p.searchInstructions);
           const emailSubject = p.isDm
             ? `Or This? DM Template: ${p.label}`
             : `Or This? Outreach Draft: ${p.label} — "${p.subject}"`;
@@ -257,7 +323,7 @@ export async function runOutreachAgent(): Promise<void> {
 export function registerExecutors(): void {
   // Also called at module load time below
   registerExecutor('outreach-agent', 'outreach_draft', async (payload) => {
-    const p = payload as { type: string; label: string; subject: string; body: string; isDm?: boolean };
+    const p = payload as { type: string; label: string; subject: string; body: string; isDm?: boolean; searchInstructions?: string };
     const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
     if (!resend) {
       console.warn('[OutreachAgent] RESEND_API_KEY not set — cannot send outreach email');
@@ -268,7 +334,7 @@ export function registerExecutors(): void {
     if (!recipient) {
       return { sent: false, note: 'no_recipient' };
     }
-    const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body, isDm: p.isDm }, p.label);
+    const html = buildReviewEmail({ type: p.type, subject: p.subject, body: p.body, isDm: p.isDm }, p.label, p.searchInstructions);
     const emailSubject = p.isDm
       ? `Or This? DM Template: ${p.label}`
       : `Or This? Outreach Draft: ${p.label} — "${p.subject}"`;

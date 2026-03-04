@@ -656,10 +656,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.warningAlpha10,
   },
   limitText: {
+    fontFamily: Fonts.sansMedium,
     flex: 1,
     fontSize: FontSize.sm,
     color: Colors.warning,
-    fontWeight: '500',
   },
   remainingCount: {
     paddingHorizontal: Spacing.md,
@@ -713,7 +713,7 @@ const markdownStyles = {
     marginBottom: 8,
   },
   strong: {
-    fontWeight: '700' as const,
+    fontFamily: Fonts.sansBold as const,
     color: Colors.text,
   },
   em: {

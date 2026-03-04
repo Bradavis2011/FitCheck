@@ -8,7 +8,7 @@ import { prisma } from '../utils/prisma.js';
 import { Resend } from 'resend';
 import { runEngagementNudger, measureNudgeMetrics, computePreferredNudgeHours, runPersonalizedNudge } from './nudge.service.js';
 import { runOpsLearning, pollTwitterEngagement } from './ops-learning.service.js';
-import { runContentCalendar } from './content-calendar.service.js';
+// content-calendar runContentCalendar replaced by sendWeeklySocialDigest — getTrendData still used by other services
 import { runGrowthDashboard } from './growth-dashboard.service.js';
 import { runBetaRecruiter } from './beta-recruiter.service.js';
 import { runViralMonitor } from './viral-monitor.service.js';
@@ -20,7 +20,7 @@ import { processApprovedActions } from './agent-manager.service.js';
 import { runLifecycleEmail } from './lifecycle-email.service.js';
 import { runConversionIntelligence } from './conversion-intelligence.service.js';
 import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community-manager.service.js';
-import { runSocialMediaManager, registerExecutors as registerSocialExecutors } from './social-media-manager.service.js';
+import { runSocialMediaManager, sendWeeklySocialDigest, registerExecutors as registerSocialExecutors } from './social-media-manager.service.js';
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors } from './creator-manager.service.js';
@@ -350,11 +350,13 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Calibration snapshot failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── Agent 10: Content Calendar — Monday 8am UTC ──────────────────────────
+  // ── Weekly Social Digest — Monday 8am UTC ────────────────────────────────
+  // Replaces separate content calendar + social manager emails with one copy-paste-ready digest.
+  // getTrendData() (from content-calendar) is still used by other services (SEO, social engine).
   cron.schedule('0 8 * * 1', async () => {
-    console.log('📅 [Scheduler] Running content calendar generator...');
-    try { await runContentCalendar(); }
-    catch (err) { console.error('[Scheduler] Content calendar failed:', err); }
+    console.log('📱 [Scheduler] Sending weekly social digest...');
+    try { await sendWeeklySocialDigest(); }
+    catch (err) { console.error('[Scheduler] Weekly social digest failed:', err); }
   }, { timezone: 'UTC' });
 
   // ── Agent 11: Growth Dashboard — Daily 9am UTC ───────────────────────────

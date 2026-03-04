@@ -136,16 +136,16 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   optionLabel: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.text,
   },
   skip: {
     paddingVertical: Spacing.sm,
   },
   skipText: {
+    fontFamily: Fonts.sansMedium,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
-    fontWeight: '500',
   },
 });

@@ -1,6 +1,8 @@
 import { createHmac } from 'crypto';
+import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { executeOrQueue, registerExecutor } from './agent-manager.service.js';
+import { getTrendData } from './content-calendar.service.js';
 import {
   generateFounderStory,
   generateFashionNewsTake,
@@ -308,5 +310,137 @@ export async function postToInstagram(socialPostId: string): Promise<{ posted: b
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error('[SocialMediaManager] Failed to post to Instagram:', err);
     return { posted: false, error: errMsg };
+  }
+}
+
+// ─── Weekly Social Digest ─────────────────────────────────────────────────────
+
+const PLATFORM_EMOJI: Record<string, string> = {
+  twitter: '𝕏',
+  tiktok: '🎵',
+  pinterest: '📌',
+  instagram: '📸',
+};
+
+
+function buildDigestEmail(
+  weekOf: string,
+  trendData: { topStyles: string[]; popularOccasions: string[]; colorTrends: string[] },
+  postsByDay: Array<{ day: string; posts: GeneratedPost[] }>,
+): string {
+  const trendSection = `
+    <div style="margin-bottom:32px;padding:20px;background:#F5EDE7;border-radius:8px;">
+      <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A8B5A0;margin:0 0 12px;">What's Trending in Your App This Week</p>
+      <div style="display:flex;flex-wrap:wrap;gap:20px;">
+        <div><p style="font-size:12px;color:#6B7280;margin:0 0 4px;">Top styles</p><p style="color:#1A1A1A;font-size:13px;margin:0;">${trendData.topStyles.slice(0, 3).join(' · ')}</p></div>
+        <div><p style="font-size:12px;color:#6B7280;margin:0 0 4px;">Occasions</p><p style="color:#1A1A1A;font-size:13px;margin:0;">${trendData.popularOccasions.slice(0, 3).join(' · ')}</p></div>
+        <div><p style="font-size:12px;color:#6B7280;margin:0 0 4px;">Colors</p><p style="color:#1A1A1A;font-size:13px;margin:0;">${trendData.colorTrends.slice(0, 3).join(' · ')}</p></div>
+      </div>
+    </div>`;
+
+  const dayBlocks = postsByDay.map(({ day, posts }) => {
+    const postCards = posts.map(post => `
+      <div style="margin-bottom:12px;padding:16px;background:#fff;border:1px solid rgba(26,26,26,0.08);border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#E85D4C;">${post.contentType.replace(/_/g, ' ')}</span>
+          <span style="font-size:12px;color:#6B7280;">${PLATFORM_EMOJI[post.platform] ?? ''} ${post.platform}</span>
+        </div>
+        <p style="font-size:14px;color:#1A1A1A;line-height:1.6;margin:0 0 8px;white-space:pre-wrap;">${post.content}</p>
+        <p style="font-size:12px;color:#A8B5A0;margin:0 0 8px;">${post.hashtags.map(h => `#${h}`).join(' ')}</p>
+        ${post.imageDescription ? `<p style="font-size:12px;color:#6B7280;font-style:italic;margin:0;">📸 ${post.imageDescription}</p>` : ''}
+      </div>`).join('');
+
+    return `
+      <div style="margin-bottom:28px;">
+        <p style="font-size:13px;font-weight:700;color:#2D2D2D;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid rgba(26,26,26,0.1);">${day}</p>
+        ${postCards}
+      </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#FBF7F4;padding:40px;margin:0;">
+    <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+      <div style="background:#1A1A1A;padding:28px 36px;">
+        <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin:0 0 4px;">Or This?</p>
+        <p style="font-size:22px;font-weight:700;color:#fff;margin:0;">Weekly Social Posts</p>
+        <p style="font-size:13px;color:rgba(255,255,255,0.5);margin:6px 0 0;">Week of ${weekOf} · Copy-paste ready</p>
+      </div>
+      <div style="padding:28px 36px;">
+        ${trendSection}
+        <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A8B5A0;margin:0 0 20px;">This Week's Posts</p>
+        ${dayBlocks}
+      </div>
+      <div style="background:#F5EDE7;padding:16px 36px;text-align:center;">
+        <p style="font-size:11px;color:#A8B5A0;margin:0;">Or This? · Weekly Social Digest · ${new Date().toISOString()}</p>
+      </div>
+    </div>
+  </body></html>`;
+}
+
+/**
+ * Generates all week's social posts and emails them as one actionable digest.
+ * Replaces the content calendar email + individual Mon/Wed/Fri notification emails.
+ * Runs Monday 8am UTC — one email, copy-paste ready, no action queue needed.
+ */
+export async function sendWeeklySocialDigest(): Promise<void> {
+  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+  const recipient = process.env.REPORT_RECIPIENT_EMAIL;
+
+  if (!resend || !recipient) {
+    console.log('[SocialDigest] RESEND_API_KEY or REPORT_RECIPIENT_EMAIL not set — skipping');
+    return;
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('[SocialDigest] GEMINI_API_KEY not set — skipping');
+    return;
+  }
+
+  const weekOf = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  console.log('[SocialDigest] Generating weekly social digest...');
+
+  const trendData = await getTrendData();
+
+  // Run all generators grouped by the day they'd normally run
+  const dayGenerators: Array<{ day: string; generators: Array<() => Promise<GeneratedPost[]>> }> = [
+    { day: 'Monday', generators: [generateFounderStory, generateFashionNewsTake, generateCommunitySpotlight] },
+    { day: 'Wednesday', generators: [generateStyleDataDrop, generateConversationStarter, generateWardrobeInsight] },
+    { day: 'Friday', generators: [generateBehindTheScenes, generateFashionNewsTake, generateCommunitySpotlight] },
+  ];
+
+  const postsByDay: Array<{ day: string; posts: GeneratedPost[] }> = [];
+
+  for (const { day, generators } of dayGenerators) {
+    const dayPosts: GeneratedPost[] = [];
+    for (const generator of generators) {
+      try {
+        const posts = await generator();
+        dayPosts.push(...posts);
+      } catch (err) {
+        console.error(`[SocialDigest] Generator failed for ${day}:`, err);
+      }
+    }
+    if (dayPosts.length > 0) {
+      postsByDay.push({ day, posts: dayPosts });
+    }
+  }
+
+  if (postsByDay.length === 0) {
+    console.log('[SocialDigest] No posts generated — skipping email');
+    return;
+  }
+
+  const totalPosts = postsByDay.reduce((sum, d) => sum + d.posts.length, 0);
+  const from = process.env.REPORT_FROM_EMAIL || 'growth@orthis.app';
+
+  try {
+    await resend.emails.send({
+      from,
+      to: recipient,
+      subject: `Or This? — ${totalPosts} social posts ready to copy · Week of ${weekOf}`,
+      html: buildDigestEmail(weekOf, trendData, postsByDay),
+    });
+    console.log(`[SocialDigest] Sent weekly digest with ${totalPosts} posts for week of ${weekOf}`);
+  } catch (err) {
+    console.error('[SocialDigest] Failed to send digest email:', err);
   }
 }

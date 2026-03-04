@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize } from '../constants/theme';
+import { Colors, Spacing, FontSize, Fonts } from '../constants/theme';
 
 // Guarded require — @react-native-community/netinfo calls TurboModuleRegistry at
 // module load and crashes in Expo Go (no native binary). Degrade gracefully.
@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   text: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.white,
   },
 });

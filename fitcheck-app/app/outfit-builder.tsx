@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   scoreNumber: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: 56,
     color: Colors.primary,
     lineHeight: 60,

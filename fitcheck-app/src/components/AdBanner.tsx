@@ -24,6 +24,9 @@ export default function AdBanner() {
   const { limits } = useSubscriptionStore();
   const [adLoaded, setAdLoaded] = useState(false);
 
+  // iOS ad units are not configured — ads run on Android only
+  if (Platform.OS !== 'android') return null;
+
   // Only show ads to free-tier users when native module is available
   if (!limits?.hasAds || !BannerAd) return null;
 

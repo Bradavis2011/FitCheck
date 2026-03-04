@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 
 type Props = {
   title?: string;
@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   title: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.xl,
-    fontWeight: '600',
     color: Colors.text,
     textAlign: 'center',
     marginBottom: Spacing.xs,
@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   retryButtonText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.white,
   },
 });

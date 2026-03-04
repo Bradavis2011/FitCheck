@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, BorderRadius, Spacing, getScoreColor } from '../constants/theme';
+import { Colors, FontSize, BorderRadius, Spacing, getScoreColor, Fonts } from '../constants/theme';
 
 type PublicOutfit = {
   id: string;
@@ -131,9 +131,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreText: {
+    fontFamily: Fonts.sansBold,
     color: Colors.white,
     fontSize: 11,
-    fontWeight: '700',
   },
   info: {
     flex: 1,
@@ -154,13 +154,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarSmallText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 11,
-    fontWeight: '600',
     color: Colors.primary,
   },
   username: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
-    fontWeight: '600',
     color: Colors.text,
   },
   occasionRow: {

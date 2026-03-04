@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../../src/stores/auth';
-import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../../src/constants/theme';
 import { useUserStats } from '../../src/hooks/useApi';
 import { track } from '../../src/lib/analytics';
 import ImageCropPreview from '../../src/components/ImageCropPreview';
@@ -276,9 +276,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   topTitle: {
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.white,
     fontSize: FontSize.md,
-    fontWeight: '600',
   },
   viewfinder: {
     flex: 1,
@@ -347,8 +347,8 @@ const styles = StyleSheet.create({
     maxWidth: 300,
   },
   permissionTitle: {
+    fontFamily: Fonts.sansBold,
     fontSize: FontSize.xl,
-    fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
   },
@@ -366,16 +366,16 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   settingsButtonText: {
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.white,
     fontSize: FontSize.lg,
-    fontWeight: '600',
   },
   galleryFallback: {
     paddingVertical: Spacing.sm,
   },
   galleryFallbackText: {
+    fontFamily: Fonts.sansSemiBold,
     color: Colors.primary,
     fontSize: FontSize.md,
-    fontWeight: '600',
   },
 });

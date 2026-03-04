@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 
 type ReportReason = 'inappropriate' | 'spam' | 'other';
 type TargetType = 'outfit' | 'user';
@@ -180,13 +180,13 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   headerTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.lg,
-    fontWeight: '600',
     color: Colors.text,
   },
   submitText: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.primary,
   },
   content: {
@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: Spacing.sm,
     marginTop: Spacing.md,
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   reasonLabel: {
+    fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.md,
-    fontWeight: '600',
     color: Colors.text,
     marginBottom: 2,
   },

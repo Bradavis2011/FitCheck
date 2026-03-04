@@ -299,12 +299,12 @@ describe('runSeoContentAgent', () => {
       expect(sourceData).toHaveProperty('generatedAt');
     });
 
-    it('calls executeOrQueue with high risk level for each created draft', async () => {
+    it('calls executeOrQueue with medium risk level for each created draft', async () => {
       await runSeoContentAgent();
 
       expect(mockExecuteOrQueue).toHaveBeenCalledTimes(3);
       for (const call of mockExecuteOrQueue.mock.calls) {
-        expect(call[2]).toBe('high');
+        expect(call[2]).toBe('medium');
       }
     });
 
@@ -314,7 +314,7 @@ describe('runSeoContentAgent', () => {
       expect(mockExecuteOrQueue).toHaveBeenCalledWith(
         'seo-content',
         'publish_draft',
-        'high',
+        'medium',
         expect.objectContaining({ blogDraftId: 'draft-1' }),
         expect.any(Function),
         expect.any(String),
@@ -565,34 +565,34 @@ describe('runSeoContentAgent', () => {
 // ─── getSeoSummary ────────────────────────────────────────────────────────────
 
 describe('getSeoSummary', () => {
-  it('returns pendingDrafts count from blogDraft.count', async () => {
-    mockBlogDraftCount.mockResolvedValue(7);
+  it('returns pendingDrafts and publishedDrafts counts', async () => {
+    mockBlogDraftCount.mockResolvedValueOnce(7).mockResolvedValueOnce(12);
 
     const result = await getSeoSummary();
 
-    expect(result).toEqual({ pendingDrafts: 7 });
+    expect(result).toEqual({ pendingDrafts: 7, publishedDrafts: 12 });
   });
 
-  it('queries with status: pending_review', async () => {
+  it('queries pending_review and published counts', async () => {
     await getSeoSummary();
 
-    expect(mockBlogDraftCount).toHaveBeenCalledWith({
-      where: { status: 'pending_review' },
-    });
+    expect(mockBlogDraftCount).toHaveBeenCalledWith({ where: { status: 'pending_review' } });
+    expect(mockBlogDraftCount).toHaveBeenCalledWith({ where: { status: 'published' } });
   });
 
-  it('returns pendingDrafts: 0 when count returns 0', async () => {
+  it('returns zeros when count returns 0', async () => {
     mockBlogDraftCount.mockResolvedValue(0);
 
     const result = await getSeoSummary();
 
-    expect(result).toEqual({ pendingDrafts: 0 });
+    expect(result).toEqual({ pendingDrafts: 0, publishedDrafts: 0 });
   });
 
-  it('returns pendingDrafts: 3 matching the mock default', async () => {
+  it('returns default mock value for both counts', async () => {
     // mockBlogDraftCount defaults to 3 in beforeEach
     const result = await getSeoSummary();
 
     expect(result.pendingDrafts).toBe(3);
+    expect(result.publishedDrafts).toBe(3);
   });
 });
