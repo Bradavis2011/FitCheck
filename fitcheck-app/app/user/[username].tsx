@@ -12,11 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius, Fonts, getScoreColor } from '../../src/constants/theme';
+import { Colors, Spacing, FontSize, Fonts, getScoreColor } from '../../src/constants/theme';
 import { usePublicUserProfile, useFollowUser, useUnfollowUser, useFollowers, useFollowing } from '../../src/hooks/useApi';
 import { useAuthStore } from '../../src/stores/authStore';
 import { socialService } from '../../src/services/api.service';
 import ReportModal from '../../src/components/ReportModal';
+import UserAvatar from '../../src/components/UserAvatar';
 
 type SortOption = 'recent' | 'top-rated';
 
@@ -32,17 +33,14 @@ export default function PublicUserProfileScreen() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  // For now, we'll need to fetch by username - may need to update the backend
   const { data: profile, isLoading, error } = usePublicUserProfile(username);
   const { data: followersData } = useFollowers(username);
   const { data: followingData } = useFollowing(username);
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
 
-  // Fixed: Compare user IDs instead of email prefixes
   const isOwnProfile = profile?.id === currentUser?.id;
 
-  // Fixed: Check if current user is in the followers list by ID
   const isFollowing = followersData?.followers?.some(
     (f) => f.id === currentUser?.id
   ) || false;
@@ -88,12 +86,11 @@ export default function PublicUserProfileScreen() {
     }
   };
 
-  // Load inner circle status when profile loads
   useEffect(() => {
     if (profile?.username && !isOwnProfile) {
       socialService.getInnerCircleStatus(profile.username)
         .then((data) => setIsInCircle(data.isInCircle))
-        .catch(() => {}); // non-fatal
+        .catch(() => {});
     }
   }, [profile?.username, isOwnProfile]);
 
@@ -160,11 +157,6 @@ export default function PublicUserProfileScreen() {
       ? [...outfits].sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
       : outfits;
 
-  const avgScore =
-    outfits.length > 0
-      ? outfits.reduce((sum, outfit) => sum + (outfit.aiScore || 0), 0) / outfits.length
-      : 0;
-
   const joinDate = new Date(profile.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     year: 'numeric',
@@ -175,13 +167,13 @@ export default function PublicUserProfileScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>@{profile.username}</Text>
           {!isOwnProfile && (
             <TouchableOpacity
-              style={styles.headerBackButton}
+              style={styles.headerButton}
               onPress={() => setShowMenu(!showMenu)}
             >
               <Ionicons name="ellipsis-horizontal" size={24} color={Colors.text} />
@@ -230,116 +222,130 @@ export default function PublicUserProfileScreen() {
         )}
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Profile Header */}
+          {/* Profile Header — horizontal row */}
           <View style={styles.profileHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {profile.username?.charAt(0).toUpperCase() || 'U'}
-              </Text>
+            <UserAvatar
+              imageUri={(profile as any).profileImageUrl}
+              initials={profile.username?.charAt(0).toUpperCase() || 'U'}
+              size={72}
+            />
+            <View style={styles.profileInfo}>
+              <Text style={styles.displayName}>{profile.username}</Text>
+              <Text style={styles.usernameText}>@{profile.username}</Text>
+              <Text style={styles.joinDate}>Joined {joinDate}</Text>
+              {!isOwnProfile && !isBlocked && (
+                <TouchableOpacity
+                  style={[styles.followButton, isFollowing && styles.followingButton]}
+                  onPress={handleFollowToggle}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
-            <Text style={styles.username}>@{profile.username}</Text>
-            {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
-            <Text style={styles.joinDate}>Joined {joinDate}</Text>
-
-            {/* Follow Button */}
-            {!isOwnProfile && !isBlocked && (
-              <TouchableOpacity
-                style={[styles.followButton, isFollowing && styles.followingButton]}
-                onPress={handleFollowToggle}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
-                  {isFollowing ? 'Following' : 'Follow'}
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
 
-          {/* Stats */}
+          {/* Bio */}
+          {profile.bio && (
+            <Text style={styles.bio}>{profile.bio}</Text>
+          )}
+
+          {/* Editorial rule */}
+          <View style={styles.headerDivider} />
+
+          {/* Stats — editorial inline */}
           <View style={styles.statsSection}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{outfits.length}</Text>
-              <Text style={styles.statLabel}>Outfits</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{followerCount}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{followingCount}</Text>
-              <Text style={styles.statLabel}>Following</Text>
+            <Text style={styles.sectionLabel}>Stats</Text>
+            <View style={styles.rule} />
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{outfits.length}</Text>
+                <Text style={styles.statLabel}>Outfits</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{followerCount}</Text>
+                <Text style={styles.statLabel}>Followers</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{followingCount}</Text>
+                <Text style={styles.statLabel}>Following</Text>
+              </View>
             </View>
           </View>
 
           {/* Sort Filter */}
           {outfits.length > 0 && (
-            <View style={styles.filterSection}>
-              <TouchableOpacity
-                style={[styles.filterButton, sortBy === 'recent' && styles.filterButtonActive]}
-                onPress={() => setSortBy('recent')}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[styles.filterText, sortBy === 'recent' && styles.filterTextActive]}
+            <>
+              <View style={styles.filterSection}>
+                <TouchableOpacity
+                  style={[styles.filterButton, sortBy === 'recent' && styles.filterButtonActive]}
+                  onPress={() => setSortBy('recent')}
+                  activeOpacity={0.7}
                 >
-                  Recent
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  sortBy === 'top-rated' && styles.filterButtonActive,
-                ]}
-                onPress={() => setSortBy('top-rated')}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[styles.filterText, sortBy === 'top-rated' && styles.filterTextActive]}
+                  <Text style={[styles.filterText, sortBy === 'recent' && styles.filterTextActive]}>
+                    Recent
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, sortBy === 'top-rated' && styles.filterButtonActive]}
+                  onPress={() => setSortBy('top-rated')}
+                  activeOpacity={0.7}
                 >
-                  Top Rated
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <Text style={[styles.filterText, sortBy === 'top-rated' && styles.filterTextActive]}>
+                    Top Rated
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.filterDivider} />
+            </>
           )}
 
-          {/* Outfits Grid */}
+          {/* Outfits */}
           {outfits.length > 0 ? (
-            <View style={styles.outfitsGrid}>
-              {sortedOutfits.map((outfit) => {
-                const imageUri = outfit.thumbnailData
-                  ? `data:image/jpeg;base64,${outfit.thumbnailData}`
-                  : outfit.imageUrl;
-                const score = outfit.aiScore || 0;
-                const scoreColor = getScoreColor(score);
+            <View style={styles.outfitsSection}>
+              <Text style={styles.sectionLabel}>Outfits</Text>
+              <View style={styles.rule} />
+              <View style={styles.outfitsGrid}>
+                {sortedOutfits.map((outfit) => {
+                  const imageUri = outfit.thumbnailData
+                    ? `data:image/jpeg;base64,${outfit.thumbnailData}`
+                    : outfit.imageUrl;
+                  const score = outfit.aiScore || 0;
+                  const scoreColor = getScoreColor(score);
 
-                return (
-                  <TouchableOpacity
-                    key={outfit.id}
-                    style={styles.gridItem}
-                    onPress={() => router.push(`/outfit/${outfit.id}` as any)}
-                    activeOpacity={0.9}
-                  >
-                    {imageUri ? (
-                      <Image
-                        source={{ uri: imageUri }}
-                        style={styles.gridImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={[styles.gridImage, styles.gridPlaceholder]}>
-                        <Ionicons name="shirt-outline" size={32} color={Colors.textMuted} />
+                  return (
+                    <TouchableOpacity
+                      key={outfit.id}
+                      style={styles.gridItem}
+                      onPress={() => router.push(`/outfit/${outfit.id}` as any)}
+                      activeOpacity={0.9}
+                    >
+                      {imageUri ? (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={styles.gridImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={[styles.gridImage, styles.gridPlaceholder]}>
+                          <Ionicons name="shirt-outline" size={32} color={Colors.textMuted} />
+                        </View>
+                      )}
+                      <View style={[styles.gridScoreBadge, { backgroundColor: scoreColor }]}>
+                        <Text style={styles.gridScoreText}>{score.toFixed(1)}</Text>
                       </View>
-                    )}
-                    <View style={[styles.gridScoreBadge, { backgroundColor: scoreColor }]}>
-                      <Text style={styles.gridScoreText}>{score.toFixed(1)}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="shirt-outline" size={64} color={Colors.textMuted} />
+              <Ionicons name="shirt-outline" size={40} color={Colors.textMuted} />
               <Text style={styles.emptyTitle}>No public outfits yet</Text>
               {isOwnProfile && (
                 <Text style={styles.emptyText}>
@@ -392,13 +398,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   backButtonText: {
-    fontSize: FontSize.md,
-    fontFamily: Fonts.sansSemiBold,
+    fontSize: 12,
+    fontFamily: Fonts.sansMedium,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
   },
+  // Header — flat, no bg on icon buttons
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -406,15 +415,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
   },
-  headerBackButton: {
+  headerButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 9999,
   },
   headerTitle: {
     fontSize: FontSize.lg,
@@ -424,47 +431,53 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // Profile header — horizontal row
   profileHeader: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    gap: Spacing.md,
   },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryAlpha10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+  profileInfo: {
+    flex: 1,
   },
-  avatarText: {
-    fontSize: FontSize.xxl,
-    fontFamily: Fonts.sansBold,
-    color: Colors.primary,
-  },
-  username: {
-    fontSize: FontSize.xl,
-    fontFamily: Fonts.sansSemiBold,
+  displayName: {
+    fontFamily: Fonts.serif,
+    fontSize: 24,
     color: Colors.text,
+    lineHeight: 30,
+  },
+  usernameText: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.primary,
+    marginTop: 2,
+  },
+  joinDate: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: Colors.textMuted,
+    marginTop: 4,
   },
   bio: {
     fontSize: FontSize.md,
+    fontFamily: Fonts.sans,
     color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
     marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  joinDate: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: Spacing.xs,
-  },
+  // Follow button — sharp, uppercase
   followButton: {
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
+    alignSelf: 'flex-start',
   },
   followingButton: {
     backgroundColor: Colors.surface,
@@ -472,71 +485,116 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   followButtonText: {
-    fontSize: FontSize.md,
-    fontFamily: Fonts.sansSemiBold,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.white,
   },
   followingButtonText: {
     color: Colors.text,
   },
-  statsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.sm,
+  // Editorial divider after profile row
+  headerDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  statCard: {
+  // Editorial section label + rule
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    marginBottom: Spacing.md,
+  },
+  // Stats — flat inline row with dividers
+  statsSection: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statItem: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: FontSize.xxl,
     fontFamily: Fonts.sansBold,
+    fontSize: 26,
     color: Colors.text,
   },
   statLabel: {
-    fontSize: FontSize.xs,
+    fontFamily: Fonts.sans,
+    fontSize: 11,
     color: Colors.textMuted,
-    marginTop: 4,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  // Filter chips — sharp corners, uppercase
   filterSection: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: 0,
   },
   filterButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.2)',
   },
   filterButtonActive: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   filterText: {
-    fontSize: FontSize.sm,
-    fontFamily: Fonts.sansSemiBold,
-    color: Colors.text,
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+    color: Colors.textMuted,
   },
   filterTextActive: {
     color: Colors.white,
   },
+  filterDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  // Outfits section
+  outfitsSection: {
+    paddingHorizontal: Spacing.lg,
+  },
   outfitsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
   },
   gridItem: {
     width: '31.5%',
     aspectRatio: 3 / 4,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -555,7 +613,7 @@ const styles = StyleSheet.create({
     right: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    borderRadius: 9999,
   },
   gridScoreText: {
     fontSize: 11,
@@ -566,14 +624,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.xxl * 2,
     paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
   },
   emptyTitle: {
-    fontSize: FontSize.lg,
     fontFamily: Fonts.sansSemiBold,
+    fontSize: 17,
     color: Colors.text,
     marginTop: Spacing.md,
   },
   emptyText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     textAlign: 'center',
@@ -597,6 +657,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   menuText: {
+    fontFamily: Fonts.sans,
     fontSize: FontSize.md,
     color: Colors.text,
   },
