@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, Fonts } from '../src/constants/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import OrThisLogo from '../src/components/OrThisLogo';
+import { track } from '../src/lib/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +52,7 @@ export default function OnboardingScreen() {
   };
 
   const handleGetStarted = () => {
+    track('onboarding_completed');
     completeOnboarding();
     router.replace('/(tabs)' as any);
   };

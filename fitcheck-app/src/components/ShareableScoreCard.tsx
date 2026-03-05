@@ -8,6 +8,8 @@ type Props = {
   summary: string;
   occasion?: string;
   username?: string;
+  /** URL shown in the image footer — Android shares only get the image, so the URL must be visible */
+  ctaUrl?: string;
 };
 
 /**
@@ -15,7 +17,7 @@ type Props = {
  * Captured via react-native-view-shot (off-screen rendering).
  * Every share is a branded ad: "Or This? · orthis.app" in the footer.
  */
-export default function ShareableScoreCard({ score, imageUri, summary, occasion, username }: Props) {
+export default function ShareableScoreCard({ score, imageUri, summary, occasion, username, ctaUrl }: Props) {
   const scoreColor = getScoreColor(score);
 
   const validImageUri = imageUri && imageUri.trim().length > 0 ? imageUri : null;
@@ -78,7 +80,7 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
               <Text style={styles.footerLogoOr}>Or </Text>
               <Text style={styles.footerLogoThis}>This?</Text>
             </Text>
-            <Text style={styles.footerUrl}>ORTHIS.APP</Text>
+            <Text style={styles.footerUrl}>{ctaUrl ? ctaUrl.replace(/^https?:\/\//, '') : 'ORTHIS.APP'}</Text>
           </View>
           {username && (
             <Text style={styles.username}>shared by @{username}</Text>

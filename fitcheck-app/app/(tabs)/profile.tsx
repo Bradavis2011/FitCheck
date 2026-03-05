@@ -8,7 +8,10 @@ import { useAuth } from '@clerk/clerk-expo';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import * as Linking from 'expo-linking';
 import { Colors, Spacing, Fonts, FontSize } from '../../src/constants/theme';
+import { APP_STORE_URL } from '../../src/constants/urls';
+import { maybeRequestReview } from '../../src/lib/storeReview';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { logOutPurchases } from '../../src/services/purchases.service';
@@ -177,6 +180,22 @@ export default function ProfileScreen() {
       Alert.alert('Thanks!', 'Your feedback has been submitted.');
     } catch {
       Alert.alert('Error', 'Failed to submit feedback. Please try again.');
+    }
+  };
+
+  const handleRateApp = async () => {
+    try {
+      const StoreReview = require('expo-store-review');
+      if (await StoreReview.isAvailableAsync()) {
+        await maybeRequestReview({
+          trigger: 'profile_manual',
+          totalOutfits: stats?.totalOutfits ?? 0,
+        });
+      } else {
+        Linking.openURL(APP_STORE_URL);
+      }
+    } catch {
+      Linking.openURL(APP_STORE_URL);
     }
   };
 
@@ -459,6 +478,11 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.listRow} onPress={() => setShowFeedback(true)}>
             <Text style={styles.listRowText}>Send Feedback</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <View style={styles.rowDivider} />
+          <TouchableOpacity style={styles.listRow} onPress={handleRateApp}>
+            <Text style={styles.listRowText}>Rate Or This?</Text>
+            <Ionicons name="star-outline" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.rowDivider} />
           {__DEV__ && (

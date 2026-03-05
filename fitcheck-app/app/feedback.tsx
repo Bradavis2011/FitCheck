@@ -28,6 +28,7 @@ try { Sharing = require('expo-sharing'); } catch { /* unavailable in Expo Go */ 
 import { useAppStore, type RevisionSource } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, Fonts, BorderRadius, getScoreColor } from '../src/constants/theme';
+import { APP_STORE_URL, WEB_BASE_URL } from '../src/constants/urls';
 import AdBanner from '../src/components/AdBanner';
 import { recordOutfitCheck } from '../src/lib/adManager';
 import AffiliateCard from '../src/components/AffiliateCard';
@@ -36,8 +37,10 @@ import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
 import ShareableScoreCard from '../src/components/ShareableScoreCard';
 import RevisionNotesCard from '../src/components/RevisionNotesCard';
+import { FeedbackSkeleton } from '../src/components/SkeletonLoader';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-import { useTogglePublic, useCommunityFeedback, useReferralStats } from '../src/hooks/useApi';
+import { useTogglePublic, useCommunityFeedback, useReferralStats, useUserStats } from '../src/hooks/useApi';
+import { maybeRequestReview } from '../src/lib/storeReview';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
 import { normalizeFeedback } from '../src/utils/feedbackAdapter';
@@ -69,6 +72,7 @@ export default function FeedbackScreen() {
   const togglePublicMutation = useTogglePublic();
   const user = useAuthStore((s) => s.user);
   const { data: referralStats } = useReferralStats();
+  const { data: stats } = useUserStats();
 
   const [outfit, setOutfit] = useState<OutfitCheck | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +91,7 @@ export default function FeedbackScreen() {
   const hasLoadedRef = useRef(false);
   const interstitialRef = useRef<any>(null);
   const viewShotRef = useRef<any>(null);
+  const highScorePromptShownRef = useRef(false);
 
   // Staggered dot animation for loading screen
   const dot1Anim = useRef(new Animated.Value(0.15)).current;
@@ -133,6 +138,25 @@ export default function FeedbackScreen() {
     return () => { interstitialRef.current = null; };
   }, []);
 
+  // High-score share prompt — fires once when a 8+ score outfit loads
+  useEffect(() => {
+    if (!outfit?.aiProcessedAt || highScorePromptShownRef.current) return;
+    if ((outfit.aiScore ?? 0) >= 8) {
+      highScorePromptShownRef.current = true;
+      const timer = setTimeout(() => {
+        Alert.alert(
+          "That's a great score! 🔥",
+          "Share your look with the world?",
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Share', onPress: handleShareScore },
+          ],
+        );
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [outfit]);
+
   useFocusEffect(
     useCallback(() => {
       if (!outfitId) {
@@ -162,6 +186,13 @@ export default function FeedbackScreen() {
             wasAnalyzingRef.current = false;
             if (data.aiScore != null) {
               track('outfit_check_completed', { score: data.aiScore, occasion: data.occasions?.[0] });
+              if ((stats?.totalOutfits ?? 0) >= 2) {
+                maybeRequestReview({
+                  trigger: 'outfit_completed',
+                  score: data.aiScore,
+                  totalOutfits: stats?.totalOutfits ?? 0,
+                });
+              }
             }
             setIsLoading(false);
             if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
@@ -204,6 +235,13 @@ export default function FeedbackScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setHelpfulResponse(response);
       await outfitService.rateFeedback(outfit.id, response);
+      if (response === true) {
+        maybeRequestReview({
+          trigger: 'helpful_positive',
+          score: outfit.aiScore ?? 0,
+          totalOutfits: stats?.totalOutfits ?? 0,
+        });
+      }
     } catch (error) {
       console.error('Failed to submit feedback rating:', error);
     }
@@ -240,10 +278,13 @@ export default function FeedbackScreen() {
       track('score_card_shared', { score: outfit.aiScore ?? 0, method: 'native_share' });
 
       const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
-      const shareText = normalized?.editorialSummary || `I got a ${normalized?.overallScore}/10 on Or This?`;
-      const callToAction = referralStats?.link
+      const shareText = normalized?.editorialSummary || `I got a ${score}/10 on Or This?`;
+      const webScoreUrl = isPublic ? `${WEB_BASE_URL}/s/${outfit.id}` : null;
+      const callToAction = webScoreUrl
+        ? `See my look: ${webScoreUrl}`
+        : referralStats?.link
         ? `Try it yourself: ${referralStats.link}`
-        : 'Get your outfit scored at OrThis.app!';
+        : `Get your outfit scored: ${APP_STORE_URL}`;
       const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${shareText}\n\n${callToAction}`;
 
       let imageShared = false;
@@ -272,6 +313,11 @@ export default function FeedbackScreen() {
       if (!imageShared) {
         await Share.share({ message: shareMessage, title: `My Or This? Score: ${score}/10` });
       }
+      maybeRequestReview({
+        trigger: 'score_shared',
+        score: outfit.aiScore ?? 0,
+        totalOutfits: stats?.totalOutfits ?? 0,
+      });
     } catch (error: any) {
       if (error.message !== 'User cancelled' && !error.message?.includes('cancelled')) {
         Alert.alert('Error', 'Failed to share. Please try again.');
@@ -359,11 +405,7 @@ export default function FeedbackScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={Colors.text} />
         </TouchableOpacity>
-        <View style={styles.loadingDots}>
-          <Animated.View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: dot1Anim }]} />
-          <Animated.View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: dot2Anim }]} />
-          <Animated.View style={[styles.loadingDot, { backgroundColor: Colors.primary, opacity: dot3Anim }]} />
-        </View>
+        <FeedbackSkeleton />
         <Text style={styles.loadingText}>Reading your look...</Text>
         <Text style={styles.loadingSubtext}>This usually takes 10–15 seconds</Text>
       </View>
@@ -741,6 +783,7 @@ export default function FeedbackScreen() {
               summary={normalized?.editorialSummary || (feedback as any)?.summary || ''}
               occasion={outfit.occasions?.[0]}
               username={user?.name || undefined}
+              ctaUrl={isPublic ? `${WEB_BASE_URL}/s/${outfit.id}` : APP_STORE_URL}
             />
           </ViewShot>
         </View>

@@ -13,7 +13,13 @@ export type AnalyticsEvent =
   | 'score_card_shared'
   | 'follow_up_asked'
   | 'ai_comparison_complete'
-  | 'revision_started';
+  | 'revision_started'
+  | 'store_review_prompted'
+  | 'onboarding_completed'
+  | 'daily_limit_hit'
+  | 'paywall_dismissed'
+  | 'push_permission_granted'
+  | 'push_permission_denied';
 
 // Per-event property shapes
 export type EventProperties = {
@@ -29,6 +35,16 @@ export type EventProperties = {
   follow_up_asked: { outfit_id: string; question_number: number };
   ai_comparison_complete: { winner?: string };
   revision_started: { outfit_id: string; score: number };
+  store_review_prompted: {
+    trigger: 'helpful_positive' | 'score_shared' | 'outfit_completed' | 'profile_manual';
+    score?: number;
+    total_outfits: number;
+  };
+  onboarding_completed: Record<string, never>;
+  daily_limit_hit: { source: 'camera' | 'context' | 'server'; tier: string };
+  paywall_dismissed: Record<string, never>;
+  push_permission_granted: Record<string, never>;
+  push_permission_denied: Record<string, never>;
 };
 
 let _client: PostHog | null = null;

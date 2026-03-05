@@ -145,7 +145,10 @@ export default function UpgradeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={() => { track('paywall_dismissed'); router.back(); }}
+          style={styles.closeButton}
+        >
           <Ionicons name="close" size={28} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Choose Your Plan</Text>

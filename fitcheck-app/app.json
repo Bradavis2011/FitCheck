@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Or This?",
+    "name": "Or This? AI Outfit Feedback",
     "slug": "orthis",
     "scheme": "orthis",
     "version": "1.2.0",
@@ -23,6 +23,7 @@
       "supportsTablet": true,
       "requireFullScreen": true,
       "bundleIdentifier": "com.bradavis.orthis",
+      "associatedDomains": ["applinks:orthis.app"],
       "infoPlist": {
         "NSCameraUsageDescription": "Or This? uses your camera to take photos of your outfit for AI-powered style analysis.",
         "NSPhotoLibraryUsageDescription": "Or This? accesses your photo library so you can select outfit photos for AI style analysis.",
@@ -38,6 +39,17 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "orthis.app", "pathPrefix": "/s/" },
+            { "scheme": "https", "host": "orthis.app", "pathPrefix": "/invite/" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",

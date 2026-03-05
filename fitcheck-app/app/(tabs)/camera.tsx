@@ -16,6 +16,7 @@ import { useAppStore } from '../../src/stores/auth';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../../src/constants/theme';
 import { useUserStats } from '../../src/hooks/useApi';
 import { track } from '../../src/lib/analytics';
+import * as Haptics from 'expo-haptics';
 import ImageCropPreview from '../../src/components/ImageCropPreview';
 
 type CameraMode = 'camera' | 'preview' | 'permission-denied';
@@ -47,6 +48,7 @@ export default function CameraScreen() {
 
   const handleCapture = async () => {
     if (!cameraRef.current) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
@@ -83,10 +85,12 @@ export default function CameraScreen() {
   };
 
   const handleFlipCamera = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
   };
 
   const toggleFlash = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
@@ -130,10 +134,14 @@ export default function CameraScreen() {
         onAccept={(croppedUri) => {
           // Check daily limit before proceeding
           if (isAtLimit) {
+            track('daily_limit_hit', { source: 'camera', tier: 'free' });
             Alert.alert(
               'Daily Limit Reached',
               'Free accounts get 3 outfit checks per day. Upgrade to Plus for unlimited checks!',
-              [{ text: 'OK' }]
+              [
+                { text: 'Later', style: 'cancel' },
+                { text: 'See Plans', onPress: () => router.push('/upgrade' as any) },
+              ]
             );
             return;
           }

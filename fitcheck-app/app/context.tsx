@@ -22,6 +22,7 @@ import PillButton from '../src/components/PillButton';
 import { uploadImage } from '../src/services/image-upload.service';
 import { outfitService, ShareWith } from '../src/services/api.service';
 import { useUserStats, useOutfitMemory, useContextPreferences } from '../src/hooks/useApi';
+import { track } from '../src/lib/analytics';
 import * as SecureStore from 'expo-secure-store';
 
 // Occasions that get a follow-up the next morning
@@ -201,10 +202,14 @@ export default function ContextScreen() {
 
     // Guard against daily limit
     if (isAtLimit) {
+      track('daily_limit_hit', { source: 'context', tier: 'free' });
       Alert.alert(
         'Daily Limit Reached',
         'Free accounts get 3 outfit checks per day. Upgrade to Plus for unlimited checks!',
-        [{ text: 'OK' }]
+        [
+          { text: 'Later', style: 'cancel' },
+          { text: 'See Plans', onPress: () => router.push('/upgrade' as any) },
+        ]
       );
       return;
     }

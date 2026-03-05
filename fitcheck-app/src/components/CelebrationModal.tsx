@@ -36,12 +36,14 @@ interface CelebrationModalProps {
   visible: boolean;
   data: CelebrationData | null;
   onDismiss: () => void;
+  onShare?: () => void;
 }
 
 export default function CelebrationModal({
   visible,
   data,
   onDismiss,
+  onShare,
 }: CelebrationModalProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -241,6 +243,17 @@ export default function CelebrationModal({
           <View style={styles.modalContent}>
             {renderContent()}
 
+            {onShare && (
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={() => { onShare(); onDismiss(); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="share-social-outline" size={18} color={Colors.primary} />
+                <Text style={styles.shareButtonText}>Share</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={styles.dismissButton}
               onPress={onDismiss}
@@ -390,6 +403,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansSemiBold,
     fontSize: FontSize.sm,
     color: Colors.success,
+  },
+  shareButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 0,
+    marginBottom: Spacing.sm,
+  },
+  shareButtonText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: FontSize.md,
+    color: Colors.primary,
   },
   dismissButton: {
     width: '100%',

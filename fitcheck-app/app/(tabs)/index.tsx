@@ -20,7 +20,8 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser, useNotifications } from '../../src/hooks/useApi';
+import ErrorState from '../../src/components/ErrorState';
 import UserAvatar from '../../src/components/UserAvatar';
 
 export default function HomeScreen() {
@@ -28,12 +29,14 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const user = useAuthStore((s) => s.user);
   const { tier } = useSubscriptionStore();
-  const { data: outfitsData, refetch: refetchOutfits } = useOutfits({ limit: 5 });
+  const { data: outfitsData, refetch: refetchOutfits, isError: isOutfitsError, isLoading: isOutfitsLoading } = useOutfits({ limit: 5 });
   const { data: stats, refetch: refetchStats } = useUserStats();
   const { data: communityData, refetch: refetchCommunity } = useCommunityFeed({ filter: 'recent', limit: 3 });
   const toggleFavoriteMutation = useToggleFavorite();
   const { data: referralStats } = useReferralStats();
   const { data: userProfile } = useUser();
+  const { data: notificationsData } = useNotifications(true);
+  const unreadCount = notificationsData?.unreadCount ?? 0;
   const [refreshing, setRefreshing] = useState(false);
 
   // A7: archetype-personalized hero copy
@@ -120,16 +123,30 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header — logo left, avatar right */}
+        {/* Header — logo left, bell + avatar right */}
         <View style={styles.header}>
           <OrThisLogo size={26} />
-          <TouchableOpacity onPress={() => navigation.dispatch(TabActions.jumpTo('profile'))} activeOpacity={0.8}>
-            <UserAvatar
-              imageUri={userProfile?.profileImageUrl}
-              initials={getInitials()}
-              size={44}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.bellButton}
+              onPress={() => router.push('/notifications' as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.dispatch(TabActions.jumpTo('profile'))} activeOpacity={0.8}>
+              <UserAvatar
+                imageUri={userProfile?.profileImageUrl}
+                initials={getInitials()}
+                size={44}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Editorial prompt area */}
@@ -175,7 +192,29 @@ export default function HomeScreen() {
         <View style={styles.sectionDivider} />
 
         {/* Recent section */}
-        {outfits.length > 0 && (
+        {isOutfitsError ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Recent</Text>
+            </View>
+            <ErrorState onRetry={refetchOutfits} />
+          </View>
+        ) : outfits.length === 0 && !isOutfitsLoading && !isOutfitsError ? (
+          <View style={styles.emptySection}>
+            <Text style={styles.sectionLabel}>Recent</Text>
+            <View style={styles.rule} />
+            <Text style={styles.emptyTitle}>No outfits yet.</Text>
+            <Text style={styles.emptySubtitle}>Check your first look to start building your style archive.</Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => router.push('/(tabs)/camera')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="camera" size={16} color={Colors.white} />
+              <Text style={styles.emptyButtonText}>Check an outfit</Text>
+            </TouchableOpacity>
+          </View>
+        ) : outfits.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>Recent</Text>
@@ -334,6 +373,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  bellButton: {
+    position: 'relative',
+    padding: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: Colors.primary,
+    borderRadius: 9999,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 9,
+    color: Colors.white,
+    lineHeight: 11,
   },
   // Hero editorial prompt
   heroSection: {
@@ -577,6 +643,41 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.65,
     color: Colors.primary,
+  },
+  // Empty state (Recent)
+  emptySection: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    marginBottom: Spacing.xl,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 24,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  emptySubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginBottom: Spacing.lg,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: 0,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg,
+    alignSelf: 'flex-start',
+  },
+  emptyButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.white,
   },
   // Invite
   inviteRow: {

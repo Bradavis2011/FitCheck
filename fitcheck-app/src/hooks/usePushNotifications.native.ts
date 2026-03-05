@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { pushNotificationService } from '../services/push.service';
 import { useAuthStore } from '../stores/authStore';
+import { track } from '../lib/analytics';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -114,6 +115,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 
     if (finalStatus !== 'granted') {
       console.log('Permission to send push notifications was denied');
+      track('push_permission_denied');
       return null;
     }
 
@@ -132,6 +134,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
       });
     }
 
+    track('push_permission_granted');
     return tokenData.data;
   } catch (error) {
     console.error('Error registering for push notifications:', error);
