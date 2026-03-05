@@ -10,7 +10,7 @@ require email verification which is not accessible during review.
 TEST ACCOUNT CREDENTIALS
 ------------------------
 Email:    reviewer@orthis.app
-Password: Review2026!
+Password: [redacted — see Apple App Review submission notes]
 
 HOW TO SIGN IN (step by step)
 ------------------------------
