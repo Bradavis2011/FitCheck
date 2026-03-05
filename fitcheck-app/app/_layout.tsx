@@ -173,7 +173,7 @@ function AuthGate() {
     if (!isLoaded) return;
     if (!navigationState?.key) return; // Navigator not mounted yet
 
-    const inAuthGroup = segments[0] === 'login';
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'sso-callback';
     const inOnboardingScreen = segments[0] === 'onboarding';
 
     if (!isSignedIn && !inAuthGroup) {
