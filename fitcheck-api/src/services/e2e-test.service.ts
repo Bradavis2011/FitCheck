@@ -56,11 +56,11 @@ function buildTestCases(): TestCase[] {
       expectedStatuses: [200],
     },
     {
-      label: 'POST /api/auth/signin with bad credentials → 400 or 401 (not 500)',
-      endpoint: '/api/auth/signin',
+      label: 'POST /api/waitlist with missing body → 400 (validation error, not 500)',
+      endpoint: '/api/waitlist',
       method: 'POST',
-      body: { email: 'invalid@test.invalid', password: 'wrongpassword123' },
-      expectedStatuses: [400, 401, 422],
+      body: {},
+      expectedStatuses: [400, 422],
     },
     {
       label: 'GET /api/outfits (no auth) → 401',

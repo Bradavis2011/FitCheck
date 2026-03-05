@@ -21,6 +21,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.bradavis.orthis",
       "infoPlist": {
         "NSCameraUsageDescription": "Or This? uses your camera to take photos of your outfit for AI-powered style analysis.",
@@ -67,7 +68,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-1244039707249288~4992117276"
+          "androidAppId": "ca-app-pub-1244039707249288~4992117276",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ]
     ],
