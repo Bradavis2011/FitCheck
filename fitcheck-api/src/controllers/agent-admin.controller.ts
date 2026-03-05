@@ -15,6 +15,7 @@ import {
   killAllAgents,
   getDashboardSummary,
   processApprovedActions,
+  getAgentHealth,
 } from '../services/agent-manager.service.js';
 import { safeTokenEqual } from '../utils/crypto.js';
 import { requireAdmin } from '../utils/admin.js';
@@ -157,6 +158,13 @@ export async function getAllActionLog(req: AuthenticatedRequest, res: Response) 
   res.json(result);
 }
 
+// GET /api/admin/agents/health — per-agent health status (lastRunAt, lastError, green/yellow/red)
+export async function getHealthStatus(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const health = await getAgentHealth();
+  res.json({ health });
+}
+
 // POST /api/admin/agents/kill-all — global kill switch
 export async function killAll(req: AuthenticatedRequest, res: Response) {
   requireAdmin(req);
@@ -269,6 +277,27 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
       const { runCreatorPerformanceDigest } = await import('../services/creator-manager.service.js');
       await runCreatorPerformanceDigest();
     },
+    // ── Growth Intern ─────────────────────────────────────────────────────
+    'creator-scout': async () => {
+      const { runCreatorScout } = await import('../services/creator-scout.service.js');
+      await runCreatorScout();
+    },
+    'creator-outreach': async () => {
+      const { runEmailOutreach } = await import('../services/creator-outreach.service.js');
+      await runEmailOutreach();
+    },
+    'email-follow-up': async () => {
+      const { runEmailFollowUp } = await import('../services/creator-outreach.service.js');
+      await runEmailFollowUp();
+    },
+    'reddit-scout': async () => {
+      const { runRedditDiscovery } = await import('../services/reddit-scout.service.js');
+      await runRedditDiscovery();
+    },
+    'growth-intern': async () => {
+      const { runMorningBrief } = await import('../services/growth-intern.service.js');
+      await runMorningBrief();
+    },
   };
 
   const agentFn = agentMap[name];
@@ -284,4 +313,62 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
   agentFn().catch(err => console.error(`[AgentAdmin] Triggered agent "${name}" failed:`, err));
 
   res.json({ ok: true, agent: name, message: `Agent "${name}" triggered — running in background` });
+}
+
+// GET /api/admin/agents/growth — growth pipeline + Reddit threads + email stats
+export async function getGrowthPipeline(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+
+  const [prospects, redditThreads, pipelineStats] = await Promise.all([
+    prisma.creatorProspect.findMany({
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      take: 200,
+    }),
+    prisma.redditThread.findMany({
+      orderBy: [{ status: 'asc' }, { relevanceScore: 'desc' }],
+      take: 100,
+    }),
+    prisma.creatorProspect.groupBy({
+      by: ['status', 'outreachMethod'],
+      _count: { id: true },
+    }),
+  ]);
+
+  // Email performance stats
+  const emailStats = {
+    total: prospects.filter(p => p.outreachMethod === 'email').length,
+    contacted: prospects.filter(p => p.outreachMethod === 'email' && p.contactedAt).length,
+    opened: prospects.filter(p => p.emailOpenedAt).length,
+    clicked: prospects.filter(p => p.emailClickedAt).length,
+    responded: prospects.filter(p => p.status === 'responded').length,
+    onboarded: prospects.filter(p => p.status === 'onboarded').length,
+  };
+
+  res.json({ prospects, redditThreads, pipelineStats, emailStats });
+}
+
+// PATCH /api/admin/agents/growth/prospects/:id — update prospect status/notes
+export async function updateProspect(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const { id } = req.params;
+  const Schema = z.object({
+    status: z.string().optional(),
+    notes: z.string().optional(),
+  });
+  const data = Schema.parse(req.body);
+  const prospect = await prisma.creatorProspect.update({ where: { id }, data });
+  res.json({ ok: true, prospect });
+}
+
+// PATCH /api/admin/agents/growth/threads/:id — update thread status
+export async function updateRedditThread(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const { id } = req.params;
+  const Schema = z.object({
+    status: z.string().optional(),
+    suggestedResponse: z.string().optional(),
+  });
+  const data = Schema.parse(req.body);
+  const thread = await prisma.redditThread.update({ where: { id }, data });
+  res.json({ ok: true, thread });
 }

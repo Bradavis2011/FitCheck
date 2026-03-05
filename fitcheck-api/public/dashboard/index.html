@@ -107,6 +107,12 @@
       <button class="dot" data-dot="log">
         <span class="dot-tooltip">Action Log</span>
       </button>
+      <button class="dot" data-dot="growth">
+        <span class="dot-tooltip">Growth Intern</span>
+      </button>
+      <button class="dot" data-dot="health">
+        <span class="dot-tooltip">Agent Health</span>
+      </button>
     </nav>
 
     <!-- Scrollable page container -->
@@ -201,6 +207,55 @@
           </div>
           <div id="log-content"></div>
           <div id="log-pagination" style="margin-top:24px;"></div>
+        </div>
+      </section>
+
+      <!-- ── Agent Health ────────────────────────────────────────────── -->
+      <section data-page="health" class="magazine-page hidden">
+        <div class="typo-hero">
+          <span class="editorial-rule" style="margin:0 0 24px 0;display:block;"></span>
+          <p class="section-label" style="margin-bottom:12px;">Observability</p>
+          <h1 class="typo-hero-title">Agent Health</h1>
+          <p style="color:var(--muted);font-size:0.9375rem;max-width:480px;line-height:1.6;">Live view of when each agent last ran and whether it errored.</p>
+        </div>
+        <div class="page-content">
+          <div id="health-content"></div>
+        </div>
+      </section>
+
+      <!-- ── Growth Intern ───────────────────────────────────────────── -->
+      <section data-page="growth" class="magazine-page hidden">
+        <div class="split-hero">
+          <div class="split-hero-img">
+            <img src="/dashboard/images/editorial-tan.jpg" alt="">
+          </div>
+          <div class="split-hero-content">
+            <span class="editorial-rule" style="margin:0 0 24px 0;display:block;"></span>
+            <p class="section-label" style="margin-bottom:12px;">Autonomous Outreach</p>
+            <h1 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:400;font-size:3rem;color:var(--black);letter-spacing:-0.02em;line-height:1.15;margin-bottom:16px;">The Growth Intern</h1>
+            <p style="color:var(--muted);font-size:0.9375rem;margin-bottom:28px;max-width:360px;line-height:1.6;">Creator pipeline, Reddit opportunities, and email performance</p>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <button onclick="triggerGrowthAgent('creator-scout')" class="btn-coral" style="padding:12px 22px;font-size:0.8125rem;">▶ Run Scout</button>
+              <button onclick="triggerGrowthAgent('growth-intern')" class="btn-coral" style="padding:12px 22px;font-size:0.8125rem;">▶ Send Brief</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-content">
+          <!-- Email funnel stats -->
+          <div id="growth-email-stats" style="margin-bottom:48px;"></div>
+
+          <!-- Pipeline stages — two-column: Creator Prospects + Reddit Threads -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:48px;">
+            <div>
+              <p class="section-label" style="margin-bottom:20px;">Creator Pipeline</p>
+              <div id="growth-pipeline-content"></div>
+            </div>
+            <div>
+              <p class="section-label" style="margin-bottom:20px;">Reddit Queue</p>
+              <div id="growth-reddit-content"></div>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -150,10 +150,14 @@ async function queueGeneratedPost(post: GeneratedPost): Promise<void> {
     data: { trackingUrl },
   });
 
+  // All social posts queue for manual approval — Twitter API is expensive and
+  // Instagram/TikTok require manual posting anyway
+  const riskLevel = 'high';
+
   await executeOrQueue(
     'social-media-manager',
     'post_social',
-    'high',
+    riskLevel,
     { socialPostId: record.id, platform: post.platform, content: post.content, hashtags: post.hashtags, contentType: post.contentType, imageDescription: post.imageDescription } as unknown as Record<string, unknown>,
     async (payload) => {
       const p = payload as { socialPostId: string; platform: string };
@@ -266,7 +270,7 @@ export async function postToInstagram(socialPostId: string): Promise<{ posted: b
   try {
     // Step 1: Create media container
     const caption = `${post.content}${post.hashtags?.length ? '\n\n' + (post.hashtags as string[]).map(h => `#${h}`).join(' ') : ''}`;
-    const imageUrl = post.trackingUrl || '';
+    const imageUrl = post.mediaUrl || '';
 
     if (!imageUrl.startsWith('http')) {
       return { posted: false, error: 'Instagram posts require a public image URL' };

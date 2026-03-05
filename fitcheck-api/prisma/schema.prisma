@@ -294,6 +294,7 @@ model Notification {
   linkType  String?  @map("link_type") // "outfit", "user", "live_session"
   linkId    String?  @map("link_id")
   isRead    Boolean  @default(false) @map("is_read")
+  metadata  Json?    @map("metadata")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
@@ -834,6 +835,72 @@ model MilestoneMessage {
   @@index([userId])
   @@map("milestone_messages")
 }
+
+// ─── Growth Intern Models ─────────────────────────────────────────────────────
+
+model CreatorProspect {
+  id               String    @id @default(uuid())
+  platform         String // "tiktok", "instagram", "youtube", "lemon8", "threads"
+  handle           String
+  displayName      String?   @map("display_name")
+  followerRange    String?   @map("follower_range") // "1k-5k", "5k-10k", "10k-50k"
+  niche            String?
+  profileUrl       String?   @map("profile_url")
+  contentStyle     String?   @map("content_style")
+  email            String? // Business email if found in bio/profile (null if not found)
+
+  status           String    @default("identified")
+  // identified → dm_ready → contacted → followed_up → responded → onboarded → posted → declined
+
+  personalizedDM       String?   @map("personalized_dm") @db.Text
+  followUpDM           String?   @map("follow_up_dm") @db.Text
+  emailSubject         String?   @map("email_subject")
+  emailBody            String?   @map("email_body") @db.Text
+  followUpEmailBody    String?   @map("follow_up_email_body") @db.Text
+  outreachMethod       String?   @map("outreach_method") // 'email' | 'dm'
+
+  notes          String?   @db.Text
+  searchQuery    String?   @map("search_query")
+  batchDate      String?   @map("batch_date")
+  contactedAt    DateTime? @map("contacted_at")
+  followedUpAt   DateTime? @map("followed_up_at")
+  respondedAt    DateTime? @map("responded_at")
+  emailOpenedAt  DateTime? @map("email_opened_at")
+  emailClickedAt DateTime? @map("email_clicked_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([platform, handle])
+  @@index([status, outreachMethod])
+  @@map("creator_prospects")
+}
+
+model RedditThread {
+  id                String    @id @default(uuid())
+  subreddit         String
+  threadId          String    @unique @map("thread_id")
+  title             String    @db.Text
+  url               String
+  authorName        String?   @map("author_name")
+  selfText          String?   @map("self_text") @db.Text
+  upvotes           Int       @default(0)
+  commentCount      Int       @default(0) @map("comment_count")
+  relevanceScore    Float?    @map("relevance_score")
+  category          String?
+
+  suggestedResponse String?   @map("suggested_response") @db.Text
+  status            String    @default("identified")
+  // identified → response_ready → approved → posted → skipped
+
+  redditCommentId   String?   @map("reddit_comment_id")
+  postedAt          DateTime? @map("posted_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("reddit_threads")
+}
+
+// ─── End Growth Intern Models ─────────────────────────────────────────────────
 
 // ─── End Relationship System Models ──────────────────────────────────────────
 

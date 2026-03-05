@@ -54,6 +54,21 @@ async function getConfig(agent: string): Promise<AgentConfigResolved> {
   };
 }
 
+/** Check if an agent is enabled without going through executeOrQueue. Used by cron guards. */
+export async function isAgentEnabled(agent: string): Promise<boolean> {
+  const config = await getConfig(agent);
+  return config.enabled;
+}
+
+/** Record that an agent ran (success or failure). Called by the scheduler guardedRun helper. */
+export async function recordAgentRun(agent: string, error?: string): Promise<void> {
+  await prisma.agentConfig.upsert({
+    where: { agent },
+    update: { lastRunAt: new Date(), lastError: error ?? null },
+    create: { agent, enabled: true, lastRunAt: new Date(), lastError: error ?? null },
+  });
+}
+
 async function checkRateLimit(
   agent: string,
   maxPerHour: number,
@@ -114,7 +129,17 @@ export async function executeOrQueue(
   const config = await getConfig(agent);
   if (!config.enabled) {
     console.log(`[AgentManager] Agent "${agent}" is disabled — skipping ${actionType}`);
-    return { status: 'rejected', actionId: '', reason: 'agent_disabled' };
+    const disabledAction = await prisma.agentAction.create({
+      data: {
+        agent,
+        actionType,
+        riskLevel,
+        status: 'rejected',
+        payload: toJson(payload),
+        result: toJson({ reason: 'agent_disabled' }),
+      },
+    });
+    return { status: 'rejected', actionId: disabledAction.id, reason: 'agent_disabled' };
   }
 
   // ── Rate limit check ──
@@ -229,6 +254,12 @@ export async function processApprovedActions(): Promise<void> {
     const executor = executorRegistry.get(key);
 
     if (!executor) {
+      // 30-minute grace period: if approved recently after a restart, wait for cron to register executor
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      if (action.reviewedAt && action.reviewedAt > thirtyMinutesAgo) {
+        console.log(`[AgentManager] No executor for ${key} yet — within grace period, will retry next cycle`);
+        continue;
+      }
       await prisma.agentAction.update({
         where: { id: action.id },
         data: { status: 'failed', result: toJson({ error: `No executor registered for ${key}` }) },
@@ -398,7 +429,49 @@ const ALL_AGENT_NAMES = [
   'e2e-test',
   // UGC Creator Program
   'creator-manager',
+  // Growth Intern
+  'creator-scout',
+  'creator-outreach',
+  'email-follow-up',
+  'reddit-scout',
+  'growth-intern',
+  // Phase 2-3 agents previously missing from kill-all list
+  'fashion-trends',
+  'calibration-snapshot',
+  'growth-dashboard',
+  'beta-recruiter',
+  'viral-monitor',
+  'ai-quality-monitor',
+  'revenue-cost',
+  'founder-brief',
 ];
+
+export async function getAgentHealth() {
+  const configs = await prisma.agentConfig.findMany({ orderBy: { agent: 'asc' } });
+  const configMap = new Map(configs.map(c => [c.agent, c]));
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+  const WEEK = 7 * DAY;
+
+  return ALL_AGENT_NAMES.map(name => {
+    const config = configMap.get(name);
+    const lastRunAt = config?.lastRunAt ?? null;
+    const lastError = config?.lastError ?? null;
+    const enabled = config?.enabled ?? true;
+
+    let status: 'green' | 'yellow' | 'red';
+    if (lastError) {
+      status = 'red';
+    } else if (!lastRunAt) {
+      status = 'yellow'; // never ran yet — not necessarily broken
+    } else {
+      const age = now - lastRunAt.getTime();
+      status = age < DAY ? 'green' : age < WEEK ? 'yellow' : 'red';
+    }
+
+    return { agent: name, enabled, lastRunAt, lastError, status };
+  });
+}
 
 export async function killAllAgents(): Promise<void> {
   await Promise.all(

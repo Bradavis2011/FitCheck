@@ -70,14 +70,21 @@ async function sendNudge(
   userId: string,
   title: string,
   body: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
+  variantId?: string,
 ): Promise<void> {
   if (await hasReceivedNudgeToday(userId)) return;
 
   await pushService.sendPushNotification(userId, { title, body, data });
 
   await prisma.notification.create({
-    data: { userId, type: 'nudge_push', title, body },
+    data: {
+      userId,
+      type: 'nudge_push',
+      title,
+      body,
+      metadata: variantId ? { variantId } : undefined,
+    },
   });
 }
 
@@ -93,10 +100,16 @@ async function checkNudgeConversions(): Promise<void> {
       type: 'nudge_push',
       createdAt: { gte: sixHoursAgo },
     },
-    select: { userId: true, createdAt: true },
+    select: { userId: true, createdAt: true, metadata: true },
   });
 
   for (const nudge of recentNudges) {
+    const meta = nudge.metadata as { variantId?: string } | null;
+    const variantId = meta?.variantId;
+
+    // Skip legacy notifications without variantId — attributing to all variants would corrupt data
+    if (!variantId) continue;
+
     const sixHoursAfter = new Date(nudge.createdAt.getTime() + 6 * 60 * 60 * 1000);
 
     const converted = await prisma.outfitCheck.findFirst({
@@ -108,10 +121,8 @@ async function checkNudgeConversions(): Promise<void> {
     });
 
     if (converted) {
-      // Find the NudgeVariant that was shown (segment unknown here — increment all active ones
-      // for this user. A future improvement would store variantId on the notification row.)
-      await prisma.nudgeVariant.updateMany({
-        where: { isActive: true, impressions: { gt: 0 } },
+      await prisma.nudgeVariant.update({
+        where: { id: variantId },
         data: { conversions: { increment: 1 } },
       });
     }
@@ -276,7 +287,7 @@ export async function runPersonalizedNudge(currentUTCHour: number): Promise<void
     );
 
     for (const { id } of newUsersWithoutOutfit) {
-      await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'new_no_outfit', personalized: true });
+      await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'new_no_outfit', personalized: true }, msg.variantId);
     }
   } catch (err) {
     console.error('[PersonalizedNudge] Segment 1 failed:', err);
@@ -319,7 +330,7 @@ export async function runPersonalizedNudge(currentUTCHour: number): Promise<void
     );
 
     for (const userId of inactiveIds) {
-      await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'inactive_3d', personalized: true });
+      await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'inactive_3d', personalized: true }, msg.variantId);
     }
   } catch (err) {
     console.error('[PersonalizedNudge] Segment 2 failed:', err);
@@ -360,7 +371,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
       );
 
       for (const { id } of newUsersWithoutOutfit) {
-        await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'new_no_outfit' });
+        await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'new_no_outfit' }, msg.variantId);
         nudgeCount++;
       }
       console.log(`[Nudger] Segment 1 (new, no outfit): ${newUsersWithoutOutfit.length} users, ${nudgeCount} nudges sent`);
@@ -407,7 +418,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       let seg2Count = 0;
       for (const userId of inactiveIds) {
-        await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'inactive_3d' });
+        await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'inactive_3d' }, msg.variantId);
         seg2Count++;
       }
       console.log(`[Nudger] Segment 2 (inactive 3d): ${inactiveIds.length} users, ${seg2Count} nudges sent`);
@@ -435,7 +446,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       let seg4Count = 0;
       for (const { id } of payingInactive) {
-        await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'churning_paid' });
+        await sendNudge(id, msg.title, msg.body, { type: 'nudge', segment: 'churning_paid' }, msg.variantId);
         seg4Count++;
       }
       console.log(`[Nudger] Segment 4 (churning paid): ${payingInactive.length} users, ${seg4Count} nudges sent`);
@@ -474,7 +485,7 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
           `⚠️ Your ${currentStreak}-day streak is at risk!`,
           "Check in with an outfit before midnight to keep your streak alive."
         );
-        await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'streak_risk', streak: currentStreak });
+        await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'streak_risk', streak: currentStreak }, msg.variantId);
         seg3Count++;
       }
       console.log(`[Nudger] Segment 3 (streak risk): ${atRisk.length} users, ${seg3Count} nudges sent`);

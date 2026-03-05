@@ -83,7 +83,7 @@ const AGENT_IMAGES = {
   'creator-manager':         'editorial-tan.jpg',
 };
 
-const PAGE_ORDER = ['overview', 'social', 'queue', 'log'];
+const PAGE_ORDER = ['overview', 'social', 'queue', 'log', 'growth', 'health'];
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 const getToken  = () => sessionStorage.getItem('dashboard_token');
@@ -121,8 +121,9 @@ async function apiFetch(method, url, body) {
   return data;
 }
 
-const apiGet  = (url)       => apiFetch('GET', url);
-const apiPost = (url, body) => apiFetch('POST', url, body);
+const apiGet   = (url)       => apiFetch('GET',   url);
+const apiPost  = (url, body) => apiFetch('POST',  url, body);
+const apiPatch = (url, body) => apiFetch('PATCH', url, body);
 
 // ─── Router ──────────────────────────────────────────────────────────────────
 function navigate(page, param) {
@@ -177,6 +178,8 @@ function routePage() {
     case 'queue':    loadQueue(1);         break;
     case 'agent':    loadAgent(param);     break;
     case 'log':      loadLog(1);           break;
+    case 'growth':   loadGrowth();         break;
+    case 'health':   loadHealth();         break;
     default:         navigate('overview'); break;
   }
 }
@@ -770,7 +773,7 @@ async function handleEditAndApprove(actionId, postId) {
   saveBtn.textContent = 'Saving…';
 
   try {
-    await apiPost(`/api/admin/agents/social-posts/${postId}`, { content, hashtags });
+    await apiPatch(`/api/admin/agents/social-posts/${postId}`, { content, hashtags });
     await apiPost(`/api/admin/agents/actions/${actionId}/approve`);
     showToast('Post updated and approved — executing now');
     removeQueueItem(actionId);
@@ -1079,6 +1082,11 @@ function removeQueueItem(actionId) {
     el.style.opacity = '0';
     setTimeout(() => el.remove(), 200);
   }
+  const countEl = document.getElementById('queue-hero-count');
+  if (countEl) {
+    const n = parseInt(countEl.textContent, 10);
+    if (!isNaN(n) && n > 0) countEl.textContent = String(n - 1);
+  }
 }
 
 async function handleToggle(checkbox) {
@@ -1110,6 +1118,203 @@ async function handleKillAll() {
     if (window.location.hash.includes('overview')) loadOverview();
   } catch (err) {
     showToast(err.message, 'error');
+  }
+}
+
+// ─── Growth Intern ────────────────────────────────────────────────────────────
+
+async function loadGrowth() {
+  const pipelineEl = document.getElementById('growth-pipeline-content');
+  const redditEl   = document.getElementById('growth-reddit-content');
+  const emailEl    = document.getElementById('growth-email-stats');
+  if (!pipelineEl || !redditEl || !emailEl) return;
+
+  pipelineEl.innerHTML = loadingHTML();
+  redditEl.innerHTML   = loadingHTML();
+  emailEl.innerHTML    = '';
+
+  try {
+    const data = await apiGet('/api/admin/agents/growth');
+    const { prospects = [], redditThreads = [], emailStats = {} } = data;
+
+    // ── Email funnel stats ──────────────────────────────────────────────────
+    emailEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;margin-bottom:8px;">
+        ${[
+          ['Discovered', emailStats.total ?? 0],
+          ['Contacted',  emailStats.contacted ?? 0],
+          ['Opened',     emailStats.opened ?? 0],
+          ['Clicked',    emailStats.clicked ?? 0],
+          ['Responded',  emailStats.responded ?? 0],
+          ['Onboarded',  emailStats.onboarded ?? 0],
+        ].map(([label, n]) => `
+          <div style="text-align:center;padding:20px 12px;border:1px solid var(--border-solid);background:white;">
+            <div style="font-size:1.75rem;font-weight:700;color:var(--coral);">${n}</div>
+            <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-top:4px;">${esc(String(label))}</div>
+          </div>`).join('')}
+      </div>`;
+
+    // ── Creator Pipeline ────────────────────────────────────────────────────
+    const STATUS_ORDER = ['dm_ready','contacted','followed_up','responded','onboarded','posted','declined'];
+    const grouped = {};
+    STATUS_ORDER.forEach(s => grouped[s] = []);
+    prospects.forEach(p => { if (grouped[p.status]) grouped[p.status].push(p); });
+
+    if (prospects.length === 0) {
+      pipelineEl.innerHTML = `<p style="color:var(--muted);font-size:0.875rem;">No prospects yet — trigger Creator Scout to start discovering.</p>`;
+    } else {
+      pipelineEl.innerHTML = STATUS_ORDER.filter(s => grouped[s].length > 0).map(status => `
+        <div style="margin-bottom:28px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">${esc(status.replace(/_/g,' '))}</span>
+            <span style="background:var(--coral);color:white;font-size:0.6875rem;font-weight:600;padding:2px 7px;border-radius:0;">${grouped[status].length}</span>
+          </div>
+          ${grouped[status].slice(0, 10).map(p => `
+            <div style="padding:14px 16px;border:1px solid var(--border-solid);background:white;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-weight:600;font-size:0.875rem;">${esc(p.handle)}</span>
+                <span style="font-size:0.75rem;color:var(--muted);">${esc(p.platform)}</span>
+                ${p.followerRange ? `<span style="font-size:0.75rem;color:var(--muted);">${esc(p.followerRange)}</span>` : ''}
+                <span style="margin-left:auto;font-size:0.6875rem;padding:2px 6px;border:1px solid var(--border-solid);color:var(--muted);">${esc(p.outreachMethod || 'dm')}</span>
+              </div>
+              ${p.niche ? `<div style="font-size:0.8125rem;color:var(--charcoal);margin-top:4px;">${esc(p.niche)}</div>` : ''}
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <select onchange="updateProspectStatus('${esc(p.id)}',this.value)" style="padding:5px 10px;border:1px solid var(--border-solid);font-size:0.75rem;border-radius:0;background:white;">
+                  ${STATUS_ORDER.map(s => `<option value="${s}" ${s===p.status?'selected':''}>${s.replace(/_/g,' ')}</option>`).join('')}
+                </select>
+                ${p.profileUrl ? `<a href="${esc(p.profileUrl)}" target="_blank" style="font-size:0.75rem;color:var(--coral);padding:5px 10px;border:1px solid var(--coral);text-decoration:none;">View Profile</a>` : ''}
+              </div>
+            </div>`).join('')}
+          ${grouped[status].length > 10 ? `<p style="font-size:0.75rem;color:var(--muted);">+ ${grouped[status].length - 10} more</p>` : ''}
+        </div>`).join('');
+    }
+
+    // ── Reddit Threads ──────────────────────────────────────────────────────
+    const THREAD_STATUS_ORDER = ['response_ready','approved','posted','identified','skipped'];
+    const threadGrouped = {};
+    THREAD_STATUS_ORDER.forEach(s => threadGrouped[s] = []);
+    redditThreads.forEach(t => { if (threadGrouped[t.status]) threadGrouped[t.status].push(t); });
+
+    if (redditThreads.length === 0) {
+      redditEl.innerHTML = `<p style="color:var(--muted);font-size:0.875rem;">No Reddit threads yet — trigger Reddit Scout to discover opportunities.</p>`;
+    } else {
+      redditEl.innerHTML = THREAD_STATUS_ORDER.filter(s => threadGrouped[s].length > 0).map(status => `
+        <div style="margin-bottom:28px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">${esc(status.replace(/_/g,' '))}</span>
+            <span style="background:var(--coral);color:white;font-size:0.6875rem;font-weight:600;padding:2px 7px;border-radius:0;">${threadGrouped[status].length}</span>
+          </div>
+          ${threadGrouped[status].slice(0, 8).map(t => `
+            <div style="padding:14px 16px;border:1px solid var(--border-solid);background:white;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                <span style="font-size:0.6875rem;color:var(--coral);font-weight:600;">r/${esc(t.subreddit)}</span>
+                <a href="${esc(t.url)}" target="_blank" style="font-size:0.8125rem;color:var(--black);font-weight:600;text-decoration:none;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.title)}</a>
+              </div>
+              ${t.suggestedResponse ? `
+                <details style="margin-top:6px;">
+                  <summary style="font-size:0.75rem;color:var(--coral);cursor:pointer;user-select:none;">Suggested Response ▾</summary>
+                  <p style="font-size:0.8125rem;color:var(--charcoal);line-height:1.5;margin-top:8px;padding:10px;background:var(--cream-dark);">${esc(t.suggestedResponse)}</p>
+                </details>` : ''}
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <select onchange="updateThreadStatus('${esc(t.id)}',this.value)" style="padding:5px 10px;border:1px solid var(--border-solid);font-size:0.75rem;border-radius:0;background:white;">
+                  ${THREAD_STATUS_ORDER.map(s => `<option value="${s}" ${s===t.status?'selected':''}>${s.replace(/_/g,' ')}</option>`).join('')}
+                </select>
+              </div>
+            </div>`).join('')}
+        </div>`).join('');
+    }
+
+  } catch (err) {
+    pipelineEl.innerHTML = `<p style="color:var(--coral);">Error: ${esc(err.message)}</p>`;
+    redditEl.innerHTML   = '';
+  }
+}
+
+async function updateProspectStatus(id, status) {
+  try {
+    await apiPatch(`/api/admin/agents/growth/prospects/${id}`, { status });
+    showToast('Prospect updated');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function updateThreadStatus(id, status) {
+  try {
+    await apiPatch(`/api/admin/agents/growth/threads/${id}`, { status });
+    showToast('Thread updated');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function triggerGrowthAgent(name) {
+  try {
+    await apiPost(`/api/admin/agents/${encodeURIComponent(name)}/trigger`, {});
+    showToast(`${name} triggered — running in background`);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ─── Agent Health ─────────────────────────────────────────────────────────────
+
+async function loadHealth() {
+  const el = document.getElementById('health-content');
+  if (!el) return;
+  el.innerHTML = loadingHTML();
+
+  try {
+    const { health } = await apiGet('/api/admin/agents/health');
+
+    const green  = health.filter(h => h.status === 'green');
+    const yellow = health.filter(h => h.status === 'yellow');
+    const red    = health.filter(h => h.status === 'red');
+
+    const statusDot = (s) => {
+      const colors = { green: '#10B981', yellow: '#F59E0B', red: '#EF4444' };
+      return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colors[s]};flex-shrink:0;"></span>`;
+    };
+
+    const agentRow = (h) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-solid);">
+        ${statusDot(h.status)}
+        <span style="flex:1;font-size:0.875rem;font-weight:500;color:var(--black);">${esc(h.agent)}</span>
+        ${!h.enabled ? `<span style="font-size:0.6875rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);background:var(--cream-dark);padding:2px 8px;">DISABLED</span>` : ''}
+        <span style="font-size:0.8125rem;color:var(--muted);min-width:100px;text-align:right;">${fmtRelative(h.lastRunAt)}</span>
+        ${h.lastError ? `<span style="font-size:0.75rem;color:#EF4444;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(h.lastError)}">${esc(h.lastError)}</span>` : ''}
+      </div>`;
+
+    const section = (title, color, items) => items.length === 0 ? '' : `
+      <div style="margin-bottom:32px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <span style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">${esc(title)}</span>
+          <span style="background:${color};color:white;font-size:0.6875rem;font-weight:700;padding:2px 8px;border-radius:0;">${items.length}</span>
+        </div>
+        <div style="border:1px solid var(--border-solid);">${items.map(agentRow).join('')}</div>
+      </div>`;
+
+    el.innerHTML = `
+      <div style="display:flex;gap:24px;margin-bottom:32px;flex-wrap:wrap;">
+        <div style="padding:16px 24px;border:1px solid var(--border-solid);background:white;text-align:center;">
+          <div style="font-size:2rem;font-weight:700;color:#10B981;">${green.length}</div>
+          <div style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:4px;">Healthy</div>
+        </div>
+        <div style="padding:16px 24px;border:1px solid var(--border-solid);background:white;text-align:center;">
+          <div style="font-size:2rem;font-weight:700;color:#F59E0B;">${yellow.length}</div>
+          <div style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:4px;">Stale / New</div>
+        </div>
+        <div style="padding:16px 24px;border:1px solid var(--border-solid);background:white;text-align:center;">
+          <div style="font-size:2rem;font-weight:700;color:#EF4444;">${red.length}</div>
+          <div style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:4px;">Errored / Overdue</div>
+        </div>
+      </div>
+      ${section('Errored / Overdue', '#EF4444', red)}
+      ${section('Stale / Never Run', '#F59E0B', yellow)}
+      ${section('Healthy (ran < 24h)', '#10B981', green)}
+    `;
+  } catch (err) {
+    el.innerHTML = errorHTML(err.message);
   }
 }
 

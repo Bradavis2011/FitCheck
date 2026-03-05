@@ -16,7 +16,7 @@ import { runAiQualityMonitor } from './ai-quality-monitor.service.js';
 import { runRevenueCostTracker } from './revenue-cost.service.js';
 import { runFounderBrief } from './founder-brief.service.js';
 // ── Autonomous Operator Agents (Phase 2-4) ────────────────────────────────────
-import { processApprovedActions } from './agent-manager.service.js';
+import { processApprovedActions, isAgentEnabled, recordAgentRun } from './agent-manager.service.js';
 import { runLifecycleEmail } from './lifecycle-email.service.js';
 import { runConversionIntelligence } from './conversion-intelligence.service.js';
 import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community-manager.service.js';
@@ -24,6 +24,10 @@ import { runSocialMediaManager, sendWeeklySocialDigest, registerExecutors as reg
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors } from './creator-manager.service.js';
+import { runCreatorScout } from './creator-scout.service.js';
+import { runEmailOutreach, runEmailFollowUp } from './creator-outreach.service.js';
+import { runRedditDiscovery } from './reddit-scout.service.js';
+import { runMorningBrief, runStaleProspectCleanup } from './growth-intern.service.js';
 import { runLearningContentAgent, generateStyleTips } from './learning-content.service.js';
 import { sendFounderContentDigest } from './founder-content-digest.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
@@ -62,6 +66,20 @@ function isEnabled(): boolean {
 
 function isNudgeEnabled(): boolean {
   return process.env.ENABLE_NUDGE !== 'false';
+}
+
+/** Run a cron handler with kill-switch check + observability recording. */
+async function guardedRun(agentName: string, label: string, fn: () => Promise<void>): Promise<void> {
+  if (!(await isAgentEnabled(agentName))) return;
+  if (label) console.log(label);
+  try {
+    await fn();
+    await recordAgentRun(agentName);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[Scheduler] ${agentName} failed:`, err);
+    await recordAgentRun(agentName, errMsg);
+  }
 }
 
 // ─── Safety Monitor ─────────────────────────────────────────────────────────
@@ -316,91 +334,93 @@ export function initializeScheduler(): void {
 
   // Engagement Nudger — 2pm UTC (morning run) + 10pm UTC (evening/streak run) (Agent 9)
   if (isNudgeEnabled()) {
-    cron.schedule('0 14 * * *', async () => {
-      console.log('💬 [Scheduler] Running engagement nudger (morning)...');
-      try {
-        await runEngagementNudger(false);
-      } catch (err) {
-        console.error('[Scheduler] Engagement nudger (morning) failed:', err);
-      }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 14 * * *', () =>
+      guardedRun('nudge', '💬 [Scheduler] Running engagement nudger (morning)...', () => runEngagementNudger(false)),
+    { timezone: 'UTC' });
 
-    cron.schedule('0 22 * * *', async () => {
-      console.log('💬 [Scheduler] Running engagement nudger (evening/streak)...');
-      try {
-        await runEngagementNudger(true);
-      } catch (err) {
-        console.error('[Scheduler] Engagement nudger (evening) failed:', err);
-      }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 22 * * *', () =>
+      guardedRun('nudge', '💬 [Scheduler] Running engagement nudger (evening/streak)...', () => runEngagementNudger(true)),
+    { timezone: 'UTC' });
   } else {
     console.log('⏭️  [Scheduler] ENABLE_NUDGE=false — skipping engagement nudger');
   }
 
   // ── Fashion Trend Intelligence — Monday 7am UTC (before content calendar) ──
-  cron.schedule('0 7 * * 1', async () => {
-    console.log('👗 [Scheduler] Running fashion trend cron...');
-    try { await runFashionTrendCron(); }
-    catch (err) { console.error('[Scheduler] Fashion trend cron failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 7 * * 1', () =>
+    guardedRun('fashion-trends', '👗 [Scheduler] Running fashion trend cron...', runFashionTrendCron),
+  { timezone: 'UTC' });
 
   // ── Calibration Snapshot — Sunday 9pm UTC ────────────────────────────────
-  cron.schedule('0 21 * * 0', async () => {
-    console.log('📐 [Scheduler] Running calibration snapshot...');
-    try { await runCalibrationSnapshot(); }
-    catch (err) { console.error('[Scheduler] Calibration snapshot failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 21 * * 0', () =>
+    guardedRun('calibration-snapshot', '📐 [Scheduler] Running calibration snapshot...', runCalibrationSnapshot),
+  { timezone: 'UTC' });
 
   // ── Weekly Social Digest — Monday 8am UTC ────────────────────────────────
   // Replaces separate content calendar + social manager emails with one copy-paste-ready digest.
   // getTrendData() (from content-calendar) is still used by other services (SEO, social engine).
-  cron.schedule('0 8 * * 1', async () => {
-    console.log('📱 [Scheduler] Sending weekly social digest...');
-    try { await sendWeeklySocialDigest(); }
-    catch (err) { console.error('[Scheduler] Weekly social digest failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 8 * * 1', () =>
+    guardedRun('social-media-manager', '📱 [Scheduler] Sending weekly social digest...', sendWeeklySocialDigest),
+  { timezone: 'UTC' });
 
   // ── Agent 11: Growth Dashboard — Daily 9am UTC ───────────────────────────
-  cron.schedule('0 9 * * *', async () => {
-    console.log('📈 [Scheduler] Running growth dashboard...');
-    try { await runGrowthDashboard(); }
-    catch (err) { console.error('[Scheduler] Growth dashboard failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 9 * * *', () =>
+    guardedRun('growth-dashboard', '📈 [Scheduler] Running growth dashboard...', runGrowthDashboard),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Creator Scout — Tue/Thu/Sat 10am UTC ──────────────
+  cron.schedule('0 10 * * 2,4,6', () =>
+    guardedRun('creator-scout', '🔍 [Scheduler] Running creator scout...', runCreatorScout),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Email Outreach — Daily 1pm UTC ────────────────────
+  cron.schedule('5 13 * * *', () =>
+    guardedRun('creator-outreach', '', runEmailOutreach),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Email Follow-up — Daily 2pm UTC ───────────────────
+  cron.schedule('5 14 * * *', () =>
+    guardedRun('email-follow-up', '', runEmailFollowUp),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Reddit Discovery — Daily 11am UTC ─────────────────
+  cron.schedule('5 11 * * *', () =>
+    guardedRun('reddit-scout', '🤝 [Scheduler] Running Reddit discovery...', runRedditDiscovery),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Morning Brief — Daily 12pm UTC (8am ET) ───────────
+  cron.schedule('0 12 * * *', () =>
+    guardedRun('growth-intern', '🌅 [Scheduler] Running morning brief...', runMorningBrief),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Stale Prospect Cleanup — Daily 3am UTC ────────────
+  cron.schedule('5 3 * * *', () =>
+    guardedRun('growth-intern', '', runStaleProspectCleanup),
+  { timezone: 'UTC' });
 
   // ── Agent 12: Beta Recruiter — Wednesday 10am UTC ─────────────────────────
-  cron.schedule('0 10 * * 3', async () => {
-    console.log('🌟 [Scheduler] Running beta recruiter...');
-    try { await runBetaRecruiter(); }
-    catch (err) { console.error('[Scheduler] Beta recruiter failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 10 * * 3', () =>
+    guardedRun('beta-recruiter', '🌟 [Scheduler] Running beta recruiter...', runBetaRecruiter),
+  { timezone: 'UTC' });
 
   // ── Agent 13: Viral Loop Monitor — Friday 9am UTC ────────────────────────
-  cron.schedule('0 9 * * 5', async () => {
-    console.log('🔁 [Scheduler] Running viral loop monitor...');
-    try { await runViralMonitor(); }
-    catch (err) { console.error('[Scheduler] Viral monitor failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 9 * * 5', () =>
+    guardedRun('viral-monitor', '🔁 [Scheduler] Running viral loop monitor...', runViralMonitor),
+  { timezone: 'UTC' });
 
   // ── Agent 14: AI Quality Monitor — Daily 1:30pm UTC ─────────────────────
-  cron.schedule('30 13 * * *', async () => {
-    console.log('🤖 [Scheduler] Running AI quality monitor...');
-    try { await runAiQualityMonitor(); }
-    catch (err) { console.error('[Scheduler] AI quality monitor failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 13 * * *', () =>
+    guardedRun('ai-quality-monitor', '🤖 [Scheduler] Running AI quality monitor...', runAiQualityMonitor),
+  { timezone: 'UTC' });
 
   // ── Agent 15: Revenue & Cost Tracker — Monday 9am UTC ───────────────────
-  cron.schedule('0 9 * * 1', async () => {
-    console.log('💰 [Scheduler] Running revenue & cost tracker...');
-    try { await runRevenueCostTracker(); }
-    catch (err) { console.error('[Scheduler] Revenue cost tracker failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 9 * * 1', () =>
+    guardedRun('revenue-cost', '💰 [Scheduler] Running revenue & cost tracker...', runRevenueCostTracker),
+  { timezone: 'UTC' });
 
   // ── Agent 16: Weekly Founder Brief — Sunday 8pm UTC ─────────────────────
-  cron.schedule('0 20 * * 0', async () => {
-    console.log('📋 [Scheduler] Running weekly founder brief...');
-    try { await runFounderBrief(); }
-    catch (err) { console.error('[Scheduler] Founder brief failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 20 * * 0', () =>
+    guardedRun('founder-brief', '📋 [Scheduler] Running weekly founder brief...', runFounderBrief),
+  { timezone: 'UTC' });
 
   // ── Agent Manager: Process approved actions — every 5 min ─────────────────
   cron.schedule('*/5 * * * *', async () => {
@@ -470,61 +490,50 @@ export function initializeScheduler(): void {
 
   // ── A1: Compute preferred nudge hours — Daily 4:30am UTC (before Surgeon at 5am) ──
   if (isNudgeEnabled()) {
-    cron.schedule('30 4 * * *', async () => {
-      try { await computePreferredNudgeHours(); }
-      catch (err) { console.error('[Scheduler] computePreferredNudgeHours failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('30 4 * * *', () =>
+      guardedRun('nudge', '', computePreferredNudgeHours),
+    { timezone: 'UTC' });
 
     // A1: Personalized nudge — every hour, sends to users whose preferred hour matches now
-    cron.schedule('0 * * * *', async () => {
-      try {
+    cron.schedule('0 * * * *', () =>
+      guardedRun('nudge', '', async () => {
         const hour = new Date().getUTCHours();
         await runPersonalizedNudge(hour);
-      } catch (err) { console.error('[Scheduler] runPersonalizedNudge failed:', err); }
-    }, { timezone: 'UTC' });
+      }),
+    { timezone: 'UTC' });
   }
 
   // ── Ops Learning Loop — Daily Measurers (6am UTC, DB only, $0) ──────────────
-  cron.schedule('0 6 * * *', async () => {
-    console.log('📊 [Scheduler] Running ops learning measurers...');
-    try { await measureNudgeMetrics(); }
-    catch (err) { console.error('[Scheduler] Nudge metrics failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 6 * * *', () =>
+    guardedRun('nudge', '📊 [Scheduler] Running ops learning measurers...', measureNudgeMetrics),
+  { timezone: 'UTC' });
 
   // ── Ops Learning Loop — Twitter Engagement Poll (6:30am UTC) ─────────────────
-  cron.schedule('30 6 * * *', async () => {
-    try { await pollTwitterEngagement(); }
-    catch (err) { console.error('[Scheduler] Twitter engagement poll failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 6 * * *', () =>
+    guardedRun('ops-learning', '', pollTwitterEngagement),
+  { timezone: 'UTC' });
 
   // ── Ops Learning Agent — Weekly Cycle (Sunday 7am UTC) ───────────────────────
-  cron.schedule('0 7 * * 0', async () => {
-    console.log('🧠 [Scheduler] Running Ops Learning Agent...');
-    try { await runOpsLearning(); }
-    catch (err) { console.error('[Scheduler] Ops Learning Agent failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 7 * * 0', () =>
+    guardedRun('ops-learning', '🧠 [Scheduler] Running Ops Learning Agent...', runOpsLearning),
+  { timezone: 'UTC' });
 
   // ── Relationship System ───────────────────────────────────────────────────────
 
   // Post-event follow-up: every 30 minutes
-  cron.schedule('*/30 * * * *', async () => {
-    try { await runEventFollowUp(); }
-    catch (err) { console.error('[Scheduler] Event follow-up failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('*/30 * * * *', () =>
+    guardedRun('event-followup', '', runEventFollowUp),
+  { timezone: 'UTC' });
 
   // Follow-up email fallback: every 6 hours
-  cron.schedule('0 */6 * * *', async () => {
-    console.log('📧 [Scheduler] Running follow-up email fallback...');
-    try { await runFollowUpEmailFallback(); }
-    catch (err) { console.error('[Scheduler] Follow-up email fallback failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 */6 * * *', () =>
+    guardedRun('event-followup', '📧 [Scheduler] Running follow-up email fallback...', runFollowUpEmailFallback),
+  { timezone: 'UTC' });
 
   // Milestone scanner: daily 3pm UTC
-  cron.schedule('0 15 * * *', async () => {
-    console.log('🏆 [Scheduler] Running milestone scanner...');
-    try { await runMilestoneScanner(); }
-    catch (err) { console.error('[Scheduler] Milestone scanner failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 15 * * *', () =>
+    guardedRun('milestone-scanner', '🏆 [Scheduler] Running milestone scanner...', runMilestoneScanner),
+  { timezone: 'UTC' });
 
   // Style narrative agent: Sunday 5pm UTC
   cron.schedule('0 17 * * 0', async () => {
@@ -534,18 +543,14 @@ export function initializeScheduler(): void {
   }, { timezone: 'UTC' });
 
   // ── Recursive Self-Improvement: Check quality + evaluate A/B tests — Daily 4am UTC ──
-  cron.schedule('0 4 * * *', async () => {
-    console.log('🧠 [Scheduler] Running recursive self-improvement check...');
-    try { await checkAndTriggerImprovement(); }
-    catch (err) { console.error('[Scheduler] Recursive self-improvement failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 4 * * *', () =>
+    guardedRun('surgeon', '🧠 [Scheduler] Running recursive self-improvement check...', checkAndTriggerImprovement),
+  { timezone: 'UTC' });
 
   // ── C1+C2: StyleDNA Cohort Improvement — Monthly (Wed 6am UTC, days 1-7) ──
-  cron.schedule('0 6 1-7 * 3', async () => {
-    console.log('🎯 [Scheduler] Running StyleDNA cohort improvement cycle...');
-    try { await runCohortImprovementCycle(); }
-    catch (err) { console.error('[Scheduler] Cohort improvement cycle failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 6 1-7 * 3', () =>
+    guardedRun('surgeon', '🎯 [Scheduler] Running StyleDNA cohort improvement cycle...', runCohortImprovementCycle),
+  { timezone: 'UTC' });
 
   // ── Self-Improving StyleDNA Engine ───────────────────────────────────────────
 
@@ -557,71 +562,61 @@ export function initializeScheduler(): void {
     }, { timezone: 'UTC' });
 
     // 1am UTC: Piggyback Judge — batch-evaluate yesterday's real analyses (P1, ~7K tokens)
-    cron.schedule('0 1 * * *', async () => {
-      console.log('🔍 [Scheduler] Running Piggyback Judge...');
-      try { await runPiggybackJudge(); }
-      catch (err) { console.error('[Scheduler] Piggyback Judge failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 1 * * *', () =>
+      guardedRun('piggyback-judge', '🔍 [Scheduler] Running Piggyback Judge...', runPiggybackJudge),
+    { timezone: 'UTC' });
 
     // 2am UTC: Learning Memory distillation ($0 — pure DB reads)
-    cron.schedule('0 2 * * *', async () => {
-      console.log('🧠 [Scheduler] Distilling Learning Memory...');
-      try { await distillLearningMemory(); }
-      catch (err) { console.error('[Scheduler] Learning Memory distillation failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 2 * * *', () =>
+      guardedRun('learning-memory', '🧠 [Scheduler] Distilling Learning Memory...', distillLearningMemory),
+    { timezone: 'UTC' });
 
     // 3am UTC: Critic Agent — find weakness patterns (P1, ~10K tokens)
-    cron.schedule('0 3 * * *', async () => {
-      console.log('🔬 [Scheduler] Running Critic Agent...');
-      try { await runCriticAgent(); }
-      catch (err) { console.error('[Scheduler] Critic Agent failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 3 * * *', () =>
+      guardedRun('critic-agent', '🔬 [Scheduler] Running Critic Agent...', runCriticAgent),
+    { timezone: 'UTC' });
 
     // 5am UTC: Surgeon Agent — reactive fix + proactive mutation (P1+P2, ~35-42K tokens)
-    cron.schedule('0 5 * * *', async () => {
-      console.log('⚕️  [Scheduler] Running Surgeon Agent...');
-      try { await runSurgeonAgent(); }
-      catch (err) { console.error('[Scheduler] Surgeon Agent failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 5 * * *', () =>
+      guardedRun('surgeon', '⚕️  [Scheduler] Running Surgeon Agent...', runSurgeonAgent),
+    { timezone: 'UTC' });
 
     // 3pm UTC: Follow-Up Critic — evaluate follow-up Q&A quality (P2 budget-gated)
-    cron.schedule('0 15 * * *', async () => {
-      if (!(await hasLearningBudget(2))) return;
-      console.log('🔬 [Scheduler] Running Follow-Up Critic...');
-      try { await runFollowUpCritic(); }
-      catch (err) { console.error('[Scheduler] Follow-Up Critic failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 15 * * *', () =>
+      guardedRun('followup-critic', '🔬 [Scheduler] Running Follow-Up Critic...', async () => {
+        if (!(await hasLearningBudget(2))) return;
+        await runFollowUpCritic();
+      }),
+    { timezone: 'UTC' });
 
     // 5pm UTC: Follow-Up Surgeon — improve follow-up prompt sections (P3 budget-gated)
-    cron.schedule('0 17 * * *', async () => {
-      if (!(await hasLearningBudget(3))) return;
-      console.log('⚕️  [Scheduler] Running Follow-Up Surgeon...');
-      try { await runFollowUpSurgeon(); }
-      catch (err) { console.error('[Scheduler] Follow-Up Surgeon failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 17 * * *', () =>
+      guardedRun('followup-surgeon', '⚕️  [Scheduler] Running Follow-Up Surgeon...', async () => {
+        if (!(await hasLearningBudget(3))) return;
+        await runFollowUpSurgeon();
+      }),
+    { timezone: 'UTC' });
 
     // 7pm UTC: 2nd-pass Surgeon — reactive fix or mutation (P3 budget-gated)
-    cron.schedule('0 19 * * *', async () => {
-      if (!(await hasLearningBudget(3))) return;
-      console.log('⚕️  [Scheduler] Running 2nd-pass Surgeon...');
-      try { await runSurgeonAgentEvening(); }
-      catch (err) { console.error('[Scheduler] 2nd-pass Surgeon failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 19 * * *', () =>
+      guardedRun('surgeon', '⚕️  [Scheduler] Running 2nd-pass Surgeon...', async () => {
+        if (!(await hasLearningBudget(3))) return;
+        await runSurgeonAgentEvening();
+      }),
+    { timezone: 'UTC' });
 
     // 9pm UTC: Additional proactive mutations (P4 budget-gated, 2x mutations)
-    cron.schedule('0 21 * * *', async () => {
-      if (!(await hasLearningBudget(4))) return;
-      console.log('⚕️  [Scheduler] Running additional mutations (P4)...');
-      try { await runAdditionalMutations(); }
-      catch (err) { console.error('[Scheduler] Additional mutations failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 21 * * *', () =>
+      guardedRun('surgeon', '⚕️  [Scheduler] Running additional mutations (P4)...', async () => {
+        if (!(await hasLearningBudget(4))) return;
+        await runAdditionalMutations();
+      }),
+    { timezone: 'UTC' });
 
     // Sunday 6pm UTC: Weekly example rotation (~14K tokens)
-    cron.schedule('0 18 * * 0', async () => {
-      console.log('🔄 [Scheduler] Running Example Rotation...');
-      try { await runExampleRotation(); }
-      catch (err) { console.error('[Scheduler] Example Rotation failed:', err); }
-    }, { timezone: 'UTC' });
+    cron.schedule('0 18 * * 0', () =>
+      guardedRun('surgeon', '🔄 [Scheduler] Running Example Rotation...', runExampleRotation),
+    { timezone: 'UTC' });
 
     // Daily midnight: purge expired Intelligence Bus entries
     cron.schedule('30 0 * * *', async () => {
@@ -636,43 +631,34 @@ export function initializeScheduler(): void {
   }
 
   // ── Security Auditor — Daily 2:30am UTC ──────────────────────────────────
-  cron.schedule('30 2 * * *', async () => {
-    console.log('🔐 [Scheduler] Running security auditor...');
-    try { await runSecurityAudit(); }
-    catch (err) { console.error('[Scheduler] Security auditor failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 2 * * *', () =>
+    guardedRun('security-auditor', '🔐 [Scheduler] Running security auditor...', runSecurityAudit),
+  { timezone: 'UTC' });
 
   // ── Code Reviewer — Wednesday 3:00am UTC ─────────────────────────────────
-  cron.schedule('0 3 * * 3', async () => {
-    console.log('🔍 [Scheduler] Running code reviewer...');
-    try { await runCodeReview(); }
-    catch (err) { console.error('[Scheduler] Code reviewer failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 3 * * 3', () =>
+    guardedRun('code-reviewer', '🔍 [Scheduler] Running code reviewer...', runCodeReview),
+  { timezone: 'UTC' });
 
   // ── ASO Intelligence Agent — Tuesday 6:00am UTC ───────────────────────────
-  cron.schedule('0 6 * * 2', async () => {
-    console.log('📊 [Scheduler] Running ASO intelligence...');
-    try { await runAsoIntelligence(); }
-    catch (err) { console.error('[Scheduler] ASO intelligence failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 6 * * 2', () =>
+    guardedRun('aso-intelligence', '📊 [Scheduler] Running ASO intelligence...', runAsoIntelligence),
+  { timezone: 'UTC' });
 
   // ── Tier 0: Uptime Monitor — every 5 minutes ─────────────────────────────
-  cron.schedule('*/5 * * * *', async () => {
-    try { await runUptimeCheck(); }
-    catch (err) { console.error('[Scheduler] Uptime check failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('*/5 * * * *', () =>
+    guardedRun('uptime-monitor', '', runUptimeCheck),
+  { timezone: 'UTC' });
 
   // Track daily uptime percentage at 11:55pm UTC
-  cron.schedule('55 23 * * *', async () => {
-    try { await trackDailyUptime(); }
-    catch (err) { console.error('[Scheduler] Track daily uptime failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('55 23 * * *', () =>
+    guardedRun('uptime-monitor', '', trackDailyUptime),
+  { timezone: 'UTC' });
 
   // ── Tier 0: Data Deletion Retry — Daily 6:30am UTC ───────────────────────
-  cron.schedule('30 6 * * *', async () => {
-    try { await retryFailedDeletions(); }
-    catch (err) { console.error('[Scheduler] Data deletion retry failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 6 * * *', () =>
+    guardedRun('data-deletion', '', retryFailedDeletions),
+  { timezone: 'UTC' });
 
   // ── Affiliate Metrics — Daily 7am UTC ─────────────────────────────────────
   cron.schedule('0 7 * * *', async () => {
@@ -681,18 +667,14 @@ export function initializeScheduler(): void {
   }, { timezone: 'UTC' });
 
   // ── Tier 2: Churn Prediction — Daily 7:30am UTC ───────────────────────────
-  cron.schedule('30 7 * * *', async () => {
-    console.log('📉 [Scheduler] Running churn prediction...');
-    try { await runChurnPrediction(); }
-    catch (err) { console.error('[Scheduler] Churn prediction failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 7 * * *', () =>
+    guardedRun('churn-prediction', '📉 [Scheduler] Running churn prediction...', runChurnPrediction),
+  { timezone: 'UTC' });
 
   // ── Tier 2: Feedback Analyst — Thursday 9am UTC ───────────────────────────
-  cron.schedule('0 9 * * 4', async () => {
-    console.log('💬 [Scheduler] Running feedback analyst...');
-    try { await runFeedbackAnalyst(); }
-    catch (err) { console.error('[Scheduler] Feedback analyst failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 9 * * 4', () =>
+    guardedRun('feedback-analyst', '💬 [Scheduler] Running feedback analyst...', runFeedbackAnalyst),
+  { timezone: 'UTC' });
 
   // ── Tier 2: SEO Content Agent — Friday 7am UTC ────────────────────────────
   cron.schedule('0 7 * * 5', async () => {
@@ -702,31 +684,24 @@ export function initializeScheduler(): void {
   }, { timezone: 'UTC' });
 
   // ── Tier 3: Infra Monitor — Every 30 minutes ─────────────────────────────
-  cron.schedule('*/30 * * * *', async () => {
-    try { await runInfraMonitor(); }
-    catch (err) { console.error('[Scheduler] Infra monitor failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('*/30 * * * *', () =>
+    guardedRun('infra-monitor', '', runInfraMonitor),
+  { timezone: 'UTC' });
 
   // ── Tier 3: Onboarding Optimizer — Daily 8:30am UTC ──────────────────────
-  cron.schedule('30 8 * * *', async () => {
-    console.log('🚀 [Scheduler] Running onboarding optimizer...');
-    try { await runOnboardingOptimizer(); }
-    catch (err) { console.error('[Scheduler] Onboarding optimizer failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 8 * * *', () =>
+    guardedRun('onboarding-optimizer', '🚀 [Scheduler] Running onboarding optimizer...', runOnboardingOptimizer),
+  { timezone: 'UTC' });
 
   // ── Tier 3: Competitive Intel — Saturday 9am UTC ─────────────────────────
-  cron.schedule('0 9 * * 6', async () => {
-    console.log('🔍 [Scheduler] Running competitive intel...');
-    try { await runCompetitiveIntel(); }
-    catch (err) { console.error('[Scheduler] Competitive intel failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 9 * * 6', () =>
+    guardedRun('competitive-intel', '🔍 [Scheduler] Running competitive intel...', runCompetitiveIntel),
+  { timezone: 'UTC' });
 
   // ── Tier 3: E2E Tests — Thursday 4am UTC ─────────────────────────────────
-  cron.schedule('0 4 * * 4', async () => {
-    console.log('🧪 [Scheduler] Running E2E tests...');
-    try { await runE2eTests(); }
-    catch (err) { console.error('[Scheduler] E2E tests failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 4 * * 4', () =>
+    guardedRun('e2e-test', '🧪 [Scheduler] Running E2E tests...', runE2eTests),
+  { timezone: 'UTC' });
 
   // ── Creator Manager: Weekly hook distribution — Sunday 6pm UTC ───────────────
   cron.schedule('0 18 * * 0', async () => {
@@ -765,5 +740,5 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Founder content digest failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest)');
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest + Growth Intern)');
 }

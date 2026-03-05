@@ -15,6 +15,10 @@ import {
   killAll,
   triggerAgent,
   updateSocialPost,
+  getGrowthPipeline,
+  updateProspect,
+  updateRedditThread,
+  getHealthStatus,
 } from '../controllers/agent-admin.controller.js';
 
 const router = Router();
@@ -28,6 +32,7 @@ router.use(authenticateToken);
 // Dashboard overview
 router.get('/', asyncHandler(listAgents));
 router.get('/summary', asyncHandler(agentSummary));
+router.get('/health', asyncHandler(getHealthStatus));
 
 // Pending approval queue
 router.get('/queue', asyncHandler(getQueue));
@@ -44,6 +49,11 @@ router.patch('/social-posts/:postId', asyncHandler(updateSocialPost));
 // Action approval/rejection (before /:name/toggle to avoid conflict)
 router.post('/actions/:id/approve', asyncHandler(approveAgentAction));
 router.post('/actions/:id/reject', asyncHandler(rejectAgentAction));
+
+// Growth Intern pipeline
+router.get('/growth', asyncHandler(getGrowthPipeline));
+router.patch('/growth/prospects/:id', asyncHandler(updateProspect));
+router.patch('/growth/threads/:id', asyncHandler(updateRedditThread));
 
 // Per-agent controls
 router.get('/:name/actions', asyncHandler(getAgentActionLog));
