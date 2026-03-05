@@ -146,9 +146,19 @@ function WaitlistPage() {
             <a
               href="#waitlist"
               onClick={scrollToWaitlist}
-              className="text-sm font-medium text-clarity hover:text-coral transition-colors"
+              className="text-sm font-medium transition-colors"
+              style={{ color: "rgba(26,26,26,0.5)" }}
             >
               Join
+            </a>
+            <a
+              href="https://apps.apple.com/ca/app/or-this/id6759472490"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-white px-4 py-2 transition-opacity hover:opacity-80"
+              style={{ backgroundColor: "#1A1A1A", borderRadius: 0 }}
+            >
+              Download
             </a>
           </div>
         </div>
@@ -184,6 +194,24 @@ function WaitlistPage() {
           </p>
           <div className="w-full max-w-md fade-in-up">
             <WaitlistForm refCode={refCode} variant="dark" />
+          </div>
+          <div className="mt-8 fade-in-up">
+            <a
+              href="https://apps.apple.com/ca/app/or-this/id6759472490"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download on the App Store"
+              className="inline-flex items-center gap-3 px-5 py-3 bg-white transition-opacity hover:opacity-80"
+              style={{ borderRadius: 0 }}
+            >
+              <svg width="18" height="22" viewBox="0 0 814 1000" fill="#1A1A1A" aria-hidden="true">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-42.8-162.6-115.3c-47.8-59.2-88.3-150.9-88.3-238.9 0-181.5 115.6-308.8 251.4-308.8 64.6 0 117.8 40.8 158.6 40.8 39.5 0 101.1-43.2 176.7-43.2 28.2 0 130.3 2.6 195.8 85.8zm-234.3-166c28.2-26.9 46.8-64.6 46.8-102.3 0-5.2-.6-10.4-1.3-15.6-44.5 1.9-97 30.8-128.1 60.9-25.6 23.1-48.1 61.3-48.1 99.5 0 5.8.6 11.7 1.3 13.6 3.2.6 7.1.6 11 .6 40.8 0 90.3-27.5 118.4-56.7z" />
+              </svg>
+              <span className="flex flex-col text-left">
+                <span className="text-xs leading-none mb-0.5" style={{ color: "rgba(26,26,26,0.5)" }}>Download on the</span>
+                <span className="text-sm font-semibold leading-none text-clarity">App Store</span>
+              </span>
+            </a>
           </div>
         </div>
       </section>
@@ -468,7 +496,7 @@ function WaitlistPage() {
               <p className="text-sm mt-3 max-w-xs" style={{ color: "rgba(26,26,26,0.3)" }}>
                 Confidence in every choice.
                 <br />
-                Launching 2026 on iOS &amp; Android.
+                Available now on iOS. Android coming soon.
               </p>
             </div>
             <div className="flex flex-col gap-2.5">
@@ -551,11 +579,9 @@ function WaitlistPage() {
    ───────────────────────────────────────────── */
 
 function DownloadSection() {
-  const appStoreUrl = process.env.NEXT_PUBLIC_APPSTORE_URL;
+  const appStoreUrl = "https://apps.apple.com/ca/app/or-this/id6759472490";
   const testFlightUrl = process.env.NEXT_PUBLIC_TESTFLIGHT_URL;
   const playStoreUrl = process.env.NEXT_PUBLIC_PLAYSTORE_URL;
-
-  if (!appStoreUrl && !testFlightUrl && !playStoreUrl) return null;
 
   return (
     <section className="py-24 sm:py-32 bg-white">
@@ -863,7 +889,7 @@ function WaitlistForm({ refCode, variant = "light" }: { refCode: string; variant
         className="mt-4 text-xs"
         style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(26,26,26,0.3)" }}
       >
-        Free to join. Launching on iOS &amp; Android.
+        Free to join. iOS available now &mdash; Android coming soon.
       </p>
     </div>
   );
