@@ -30,6 +30,7 @@ import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runUptimeCheck, trackDailyUptime } from './uptime-monitor.service.js';
 import { retryFailedDeletions } from './data-deletion.service.js';
 import { runChurnPrediction } from './churn-prediction.service.js';
+import { measureAffiliateMetrics } from './affiliate.service.js';
 import { runFeedbackAnalyst } from './feedback-analyst.service.js';
 import { runSeoContentAgent } from './seo-content.service.js';
 import { runInfraMonitor } from './infra-monitor.service.js';
@@ -671,6 +672,12 @@ export function initializeScheduler(): void {
   cron.schedule('30 6 * * *', async () => {
     try { await retryFailedDeletions(); }
     catch (err) { console.error('[Scheduler] Data deletion retry failed:', err); }
+  }, { timezone: 'UTC' });
+
+  // ── Affiliate Metrics — Daily 7am UTC ─────────────────────────────────────
+  cron.schedule('0 7 * * *', async () => {
+    try { await measureAffiliateMetrics(); }
+    catch (err) { console.error('[Scheduler] Affiliate metrics failed:', err); }
   }, { timezone: 'UTC' });
 
   // ── Tier 2: Churn Prediction — Daily 7:30am UTC ───────────────────────────

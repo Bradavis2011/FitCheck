@@ -42,6 +42,7 @@ import feedbackRoutes from './routes/feedback.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import creatorRoutes from './routes/creator.routes.js';
 import learnRoutes from './routes/learn.routes.js';
+import affiliateRoutes from './routes/affiliate.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
@@ -232,6 +233,7 @@ app.use('/api/user/feedback', feedbackRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin/creators', creatorRoutes);
 app.use('/api/learn', learnRoutes);
+app.use('/api/affiliate', affiliateRoutes);
 
 // 404 handler
 app.use((_req, res) => {

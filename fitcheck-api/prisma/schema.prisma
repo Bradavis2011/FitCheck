@@ -99,6 +99,7 @@ model User {
   churnRiskScore         ChurnRiskScore?
   userFeedback           UserFeedback[]
   styleArticles          StyleArticle[]
+  affiliateImpressions   AffiliateImpression[]
 
   @@index([tier])
   @@index([emailOptOut])
@@ -166,6 +167,7 @@ model OutfitCheck {
   eventOutfits         EventOutfit[]
   wardrobeLinks        WardrobeItemOutfit[]
   eventFollowUps       EventFollowUp[]
+  affiliateImpressions AffiliateImpression[]
 
   @@index([userId, createdAt])
   @@index([userId, isDeleted])
@@ -1350,4 +1352,27 @@ model StyleArticle {
   @@unique([userId, articleType])
   @@index([userId])
   @@map("style_articles")
+}
+
+// ─── Affiliate System ─────────────────────────────────────────────────────────
+
+model AffiliateImpression {
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outfitCheckId String?     @map("outfit_check_id")
+  outfitCheck   OutfitCheck? @relation(fields: [outfitCheckId], references: [id], onDelete: SetNull)
+  placement     String      // post_feedback_high | post_feedback_mid | archive | style_dna
+  archetype     String?     // user's top archetype at impression time
+  cohort        String?     // e.g. "minimalist-mid-range"
+  score         Float?      // outfit score at time of impression
+  productIds    String[]    @map("product_ids")   // catalog IDs shown
+  clickedId     String?     @map("clicked_id")    // catalog ID clicked (null = no click)
+  clickedAt     DateTime?   @map("clicked_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([placement, createdAt])
+  @@index([createdAt])
+  @@map("affiliate_impressions")
 }

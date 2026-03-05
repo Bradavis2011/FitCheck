@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { isAdmin } from '../utils/admin.js';
 import {
   getJournalOverview,
   getArticle,
@@ -36,7 +37,7 @@ export async function getStyleArticle(req: AuthenticatedRequest, res: Response) 
   const tier = req.user!.tier ?? 'free';
   const type = validateType(req.params.type);
 
-  if (tier === 'free') {
+  if (tier === 'free' && !isAdmin(userId)) {
     throw new AppError(403, 'Style Journal articles require a Plus or Pro subscription.');
   }
 
@@ -54,7 +55,7 @@ export async function generateStyleArticle(req: AuthenticatedRequest, res: Respo
   const tier = req.user!.tier ?? 'free';
   const type = validateType(req.params.type);
 
-  if (tier === 'free') {
+  if (tier === 'free' && !isAdmin(userId)) {
     throw new AppError(403, 'Style Journal articles require a Plus or Pro subscription.');
   }
 
