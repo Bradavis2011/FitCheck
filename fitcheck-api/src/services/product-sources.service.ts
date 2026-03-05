@@ -55,18 +55,6 @@ function budgetToPriceRange(budgetLevel: string): PriceRange {
   }
 }
 
-// Maps archetypes to ShopStyle category slugs
-const ARCHETYPE_CATEGORIES: Record<string, string[]> = {
-  minimalist:  ['womens-blazers', 'womens-trousers', 'womens-tshirts'],
-  classic:     ['womens-blazers', 'womens-skirts', 'womens-blouses'],
-  streetwear:  ['womens-hoodies', 'womens-sneakers', 'womens-joggers'],
-  maximalist:  ['womens-dresses', 'womens-statement-tops', 'womens-heels'],
-  romantic:    ['womens-dresses', 'womens-blouses', 'womens-skirts'],
-  bohemian:    ['womens-dresses', 'womens-tops', 'womens-sandals'],
-  preppy:      ['womens-blazers', 'womens-polos', 'womens-loafers'],
-  edgy:        ['womens-jackets', 'womens-boots', 'womens-graphic-tees'],
-};
-
 // Occasion → search modifier
 const OCCASION_MODIFIERS: Record<string, string> = {
   work:             'office professional',
@@ -168,7 +156,7 @@ export async function searchShopStyle(
 
       if (!res.ok) continue;
 
-      const data: ShopStyleResponse = await res.json();
+      const data = await res.json() as ShopStyleResponse;
       const products = data.products ?? [];
 
       for (const p of products) {

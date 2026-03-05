@@ -50,7 +50,9 @@ export type BusEntryType =
   | 'e2e_metrics'
   | 'uptime_metrics'
   // UGC Creator Program
-  | 'creator_metrics';
+  | 'creator_metrics'
+  // Affiliate / Monetization
+  | 'affiliate_metrics';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

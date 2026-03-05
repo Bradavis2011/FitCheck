@@ -23,7 +23,7 @@ import { prisma } from '../utils/prisma.js';
 import { trackServerEvent } from '../lib/posthog.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 import { AFFILIATE_CATALOG, type CatalogProduct } from '../data/affiliate-catalog.js';
-import { fetchProducts, buildSearchQueries, type SourceProduct } from './product-sources.service.js';
+import { fetchProducts, type SourceProduct } from './product-sources.service.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
