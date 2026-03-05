@@ -52,7 +52,12 @@ export type BusEntryType =
   // UGC Creator Program
   | 'creator_metrics'
   // Affiliate / Monetization
-  | 'affiliate_metrics';
+  | 'affiliate_metrics'
+  // Growth Intern
+  | 'creator_scout_metrics'
+  | 'creator_outreach_metrics'
+  | 'reddit_scout_metrics'
+  | 'growth_intern_metrics';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

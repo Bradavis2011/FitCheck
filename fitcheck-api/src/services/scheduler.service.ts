@@ -69,7 +69,7 @@ function isNudgeEnabled(): boolean {
 }
 
 /** Run a cron handler with kill-switch check + observability recording. */
-async function guardedRun(agentName: string, label: string, fn: () => Promise<void>): Promise<void> {
+async function guardedRun(agentName: string, label: string, fn: () => Promise<unknown>): Promise<void> {
   if (!(await isAgentEnabled(agentName))) return;
   if (label) console.log(label);
   try {
