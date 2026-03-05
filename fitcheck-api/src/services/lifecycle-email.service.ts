@@ -8,7 +8,7 @@ import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 interface EmailStep {
   delayMs: number; // delay from previous step (0 for first step)
   subject: string;
-  buildHtml: (user: { email: string; name?: string | null; unsubscribeToken?: string }, extraData?: unknown) => string;
+  buildHtml: (user: { email: string; name?: string | null; unsubscribeToken?: string; referralCode?: string }, extraData?: unknown) => string;
 }
 
 interface SequenceDef {
@@ -230,11 +230,23 @@ const SEQUENCES: Record<string, SequenceDef> = {
 
 // ─── Email HTML Builder ───────────────────────────────────────────────────────
 
-function buildEmail(_title: string, headline: string, bodyHtml: string, unsubscribeToken?: string): string {
+function buildEmail(_title: string, headline: string, bodyHtml: string, unsubscribeToken?: string, referralCode?: string): string {
   const baseUrl = process.env.API_BASE_URL || 'https://fitcheck-production-0f92.up.railway.app';
   const unsubscribeUrl = unsubscribeToken
     ? `${baseUrl}/api/email/unsubscribe/${unsubscribeToken}`
     : `https://orthis.app/unsubscribe`;
+
+  const referralBaseUrl = process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite';
+  const referralSection = referralCode ? `
+        <tr>
+          <td style="padding:0 40px 20px;">
+            <div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;text-align:center;">
+              <p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;font-weight:600;">🎁 Invite a friend, earn bonus checks</p>
+              <p style="color:#6B7280;font-size:12px;margin:0 0 10px;">Share your link and get +1 daily check when they sign up:</p>
+              <a href="${referralBaseUrl}/${referralCode}" style="color:#E85D4C;font-size:13px;font-weight:600;text-decoration:none;word-break:break-all;">${referralBaseUrl}/${referralCode}</a>
+            </div>
+          </td>
+        </tr>` : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -255,6 +267,7 @@ function buildEmail(_title: string, headline: string, bodyHtml: string, unsubscr
             ${bodyHtml}
           </td>
         </tr>
+        ${referralSection}
         <tr>
           <td style="padding:20px 40px 28px;border-top:1px solid #F5EDE7;">
             <p style="color:#6B7280;font-size:12px;margin:0;line-height:1.5;">
@@ -539,7 +552,7 @@ async function processDueSequences(): Promise<void> {
 
       const user = await prisma.user.findUnique({
         where: { id: seq.userId },
-        select: { id: true, email: true, name: true, emailOptOut: true, unsubscribeToken: true },
+        select: { id: true, email: true, name: true, emailOptOut: true, unsubscribeToken: true, referralCode: true },
       });
 
       if (!user || !user.email) {
@@ -567,7 +580,15 @@ async function processDueSequences(): Promise<void> {
         ? topStyles
         : undefined;
 
-      const htmlBody = step.buildHtml({ ...user, unsubscribeToken: user.unsubscribeToken ?? undefined }, extraData);
+      const baseHtmlBody = step.buildHtml({ ...user, unsubscribeToken: user.unsubscribeToken ?? undefined, referralCode: user.referralCode ?? undefined }, extraData);
+      // Inject referral section into the email HTML (buildEmail already handles this via the referralCode param, but
+      // since individual step lambdas don't pass it, we inject it via string replacement as a clean catch-all)
+      const htmlBody = user.referralCode
+        ? baseHtmlBody.replace(
+            /<td style="padding:20px 40px 28px;border-top/,
+            `<td style="padding:0 40px 20px;"><div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;text-align:center;"><p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;font-weight:600;">🎁 Invite a friend, earn bonus checks</p><p style="color:#6B7280;font-size:12px;margin:0 0 10px;">Share your link and get +1 daily check when they sign up:</p><a href="${(process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite')}/${user.referralCode}" style="color:#E85D4C;font-size:13px;font-weight:600;text-decoration:none;">${(process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite')}/${user.referralCode}</a></div></td></tr><tr><td style="padding:20px 40px 28px;border-top`
+          )
+        : baseHtmlBody;
       const payload = {
         seqId: seq.id,
         userId: seq.userId,

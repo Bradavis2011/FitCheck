@@ -222,6 +222,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       effectiveDailyLimit += Math.min(3, user.bonusDailyChecks || 0);
     }
     if (effectiveDailyLimit !== Infinity && user.dailyChecksUsed >= effectiveDailyLimit) {
+      trackServerEvent(userId, 'daily_limit_hit', { source: 'server', tier: user.tier });
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
     }
     } // end admin bypass else

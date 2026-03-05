@@ -43,6 +43,7 @@ import supportRoutes from './routes/support.routes.js';
 import creatorRoutes from './routes/creator.routes.js';
 import learnRoutes from './routes/learn.routes.js';
 import affiliateRoutes from './routes/affiliate.routes.js';
+import shareRoutes from './routes/share.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
@@ -106,6 +107,42 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Universal Links verification — served before rate limiter and auth
+// iOS: Apple App Site Association (AASA)
+app.get('/.well-known/apple-app-site-association', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json({
+    applinks: {
+      apps: [],
+      details: [
+        {
+          appID: `${process.env.APPLE_TEAM_ID || 'TEAMID'}.com.bradavis.orthis`,
+          paths: ['/s/*', '/invite/*'],
+        },
+      ],
+    },
+  });
+});
+
+// Android: Digital Asset Links
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json([
+    {
+      relation: ['delegate_permission/common.handle_all_urls'],
+      target: {
+        namespace: 'android_app',
+        package_name: 'com.bradavis.orthis',
+        sha256_cert_fingerprints: (process.env.ANDROID_CERT_FINGERPRINT || '').split(',').filter(Boolean),
+      },
+    },
+  ]);
+});
+
+// Public outfit score sharing page — BEFORE rate limiter and helmet CSP
+// Serves OG-tagged HTML for social link previews + App Store download buttons
+app.use('/s', shareRoutes);
 
 // RevenueCat webhook (before rate limiter - RevenueCat may send bursts)
 app.post('/api/webhooks/revenuecat', asyncHandler(handleWebhook));
@@ -171,6 +208,72 @@ app.get('/api/follow-up/:id/respond/:response', asyncHandler(async (req, res) =>
       <h2 style="color:#E85D4C;">Got it!</h2>
       <p style="color:#2D2D2D;">Thanks for letting us know. Your feedback helps us improve.</p>
       <a href="https://orthis.app" style="color:#E85D4C;font-weight:600;">Open Or This? →</a>
+    </div>
+  </body></html>`);
+}));
+
+// Growth Intern email action endpoints (unauthenticated — HMAC-protected links from morning brief)
+app.get('/g/prospect/:id/contacted', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { t } = req.query as { t?: string };
+  const { verifyGrowthToken } = await import('./services/growth-intern.service.js');
+  if (!t || !verifyGrowthToken(id, 'contacted', t)) {
+    res.status(403).send('Invalid token.');
+    return;
+  }
+  const { markProspectContacted } = await import('./services/creator-outreach.service.js');
+  const ok = await markProspectContacted(id);
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;">
+      <div style="font-size:48px;">${ok ? '✅' : '⚠️'}</div>
+      <h2 style="color:#E85D4C;">${ok ? 'Marked as Contacted!' : 'Already Updated'}</h2>
+      <p style="color:#2D2D2D;">Creator prospect status updated.</p>
+    </div>
+  </body></html>`);
+}));
+
+app.get('/g/prospect/:id/responded', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { t } = req.query as { t?: string };
+  const { verifyGrowthToken } = await import('./services/growth-intern.service.js');
+  if (!t || !verifyGrowthToken(id, 'responded', t)) {
+    res.status(403).send('Invalid token.');
+    return;
+  }
+  const { markProspectResponded, handleCreatorResponse } = await import('./services/creator-outreach.service.js');
+  await markProspectResponded(id);
+  // Queue creator kit email
+  handleCreatorResponse(id).catch(err => console.error('[GrowthAction] Creator kit failed:', err));
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;">
+      <div style="font-size:48px;">🎉</div>
+      <h2 style="color:#E85D4C;">Marked as Responded!</h2>
+      <p style="color:#2D2D2D;">Creator kit email will be sent automatically.</p>
+    </div>
+  </body></html>`);
+}));
+
+app.get('/g/thread/:id/posted', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { t } = req.query as { t?: string };
+  const { verifyGrowthToken } = await import('./services/growth-intern.service.js');
+  if (!t || !verifyGrowthToken(id, 'posted', t)) {
+    res.status(403).send('Invalid token.');
+    return;
+  }
+  try {
+    await prisma.redditThread.updateMany({
+      where: { id, status: { in: ['approved', 'response_ready'] } },
+      data: { status: 'posted', postedAt: new Date() },
+    });
+  } catch (err) {
+    console.error('[GrowthAction] Thread posted update failed:', err);
+  }
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;">
+      <div style="font-size:48px;">✅</div>
+      <h2 style="color:#E85D4C;">Thread Marked as Posted!</h2>
+      <p style="color:#2D2D2D;">Reddit thread status updated.</p>
     </div>
   </body></html>`);
 }));
