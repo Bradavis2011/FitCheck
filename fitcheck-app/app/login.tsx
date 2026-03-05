@@ -404,14 +404,21 @@ export default function LoginScreen() {
     const key = provider === 'oauth_google' ? 'google' : 'apple';
     setSocialLoading(key);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      const redirectUrl = Linking.createURL('sso-callback');
+      const { createdSessionId, setActive, authSessionResult } = await startSSOFlow({
         strategy: provider,
+        redirectUrl,
       });
+      console.log(`[Social login ${key}] authSessionResult:`, JSON.stringify(authSessionResult));
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
         // Don't navigate manually — AuthGate watches isSignedIn and routes to
         // /(tabs) or /onboarding once the Clerk session (and its token) are ready.
         // Navigating here races ahead of token propagation and causes 401s.
+      } else if (authSessionResult?.type === 'cancel') {
+        // User dismissed the browser — no error needed
+      } else if (authSessionResult?.type && authSessionResult.type !== 'success') {
+        console.warn(`[Social login ${key}] unexpected result type:`, authSessionResult.type);
       }
     } catch (error: any) {
       console.error(`[Social login ${key}] error:`, JSON.stringify(error?.errors ?? error?.message ?? error));

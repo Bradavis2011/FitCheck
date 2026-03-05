@@ -6,12 +6,13 @@ interface Props {
 }
 
 // "Or" in DM Sans Medium (black) + "This?" in Playfair Display Italic (coral)
-// Uses View row layout so paddingRight can give the italic "?" room to avoid clipping
+// paddingRight on the View (not Text) prevents the italic ? from being clipped
+// by the parent's layout bounds
 export default function OrThisLogo({ size = 28 }: Props) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingRight: Math.ceil(size * 0.22) }]}>
       <Text style={[styles.or, { fontSize: size }]}>Or </Text>
-      <Text style={[styles.this, { fontSize: size, paddingRight: Math.ceil(size * 0.14) }]}>This?</Text>
+      <Text style={[styles.this, { fontSize: size }]}>This?</Text>
     </View>
   );
 }
