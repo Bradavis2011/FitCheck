@@ -42,6 +42,7 @@ export default function ProfileScreen() {
   const [editBio, setEditBio] = useState('');
   const [editIsPublic, setEditIsPublic] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('general');
   const [feedbackText, setFeedbackText] = useState('');
   const submitFeedback = useSubmitFeedback();
@@ -246,97 +247,154 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Referral */}
-        <ReferralCard />
+        {/* Style Journal — full editorial card */}
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => router.push('/style-journal' as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.sectionLabel}>Editorial</Text>
+          <View style={styles.rule} />
+          <Text style={styles.featureCardTitle}>Style Journal</Text>
+          <Text style={styles.featureCardSub}>Personalized articles about your wardrobe, color story, and style evolution.</Text>
+          <View style={styles.featureCardCta}>
+            <Text style={styles.featureCardCtaText}>Explore</Text>
+            <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+          </View>
+        </TouchableOpacity>
 
-        {/* Gamification — editorial, no gradient */}
+        {/* Style DNA — full editorial card */}
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => router.push('/style-profile' as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.sectionLabel}>Analytics</Text>
+          <View style={styles.rule} />
+          <Text style={styles.featureCardTitle}>Your Style DNA</Text>
+          <Text style={styles.featureCardSub}>Color analysis, pattern insights, and AI-powered recommendations tailored to you.</Text>
+          <View style={styles.featureCardCta}>
+            <Text style={styles.featureCardCtaText}>Explore</Text>
+            <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Wardrobe */}
+        <View style={styles.wardrobeSection}>
+          <WardrobeProgressCard />
+        </View>
+
+        {/* Style Preferences */}
+        <TouchableOpacity
+          style={styles.listRow}
+          onPress={() => router.push('/style-preferences' as any)}
+        >
+          <Text style={styles.listRowText}>Style Preferences</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+        </TouchableOpacity>
+
+        {/* Gamification — collapsible, collapsed by default */}
         {(dailyGoals || (badgesData && badgesData.totalCount > 0)) && (
           <View style={styles.card}>
-            {/* XP / Level */}
-            <View style={styles.levelRow}>
-              <View>
-                <Text style={styles.sectionLabel}>Progress</Text>
+            <TouchableOpacity
+              style={styles.collapsibleHeader}
+              onPress={() => setShowProgress(!showProgress)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sectionLabel}>Progress</Text>
+              <Ionicons name={showProgress ? 'chevron-up' : 'chevron-down'} size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+            {showProgress && (
+              <>
                 <View style={styles.rule} />
-                <Text style={styles.levelName}>
-                  {stats?.level === 1 ? 'Style Newbie' :
-                   stats?.level === 2 ? 'Fashion Friend' :
-                   stats?.level === 3 ? 'Style Advisor' :
-                   stats?.level === 4 ? 'Outfit Expert' :
-                   stats?.level === 5 ? 'Trusted Reviewer' :
-                   stats?.level === 6 ? 'Style Guru' :
-                   stats?.level === 7 ? 'Fashion Icon' :
-                   'Legend'}
-                </Text>
-                {stats?.xpToNextLevel && stats.xpToNextLevel > 0 && (
-                  <Text style={styles.xpText}>{stats.xpToNextLevel} XP to next level</Text>
-                )}
-              </View>
-              <Text style={styles.pointsTotal}>{(stats?.points || 0).toLocaleString()}</Text>
-            </View>
-
-            {/* XP bar */}
-            <View style={styles.xpBarBg}>
-              <View style={[styles.xpBarFill, {
-                width: `${stats?.xpToNextLevel
-                  ? Math.min(100, ((stats?.points || 0) % (stats?.xpToNextLevel || 100)) / (stats?.xpToNextLevel || 100) * 100)
-                  : 100}%`,
-              }]} />
-            </View>
-
-            {/* Daily goals */}
-            {dailyGoals && (dailyGoals.feedbacksGiven > 0 || dailyGoals.currentStreak > 0) && (
-              <View style={styles.goalsRow}>
-                {dailyGoals.currentStreak > 0 && (
-                  <View style={styles.goalChip}>
-                    <Ionicons name="flame" size={13} color={Colors.warning} />
-                    <Text style={styles.goalChipText}>{dailyGoals.currentStreak}d streak</Text>
-                  </View>
-                )}
-                {dailyGoals.feedbacksGiven > 0 && (
-                  <View style={styles.goalChip}>
-                    <Ionicons name="chatbubble" size={13} color={Colors.primary} />
-                    <Text style={styles.goalChipText}>
-                      {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal} feedbacks
+                {/* XP / Level */}
+                <View style={styles.levelRow}>
+                  <View>
+                    <Text style={styles.levelName}>
+                      {stats?.level === 1 ? 'Style Newbie' :
+                       stats?.level === 2 ? 'Fashion Friend' :
+                       stats?.level === 3 ? 'Style Advisor' :
+                       stats?.level === 4 ? 'Outfit Expert' :
+                       stats?.level === 5 ? 'Trusted Reviewer' :
+                       stats?.level === 6 ? 'Style Guru' :
+                       stats?.level === 7 ? 'Fashion Icon' :
+                       'Legend'}
                     </Text>
+                    {stats?.xpToNextLevel && stats.xpToNextLevel > 0 && (
+                      <Text style={styles.xpText}>{stats.xpToNextLevel} XP to next level</Text>
+                    )}
                   </View>
-                )}
-              </View>
-            )}
-
-            {/* Achievements */}
-            {badgesData && (
-              <View style={styles.badgesSection}>
-                <View style={styles.sectionLabelRow}>
-                  <Text style={styles.sectionLabel}>Achievements</Text>
-                  <Text style={styles.badgesCount}>
-                    {badgesData.earnedCount} / {badgesData.totalCount}
-                  </Text>
+                  <Text style={styles.pointsTotal}>{(stats?.points || 0).toLocaleString()}</Text>
                 </View>
-                <View style={styles.rule} />
-                <View style={styles.badgesGrid}>
-                  {badgesData.badges.map((badge) => (
-                    <View
-                      key={badge.id}
-                      style={[styles.badgeItem, badge.earned && styles.badgeItemEarned]}
-                    >
-                      <View style={[styles.badgeIconWrap, badge.earned && styles.badgeIconWrapEarned]}>
-                        <Text style={[styles.badgeIcon, !badge.earned && styles.badgeIconLocked]}>
-                          {badge.icon}
+
+                {/* XP bar */}
+                <View style={styles.xpBarBg}>
+                  <View style={[styles.xpBarFill, {
+                    width: `${stats?.xpToNextLevel
+                      ? Math.min(100, ((stats?.points || 0) % (stats?.xpToNextLevel || 100)) / (stats?.xpToNextLevel || 100) * 100)
+                      : 100}%`,
+                  }]} />
+                </View>
+
+                {/* Daily goals */}
+                {dailyGoals && (dailyGoals.feedbacksGiven > 0 || dailyGoals.currentStreak > 0) && (
+                  <View style={styles.goalsRow}>
+                    {dailyGoals.currentStreak > 0 && (
+                      <View style={styles.goalChip}>
+                        <Ionicons name="flame" size={13} color={Colors.warning} />
+                        <Text style={styles.goalChipText}>{dailyGoals.currentStreak}d streak</Text>
+                      </View>
+                    )}
+                    {dailyGoals.feedbacksGiven > 0 && (
+                      <View style={styles.goalChip}>
+                        <Ionicons name="chatbubble" size={13} color={Colors.primary} />
+                        <Text style={styles.goalChipText}>
+                          {dailyGoals.feedbacksGiven}/{dailyGoals.feedbacksGoal} feedbacks
                         </Text>
                       </View>
-                      <Text style={[styles.badgeName, badge.earned && styles.badgeNameEarned]}>
-                        {badge.name}
-                      </Text>
-                      <Text style={styles.badgeDesc} numberOfLines={2}>
-                        {badge.description}
+                    )}
+                  </View>
+                )}
+
+                {/* Achievements */}
+                {badgesData && (
+                  <View style={styles.badgesSection}>
+                    <View style={styles.sectionLabelRow}>
+                      <Text style={styles.sectionLabel}>Achievements</Text>
+                      <Text style={styles.badgesCount}>
+                        {badgesData.earnedCount} / {badgesData.totalCount}
                       </Text>
                     </View>
-                  ))}
-                </View>
-              </View>
+                    <View style={styles.rule} />
+                    <View style={styles.badgesGrid}>
+                      {badgesData.badges.map((badge) => (
+                        <View
+                          key={badge.id}
+                          style={[styles.badgeItem, badge.earned && styles.badgeItemEarned]}
+                        >
+                          <View style={[styles.badgeIconWrap, badge.earned && styles.badgeIconWrapEarned]}>
+                            <Text style={[styles.badgeIcon, !badge.earned && styles.badgeIconLocked]}>
+                              {badge.icon}
+                            </Text>
+                          </View>
+                          <Text style={[styles.badgeName, badge.earned && styles.badgeNameEarned]}>
+                            {badge.name}
+                          </Text>
+                          <Text style={styles.badgeDesc} numberOfLines={2}>
+                            {badge.description}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
+
+        {/* Referral */}
+        <ReferralCard />
 
         {/* View public profile */}
         {userProfile?.username && userProfile?.isPublic && (
@@ -348,33 +406,6 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         )}
-
-        {/* Style Preferences */}
-        <TouchableOpacity
-          style={styles.listRow}
-          onPress={() => router.push('/style-preferences' as any)}
-        >
-          <Text style={styles.listRowText}>Style Preferences</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-        </TouchableOpacity>
-
-        {/* Wardrobe */}
-        <View style={styles.wardrobeSection}>
-          <WardrobeProgressCard />
-        </View>
-
-        {/* Style Journal */}
-        <TouchableOpacity
-          style={styles.journalRow}
-          onPress={() => router.push('/style-journal' as any)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.journalRowContent}>
-            <Text style={styles.journalRowLabel}>STYLE JOURNAL</Text>
-            <Text style={styles.journalRowSub}>Personalized editorial articles</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-        </TouchableOpacity>
 
         {/* Upgrade — editorial style */}
         {tier === 'free' && (
@@ -441,7 +472,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Or This? v1.1.3</Text>
+        <Text style={styles.version}>Or This? v1.2.0</Text>
       </ScrollView>
 
       {/* Feedback Modal */}
@@ -922,30 +953,47 @@ const styles = StyleSheet.create({
   wardrobeSection: {
     marginBottom: Spacing.sm,
   },
-  journalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    padding: Spacing.md,
+  // Feature cards (Style Journal, Style DNA)
+  featureCard: {
     backgroundColor: Colors.white,
+    borderRadius: 8,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.lg,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
-  journalRowContent: {
-    gap: 2,
+  featureCardTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
   },
-  journalRowLabel: {
+  featureCardSub: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  featureCardCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  featureCardCtaText: {
     fontFamily: Fonts.sansMedium,
     fontSize: 11,
-    letterSpacing: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
     color: Colors.primary,
   },
-  journalRowSub: {
-    fontFamily: Fonts.sans,
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
+  // Collapsible header for gamification
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   version: {
     fontFamily: Fonts.sans,

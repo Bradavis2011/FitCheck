@@ -190,13 +190,14 @@ export default function HistoryScreen() {
         </View>
       )}
 
-      {/* Compare FAB */}
+      {/* Compare FAB — labeled pill */}
       <TouchableOpacity
         style={[styles.compareFab, { bottom: Spacing.xl + Math.round(insets.bottom * 0.75) }]}
         onPress={() => router.push('/compare' as any)}
         activeOpacity={0.9}
       >
-        <Ionicons name="git-compare-outline" size={22} color={Colors.white} />
+        <Ionicons name="git-compare-outline" size={18} color={Colors.white} />
+        <Text style={styles.compareFabText}>Compare</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -306,11 +307,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Spacing.xl,
     right: Spacing.lg,
-    width: 52,
-    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 44,
     borderRadius: 0, // sharp — editorial spec
     backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
     justifyContent: 'center',
-    alignItems: 'center',
+  },
+  compareFabText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.white,
   },
 });

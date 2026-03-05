@@ -39,6 +39,16 @@ export default function HomeScreen() {
   // A7: archetype-personalized hero copy
   const heroContent = getHeroCopy((userProfile as any)?.topArchetype);
 
+  // Feature discovery hint — contextual based on total outfit count
+  const totalOutfits = stats?.totalOutfits ?? 0;
+  const featureHint = totalOutfits >= 10
+    ? { label: 'Insights', title: 'Explore your Style DNA', sub: 'Color analysis and AI recommendations tailored to you.', route: '/style-profile' }
+    : totalOutfits >= 3
+    ? { label: 'Discover', title: 'Compare two outfits', sub: "Can't decide? Get an honest AI verdict.", route: '/compare' }
+    : totalOutfits >= 1
+    ? { label: 'Personalize', title: 'Set your style preferences', sub: 'Help the AI learn your taste faster.', route: '/style-preferences' }
+    : null;
+
   const outfits = outfitsData?.outfits || [];
   const communityOutfits = (communityData?.outfits || []).map((outfit) => ({
     id: outfit.id,
@@ -207,6 +217,46 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Or This? — compare promo (moved up for visibility) */}
+        <View style={styles.orThisSection}>
+          <View style={styles.sectionDivider} />
+          <View style={styles.orThisBlock}>
+            <Text style={styles.sectionLabel}>Or This?</Text>
+            <View style={styles.rule} />
+            <Text style={styles.orThisTitle}>
+              <Text style={{ fontFamily: Fonts.sansMedium }}>Or </Text>
+              <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
+            </Text>
+            <Text style={styles.orThisSubtitle}>Can't decide between two looks? Get an honest verdict.</Text>
+            <TouchableOpacity
+              style={styles.orThisButton}
+              onPress={() => router.push('/compare' as any)}
+            >
+              <Ionicons name="git-compare-outline" size={16} color={Colors.primary} />
+              <Text style={styles.orThisButtonText}>Compare Two Outfits</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Feature discovery hint — contextual, based on outfit count */}
+        {featureHint && (
+          <View style={styles.hintSection}>
+            <View style={styles.sectionDivider} />
+            <TouchableOpacity
+              style={styles.hintBlock}
+              onPress={() => router.push(featureHint.route as any)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.hintContent}>
+                <Text style={styles.sectionLabel}>{featureHint.label}</Text>
+                <Text style={styles.hintTitle}>{featureHint.title}</Text>
+                <Text style={styles.hintSub}>{featureHint.sub}</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Wardrobe Progress */}
         <View style={styles.wardrobeSection}>
           <WardrobeProgressCard />
@@ -238,27 +288,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Or This? — feature promo module */}
-        <View style={styles.orThisSection}>
-          <View style={styles.sectionDivider} />
-          <View style={styles.orThisBlock}>
-            <Text style={styles.sectionLabel}>Or This?</Text>
-            <View style={styles.rule} />
-            <Text style={styles.orThisTitle}>
-              <Text style={{ fontFamily: Fonts.sansMedium }}>Or </Text>
-              <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
-            </Text>
-            <Text style={styles.orThisSubtitle}>Can't decide between two looks? Get an honest verdict.</Text>
-            <TouchableOpacity
-              style={styles.orThisButton}
-              onPress={() => router.push('/compare' as any)}
-            >
-              <Ionicons name="git-compare-outline" size={16} color={Colors.primary} />
-              <Text style={styles.orThisButtonText}>Compare Two Outfits</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {/* Upgrade — editorial style (free tier only) */}
         {tier === 'free' && (
@@ -435,6 +464,32 @@ const styles = StyleSheet.create({
   // Wardrobe
   wardrobeSection: {
     marginBottom: Spacing.md,
+  },
+  // Feature hint
+  hintSection: {
+    marginBottom: Spacing.lg,
+  },
+  hintBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  hintContent: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  hintTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  hintSub: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.textMuted,
   },
   // Or This? promo
   orThisSection: {

@@ -30,6 +30,7 @@ import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, Fonts, BorderRadius, getScoreColor } from '../src/constants/theme';
 import AdBanner from '../src/components/AdBanner';
 import { recordOutfitCheck } from '../src/lib/adManager';
+import AffiliateCard from '../src/components/AffiliateCard';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
@@ -534,6 +535,14 @@ export default function FeedbackScreen() {
           {/* Style DNA */}
           {normalized?.styleDNA && (
             <StyleDNACard styleDNA={normalized.styleDNA} delay={600} />
+          )}
+
+          {/* Affiliate recommendations — only shown when score >= 6 and catalog is populated */}
+          {outfitId && normalized?.aiScore !== undefined && normalized.aiScore >= 6 && (
+            <AffiliateCard
+              outfitCheckId={outfitId}
+              score={normalized.aiScore}
+            />
           )}
 
           {/* Follow-up — sharp-corner input area */}
