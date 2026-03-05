@@ -16,3 +16,9 @@ Monetization/*.zip
 # Local reference repos — not tracked as submodules
 lovable-mockup/
 test-app/
+
+# Reviewer notes contain demo account credentials — keep local only
+fitcheck-app/store-assets/reviewer-notes*.txt
+fitcheck-app/store-assets/reviewer-notes*.pdf
+fitcheck-app/store-assets/reviwer-notes*.txt
+fitcheck-app/store-assets/reviwer-notes*.pdf
