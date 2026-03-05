@@ -32,7 +32,7 @@ I wanted an app that tells you the actual truth. Not "you look great," but "the 
 
 It uses GPT-4 Vision to score outfits out of 10 with specific, honest feedback. The more you use it, the more it learns your style.
 
-It's been in TestFlight for a while and just launched on the App Store. Would genuinely love your feedback — especially if the AI gives you a score you disagree with. Happy to chat in the comments.
+Just launched on the App Store. Would genuinely love your feedback — especially if the AI gives you a score you disagree with. Happy to chat in the comments.
 ```
 
 **Category**: Productivity / Health & Fitness / Lifestyle
@@ -132,9 +132,8 @@ Built this to solve the "does this look ok?" text. You take a photo of your outf
 - Any crashes or UX weirdness?
 - Does it work well for different body types, skin tones, and style aesthetics?
 
-**Platform**: iOS (App Store or TestFlight)
-**App Store**: [ADD LINK]
-**TestFlight**: https://testflight.apple.com/join/2fXVAyvd
+**Platform**: iOS (App Store) — Android early access via Gmail signup
+**App Store**: https://apps.apple.com/app/or-this/id6759472490
 
 Free to use (3 outfit checks/day free tier). No payment required to test.
 ```
@@ -145,24 +144,27 @@ Free to use (3 outfit checks/day free tier). No payment required to test.
 
 **Post title**:
 ```
-[Beta] Or This? iOS — AI outfit feedback app, looking for testers
+[iOS/Android] Or This? — AI outfit feedback app, just launched on App Store. Need iOS feedback + Android testers
 ```
 
 **Body**:
 ```
-Hi — I'm the developer of Or This?, an AI outfit feedback app for iOS. Looking for beta testers to stress-test the AI quality.
+Hi — I'm the creator of Or This?, an AI outfit feedback app that just launched on the App Store.
 
-**The app**: Take a photo of your outfit → get a score out of 10 → see what's working, what isn't, and get follow-up Q&A with the AI stylist.
+**The app**: Take a photo of your outfit → get a score out of 10 → see what's working, what isn't, and follow-up Q&A with the AI stylist.
 
-**What I need feedback on**:
+**What I need**:
+- iOS: App Store downloads and honest feedback on AI quality
+- Android: drop your Gmail in the comments — building toward Play Store launch and need testers added to the early access list
+
+**What to give feedback on**:
 - Accuracy and usefulness of AI feedback
-- Performance with different outfit types (formal, casual, streetwear, etc.)
-- Any technical issues
+- Performance across outfit types (formal, casual, streetwear, etc.)
+- Any bugs or technical issues
 
-**TestFlight link**: https://testflight.apple.com/join/2fXVAyvd
-**App Store**: [ADD LINK]
+**App Store (iOS)**: https://apps.apple.com/app/or-this/id6759472490
 
-Free. No account required beyond signup. Takes about 2 minutes to get your first outfit check.
+Free. Takes 2 minutes to get your first outfit check. DMs open for Android testers.
 ```
 
 ---
@@ -186,7 +188,7 @@ Been building this for a while, just launched on the App Store.
 
 **What I'd love feedback on**: Is the AI feedback actually useful? Does the score feel calibrated? Is there a use case I'm missing?
 
-TestFlight: https://testflight.apple.com/join/2fXVAyvd
+App Store: https://apps.apple.com/app/or-this/id6759472490
 Website: https://orthis.app
 
 Happy to share what I learned building it if anyone's interested.
@@ -243,7 +245,7 @@ Hey [name] — been watching your outfit content, it's genuinely good.
 
 I built an app that gives AI feedback on outfits (score out of 10, honest breakdown). Thought you'd find it interesting or maybe annoying lol.
 
-TestFlight link if you want to try it: https://testflight.apple.com/join/2fXVAyvd
+App Store link if you want to try it: https://apps.apple.com/app/or-this/id6759472490
 
 No ask — just thought it fit what you do.
 ```
@@ -328,3 +330,24 @@ It's the only way to make it better
 
 Reply here or DM me
 ```
+
+---
+
+## AFFILIATE NETWORK STATUS
+*Last updated: March 4, 2026*
+
+| Network | Status | Notes |
+|---|---|---|
+| **Skimlinks** | Pending approval | Publisher ID: `299508X1787287` — set in Railway. Product API unlocks post-approval. |
+| **CJ Affiliate** | Application in progress | Publisher signup done. Form bug on save — contact support if it persists. Apply to merchants: Nordstrom, Macy's, ASOS, H&M, Anthropologie, Gap, Nike. |
+| **Rakuten Advertising** | Rejected | Rejected new apps without traffic history. Revisit at 1K MAU. |
+| **Amazon Associates** | Account created | Apply to PA-API after 3 qualifying sales (180-day window). Use manual link generator in dashboard for static catalog in the meantime. |
+| **ShopStyle / Collective Voice** | N/A | Rebranded, now invite-only creator platform. Not applicable. |
+
+### Next actions
+- [ ] Resolve CJ form save bug (try Chrome / contact CJ support)
+- [ ] Apply to 15+ CJ merchants once account saves
+- [ ] Generate manual Amazon affiliate links for top categories → add to `affiliate-catalog.ts`
+- [ ] Set `SKIMLINKS_PUBLISHER_ID=299508X1787287` in Railway env vars (if not already done)
+- [ ] Set `CJ_API_KEY` + `CJ_WEBSITE_ID` in Railway once CJ account is active
+- [ ] Set `SKIMLINKS_PRODUCT_API_KEY` in Railway when Skimlinks approves product API access
