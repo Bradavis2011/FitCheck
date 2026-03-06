@@ -18,7 +18,7 @@ import { prisma } from '../utils/prisma.js';
 import { pushService } from './push.service.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 import { getWeatherForCity, getWeatherNudgeCopy } from './weather.service.js';
-import { canSendRelationshipNotification } from './event-followup.service.js';
+
 
 // ─── Variant Selection ────────────────────────────────────────────────────────
 
