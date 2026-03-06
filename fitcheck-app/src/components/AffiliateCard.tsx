@@ -101,7 +101,7 @@ export default function AffiliateCard({ outfitCheckId, score, placement }: Props
           <Text style={styles.headline}>{result.headline}</Text>
           <Text style={styles.subtext}>{result.subtext}</Text>
         </View>
-        <Text style={styles.sponsoredLabel}>Sponsored</Text>
+        <Text style={styles.sponsoredLabel}>We may earn a commission</Text>
       </View>
 
       {/* Horizontal product scroll */}
@@ -153,21 +153,21 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   headline: {
-    fontFamily: Fonts.serifItalic,
+    fontFamily: Fonts.serif,
     fontSize: 18,
-    color: Colors.text.primary,
+    color: Colors.text,
   },
   subtext: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.textSecondary,
     marginTop: 2,
     letterSpacing: 0.3,
   },
   sponsoredLabel: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: Colors.text.tertiary ?? Colors.text.secondary,
+    color: Colors.textMuted,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginTop: 4,
@@ -178,22 +178,22 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: 148,
-    backgroundColor: Colors.surface ?? '#FFFFFF',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border ?? '#E8E0D8',
-    // Editorial: sharp corners
+    borderColor: Colors.border,
+    // Editorial: sharp corners (BorderRadius.sharp = 0)
     overflow: 'hidden',
   },
   productImage: {
     width: '100%',
     height: 148,
-    backgroundColor: Colors.background.secondary ?? '#F5EDE7',
+    backgroundColor: Colors.backgroundSecondary,
   },
   productInfo: {
     padding: Spacing.sm,
   },
   productBrand: {
-    fontFamily: Fonts.sansMedium ?? Fonts.sans,
+    fontFamily: Fonts.sansMedium,
     fontSize: 10,
     color: Colors.primary,
     textTransform: 'uppercase',
@@ -203,14 +203,14 @@ const styles = StyleSheet.create({
   productTitle: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: Colors.text.primary,
+    color: Colors.text,
     lineHeight: 16,
     marginBottom: 4,
   },
   productPrice: {
-    fontFamily: Fonts.sansSemiBold ?? Fonts.sans,
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 13,
-    color: Colors.text.primary,
+    color: Colors.text,
   },
   shopButton: {
     backgroundColor: Colors.primary,
@@ -218,9 +218,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shopButtonText: {
-    fontFamily: Fonts.sansMedium ?? Fonts.sans,
+    fontFamily: Fonts.sansMedium,
     fontSize: 12,
-    color: '#FFFFFF',
+    color: Colors.white,
     letterSpacing: 0.5,
   },
 });

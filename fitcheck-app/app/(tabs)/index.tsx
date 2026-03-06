@@ -20,9 +20,32 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser, useNotifications } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser, useNotifications, useYourWeek } from '../../src/hooks/useApi';
 import ErrorState from '../../src/components/ErrorState';
 import UserAvatar from '../../src/components/UserAvatar';
+
+// ── Your Week helpers ─────────────────────────────────────────────────────────
+
+function weatherIcon(condition: string): 'sunny-outline' | 'partly-sunny-outline' | 'cloud-outline' | 'rainy-outline' | 'snow-outline' | 'thunderstorm-outline' {
+  switch (condition) {
+    case 'sunny':        return 'sunny-outline';
+    case 'partly_cloudy': return 'partly-sunny-outline';
+    case 'cloudy':       return 'cloud-outline';
+    case 'rainy':        return 'rainy-outline';
+    case 'snowy':        return 'snow-outline';
+    case 'stormy':       return 'thunderstorm-outline';
+    default:             return 'partly-sunny-outline';
+  }
+}
+
+function formatEventDate(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diff = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -38,6 +61,9 @@ export default function HomeScreen() {
   const { data: notificationsData } = useNotifications(true);
   const unreadCount = notificationsData?.unreadCount ?? 0;
   const [refreshing, setRefreshing] = useState(false);
+
+  const isPlus = tier === 'plus' || tier === 'pro';
+  const { data: weekData, refetch: refetchWeek } = useYourWeek(isPlus);
 
   // A7: archetype-personalized hero copy
   const heroContent = getHeroCopy((userProfile as any)?.topArchetype);
@@ -68,7 +94,7 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchOutfits(), refetchStats(), refetchCommunity()]);
+      await Promise.all([refetchOutfits(), refetchStats(), refetchCommunity(), ...(isPlus ? [refetchWeek()] : [])]);
     } finally {
       setRefreshing(false);
     }
@@ -171,6 +197,54 @@ export default function HomeScreen() {
             </Text>
           )}
         </View>
+
+        {/* Your Week — Plus/Pro only */}
+        {isPlus && weekData && (weekData.upcomingEvents.length > 0 || weekData.weather) && (
+          <View style={styles.yourWeekSection}>
+            <View style={styles.sectionDivider} />
+            <View style={styles.yourWeekHeader}>
+              <Text style={styles.sectionLabel}>Your Week</Text>
+              <View style={styles.rule} />
+            </View>
+
+            {/* Weather row */}
+            {weekData.weather && (
+              <View style={styles.weatherRow}>
+                <Ionicons
+                  name={weatherIcon(weekData.weather.condition)}
+                  size={20}
+                  color={Colors.textMuted}
+                />
+                <Text style={styles.weatherText}>
+                  {weekData.weather.tempFahrenheit}°F · {weekData.weather.description}
+                </Text>
+              </View>
+            )}
+
+            {/* Upcoming events */}
+            {weekData.upcomingEvents.map((ev) => (
+              <View key={ev.id} style={styles.weekEventRow}>
+                <View style={styles.weekEventDot} />
+                <View style={styles.weekEventContent}>
+                  <Text style={styles.weekEventOccasion}>{ev.occasion}</Text>
+                  {ev.eventDate && (
+                    <Text style={styles.weekEventDate}>
+                      {formatEventDate(ev.eventDate)}
+                    </Text>
+                  )}
+                </View>
+                {ev.outfitScore != null && (
+                  <Text style={styles.weekEventScore}>{ev.outfitScore.toFixed(1)}</Text>
+                )}
+              </View>
+            ))}
+
+            {/* Suggestions */}
+            {weekData.suggestions.length > 0 && (
+              <Text style={styles.weekSuggestion}>{weekData.suggestions[weekData.suggestions.length - 1]}</Text>
+            )}
+          </View>
+        )}
 
         {/* Editorial image strip — horizontal lookbook */}
         <View style={styles.lookbookSection}>
@@ -678,6 +752,68 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.65,
     color: Colors.white,
+  },
+  // Your Week
+  yourWeekSection: {
+    marginBottom: Spacing.xxl,
+  },
+  yourWeekHeader: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  weatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  weatherText: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
+  weekEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  weekEventDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+    marginRight: Spacing.md,
+  },
+  weekEventContent: {
+    flex: 1,
+  },
+  weekEventOccasion: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  weekEventDate: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+  weekEventScore: {
+    fontFamily: Fonts.serif,
+    fontSize: 16,
+    color: Colors.primary,
+  },
+  weekSuggestion: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    fontStyle: 'italic',
   },
   // Invite
   inviteRow: {

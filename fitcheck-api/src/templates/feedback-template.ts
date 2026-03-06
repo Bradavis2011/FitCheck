@@ -14,10 +14,10 @@ export interface FeedbackTemplate {
     cohesion: number;
     confidence: number;
   };
-  summary: string; // One-sentence enthusiastic summary
-  whatsWorking: string[]; // 2-3 specific positives
-  consider: string[]; // 1-2 gentle suggestions (only if score < 9)
-  quickFixes: string[]; // 3-4 actionable tips
+  summary: string; // One declarative sentence — the verdict. No exclamation marks.
+  whatsWorking: string[]; // 2-3 specific observations naming the garment/element and WHY
+  consider: string[]; // 1-2 direct, specific edits (only if score < 9)
+  quickFixes: string[]; // 3-4 actionable, specific tips naming the item
 }
 
 export interface ComparisonFeedbackTemplate {
@@ -33,81 +33,78 @@ export interface FollowUpResponse {
 }
 
 /**
- * Opening phrases based on score range
+ * Opening phrases based on score range — v3.0 voice
+ * Declarative. Specific. No empty validation.
  */
 export const OPENING_PHRASES = {
   exceptional: [ // 9-10
-    'Absolutely stunning!',
-    'You\'re nailing it!',
-    'This is perfection!',
-    'Magazine-worthy!',
-    'Chef\'s kiss! 💋',
-    'You\'ve absolutely got this!',
+    'The silhouette is doing all the work.',
+    'Strong color story. This is intentional.',
+    'Clean choice. The proportions are right.',
+    'This reads exactly as it should.',
   ],
   great: [ // 7-8.9
-    'Looking gorgeous!',
-    'You\'re on the right track!',
-    'Love this!',
-    'Great choice!',
-    'This works beautifully!',
-    'So close to perfection!',
+    'Solid foundation. One edit away.',
+    'The pieces are working. One thing to sharpen.',
+    'Strong start. The color story holds.',
+    'This is close. One specific fix.',
   ],
   good: [ // 5-6.9
-    'Great foundation!',
-    'You\'ve got good instincts!',
-    'Nice pieces here!',
-    'Strong start!',
-    'Love your creativity!',
+    'The bones are here. The edit is clear.',
+    'Right direction. Competing elements to resolve.',
+    'Strong individual pieces. The cohesion needs work.',
+    'Not there yet — the fix is specific.',
   ],
   needsWork: [ // < 5
-    'You\'ve got some great pieces!',
-    'I see what you\'re going for!',
-    'Let\'s elevate this!',
-    'Good bones—let\'s polish it!',
+    'The pieces exist. The brief isn\'t being met.',
+    'This needs a deliberate redirect for the occasion.',
+    'Not there yet. The edit is significant.',
+    'The occasion needs more than this is delivering.',
   ],
 };
 
 /**
- * Closing phrases to boost confidence
+ * Closing phrases — v3.0 voice
+ * Declarative. No empty encouragement.
  */
 export const CLOSING_PHRASES = {
   noChanges: [
-    'Walk out with confidence—you\'ve got this! ✨',
-    'You\'re ready to turn heads! 🔥',
-    'Trust your instincts—you nailed it!',
-    'Absolutely ready to go!',
+    'This is ready.',
+    'The verdict holds.',
+    'Nothing to add.',
+    'Walk out.',
   ],
   minorTweaks: [
-    'With these small tweaks, you\'ll be unstoppable! 💫',
-    'These quick changes will take it from great to perfect!',
-    'You\'re 95% there—these final touches will seal the deal!',
-    'Almost there—these adjustments will make all the difference!',
+    'One edit. Then it\'s ready.',
+    'These adjustments complete it.',
+    'Make the change — then it\'s done.',
+    'The fix is specific. Straightforward.',
   ],
   majorChanges: [
-    'With these changes, you\'re going to look amazing!',
-    'These swaps will transform the look!',
-    'You\'re going to love how this turns out!',
-    'Can\'t wait to see the updated version!',
+    'These swaps shift the read significantly.',
+    'Address these and the outfit works.',
+    'The brief changes with these edits.',
+    'This is the redirect the occasion needs.',
   ],
 };
 
 /**
- * Transition phrases for constructive feedback
+ * Transition phrases — v3.0 voice
  */
 export const TRANSITION_PHRASES = {
   toSuggestions: [
-    'To take this from great to perfect:',
-    'Here\'s how to elevate it even more:',
-    'Want to dial it up? Try this:',
-    'For an even stronger look:',
-    'To make this truly show-stopping:',
+    'The one edit:',
+    'What would sharpen this:',
+    'For the occasion:',
+    'The specific fix:',
+    'What it needs:',
   ],
   toQuickFixes: [
-    'Quick styling tips:',
-    'Finishing touches:',
-    'To complete the look:',
-    'Final details to nail it:',
-    'Polish it with:',
+    'Specific edits:',
+    'To complete it:',
+    'The finishing details:',
+    'Actionable changes:',
+    'What to adjust:',
   ],
 };
 
@@ -186,9 +183,9 @@ export function validateFeedbackTemplate(template: FeedbackTemplate): {
     errors.push('Maximum 5 quick fixes (keep it actionable)');
   }
 
-  // Check that whatsWorking has more items than consider (positive focus)
+  // Check that whatsWorking has more items than consider (specific observations over edits)
   if (template.consider.length > 0 && template.whatsWorking.length <= template.consider.length) {
-    errors.push('Should have more "what\'s working" points than "consider" points (stay positive!)');
+    errors.push('Should have more "what\'s working" observations than "consider" edits');
   }
 
   return {
@@ -213,19 +210,19 @@ export function formatFeedbackAsMarkdown(feedback: FeedbackTemplate): string {
   let md = `# Score: ${feedback.overallScore}/10\n\n`;
   md += `${feedback.summary}\n\n`;
 
-  md += `## What's Working ✨\n\n`;
+  md += `## What's Working\n\n`;
   feedback.whatsWorking.forEach(point => {
     md += `- ${point}\n`;
   });
 
   if (feedback.consider.length > 0) {
-    md += `\n## Consider 💭\n\n`;
+    md += `\n## Consider\n\n`;
     feedback.consider.forEach(point => {
       md += `- ${point}\n`;
     });
   }
 
-  md += `\n## Quick Fixes 🔧\n\n`;
+  md += `\n## Quick Fixes\n\n`;
   feedback.quickFixes.forEach(tip => {
     md += `- ${tip}\n`;
   });

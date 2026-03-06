@@ -1,5 +1,14 @@
 import { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  Dimensions,
+  TextInput,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useCameraPermissions } from 'expo-camera';
@@ -9,10 +18,17 @@ import { useAuthStore } from '../src/stores/authStore';
 import OrThisLogo from '../src/components/OrThisLogo';
 import ScoreDisplay from '../src/components/ScoreDisplay';
 import { track } from '../src/lib/analytics';
+import { userService } from '../src/services/api.service';
 
 const { width } = Dimensions.get('window');
 
 const SLIDE_CAMERA_ID = 4;
+const SLIDE_PERSONALIZE_ID = 5;
+
+const COMMON_OCCASIONS = [
+  'Casual', 'Work', 'Date Night', 'Weekend', 'Gym',
+  'Events', 'Brunch', 'Travel', 'Formal', 'Interview',
+];
 
 interface OnboardingSlide {
   id: number;
@@ -46,6 +62,12 @@ const slides: OnboardingSlide[] = [
     headline: 'Your camera.\nYour style.',
     body: 'We need camera access to analyze your outfits. You can also upload from your gallery at any time.',
   },
+  {
+    id: SLIDE_PERSONALIZE_ID,
+    label: 'Personalize',
+    headline: 'Tell us about\nyour world.',
+    body: 'Where you are and how you dress helps us give sharper, more relevant feedback.',
+  },
 ];
 
 export default function OnboardingScreen() {
@@ -54,6 +76,10 @@ export default function OnboardingScreen() {
   const [, requestCameraPermission] = useCameraPermissions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  // Slide 5 state
+  const [city, setCity] = useState('');
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -65,15 +91,38 @@ export default function OnboardingScreen() {
 
   const finish = async () => {
     track('onboarding_completed');
+
+    // Save city + occasions if provided (non-blocking)
+    if (city.trim() || selectedOccasions.length > 0) {
+      const updateData: Record<string, unknown> = {};
+      if (city.trim()) updateData.city = city.trim();
+      if (selectedOccasions.length > 0) updateData.primaryOccasions = selectedOccasions;
+
+      userService.updateProfile(updateData as any).catch((err) =>
+        console.warn('[Onboarding] Profile update failed (non-fatal):', err)
+      );
+
+      track('onboarding_personalization_saved', {
+        hasCity: !!city.trim(),
+        occasionCount: selectedOccasions.length,
+      });
+    }
+
     await completeOnboarding();
     router.replace('/(tabs)' as any);
   };
 
   const handleAllowCamera = async () => {
-    // Fire the OS dialog with context already set — improves grant rate
     await requestCameraPermission();
     track('onboarding_camera_permission_requested');
-    await finish();
+    // After camera slide, go to personalize slide
+    handleNext();
+  };
+
+  const toggleOccasion = (occasion: string) => {
+    setSelectedOccasions((prev) =>
+      prev.includes(occasion) ? prev.filter((o) => o !== occasion) : [...prev, occasion]
+    );
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -85,6 +134,8 @@ export default function OnboardingScreen() {
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const isLastSlide = currentIndex === slides.length - 1;
+  const isCameraSlide = slides[currentIndex]?.id === SLIDE_CAMERA_ID;
+  const isPersonalizeSlide = slides[currentIndex]?.id === SLIDE_PERSONALIZE_ID;
 
   const renderSlide = ({ item }: { item: OnboardingSlide }) => (
     <View style={styles.slide}>
@@ -112,10 +163,60 @@ export default function OnboardingScreen() {
         </View>
       )}
 
-      <Text style={[styles.headline, item.id === 2 && styles.headlineSmall]}>
-        {item.headline}
-      </Text>
-      <Text style={styles.body}>{item.body}</Text>
+      {item.id === SLIDE_PERSONALIZE_ID ? (
+        <ScrollView
+          style={styles.personalizeScrollWrap}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.personalizeContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.headline}>{item.headline}</Text>
+          <Text style={styles.body}>{item.body}</Text>
+
+          {/* City input */}
+          <Text style={styles.fieldLabel}>YOUR CITY</Text>
+          <TextInput
+            style={styles.cityInput}
+            placeholder="e.g. New York, Chicago, London"
+            placeholderTextColor={Colors.textMuted}
+            value={city}
+            onChangeText={setCity}
+            autoCapitalize="words"
+            returnKeyType="done"
+          />
+          <Text style={styles.fieldHint}>
+            Used for weather-aware tips — no GPS tracking.
+          </Text>
+
+          {/* Occasions */}
+          <Text style={[styles.fieldLabel, { marginTop: Spacing.lg }]}>
+            WHERE DO YOU MAINLY DRESS?
+          </Text>
+          <View style={styles.occasionGrid}>
+            {COMMON_OCCASIONS.map((occ) => {
+              const selected = selectedOccasions.includes(occ);
+              return (
+                <TouchableOpacity
+                  key={occ}
+                  style={[styles.occasionChip, selected && styles.occasionChipSelected]}
+                  onPress={() => toggleOccasion(occ)}
+                >
+                  <Text style={[styles.occasionChipText, selected && styles.occasionChipTextSelected]}>
+                    {occ}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      ) : (
+        <>
+          <Text style={[styles.headline, item.id === 2 && styles.headlineSmall]}>
+            {item.headline}
+          </Text>
+          <Text style={styles.body}>{item.body}</Text>
+        </>
+      )}
     </View>
   );
 
@@ -149,9 +250,15 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        {isLastSlide ? (
+        {isCameraSlide ? (
           <TouchableOpacity style={styles.primaryButton} onPress={handleAllowCamera}>
             <Text style={styles.primaryButtonText}>Allow Camera Access</Text>
+          </TouchableOpacity>
+        ) : isLastSlide ? (
+          <TouchableOpacity style={styles.primaryButton} onPress={finish}>
+            <Text style={styles.primaryButtonText}>
+              {city.trim() || selectedOccasions.length > 0 ? "Save & Get Started" : "Get Started"}
+            </Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.secondaryButton} onPress={handleNext}>
@@ -241,6 +348,64 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
     lineHeight: 24,
+  },
+  // Personalize slide
+  personalizeScrollWrap: {
+    flex: 1,
+  },
+  personalizeContent: {
+    paddingBottom: Spacing.xl,
+  },
+  fieldLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: Colors.textMuted,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  fieldHint: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+  cityInput: {
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.md,
+    fontFamily: Fonts.sans,
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: Colors.white,
+  },
+  occasionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  occasionChip: {
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.white,
+  },
+  occasionChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  occasionChipText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: Colors.textSecondary,
+  },
+  occasionChipTextSelected: {
+    color: Colors.white,
   },
   footer: {
     paddingHorizontal: Spacing.lg,

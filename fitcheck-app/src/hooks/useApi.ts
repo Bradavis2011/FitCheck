@@ -757,3 +757,30 @@ export function useAcceptLegal() {
     },
   });
 }
+
+// Your Week (Plus/Pro only)
+export function useYourWeek(enabled: boolean) {
+  return useQuery({
+    queryKey: ['week'],
+    queryFn: () => api.get('/api/week').then(r => r.data as {
+      weather: {
+        tempFahrenheit: number;
+        condition: string;
+        description: string;
+        promptText: string;
+        feelsLike: string;
+      } | null;
+      upcomingEvents: Array<{
+        id: string;
+        occasion: string;
+        eventDate: string | null;
+        outfitScore: number | null;
+        thumbnailUrl: string | null;
+        followUpAt: string;
+      }>;
+      suggestions: string[];
+    }),
+    enabled,
+    staleTime: 1000 * 60 * 15, // 15 min
+  });
+}
