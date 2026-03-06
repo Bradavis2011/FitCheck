@@ -9,6 +9,12 @@ interface ChannelVirality {
   viralRate: number;
 }
 
+interface TopCreatorHook {
+  hookUsed: string;
+  views: number;
+  posts: number;
+}
+
 interface ViralMetrics {
   publicOutfits: number;
   totalOutfits: number;
@@ -19,6 +25,11 @@ interface ViralMetrics {
   viralCoefficient: number | null;
   topSharedStyles: string[];
   channelVirality: ChannelVirality[];
+  // Creator flywheel metrics
+  creatorDrivenInstalls: number;
+  creatorContentImpressions: number;
+  creatorInstallRatio: number | null;
+  topCreatorHooks: TopCreatorHook[];
 }
 
 async function getViralMetrics(): Promise<ViralMetrics> {
@@ -62,6 +73,39 @@ async function getViralMetrics(): Promise<ViralMetrics> {
     ? Math.round((sharesPast7d / activeCount) * 100) / 100
     : null;
 
+  // Creator flywheel metrics
+  let creatorDrivenInstalls = 0;
+  let creatorContentImpressions = 0;
+  let topCreatorHooks: TopCreatorHook[] = [];
+  try {
+    const [installAgg, impressionAgg, hookGroups] = await Promise.all([
+      prisma.creator.aggregate({ _sum: { totalInstalls: true } }),
+      prisma.creatorPost.aggregate({ _sum: { views: true }, where: { createdAt: { gte: ago7d } } }),
+      prisma.creatorPost.groupBy({
+        by: ['hookUsed'],
+        _sum: { views: true },
+        _count: { id: true },
+        where: { createdAt: { gte: ago7d }, hookUsed: { not: null } },
+        orderBy: { _sum: { views: 'desc' } },
+        take: 3,
+      }),
+    ]);
+    creatorDrivenInstalls = installAgg._sum.totalInstalls ?? 0;
+    creatorContentImpressions = impressionAgg._sum.views ?? 0;
+    topCreatorHooks = hookGroups.map(g => ({
+      hookUsed: g.hookUsed ?? '(unknown)',
+      views: g._sum.views ?? 0,
+      posts: g._count.id,
+    }));
+  } catch (err) {
+    console.warn('[ViralMonitor] Creator metrics fetch failed:', err);
+  }
+
+  const newUsersTotal = await prisma.user.count({ where: { createdAt: { gte: ago7d } } }).catch(() => 0);
+  const creatorInstallRatio = newUsersTotal > 0 && creatorDrivenInstalls > 0
+    ? Math.round((creatorDrivenInstalls / newUsersTotal) * 100)
+    : null;
+
   // Channel virality: share rate by attribution source (for users active in past 7d)
   let channelVirality: ChannelVirality[] = [];
   try {
@@ -90,7 +134,11 @@ async function getViralMetrics(): Promise<ViralMetrics> {
     channelVirality.sort((a, b) => b.viralRate - a.viralRate);
   } catch {}
 
-  return { publicOutfits, totalOutfits, publicPct, sharesPast7d, sharesPrior7d, weekOverWeekTrend, viralCoefficient, topSharedStyles, channelVirality };
+  return {
+    publicOutfits, totalOutfits, publicPct, sharesPast7d, sharesPrior7d,
+    weekOverWeekTrend, viralCoefficient, topSharedStyles, channelVirality,
+    creatorDrivenInstalls, creatorContentImpressions, creatorInstallRatio, topCreatorHooks,
+  };
 }
 
 function buildViralMonitorEmail(m: ViralMetrics): string {
@@ -165,6 +213,45 @@ function buildViralMonitorEmail(m: ViralMetrics): string {
             <td style="padding:8px 12px;font-size:13px;font-weight:600;text-align:right;color:${ch.viralRate >= 40 ? '#10B981' : ch.viralRate >= 20 ? '#F59E0B' : '#6B7280'};">${ch.viralRate}%</td>
           </tr>`).join('')}
         </table>` : ''}
+
+        <div style="font-size:13px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Creator Flywheel (7d)</div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+          <tr>
+            <td style="padding:6px 4px;" width="33%">
+              <div style="background:#FBF7F4;border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#1A1A1A;">${m.creatorDrivenInstalls.toLocaleString()}</div>
+                <div style="font-size:11px;color:#6B7280;margin-top:4px;">Creator-Driven Installs</div>
+              </div>
+            </td>
+            <td style="padding:6px 4px;" width="33%">
+              <div style="background:#FBF7F4;border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#1A1A1A;">${m.creatorContentImpressions.toLocaleString()}</div>
+                <div style="font-size:11px;color:#6B7280;margin-top:4px;">Content Impressions (7d)</div>
+              </div>
+            </td>
+            <td style="padding:6px 4px;" width="33%">
+              <div style="background:#FBF7F4;border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:${m.creatorInstallRatio != null && m.creatorInstallRatio >= 20 ? '#10B981' : '#1A1A1A'};">${m.creatorInstallRatio != null ? m.creatorInstallRatio + '%' : '—'}</div>
+                <div style="font-size:11px;color:#6B7280;margin-top:4px;">Creator Share of New Installs</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        ${m.topCreatorHooks.length > 0 ? `
+        <div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Top Performing Hooks (7d)</div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border-collapse:collapse;">
+          <tr style="background:#F5EDE7;">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Hook</th>
+            <th style="padding:8px 12px;text-align:right;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Views</th>
+            <th style="padding:8px 12px;text-align:right;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Posts</th>
+          </tr>
+          ${m.topCreatorHooks.map(h => `<tr>
+            <td style="padding:8px 12px;font-size:12px;color:#2D2D2D;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.hookUsed.substring(0, 80)}${h.hookUsed.length > 80 ? '…' : ''}</td>
+            <td style="padding:8px 12px;font-size:13px;font-weight:600;color:#1A1A1A;text-align:right;">${h.views.toLocaleString()}</td>
+            <td style="padding:8px 12px;font-size:13px;color:#6B7280;text-align:right;">${h.posts}</td>
+          </tr>`).join('')}
+        </table>` : ''}
       </div>
       <div style="background:#F5EDE7;padding:20px 40px;text-align:center;">
         <div style="font-size:12px;color:#6B7280;">Or This? · Viral Loop Monitor · ${new Date().toISOString()}</div>
@@ -188,7 +275,7 @@ export async function runViralMonitor(): Promise<void> {
     await resend.emails.send({
       from,
       to: recipient,
-      subject: `Or This? Viral Monitor — ${metrics.sharesPast7d} public outfits, ${metrics.publicPct}% share rate`,
+      subject: `Or This? Viral Monitor — ${metrics.sharesPast7d} public outfits, ${metrics.publicPct}% share rate${metrics.creatorDrivenInstalls > 0 ? `, ${metrics.creatorDrivenInstalls} creator installs` : ''}`,
       html: buildViralMonitorEmail(metrics),
     });
     console.log('✅ [ViralMonitor] Sent viral metrics report');

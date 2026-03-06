@@ -1,7 +1,7 @@
 # Or This? Brand Guidelines
-## Version 2.0 — Editorial Standard
+## Version 3.0 — SoHo Authority Standard
 
-*This document supersedes v1.0. It is the single source of truth for the Or This? brand system. All prior documents (BRANDING_IMPLEMENTATION.md, STYLING_UPDATES.md, LIGHT_MODE_CHANGES.md) are archived.*
+*This document supersedes v2.1. It is the single source of truth for the Or This? brand system. All prior documents (BRANDING_IMPLEMENTATION.md, STYLING_UPDATES.md, LIGHT_MODE_CHANGES.md) are archived.*
 
 ---
 
@@ -9,16 +9,16 @@
 
 **Name:** Or This?
 **Tagline:** Confidence in every choice.
-**Philosophy:** Editorial, not SaaS. Vogue, not Product Hunt. The brand speaks like a fashion magazine — restrained, confident, and authoritative. Every design decision earns its place.
+**Philosophy:** Or This? is a SoHo design studio that happens to live in your phone. The brand delivers verdicts — not suggestions, not encouragement, not endless options. Users trust the score because it comes from an authority, not a friend. Every design decision, every word, every interaction earns its place or is removed.
 
 ### Brand Essence
 
 | Attribute | Description |
 |-----------|-------------|
-| **Decisive** | Clear answers, not endless scrolling |
-| **Warm** | Supportive, not judgmental |
-| **Confident** | Bold recommendations, not hedging |
-| **Real** | Honest feedback, not flattery |
+| **Decisive** | One answer, delivered without hesitation |
+| **Direct** | Honest, never dismissive |
+| **Confident** | States the verdict, doesn't hedge |
+| **Discerning** | Sees what works and names it precisely |
 
 ---
 
@@ -49,22 +49,24 @@
 |-------|-----|------|
 | `--coral` | `#E85D4C` | Decision Coral |
 | `--coral-dark` | `#C94A3A` | Hover/active states |
-| `--coral-light` | `#FF7A6B` | Rarely used (gradient only) |
-| `--cream` | `#FBF7F4` | Confidence Cream — app/dashboard backgrounds |
+| `--coral-light` | `#FF7A6B` | Rarely used (gradient on share card only) |
+| `--cream` | `#FBF7F4` | Studio Linen — app/dashboard backgrounds |
 | `--cream-dark` | `#F5EDE7` | Card backgrounds, alternating sections |
-| `--black` | `#1A1A1A` | Clarity Black — all primary text |
+| `--black` | `#1A1A1A` | Editorial Black — all primary text |
 | `--charcoal` | `#2D2D2D` | Secondary text |
 | `--muted` | `#9B9B9B` | Labels, captions, timestamps |
-| `--border` | `rgba(0,0,0,0.1)` | All dividers (transparent) |
+| `--border` | `rgba(0,0,0,0.08)` | All dividers (transparent) |
 | `--border-solid` | `#E8E8E8` | Solid borders on cards/inputs |
 | `--surface` | `#FFFFFF` | Card backgrounds, form panels |
+
+> **Token name rationale:** "Studio Linen" frames the warm off-white as a deliberate material choice — intentional, tactile, editorial — rather than an emotional state. "Editorial Black" aligns primary text with the authority positioning.
 
 **Semantic (functional only — never decorative):**
 | Token | Hex | Use |
 |-------|-----|-----|
-| `--success` | `#10B981` | Score ≥ 8, positive states |
-| `--warning` | `#F59E0B` | Score 6–7, streaks |
-| `--error` | `#EF4444` | Score < 6, errors |
+| `--success` | `#10B981` | Score ≥ 8 — text color only, never background |
+| `--warning` | `#F59E0B` | Score 6–7 — text color only, never background |
+| `--error` | `#EF4444` | Score < 6 — text color only, never background |
 
 ### Color Usage Rules
 
@@ -73,8 +75,8 @@
 | Surface | Background | Rules |
 |---------|-----------|-------|
 | **Website** | `#FFFFFF` (white) or `#1A1A1A` (black) only | No cream. No gradient fills. |
-| **App** | `#FBF7F4` (cream) | Cards on `#FFFFFF`. Coral accent only. |
-| **Dashboard** | `#FBF7F4` (cream) | Same as app. |
+| **App** | `#FBF7F4` (Studio Linen) | Cards on `#FFFFFF`. Coral accent only. |
+| **Dashboard** | `#FBF7F4` (Studio Linen) | Same as app. |
 
 **Coral discipline:**
 - On the **website**: coral appears in exactly 4 places — logo "This?", hero sub-headline, one 60px rule, bullet em-dashes. Nowhere else.
@@ -150,6 +152,28 @@
 
 ---
 
+## Score Presentation
+
+**The score is a verdict, not a metric.** It is delivered typographically — the number alone carries authority. No colored badges, no dashboard indicators, no background containers. The score color is applied to the text itself, not to a shape around it.
+
+### Score Display Rules
+
+| Context | Spec |
+|---------|------|
+| **OutfitCard (grid/list)** | Playfair Display 400, 18px, score-colored text. Top-right corner, directly on image. `text-shadow: 0 1px 4px rgba(0,0,0,0.5)` for readability. No circle, no background. |
+| **Feedback hero** | Playfair Display 400, 56px, score-colored text. Overlaid on full-bleed image inside bottom gradient. `text-shadow: 0 2px 8px rgba(0,0,0,0.4)`. No circle, no badge. |
+| **"/10" suffix (hero)** | DM Sans 400, 18px, white at 50% opacity, baseline-aligned. Subordinate to the number. |
+
+### What's Removed
+- Colored circle backgrounds on score badges
+- Score inside a colored `<View>` with any background
+- Dashboard-style meter indicators
+
+### ScoreReveal Animation
+The cinematic reveal sequence (scan → pause → digit lock → pulse, ~4.5s total) is the reference standard for motion design in this app. It is already correctly implemented. It is documented here as the canonical motion pattern — see Motion Philosophy section for the governing principles.
+
+---
+
 ## Editorial Motifs
 
 ### The Coral Rule
@@ -174,6 +198,127 @@ A 5×5px coral square rotated 45°, used as a separator between items in typogra
 
 ---
 
+## Vertical Rhythm & Luxury Spacing
+
+**The space between sections is a design element.** Generous vertical rhythm signals confidence — the brand isn't cramming features into a viewport, it's presenting a curated experience. Compression reads as anxiety. Space reads as authority.
+
+| Context | Minimum Vertical Spacing |
+|---------|------------------------|
+| Between major sections (home screen blocks) | 48px |
+| Between section label and content | 16px |
+| Between cards in a list | 12px |
+| Screen top padding (below header) | 32px |
+| Screen bottom padding (above tab bar) | 48px |
+| Inside cards | 24px padding all sides |
+| Screen horizontal margins | 24px |
+
+**Never compress vertical rhythm to fit more content.** If a screen feels crowded, remove an element — don't reduce spacing.
+
+---
+
+## Motion Philosophy
+
+**Deliberate. Single-beat. Never bouncy.**
+
+Every animation should feel like a single decisive gesture — a page turning, a curtain drawing, a verdict landing. The motion matches the brand: confident, unhurried, precise. Springs are reserved for physical interactions (pull-to-refresh, gesture-driven movement). UI transitions use timing curves.
+
+| Pattern | Animation | Duration |
+|---------|-----------|----------|
+| Score reveal | Cinematic sequence (scan → pause → digit lock → pulse) | 4.5s |
+| Card entrance | Fade + subtle upward translate | 300–400ms |
+| Screen transition | Timing curve, ease-out | 250ms |
+| Button press | Scale 0.97, timing (not spring) | 100ms |
+| Section reveal | Staggered fade-in, 150ms delay between items | 300ms each |
+
+**Anti-patterns:**
+- Bounce/overshoot springs on buttons or cards
+- Parallax scrolling effects
+- Loading spinners — use the branded "?" mark or scan line instead
+- Confetti or particle effects beyond the documented ScoreCelebration spec
+
+---
+
+## Restraint
+
+**If an element doesn't earn its place, it doesn't exist.**
+
+The default state of the UI is silence. Elements are added only when they have something specific to say — not to reassure, not to fill space, not to appear helpful.
+
+- Empty states are invitations, not error pages. "Nothing yet." is sufficient.
+- Loading states are part of the brand experience — the scan line, the "?" mark, the analysis phrases are the product.
+- Tooltips, info icons, and helper text are removed before they're added. If something requires explanation, the design is not clear enough.
+- Onboarding coach marks, tutorial overlays, and feature announcements are earned, not assumed.
+- The UI defaults to showing the verdict. Navigation back to it is always one tap.
+
+---
+
+## Voice & Tone
+
+Or This? speaks like a SoHo stylist who charges $400/hour — direct, specific, and worth every word. The app doesn't validate you. It sees you clearly.
+
+**The score IS the verdict.** It is delivered without apology, cushioning, or warm-up.
+
+### Voice Principles
+1. **Declarative, not validating.** State what IS, not how you feel about it.
+2. **Specific, not vague.** Name the garment, the proportion, the color relationship.
+3. **Brief.** Authority doesn't over-explain. One sentence that's right is worth more than three that hedge.
+4. **The score arrives first.** The explanation follows. Never the other way around.
+
+### Do ✓
+- "The proportions carry this. Clean choice."
+- "Strong color story. The hem is the one edit."
+- "This works because the silhouette is doing all the heavy lifting."
+- "Not there yet. The layering is competing — simplify by one piece."
+- "Both work. The left reads sharper for the occasion."
+- Direct, editorial pull-quote language: *"A look that knows what it's doing."*
+
+### Don't ✗
+- "You've got this!"
+- "This silhouette is *chef's kiss*"
+- "Trust your instincts — you picked a winner"
+- "Both are gorgeous — here's why one might work better…"
+- "Amazing!" / "Great!" — positivity bias without specificity
+- Clinical language that dismisses without directing
+- Excessive emoji strings
+- "Almost there!" — frame interactions as editorial, not SaaS progress
+
+### UI Copy Standards
+- "Set the scene" or "Context" — not "Almost there!"
+- "Archive" — not "History" or "Your looks"
+- "Verdict" — not "check" or "result"
+- "2 of 3 remaining" — not "2/3 checks remaining today"
+- "GET VERDICT" — not "CHECK MY OUTFIT"
+- Section titles on context screens: Playfair Regular (editorial), not DM Sans Bold (SaaS)
+
+### Emoji Usage
+Not used in UI labels, section headers, or feedback cards. Selective use in social/marketing copy only when intentional.
+
+---
+
+## Photography
+
+Photography in Or This? serves two distinct purposes with different standards.
+
+### Brand Photography
+*(Marketing, onboarding, empty states, lookbook strips)*
+
+- Constructed editorial: deliberate lighting, intentional composition, studio or location shoots
+- Portrait orientation, cropped decisively — clothes are the subject, not the person's personality
+- Styling is considered and complete — every element of the frame earns its place
+- Color grade is clean and slightly warm — not filtered, not social
+- References: The Row lookbooks, Bottega Veneta campaigns, COS editorials
+- No candid-style staging (coffee cups, laughing mid-step, "lifestyle" props)
+
+### User Content
+*(Submitted outfit photos)*
+
+- Accepted as-is — the app's value is in the verdict, not the photography
+- No photography coaching in the UI — do not instruct users on how to take photos
+- The app treats every submission with the same editorial seriousness regardless of photo quality
+- The verdict elevates the photo; the photo doesn't need to earn the verdict
+
+---
+
 ## Component Patterns
 
 ### Buttons
@@ -184,7 +329,7 @@ background: #E85D4C
 color: #FFFFFF
 border-radius: 0
 font: DM Sans 500, 12px, UPPERCASE, 1.65 letter-spacing
-padding: 14px vertical, 24px horizontal (full-width preferred)
+padding: 16px vertical, 24px horizontal (full-width preferred)
 ```
 
 **Secondary / Outline**
@@ -218,16 +363,35 @@ NO box-shadow
 Section label: DM Sans 500, 11px, UPPERCASE, 2.2 tracking
 Coral rule: 60px × 1px
 Bullet prefix: +, –, ↑ in DM Sans SemiBold
-NO emoji, NO color bar, NO icon
+NO emoji, NO color bar, NO colored icon
 ```
 
 ### Score Display
 ```
-Score number: Playfair Display Regular, 56px
-/10 suffix: DM Sans Regular, 18px
-Color: semantic (green ≥8, amber ≥6, red <6)
-Position: overlaid on full-bleed hero image
+Score number: Playfair Display Regular, 56px (hero) / 18px (card)
+/10 suffix: DM Sans Regular, 18px, 50% opacity (hero only)
+Color: score-colored TEXT — green ≥8, amber ≥6, red <6
+Container: NONE — no circle, no badge, no background
+text-shadow: 0 2px 8px rgba(0,0,0,0.4) for readability on images
 ```
+
+### Context Input Screen
+The context screen is an editorial brief, not a form.
+
+```
+Header: "Set the scene." in Playfair Display 400 Regular, 24px, centered
+Section titles: Playfair Regular (editorial) — not DM Sans Bold
+Chips: 0px radius, DM Sans 500, 11px, UPPERCASE, 1px border
+Active chip: coral fill, white text
+Bottom bar: "2 of 3 remaining" left (muted) + "GET VERDICT" CTA right
+```
+
+**What this screen does NOT include:**
+- "Almost there!" — any progress-gamification framing
+- Weather selector (adds form bloat without verdict value)
+- Vibe selector (subjective — authority doesn't ask for vibes)
+- Share visibility toggle (belongs post-verdict)
+- Accordion pattern (everything visible, nothing hidden)
 
 ---
 
@@ -236,14 +400,17 @@ Position: overlaid on full-bleed hero image
 ### Layout Principles
 
 1. **Sharp geometry.** 0px radius on all interactive elements. The editorial sharpness is the brand.
-2. **Confident whitespace.** Generous padding, 24px minimum horizontal margins.
-3. **Cream over white** for backgrounds. `#FBF7F4` is the base. `#FFFFFF` is for cards only.
+2. **Generous rhythm.** 48px minimum between major sections. Space signals confidence.
+3. **Studio Linen over white** for backgrounds. `#FBF7F4` is the base. `#FFFFFF` is for cards only.
 4. **Coral is precious.** Never fill large areas with coral. CTAs and accents only.
 5. **No shadows.** Cards are defined by borders (`rgba(0,0,0,0.06)`), not shadows.
+6. **Typography carries authority.** Scores, titles, and verdicts are typographic — not iconographic.
 
-### Tab Bar (4 tabs)
-- Home / Camera (elevated) / Archive / Profile
+### Tab Bar (3 tabs)
+- Home / Camera (elevated) / Archive
+- **Profile is accessed via the circular avatar in the home screen header — not a tab**
 - Community tab hidden (`href: null`) until user base grows
+- Profile tab hidden (`href: null`) — accessed via header avatar
 
 ### Screen Header Pattern
 ```
@@ -273,41 +440,6 @@ See `orthis-web/LOVABLE-BRIEF.md` for the full spec. Key rules that differ from 
 
 ---
 
-## Voice & Tone
-
-Or This? speaks like your most stylish, supportive friend — someone who tells you the truth but always makes you feel good about yourself.
-
-### Do ✓
-- "You've got this!"
-- "Both are gorgeous — here's why one might work better…"
-- "This silhouette is *chef's kiss*"
-- "Trust your instincts — you picked a winner"
-- Direct, editorial pull-quote language: *"Confidence comes from knowing."*
-
-### Don't ✗
-- "This outfit is wrong"
-- "You should probably change…"
-- "Not flattering"
-- Clinical language without warmth
-- Excessive emoji strings
-- "Amazing!" / "Great!" positivity bias — be honest and specific
-
-### Emoji Usage
-Selective. Preferred in social/marketing contexts only: 🔥 ✨ 💫 👏
-Not used in UI labels, section headers, or feedback cards.
-
----
-
-## Photography Style
-
-- Natural lighting, slightly warm color grade
-- Real bodies, diverse representation
-- Authentic moments (getting ready, mirror selfies, walking out the door)
-- Portrait orientation preferred for editorial use
-- No heavy filters or dramatic editing
-
----
-
 ## What NOT to Do
 
 1. **No pill buttons.** `border-radius: 100px` on any CTA is wrong.
@@ -320,6 +452,11 @@ Not used in UI labels, section headers, or feedback cards.
 8. **No Playfair Display Italic outside** the logo "This?", display headlines, and editorial pull quotes.
 9. **No "Generous Radius" principle.** This is from v1.0 and is wrong. The current principle is "Editorial Sharp."
 10. **No full-width horizontal rules.** Use the 60px coral accent rule, not a full `<hr>`.
+11. **No colored backgrounds on scores.** Scores are typography-only. The number IS the verdict.
+12. **No validating language.** "You've got this!" and "chef's kiss" are not Or This? voice.
+13. **No compression of vertical spacing.** If a screen is crowded, remove an element — don't tighten margins.
+14. **No spring animations on UI elements.** Springs are for physical gestures only.
+15. **No "Almost there!" framing.** Context input is an editorial brief, not an onboarding funnel.
 
 ---
 
@@ -342,5 +479,5 @@ The following documents are superseded and archived in `docs/archive/`:
 
 ---
 
-*Last updated: February 2026*
-*Version 2.0*
+*Last updated: March 2026*
+*Version 3.0 — SoHo Authority Standard*

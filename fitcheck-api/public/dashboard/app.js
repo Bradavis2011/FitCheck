@@ -1127,11 +1127,13 @@ async function loadGrowth() {
   const pipelineEl = document.getElementById('growth-pipeline-content');
   const redditEl   = document.getElementById('growth-reddit-content');
   const emailEl    = document.getElementById('growth-email-stats');
+  const dmQueueEl  = document.getElementById('growth-dm-queue-content');
   if (!pipelineEl || !redditEl || !emailEl) return;
 
   pipelineEl.innerHTML = loadingHTML();
   redditEl.innerHTML   = loadingHTML();
   emailEl.innerHTML    = '';
+  if (dmQueueEl) dmQueueEl.innerHTML = loadingHTML();
 
   try {
     const data = await apiGet('/api/admin/agents/growth');
@@ -1153,6 +1155,29 @@ async function loadGrowth() {
             <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-top:4px;">${esc(String(label))}</div>
           </div>`).join('')}
       </div>`;
+
+    // ── DM Queue ────────────────────────────────────────────────────────────
+    if (dmQueueEl) {
+      const dmProspects = prospects.filter(p => p.outreachMethod === 'dm' && p.status === 'dm_ready');
+      if (dmProspects.length === 0) {
+        dmQueueEl.innerHTML = `<p style="color:var(--muted);font-size:0.875rem;">No DM-ready prospects today — run Creator Scout to discover more.</p>`;
+      } else {
+        dmQueueEl.innerHTML = dmProspects.map(p => `
+          <div style="padding:16px;border:1px solid var(--border-solid);background:white;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+              <span style="font-weight:600;font-size:0.9375rem;">${esc(p.handle)}</span>
+              <span style="font-size:0.75rem;color:var(--muted);padding:2px 8px;border:1px solid var(--border-solid);">${esc(p.platform)}</span>
+              ${p.followerRange ? `<span style="font-size:0.75rem;color:var(--muted);">${esc(p.followerRange)}</span>` : ''}
+              ${p.niche ? `<span style="font-size:0.75rem;color:var(--charcoal);">${esc(p.niche)}</span>` : ''}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${p.personalizedDM ? `<button onclick="copyDM('${esc(p.id)}', ${JSON.stringify(p.personalizedDM).replace(/</g,'\\u003c')})" class="btn-coral" style="padding:7px 14px;font-size:0.8125rem;">Copy DM</button>` : ''}
+              ${p.profileUrl ? `<a href="${esc(p.profileUrl)}" target="_blank" class="btn-outline" style="padding:7px 14px;font-size:0.8125rem;text-decoration:none;border:1px solid var(--border-solid);color:var(--black);font-weight:500;">Open Profile</a>` : ''}
+              <button onclick="markDMContacted('${esc(p.id)}', this)" style="padding:7px 14px;font-size:0.8125rem;border:1px solid var(--coral);color:var(--coral);background:white;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">Mark Contacted</button>
+            </div>
+          </div>`).join('');
+      }
+    }
 
     // ── Creator Pipeline ────────────────────────────────────────────────────
     const STATUS_ORDER = ['dm_ready','contacted','followed_up','responded','onboarded','posted','declined'];
@@ -1254,6 +1279,63 @@ async function triggerGrowthAgent(name) {
     showToast(`${name} triggered — running in background`);
   } catch (err) {
     showToast(err.message, 'error');
+  }
+}
+
+function copyDM(id, dmText) {
+  navigator.clipboard.writeText(dmText).then(() => {
+    showToast('DM copied to clipboard');
+  }).catch(() => {
+    // Fallback for browsers without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = dmText;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('DM copied to clipboard');
+  });
+}
+
+async function markDMContacted(id, btn) {
+  try {
+    btn.disabled = true;
+    btn.textContent = 'Marking...';
+    await apiPatch(`/api/admin/agents/growth/dm-contacted/${id}`, {});
+    btn.textContent = 'Contacted';
+    btn.style.background = '#10B981';
+    btn.style.color = 'white';
+    btn.style.borderColor = '#10B981';
+    showToast('Prospect marked as contacted');
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Mark Contacted';
+    showToast(err.message, 'error');
+  }
+}
+
+async function handleReportPost(event) {
+  event.preventDefault();
+  const resultEl = document.getElementById('report-post-result');
+  const handle   = document.getElementById('rp-handle').value.trim();
+  const postUrl  = document.getElementById('rp-url').value.trim();
+  const hookUsed = document.getElementById('rp-hook').value.trim();
+  const views    = parseInt(document.getElementById('rp-views').value, 10) || 0;
+
+  resultEl.style.display = 'none';
+  try {
+    await apiPost('/api/admin/agents/growth/report-post', { creatorHandle: handle, postUrl, hookUsed, views });
+    resultEl.style.display = 'block';
+    resultEl.style.color   = '#10B981';
+    resultEl.textContent   = 'Post logged successfully.';
+    document.getElementById('report-post-form').reset();
+    showToast('Post logged');
+  } catch (err) {
+    resultEl.style.display = 'block';
+    resultEl.style.color   = '#EF4444';
+    resultEl.textContent   = `Error: ${err.message}`;
   }
 }
 

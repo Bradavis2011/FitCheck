@@ -1248,33 +1248,33 @@ export async function generateCreatorHooks(): Promise<GeneratedPost[]> {
 
   const geminiPrompt = `${BRAND_VOICE}
 
-You are a TikTok content strategist for "Or This?", an AI outfit feedback app available on TestFlight (iOS only for now).
+You are a viral content strategist for "Or This?", an AI outfit feedback app (iOS). Creators screen-record themselves using the app — the CINEMATIC SCORE REVEAL (scanning animation → "Your score is..." → slot machine digits → bounce lock) IS the content.
 
-The app lets users: take a photo of their outfit → add context (occasion, vibe) → get an AI score out of 10 with specific feedback → share a score card → ask follow-up questions.
+The app flow: photo → context (occasion/vibe) → AI analyzes → DRAMATIC SCORE REVEAL (4 seconds) → score out of 10 → feedback → share.
 
-Generate 3 highly specific TikTok creator hook scripts. These are for nano-creators (1K-10K followers) who post outfit, style, OOTD, or "fit check" content.
+Generate 3 shot-by-shot storyboard templates for nano creators (1K-10K followers). Each storyboard should:
+- Center the SCORE REVEAL as the climactic moment (film the phone screen)
+- Work with zero production — just a phone camera
+- Have a hook that stops the scroll in 2 seconds
+- Use a clear emotional arc: hook → build → reveal → reaction → CTA
+- Under 80 words of spoken script total
 
-ALREADY DONE (don't repeat these concepts): ${recentTitles}
+ALREADY DONE (don't repeat): ${recentTitles}
 
-Requirements for each hook:
-- Creates genuine emotion (surprise, vindication, humor, or relatability)
-- Shows a specific app feature organically — don't describe the app, SHOW it being used
-- Works for creators with 0-10K followers and no fancy production
-- The authentic moment IS the content (reactions, reveals, spirals, betrayals)
-- Under 80 words total for hook + setup + payoff combined
-- End with curiosity about OrThis? (not a hard sell)
-- No generic "AI told me..." — be specific about the experience
-
-Return a JSON array of 3 objects (no markdown):
+Return a JSON array of 3 storyboard objects (no markdown):
 [
   {
-    "title": "short memorable name",
-    "hook": "first 2 seconds — the scroll-stop",
-    "setup": "next 10 seconds — build the scenario",
-    "payoff": "reveal/reaction moment",
-    "cta": "soft CTA under 10 words",
-    "onScreen": "exact on-screen text overlay",
-    "audioDirection": "trending sound type or vibe"
+    "title": "short hook name",
+    "hook": "opening 2-second scroll-stop line",
+    "shots": [
+      {"time": "0-3s", "camera": "camera direction", "script": "spoken or silent direction"},
+      {"time": "3-8s", "camera": "camera direction", "script": "spoken line"},
+      {"time": "8-15s", "camera": "phone screen recording", "script": "Stay silent — let the AI scanning animation build suspense"},
+      {"time": "15-20s", "camera": "split: phone + face", "script": "your real reaction to the score"},
+      {"time": "20-25s", "camera": "selfie", "script": "CTA line"}
+    ],
+    "trendingAudio": ["3 current TikTok sound suggestions by name/vibe"],
+    "caption": "ready-to-paste caption with hashtags"
   }
 ]`;
 
@@ -1287,7 +1287,11 @@ Return a JSON array of 3 objects (no markdown):
       for (const hook of hooks.slice(0, 3)) {
         if (!hook.title || !hook.hook) continue;
         hook.isGeminiGenerated = true;
-        const content = formatHookAsScript(hook);
+        // If Gemini returned storyboard format (shots array), store as JSON directly
+        // Otherwise fall back to formatHookAsScript for prose format
+        const content = (hook as any).shots
+          ? JSON.stringify({ hook: hook.hook, shots: (hook as any).shots, trendingAudio: (hook as any).trendingAudio, caption: (hook as any).caption })
+          : formatHookAsScript(hook);
         await prisma.socialPost.create({
           data: {
             platform: 'tiktok',
@@ -1316,17 +1320,19 @@ Return a JSON array of 3 objects (no markdown):
 }
 
 function formatHookAsScript(hook: CreatorHook): string {
-  return `## ${hook.title}
-
-**HOOK (0-2s):** ${hook.hook}
-
-**SETUP (2-12s):** ${hook.setup}
-
-**PAYOFF (12-22s):** ${hook.payoff}
-
-**CTA (22-25s):** ${hook.cta}
-
-**On-screen text:** ${hook.onScreen}
-
-**Audio:** ${hook.audioDirection}`;
+  // Emit a structured storyboard JSON — buildStoryboardHtml() in creator-manager.service
+  // will parse and render it as shot-by-shot cards in the email.
+  const storyboard = {
+    hook: hook.hook,
+    shots: [
+      { time: '0-3s', camera: 'Selfie — expressive face', script: hook.hook },
+      { time: '3-10s', camera: 'Full outfit mirror / outfit flat lay', script: hook.setup },
+      { time: '10-20s', camera: 'Screen recording — app analyzing', script: 'Stay silent — let suspense build while "Reading your look..." animates' },
+      { time: '20-25s', camera: 'Split screen — phone + face reaction', script: hook.payoff },
+      { time: '25-28s', camera: 'Back to selfie', script: hook.cta },
+    ],
+    trendingAudio: hook.audioDirection ? [hook.audioDirection] : ['trending sound — creator chooses'],
+    caption: `${hook.onScreen || hook.hook} #OrThis #fitcheck #ratemyoutfit #OOTD #stylecheck`,
+  };
+  return JSON.stringify(storyboard);
 }

@@ -18,6 +18,9 @@ import {
   getGrowthPipeline,
   updateProspect,
   updateRedditThread,
+  markDmContacted,
+  reportCreatorPost,
+  recordCreatorReferral,
   getHealthStatus,
 } from '../controllers/agent-admin.controller.js';
 
@@ -54,6 +57,9 @@ router.post('/actions/:id/reject', asyncHandler(rejectAgentAction));
 router.get('/growth', asyncHandler(getGrowthPipeline));
 router.patch('/growth/prospects/:id', asyncHandler(updateProspect));
 router.patch('/growth/threads/:id', asyncHandler(updateRedditThread));
+router.patch('/growth/dm-contacted/:id', asyncHandler(markDmContacted));
+router.post('/growth/report-post', asyncHandler(reportCreatorPost));
+router.post('/growth/creator-referral', asyncHandler(recordCreatorReferral));
 
 // Per-agent controls
 router.get('/:name/actions', asyncHandler(getAgentActionLog));

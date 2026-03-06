@@ -11,7 +11,7 @@ import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
-const DAILY_EMAIL_LIMIT = 30;
+const DAILY_EMAIL_LIMIT = 50; // Increased from 30 — scale to 100 when domain reputation established
 const FROM_EMAIL = process.env.CREATOR_FROM_EMAIL || 'brandon@orthis.app';
 const FROM_NAME = 'Brandon from Or This?';
 const APP_STORE_URL = 'https://apps.apple.com/app/id6759472490';
@@ -368,6 +368,29 @@ export async function handleCreatorResponse(prospectId: string): Promise<void> {
       data: { status: 'onboarded' },
     });
 
+    // Auto-bridge: create a Creator record so onboarded prospects immediately enter
+    // the active creator program without a manual step.
+    try {
+      await prisma.creator.upsert({
+        where: { referralCode: `prospect_${prospectId}` },
+        update: { status: 'accepted', email: prospect.email ?? undefined },
+        create: {
+          name: prospect.displayName || prospect.handle,
+          handle: prospect.handle,
+          platform: prospect.platform,
+          status: 'accepted',
+          email: prospect.email ?? undefined,
+          referralCode: `prospect_${prospectId}`,
+          acceptedAt: new Date(),
+          notes: `Auto-created from CreatorProspect ${prospectId} (niche: ${prospect.niche || 'fashion'})`,
+        },
+      });
+      console.log(`[CreatorOutreach] Auto-created Creator record for @${prospect.handle}`);
+    } catch (creatorErr) {
+      console.warn(`[CreatorOutreach] Could not auto-create Creator for @${prospect.handle}:`, creatorErr);
+    }
+
+    // Emails 2 and 3 are sent by runCreatorOnboardingFollowUps() at +24h and +72h.
     console.log(`[CreatorOutreach] Sent creator kit to @${prospect.handle}`);
   } catch (err) {
     console.error(`[CreatorOutreach] Failed to send creator kit to @${prospect.handle}:`, err);
@@ -465,4 +488,187 @@ export async function markProspectResponded(prospectId: string): Promise<boolean
     });
     return true;
   } catch { return false; }
+}
+
+// ─── Creator Onboarding Sequence (Emails 2 + 3) ───────────────────────────────
+//
+// Email 1 (Welcome + kit) is sent immediately by handleCreatorResponse().
+// This function runs daily and sends:
+//   Email 2 (+24h): First Video Guide — one specific storyboard, step-by-step
+//   Email 3 (+72h): What's Working — data-driven hook performance + social proof
+//
+// Detection is time-window based (run daily, 24h window) — idempotent.
+
+export async function runCreatorOnboardingFollowUps(): Promise<void> {
+  console.log('[CreatorOutreach] Running creator onboarding follow-ups...');
+
+  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+  if (!resend) {
+    console.log('[CreatorOutreach] RESEND_API_KEY not set — skipping');
+    return;
+  }
+
+  const now = new Date();
+  // 24h window: 23-47h since respondedAt → Email 2
+  const h23 = new Date(now.getTime() - 23 * 60 * 60 * 1000);
+  const h47 = new Date(now.getTime() - 47 * 60 * 60 * 1000);
+  // 72h window: 71-95h since respondedAt → Email 3
+  const h71 = new Date(now.getTime() - 71 * 60 * 60 * 1000);
+  const h95 = new Date(now.getTime() - 95 * 60 * 60 * 1000);
+
+  // Fetch best-performing hook for social proof in Email 3
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const topHook = await prisma.creatorPost.findFirst({
+    where: { createdAt: { gte: weekAgo }, hookUsed: { not: null } },
+    orderBy: { views: 'desc' },
+    select: { hookUsed: true, views: true, creator: { select: { handle: true } } },
+  }).catch(() => null);
+
+  const [email2Prospects, email3Prospects] = await Promise.all([
+    prisma.creatorProspect.findMany({
+      where: {
+        status: 'onboarded',
+        email: { not: null },
+        respondedAt: { lte: h23, gte: h47 },
+        // Guard: only send if we haven't already sent a second follow-up
+        followUpEmailBody: null,
+      },
+      take: 30,
+    }),
+    prisma.creatorProspect.findMany({
+      where: {
+        status: 'onboarded',
+        email: { not: null },
+        respondedAt: { lte: h71, gte: h95 },
+        // Use followedUpAt to gate Email 3 (set after Email 2 sent)
+        followedUpAt: { not: null },
+        // Check notes doesn't contain our sentinel
+        NOT: { notes: { contains: 'onboarding_email_3_sent' } },
+      },
+      take: 30,
+    }),
+  ]);
+
+  let sent = 0;
+
+  // ── Email 2: First Video Guide ────────────────────────────────────────────
+  for (const p of email2Prospects) {
+    if (!p.email) continue;
+    try {
+      const body = buildFirstVideoGuideEmail(p.handle, p.platform, p.niche);
+      await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: p.email,
+        subject: `Your first Or This? video — the exact shot list`,
+        html: buildOutreachEmailHtml(body, p.handle),
+        replyTo: FROM_EMAIL,
+      });
+      await prisma.creatorProspect.update({
+        where: { id: p.id },
+        data: { followUpEmailBody: body, followedUpAt: new Date() },
+      });
+      sent++;
+      await new Promise(r => setTimeout(r, 1500));
+    } catch (err) {
+      console.error(`[CreatorOutreach] Email 2 failed for @${p.handle}:`, err);
+    }
+  }
+
+  // ── Email 3: What's Working ───────────────────────────────────────────────
+  for (const p of email3Prospects) {
+    if (!p.email) continue;
+    try {
+      const body = buildWhatsWorkingEmail(p.handle, topHook);
+      await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: p.email,
+        subject: `Here's what's working right now (hook data)`,
+        html: buildOutreachEmailHtml(body, p.handle),
+        replyTo: FROM_EMAIL,
+      });
+      // Store sentinel in notes to prevent re-send
+      await prisma.creatorProspect.update({
+        where: { id: p.id },
+        data: { notes: `${p.notes ? p.notes + '\n' : ''}onboarding_email_3_sent` },
+      });
+      sent++;
+      await new Promise(r => setTimeout(r, 1500));
+    } catch (err) {
+      console.error(`[CreatorOutreach] Email 3 failed for @${p.handle}:`, err);
+    }
+  }
+
+  console.log(`[CreatorOutreach] Onboarding follow-ups: sent ${sent} (${email2Prospects.length} email-2, ${email3Prospects.length} email-3)`);
+}
+
+function buildFirstVideoGuideEmail(handle: string, platform: string, niche: string | null): string {
+  const storyboard = `HOOK: "I let AI score my outfit and now I can't stop"
+
+SHOT 1 (0-3s) — THE HOOK
+Camera: Selfie, casual and expressive
+Script: "Okay, I let an AI rate my outfit and the score reveal is kind of insane..."
+
+SHOT 2 (3-8s) — THE SETUP
+Camera: Full outfit mirror shot / flat lay
+Script: "I wore this to [your occasion]. I thought I looked great. The AI disagreed."
+
+SHOT 3 (8-15s) — THE BUILD (most important)
+Camera: Phone screen recording
+Script: [Stay silent — let the "Reading your look..." scanning animation play out fully. The suspense is the content.]
+
+SHOT 4 (15-22s) — THE REVEAL
+Camera: Split screen — phone screen + your face
+Script: [Your real, unscripted reaction to the score. Good or bad, both perform.]
+
+SHOT 5 (22-25s) — THE CTA
+Camera: Selfie
+Script: "Go get scored — link in bio" (or read out your score)
+
+CAPTION: AI scored my outfit [X]/10 😭 #OrThis #fitcheck #outfitcheck #ratemyoutfit #stylecheck`;
+
+  return `Hey, quick follow-up with something concrete.
+
+Here's the exact shot list for your first Or This? video:
+
+${storyboard}
+
+The key moment is Shot 3 — the scanning animation. Don't cut away from it. Let it run. That's where the suspense lives and what makes people stay to see the score.
+
+Your referral link for the bio:
+${process.env.APP_URL || 'https://orthis.app'}
+
+Can't wait to see what you make. Reply with the link when you post?
+
+— Brandon`;
+}
+
+function buildWhatsWorkingEmail(
+  handle: string,
+  topHook: { hookUsed: string | null; views: number; creator: { handle: string } } | null,
+): string {
+  const hookSection = topHook
+    ? `The highest-performing hook this week: "@${topHook.creator.handle}" used "${topHook.hookUsed}" and hit ${topHook.views.toLocaleString()} views.
+
+What's working right now:
+→ Longer pause on the scanning animation (audiences actually wait for the score)
+→ Reaction-first format (show face first, then score)
+→ Low scores performing as well as high scores ("I'm embarrassed..." is a hook)
+→ Captions with the actual score number in them (stops the scroll)`
+    : `What's working right now based on early creator content:
+→ Longer pause on the scanning animation (audiences actually wait for the score)
+→ Reaction-first format (show face first, then score)
+→ Low scores as content hooks ("I'm embarrassed..." performs well)
+→ Score number in the caption (stops the scroll)`;
+
+  return `Hey, week-1 data from other Or This? creators:
+
+${hookSection}
+
+If you've already posted — send me the link, I'll boost it across our channels.
+
+If you haven't yet — that first video is always the hardest. Pick one outfit you're wearing today. Film it. Don't overthink it. The score reveal does the work.
+
+Questions? Just reply.
+
+— Brandon from Or This?`;
 }

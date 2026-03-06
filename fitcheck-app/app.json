@@ -3,7 +3,7 @@
     "name": "Or This? AI Outfit Feedback",
     "slug": "orthis",
     "scheme": "orthis",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "runtimeVersion": {
       "policy": "appVersion"
     },

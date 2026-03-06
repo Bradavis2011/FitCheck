@@ -372,3 +372,75 @@ export async function updateRedditThread(req: AuthenticatedRequest, res: Respons
   const thread = await prisma.redditThread.update({ where: { id }, data });
   res.json({ ok: true, thread });
 }
+
+// PATCH /api/admin/agents/growth/dm-contacted/:id — mark DM prospect as contacted
+export async function markDmContacted(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const { id } = req.params;
+  const prospect = await prisma.creatorProspect.update({
+    where: { id },
+    data: { status: 'contacted', contactedAt: new Date() },
+  });
+  res.json({ ok: true, prospect });
+}
+
+// POST /api/admin/agents/growth/report-post — log a creator post (self-reported)
+export async function reportCreatorPost(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const Schema = z.object({
+    creatorHandle: z.string().min(1),
+    postUrl: z.string().url(),
+    hookUsed: z.string().optional(),
+    views: z.number().int().min(0).optional().default(0),
+  });
+  const { creatorHandle, postUrl, hookUsed, views } = Schema.parse(req.body);
+
+  // Look up Creator by handle (case-insensitive prefix match)
+  const handle = creatorHandle.replace(/^@/, '');
+  const creator = await prisma.creator.findFirst({
+    where: { handle: { equals: handle, mode: 'insensitive' } },
+  });
+
+  if (!creator) {
+    res.status(404).json({ error: `No Creator found with handle "${handle}". Make sure the creator is in the system first.` });
+    return;
+  }
+
+  const post = await prisma.creatorPost.create({
+    data: {
+      creatorId:   creator.id,
+      platform:    creator.platform,
+      externalUrl: postUrl,
+      hookUsed:    hookUsed || null,
+      views:       views ?? 0,
+      postedAt:    new Date(),
+    },
+  });
+
+  // Update creator aggregate stats
+  await prisma.creator.update({
+    where: { id: creator.id },
+    data: {
+      totalPosts:  { increment: 1 },
+      totalViews:  { increment: views ?? 0 },
+      lastPostDate: new Date(),
+    },
+  });
+
+  res.json({ ok: true, post });
+}
+
+// POST /api/admin/agents/growth/creator-referral — record that one creator recruited another
+export async function recordCreatorReferral(req: AuthenticatedRequest, res: Response) {
+  requireAdmin(req);
+  const Schema = z.object({
+    referringCreatorId: z.string().min(1),
+    prospectId: z.string().min(1),
+  });
+  const { referringCreatorId, prospectId } = Schema.parse(req.body);
+
+  const { creditCreatorReferral } = await import('../services/creator-manager.service.js');
+  const result = await creditCreatorReferral(referringCreatorId, prospectId);
+
+  res.json({ ok: true, ...result });
+}

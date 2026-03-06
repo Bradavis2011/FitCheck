@@ -1371,9 +1371,10 @@ model Creator {
   contactedAt  DateTime? @map("contacted_at")
   acceptedAt   DateTime? @map("accepted_at")
   lastPostDate DateTime? @map("last_post_date")
-  totalViews   Int       @default(0) @map("total_views")
-  totalPosts   Int       @default(0) @map("total_posts")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  totalViews    Int       @default(0) @map("total_views")
+  totalPosts    Int       @default(0) @map("total_posts")
+  totalInstalls Int       @default(0) @map("total_installs")
+  createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   posts        CreatorPost[]
 

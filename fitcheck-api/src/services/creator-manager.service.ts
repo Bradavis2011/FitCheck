@@ -115,15 +115,52 @@ export async function runCreatorHookDistribution(): Promise<void> {
   console.log(`[CreatorManager] Hook distribution queued for ${creators.length} creator(s)`);
 }
 
+function buildStoryboardHtml(hookText: string, index: number): string {
+  // Try to parse JSON storyboard; fall back to prose rendering
+  try {
+    const cleaned = hookText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const sb = JSON.parse(jsonMatch[0]) as {
+        hook?: string;
+        shots?: Array<{ time: string; camera: string; script: string }>;
+        trendingAudio?: string[];
+        caption?: string;
+      };
+      const shotsHtml = (sb.shots || []).map((s, si) => `
+        <div style="margin-bottom:10px;padding:10px 14px;background:#fff;border:1px solid #E8E8E8;">
+          <div style="font-size:11px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
+            Shot ${si + 1} · ${escapeHtml(s.time)}
+          </div>
+          <div style="font-size:12px;color:#6B7280;margin-bottom:2px;">📷 ${escapeHtml(s.camera)}</div>
+          <div style="font-size:13px;color:#1A1A1A;font-style:italic;">"${escapeHtml(s.script)}"</div>
+        </div>`).join('');
+      const audioHtml = sb.trendingAudio && sb.trendingAudio.length
+        ? `<div style="font-size:12px;color:#6B7280;margin-top:8px;">🎵 Trending audio: ${sb.trendingAudio.map(a => escapeHtml(a)).join(' · ')}</div>`
+        : '';
+      const captionHtml = sb.caption
+        ? `<div style="font-size:12px;color:#4B5563;margin-top:6px;padding:8px 12px;background:#F5EDE7;font-family:monospace;">${escapeHtml(sb.caption)}</div>`
+        : '';
+      return `<div style="margin-bottom:28px;border:1px solid #E8E8E8;">
+        <div style="background:#1A1A1A;padding:12px 16px;">
+          <div style="font-size:13px;font-weight:700;color:#fff;">HOOK ${index + 1}: <span style="color:#E85D4C;">"${escapeHtml(sb.hook || '')}"</span></div>
+        </div>
+        <div style="padding:16px;">${shotsHtml}${audioHtml}${captionHtml}</div>
+      </div>`;
+    }
+  } catch { /* fall through to prose */ }
+
+  // Prose fallback
+  const firstLine = escapeHtml(hookText.split('\n')[0].replace(/^##\s*/, ''));
+  const preview = escapeHtml(hookText.split('\n').slice(1, 4).join(' ').replace(/\*\*/g, '').trim().slice(0, 240));
+  return `<div style="margin-bottom:24px;padding:20px;background:#F5EDE7;border-left:3px solid #E85D4C;">
+    <div style="font-size:15px;font-weight:600;color:#1A1A1A;margin-bottom:8px;">${index + 1}. ${firstLine}</div>
+    <div style="font-size:13px;color:#4B5563;line-height:1.6;">${preview}</div>
+  </div>`;
+}
+
 function buildHookDistributionEmail(hookTexts: string[], viralPost: { creator: { name: string; handle: string } } | null, waitlistTotal: number): string {
-  const hookItems = hookTexts.map((h, i) => {
-    const firstLine = escapeHtml(h.split('\n')[0].replace(/^##\s*/, ''));
-    const preview = escapeHtml(h.split('\n').slice(1, 4).join(' ').replace(/\*\*/g, '').trim().slice(0, 200));
-    return `<div style="margin-bottom:24px;padding:20px;background:#F5EDE7;border-left:3px solid #E85D4C;">
-      <div style="font-size:15px;font-weight:600;color:#1A1A1A;margin-bottom:8px;">${i + 1}. ${firstLine}</div>
-      <div style="font-size:13px;color:#4B5563;line-height:1.6;">${preview}</div>
-    </div>`;
-  }).join('');
+  const hookItems = hookTexts.map((h, i) => buildStoryboardHtml(h, i)).join('');
 
   const viralSection = viralPost ? `
     <div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:16px;margin-bottom:24px;">
@@ -164,6 +201,11 @@ function buildPersonalizedHookEmail(name: string, referralCode: string | null, t
               <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Your Referral Link</div>
               <div style="background:#F5EDE7;padding:12px 16px;font-size:13px;font-family:monospace;color:#1A1A1A;word-break:break-all;">${referralUrl}</div>
               <p style="font-size:12px;color:#9CA3AF;margin:8px 0 0;">Every waitlist signup through your link is attributed to you. We track it.${totalViews > 0 ? ` Your content has driven ${totalViews.toLocaleString()} views so far.` : ''}</p>
+            </div>
+            <div style="border-top:1px solid #F5EDE7;padding-top:16px;margin-top:16px;">
+              <div style="font-size:12px;font-weight:600;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Report Your Post</div>
+              <p style="font-size:12px;color:#9CA3AF;margin:0 0 8px;">Made a video? Log it so we can track performance and feature you.</p>
+              <a href="${process.env.DASHBOARD_URL || 'https://fitcheck-production-0f92.up.railway.app'}/dashboard#report-post" style="color:#E85D4C;font-size:13px;font-weight:600;">Report your post →</a>
             </div>
           </td>
         </tr>
@@ -607,6 +649,111 @@ function buildPerformanceDigestEmail(
   </table>
 </body>
 </html>`;
+}
+
+// ─── Install Attribution ───────────────────────────────────────────────────────
+
+/**
+ * For each Creator that has a referralCode, find the User who owns that code
+ * and count how many other users were referred by that user. Updates totalInstalls.
+ */
+export async function updateCreatorInstallCounts(): Promise<void> {
+  console.log('[CreatorManager] Updating creator install counts...');
+
+  const creators = await prisma.creator.findMany({
+    where: { referralCode: { not: null } },
+    select: { id: true, referralCode: true },
+  });
+
+  if (creators.length === 0) {
+    console.log('[CreatorManager] No creators with referral codes — skipping install count update');
+    return;
+  }
+
+  let updated = 0;
+  for (const creator of creators) {
+    const referrerUser = await prisma.user.findUnique({
+      where: { referralCode: creator.referralCode! },
+      select: { id: true },
+    });
+    if (!referrerUser) continue;
+
+    const installCount = await prisma.user.count({
+      where: { referredById: referrerUser.id },
+    });
+
+    await prisma.creator.update({
+      where: { id: creator.id },
+      data: { totalInstalls: installCount },
+    });
+    updated++;
+  }
+
+  console.log(`[CreatorManager] Install counts updated for ${updated} creators`);
+}
+
+// ─── Creator-Recruits-Creator ──────────────────────────────────────────────────
+
+/**
+ * Records that one creator recruited another into the program.
+ * Called from the admin dashboard or auto-detected when a prospect attributes their
+ * interest to an existing creator (via notes field).
+ *
+ * Milestone at 3 referrals: creator gets featured flag in weekly email + higher hook priority.
+ */
+export async function creditCreatorReferral(
+  referringCreatorId: string,
+  newProspectId: string,
+): Promise<{ credited: boolean; milestone: boolean }> {
+  const [referrer, prospect] = await Promise.all([
+    prisma.creator.findUnique({ where: { id: referringCreatorId }, select: { id: true, name: true, notes: true } }),
+    prisma.creatorProspect.findUnique({ where: { id: newProspectId }, select: { id: true, notes: true } }),
+  ]);
+
+  if (!referrer || !prospect) return { credited: false, milestone: false };
+
+  // Mark the prospect as referred
+  const newProspectNotes = `${prospect.notes ? prospect.notes + '\n' : ''}referred_by_creator:${referringCreatorId}`;
+  await prisma.creatorProspect.update({
+    where: { id: newProspectId },
+    data: { notes: newProspectNotes },
+  });
+
+  // Count how many onboarded prospects this creator has referred
+  const referralCount = await prisma.creatorProspect.count({
+    where: { notes: { contains: `referred_by_creator:${referringCreatorId}` }, status: { in: ['onboarded', 'posted'] } },
+  });
+
+  let milestone = false;
+
+  if (referralCount >= 3) {
+    // Check if milestone already recorded
+    const alreadyMilestoned = referrer.notes?.includes('referral_milestone_3');
+    if (!alreadyMilestoned) {
+      milestone = true;
+      const updatedNotes = `${referrer.notes ? referrer.notes + '\n' : ''}referral_milestone_3:${new Date().toISOString()}`;
+      await prisma.creator.update({
+        where: { id: referringCreatorId },
+        data: { notes: updatedNotes },
+      });
+
+      // Notify founder
+      const resend = getResend();
+      const founderEmail = getFounderEmail();
+      if (resend && founderEmail) {
+        await resend.emails.send({
+          from: getFromEmail(),
+          to: founderEmail,
+          subject: `🎯 Creator Referral Milestone: ${referrer.name} recruited 3 creators`,
+          html: `<p><strong>${escapeHtml(referrer.name)}</strong> has successfully recruited 3 creators into the Or This? program.</p>
+                 <p>Action: Feature them in this week's creator email + bump their hook priority in the next distribution.</p>`,
+        }).catch(() => {});
+      }
+    }
+  }
+
+  console.log(`[CreatorManager] Credited referral from creator ${referringCreatorId} for prospect ${newProspectId} (total referrals: ${referralCount})`);
+  return { credited: true, milestone };
 }
 
 // ─── Executor Registration ─────────────────────────────────────────────────────

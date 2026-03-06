@@ -23,9 +23,9 @@ import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community
 import { runSocialMediaManager, sendWeeklySocialDigest, registerExecutors as registerSocialExecutors } from './social-media-manager.service.js';
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
 import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
-import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors } from './creator-manager.service.js';
+import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors, updateCreatorInstallCounts } from './creator-manager.service.js';
 import { runCreatorScout } from './creator-scout.service.js';
-import { runEmailOutreach, runEmailFollowUp } from './creator-outreach.service.js';
+import { runEmailOutreach, runEmailFollowUp, runCreatorOnboardingFollowUps } from './creator-outreach.service.js';
 import { runRedditDiscovery } from './reddit-scout.service.js';
 import { runMorningBrief, runStaleProspectCleanup } from './growth-intern.service.js';
 import { runLearningContentAgent, generateStyleTips } from './learning-content.service.js';
@@ -367,8 +367,9 @@ export function initializeScheduler(): void {
     guardedRun('growth-dashboard', '📈 [Scheduler] Running growth dashboard...', runGrowthDashboard),
   { timezone: 'UTC' });
 
-  // ── Growth Intern: Creator Scout — Tue/Thu/Sat 10am UTC ──────────────
-  cron.schedule('0 10 * * 2,4,6', () =>
+  // ── Growth Intern: Creator Scout — Daily 10am UTC (was Tue/Thu/Sat) ──
+  // Running daily with 25-query batches across 100+ query pool for 200+ prospects/week target.
+  cron.schedule('0 10 * * *', () =>
     guardedRun('creator-scout', '🔍 [Scheduler] Running creator scout...', runCreatorScout),
   { timezone: 'UTC' });
 
@@ -380,6 +381,12 @@ export function initializeScheduler(): void {
   // ── Growth Intern: Email Follow-up — Daily 2pm UTC ───────────────────
   cron.schedule('5 14 * * *', () =>
     guardedRun('email-follow-up', '', runEmailFollowUp),
+  { timezone: 'UTC' });
+
+  // ── Growth Intern: Creator Onboarding Follow-ups — Daily 3pm UTC ──────
+  // Sends Email 2 (+24h) and Email 3 (+72h) to onboarded prospects.
+  cron.schedule('5 15 * * *', () =>
+    guardedRun('creator-outreach', '', runCreatorOnboardingFollowUps),
   { timezone: 'UTC' });
 
   // ── Growth Intern: Reddit Discovery — Daily 11am UTC ─────────────────
@@ -717,6 +724,13 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Creator performance digest failed:', err); }
   }, { timezone: 'UTC' });
 
+  // ── Creator Install Attribution — Daily 11:30pm UTC ─────────────────────────
+  cron.schedule('30 23 * * *', async () => {
+    console.log('📲 [Scheduler] Updating creator install counts...');
+    try { await updateCreatorInstallCounts(); }
+    catch (err) { console.error('[Scheduler] Creator install count update failed:', err); }
+  }, { timezone: 'UTC' });
+
   // ── Style Tips — Daily 11:30am UTC (picks up new DiscoveredRules as they accumulate) ──
   cron.schedule('30 11 * * *', async () => {
     try { await generateStyleTips(); }
@@ -740,5 +754,5 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Founder content digest failed:', err); }
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest + Growth Intern)');
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest + Growth Intern + Creator Install Attribution)');
 }

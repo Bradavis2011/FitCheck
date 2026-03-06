@@ -21,32 +21,110 @@ async function getGemini() {
 
 // ─── Search Query Bank ────────────────────────────────────────────────────────
 
+// 100+ queries across niches, regions, platforms — daily rotation picks ~25/run.
 const SEARCH_QUERIES = [
+  // ── Core fit-check format ─────────────────────────────────────────────────
   'tiktok "outfit check" creator under 10000 followers 2025 2026',
   'tiktok #fitcheck fashion creator profile small nano',
   '"top outfit" OR "best fashion" tiktok creators to follow 2025 nano micro',
+  'tiktok "rate my outfit" creator content ideas',
+  'tiktok "outfit ideas" creator nano style',
+  'tiktok "ootd" creator outfit of the day small following',
+  'tiktok "what I wore" fashion creator small',
+  'tiktok "get ready with me" fashion nano creator',
+  'tiktok "styling challenge" creator small audience',
+  'tiktok "outfit reaction" creator nano 2026',
+  // ── Aesthetic niches ──────────────────────────────────────────────────────
   'tiktok minimalist fashion creator small following',
   'tiktok streetwear outfit check nano creator',
-  'site:tiktok.com fashion creator outfit review small',
+  'tiktok cottagecore aesthetic fashion creator',
+  'tiktok dark academia fashion creator nano',
+  'tiktok coastal grandmother fashion creator',
+  'tiktok "old money" aesthetic creator small',
+  'tiktok "clean girl" aesthetic nano creator',
+  'tiktok Y2K fashion creator small audience',
+  'tiktok indie sleaze fashion creator',
+  'tiktok "quiet luxury" fashion creator nano',
+  'tiktok vintage thrift fashion creator small',
+  'tiktok "coquette" aesthetic creator nano',
+  'tiktok office siren aesthetic creator',
+  'tiktok boho fashion creator small',
+  // ── Demographics ──────────────────────────────────────────────────────────
+  'tiktok plus size fashion creator outfit check',
+  'tiktok men fashion outfit creator small',
+  'tiktok petite fashion creator small following',
+  'tiktok tall women fashion creator nano',
+  'tiktok curvy fashion creator ootd',
+  'tiktok gen z fashion creator under 5000 followers',
+  'tiktok millennial fashion creator nano',
+  'tiktok college student fashion creator',
+  'tiktok fashion creator mom style small',
+  // ── Occasions ─────────────────────────────────────────────────────────────
+  'fashion tiktok creator campus college outfit',
+  'tiktok "work outfit" fashion creator small',
+  'tiktok "date night outfit" creator nano',
+  'tiktok "wedding guest" outfit creator small',
+  'tiktok "night out" outfit creator small following',
+  'tiktok "business casual" fashion creator nano',
+  'tiktok "summer outfits" creator small 2026',
+  'tiktok "winter outfits" creator nano style',
+  'tiktok "capsule wardrobe" creator small',
+  'tiktok "budget fashion" creator nano',
+  // ── Platform variants ─────────────────────────────────────────────────────
   'lemon8 fashion outfit creator 2026',
+  'lemon8 ootd creator small following',
   'threads outfit creator fashion advice',
   'instagram nano fashion creator outfit check 2025',
-  'tiktok "rate my outfit" creator content ideas',
+  'instagram reels fashion outfit creator niche style',
+  'instagram fashion creator 2k 5k followers outfit feedback',
   'youtube shorts fashion style creator small channel',
   'fashion blogger tiktok 1000 5000 followers outfit check',
   'tiktok "what to wear" creator fashion tips small',
-  'instagram reels fashion outfit creator niche style',
-  'tiktok plus size fashion creator outfit check',
-  'tiktok men fashion outfit creator small',
-  'tiktok cottagecore aesthetic fashion creator',
-  'tiktok dark academia fashion creator nano',
-  'fashion tiktok creator campus college outfit',
-  'tiktok "ootd" creator outfit of the day small following',
+  'instagram nano creator fashion inspiration 2026',
+  // ── Thrift / budget ───────────────────────────────────────────────────────
+  'tiktok thrift flip fashion creator small',
+  'tiktok "thrift haul" creator nano style',
+  'tiktok "thrift store" outfit creator small',
+  'tiktok sustainable fashion creator small following',
+  'tiktok "secondhand" fashion creator nano',
+  'tiktok "dupes" fashion creator small',
+  // ── Regional ─────────────────────────────────────────────────────────────
+  'tiktok fashion creator UK small following',
+  'tiktok fashion creator Australia nano',
+  'tiktok fashion creator Canada style small',
+  'tiktok fashion creator NYC small',
+  'tiktok fashion creator LA style nano',
+  'tiktok fashion creator midwest style small',
+  'tiktok fashion creator south style nano',
+  'tiktok fashion creator London small',
+  // ── AI / tech-forward ─────────────────────────────────────────────────────
   'fashion app beta testing creator tiktok 2026',
   'tiktok fashion influencer not verified micro',
-  'tiktok "what I wore" fashion creator small',
-  'instagram fashion creator 2k 5k followers outfit feedback',
-  'tiktok "outfit ideas" creator nano style',
+  'tiktok "AI fashion" creator small',
+  'tiktok "AI outfit" creator content ideas 2026',
+  // ── Site-targeted ─────────────────────────────────────────────────────────
+  'site:tiktok.com fashion creator outfit review small',
+  'site:instagram.com fashion creator fitcheck nano 2026',
+  // ── Listicle discovery ────────────────────────────────────────────────────
+  '"best fashion creators" tiktok under 10k 2026',
+  '"underrated fashion creators" tiktok 2026',
+  '"nano fashion influencers" to follow 2026',
+  '"small fashion creators" tiktok style inspiration',
+  '"hidden gem" fashion creator tiktok 2026',
+  '"rising fashion creator" tiktok 2026',
+  '"new fashion creator" tiktok 2026 follow',
+  // ── Cross-niche lifestyle ─────────────────────────────────────────────────
+  'tiktok lifestyle creator fashion ootd nano',
+  'tiktok beauty creator who also does fashion small',
+  'tiktok fitness creator style outfit nano',
+  // ── Hyper-niche ───────────────────────────────────────────────────────────
+  'tiktok "corporate fashion" creator small',
+  'tiktok "teacher outfits" creator nano',
+  'tiktok "nurse fashion" creator small',
+  'tiktok "law student" fashion creator',
+  'tiktok "NYC fashion" street style nano creator',
+  'tiktok "LA fashion" street style creator small',
+  'tiktok "Chicago fashion" creator nano',
 ];
 
 // ─── Discovery via Gemini Web Search ─────────────────────────────────────────
@@ -246,20 +324,20 @@ export async function runCreatorScout(): Promise<void> {
   const queryPerformance = await analyzeQueryPerformance();
   const hasPerformanceData = Object.keys(queryPerformance).length > 0;
 
-  // Pick 15-20 queries per run, weight toward high-performing ones if data available
+  // Daily run: 25 queries — top performers weighted + random rotation to cover all 100+
   let queriesToRun: string[];
   if (hasPerformanceData) {
     const sortedByPerformance = [...SEARCH_QUERIES].sort((a, b) => {
       return (queryPerformance[b] || 0) - (queryPerformance[a] || 0);
     });
-    // Top 8 high-performing + 10 random
+    // Top 10 high-performing + 15 random from the rest
     queriesToRun = [
-      ...sortedByPerformance.slice(0, 8),
-      ...sortedByPerformance.slice(8).sort(() => Math.random() - 0.5).slice(0, 10),
+      ...sortedByPerformance.slice(0, 10),
+      ...sortedByPerformance.slice(10).sort(() => Math.random() - 0.5).slice(0, 15),
     ];
   } else {
-    // First run: random 15 queries
-    queriesToRun = [...SEARCH_QUERIES].sort(() => Math.random() - 0.5).slice(0, 15);
+    // First run: random 25 queries
+    queriesToRun = [...SEARCH_QUERIES].sort(() => Math.random() - 0.5).slice(0, 25);
   }
 
   let totalFound = 0;
