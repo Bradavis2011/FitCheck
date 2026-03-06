@@ -61,6 +61,9 @@ model User {
   referredUsers    User[]  @relation("UserReferrals")
   bonusDailyChecks Int     @default(0) @map("bonus_daily_checks")
 
+  // Affiliate learning — computed daily from click history
+  affiliatePreferences Json? @map("affiliate_preferences") // { preferredCategories, preferredBrands, priceRange, avoidCategories }
+
   // UTM Attribution (first touch — set once on signup)
   attribution Json? // { source, medium, campaign, content, socialPostId? }
 
@@ -1440,13 +1443,17 @@ model AffiliateImpression {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   outfitCheckId String?     @map("outfit_check_id")
   outfitCheck   OutfitCheck? @relation(fields: [outfitCheckId], references: [id], onDelete: SetNull)
-  placement     String      // post_feedback_high | post_feedback_mid | archive | style_dna
+  placement     String      // post_feedback_high | post_feedback_mid | archive | style_dna | inline | your_week
   archetype     String?     // user's top archetype at impression time
   cohort        String?     // e.g. "minimalist-mid-range"
   score         Float?      // outfit score at time of impression
   productIds    String[]    @map("product_ids")   // catalog IDs shown
   clickedId     String?     @map("clicked_id")    // catalog ID clicked (null = no click)
   clickedAt     DateTime?   @map("clicked_at")
+  // Click metadata — stored for learning engine (no catalog re-lookup needed)
+  clickedCategory String?   @map("clicked_category")
+  clickedBrand    String?   @map("clicked_brand")
+  clickedPrice    Float?    @map("clicked_price")
   createdAt     DateTime    @default(now()) @map("created_at")
 
   @@index([userId])
@@ -1473,4 +1480,27 @@ model UserFeedbackPattern {
   @@unique([userId, category])
   @@index([userId])
   @@map("user_feedback_patterns")
+}
+
+// ─── Fashion Events ───────────────────────────────────────────────────────────
+// Stores city-specific fashion events discovered by the fashion-events agent.
+// Surfaced in "Your Week" for Plus/Pro users.
+
+model FashionEvent {
+  id             String    @id @default(cuid())
+  name           String
+  city           String
+  region         String?
+  date           DateTime
+  endDate        DateTime? @map("end_date")
+  eventType      String    @map("event_type") // fashion_week, sample_sale, popup, gallery, awards, cultural
+  dressCode      String?   @map("dress_code") // casual, smart_casual, cocktail, formal, black_tie
+  description    String?
+  source         String    @default("gemini") // gemini, seed, user
+  relevanceScore Float     @default(0) @map("relevance_score")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@unique([name, date], name: "name_date")
+  @@index([city, date])
+  @@map("fashion_events")
 }

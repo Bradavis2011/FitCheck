@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../../src/constants/theme';
 import OutfitCard from '../../src/components/OutfitCard';
 import AdBanner from '../../src/components/AdBanner';
+import AffiliateCard from '../../src/components/AffiliateCard';
 import { HistoryGridSkeleton } from '../../src/components/SkeletonLoader';
 import ErrorState from '../../src/components/ErrorState';
 import { useOutfits, useToggleFavorite, useDeleteOutfit, useReanalyzeOutfit } from '../../src/hooks/useApi';
@@ -127,7 +128,12 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.gridRow}
-          ListFooterComponent={<AdBanner />}
+          ListFooterComponent={
+            <>
+              <AffiliateCard placement="archive" />
+              <AdBanner />
+            </>
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

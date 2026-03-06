@@ -288,6 +288,20 @@ async function recalibrateConversionSignals(): Promise<ConversionMetrics[]> {
 
 // ─── Gemini Critique (batched, all domains) ───────────────────────────────────
 
+async function publishAffiliateImprovement(
+  affiliatePayload: Record<string, unknown>,
+  recommendation: string,
+): Promise<void> {
+  await publishToIntelligenceBus('ops-learning', 'affiliate_learning', {
+    generatedAt: new Date().toISOString(),
+    recommendation,
+    overallCtr: affiliatePayload.overallCtr,
+    byPlacement: affiliatePayload.byPlacement,
+    byArchetype: affiliatePayload.byArchetype,
+  });
+  console.log('[OpsLearning] Affiliate improvement published to bus');
+}
+
 async function runOpsLearningCritique(
   emailMetrics: EmailMetrics[],
   socialMetrics: SocialMetrics[],
@@ -297,6 +311,7 @@ async function runOpsLearningCritique(
   milestonePayload: Record<string, unknown>,
   asoPayload: Record<string, unknown>,
   attrPayload: Record<string, unknown>,
+  affiliatePayload: Record<string, unknown> = {},
 ): Promise<string> {
   if (!process.env.GEMINI_API_KEY) return 'Gemini not configured';
 
@@ -356,9 +371,16 @@ ${attrPayload.bySource
       .slice(0, 5).map(s => `${s.source}: ${s.count} signups, ${s.firstOutfitRate}% first-outfit`).join(' | ')
   : 'No attribution data yet — ensure UTM links are in use'}
 
+AFFILIATE PERFORMANCE (last 7 days):
+${affiliatePayload.totalImpressions
+  ? `Overall CTR: ${((affiliatePayload.overallCtr as number || 0) * 100).toFixed(1)}% (${affiliatePayload.totalImpressions} impressions, ${affiliatePayload.totalClicks} clicks)
+CTR by placement: ${JSON.stringify(Object.entries(affiliatePayload.byPlacement as Record<string, {ctr: number}> || {}).map(([k, v]) => `${k}: ${(v.ctr * 100).toFixed(1)}%`).join(', '))}
+CTR by archetype: ${JSON.stringify(Object.entries(affiliatePayload.byArchetype as Record<string, {ctr: number}> || {}).slice(0, 3).map(([k, v]) => `${k}: ${(v.ctr * 100).toFixed(1)}%`).join(', '))}`
+  : 'No affiliate data yet'}
+
 Return JSON only (no markdown):
 {
-  "weakestDomain": "email" | "nudge" | "social" | "conversion" | "followup" | "milestone" | "aso" | "attribution",
+  "weakestDomain": "email" | "nudge" | "social" | "conversion" | "followup" | "milestone" | "aso" | "attribution" | "affiliate",
   "criticalIssue": "one sentence describing the biggest problem",
   "recommendation": "one specific, actionable improvement",
   "urgency": "low" | "medium" | "high"
@@ -660,11 +682,13 @@ export async function runOpsLearning(): Promise<void> {
   const asoPayload = asoEntry[0]?.payload || {};
   const attrEntry = await readFromIntelligenceBus('ops-learning', 'attribution_metrics', { limit: 1 });
   const attrPayload = attrEntry[0]?.payload || {};
+  const affiliateEntry = await readFromIntelligenceBus('ops-learning', 'affiliate_metrics', { limit: 1 });
+  const affiliatePayload = affiliateEntry[0]?.payload || {};
 
   // Phase 2: Batched Gemini critique (~5K tokens)
   let critiqueResult = '{}';
   if (process.env.GEMINI_API_KEY) {
-    critiqueResult = await runOpsLearningCritique(emailMetrics, socialMetrics, conversionMetrics, nudgePayload, followUpPayload, milestonePayload, asoPayload, attrPayload);
+    critiqueResult = await runOpsLearningCritique(emailMetrics, socialMetrics, conversionMetrics, nudgePayload, followUpPayload, milestonePayload, asoPayload, attrPayload, affiliatePayload);
 
     await publishToIntelligenceBus('ops-learning', 'ops_critique', {
       critique: critiqueResult,
@@ -689,6 +713,9 @@ export async function runOpsLearning(): Promise<void> {
       break;
     case 'social':
       if (worstSocialType) await improveSocialPrompt(worstSocialType);
+      break;
+    case 'affiliate':
+      await publishAffiliateImprovement(affiliatePayload, (critique as any).recommendation || '');
       break;
     default:
       // If no clear winner, improve email (most impactful)

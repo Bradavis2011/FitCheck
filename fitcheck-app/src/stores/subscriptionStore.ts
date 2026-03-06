@@ -105,7 +105,19 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       if (customerInfo) {
         const syncData = purchasesService.getSyncData(customerInfo);
         const result = await subscriptionService.syncSubscription(syncData);
-        set({ tier: result.tier as 'free' | 'plus' | 'pro' });
+        // RC customerInfo is the freshest source of truth for tier.
+        // Only adopt the backend result if it's a promotion (not a demotion),
+        // to guard against entitlement name mismatches causing false downgrades.
+        const tierRank = { free: 0, plus: 1, pro: 2 };
+        const currentTier = get().tier;
+        const backendTier = result.tier as 'free' | 'plus' | 'pro';
+        if (tierRank[backendTier] > tierRank[currentTier]) {
+          set({ tier: backendTier });
+        } else if (tierRank[backendTier] < tierRank[currentTier]) {
+          console.warn(
+            `[SubscriptionStore] Backend returned lower tier (${backendTier}) than RC (${currentTier}) — keeping RC value. Check entitlement names in RevenueCat dashboard.`,
+          );
+        }
       }
       // Always fetch limits from backend regardless of RC state
       const status = await subscriptionService.getSubscriptionStatus();

@@ -11,6 +11,7 @@ import OutfitCard from '../../src/components/OutfitCard';
 import OutfitFeedCard from '../../src/components/OutfitFeedCard';
 import OrThisLogo from '../../src/components/OrThisLogo';
 import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
+import AffiliateCard from '../../src/components/AffiliateCard';
 
 const EDITORIAL_IMAGES = [
   require('../../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg'),
@@ -243,6 +244,9 @@ export default function HomeScreen() {
             {weekData.suggestions.length > 0 && (
               <Text style={styles.weekSuggestion}>{weekData.suggestions[weekData.suggestions.length - 1]}</Text>
             )}
+
+            {/* Affiliate picks — contextual for the week ahead */}
+            <AffiliateCard placement="your_week" />
           </View>
         )}
 

@@ -434,6 +434,7 @@ const ALL_AGENT_NAMES = [
   'creator-outreach',
   'email-follow-up',
   'reddit-scout',
+  'subreddit-manager',
   'growth-intern',
   // Phase 2-3 agents previously missing from kill-all list
   'fashion-trends',
@@ -444,6 +445,12 @@ const ALL_AGENT_NAMES = [
   'ai-quality-monitor',
   'revenue-cost',
   'founder-brief',
+  // Content Factory
+  'content-factory',
+  // Affiliate Learning
+  'affiliate-learning',
+  // Fashion Events
+  'fashion-events',
 ];
 
 export async function getAgentHealth() {

@@ -53,6 +53,9 @@ export type BusEntryType =
   | 'creator_metrics'
   // Affiliate / Monetization
   | 'affiliate_metrics'
+  | 'affiliate_learning'
+  // Fashion Events
+  | 'event_metrics'
   // Growth Intern
   | 'creator_scout_metrics'
   | 'creator_outreach_metrics'
