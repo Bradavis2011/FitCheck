@@ -601,7 +601,7 @@ export async function runCreatorOnboardingFollowUps(): Promise<void> {
   console.log(`[CreatorOutreach] Onboarding follow-ups: sent ${sent} (${email2Prospects.length} email-2, ${email3Prospects.length} email-3)`);
 }
 
-function buildFirstVideoGuideEmail(handle: string, platform: string, niche: string | null): string {
+function buildFirstVideoGuideEmail(_handle: string, _platform: string, _niche: string | null): string {
   const storyboard = `HOOK: "I let AI score my outfit and now I can't stop"
 
 SHOT 1 (0-3s) — THE HOOK
@@ -643,7 +643,7 @@ Can't wait to see what you make. Reply with the link when you post?
 }
 
 function buildWhatsWorkingEmail(
-  handle: string,
+  _handle: string,
   topHook: { hookUsed: string | null; views: number; creator: { handle: string } } | null,
 ): string {
   const hookSection = topHook

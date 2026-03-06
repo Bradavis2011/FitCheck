@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import * as Sentry from '@sentry/node';
 // sharp is lazy-loaded inside functions to prevent startup crash if native binary is incompatible
 import { AuthenticatedRequest, OutfitCheckInput } from '../types/index.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -173,13 +174,13 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     const resetDate = toLocalDateStr(new Date(user.dailyChecksResetAt));
 
     if (today !== resetDate) {
-      user = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          dailyChecksUsed: 0,
-          dailyChecksResetAt: new Date(),
-        },
+      // Optimistic lock on the exact resetAt timestamp so concurrent requests can't both reset
+      await prisma.user.updateMany({
+        where: { id: userId, dailyChecksResetAt: user.dailyChecksResetAt },
+        data: { dailyChecksUsed: 0, dailyChecksResetAt: new Date() },
       });
+      // Re-fetch regardless of who won the race — we want current state
+      user = (await prisma.user.findUnique({ where: { id: userId } }))!;
     }
 
     // Validate image MIME type and size before any processing
@@ -275,6 +276,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         }
       } catch (error) {
         console.error('S3 upload failed, falling back to DB storage:', error);
+        Sentry.captureException(error, { tags: { subsystem: 's3_upload_failure' } });
         // Store thumbnail as base64 in DB so images still display
         if (thumbnailBuffer) {
           thumbnailBase64Fallback = thumbnailBuffer.toString('base64');
@@ -364,21 +366,23 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
           where: { userId },
           select: { memberId: true },
         });
-        for (const { memberId } of circleMembers) {
-          await createNotification({
-            userId: memberId,
-            type: 'inner_circle',
-            title: 'New outfit from your circle',
-            body: `${posterName} shared a new outfit just for their inner circle`,
-            linkType: 'outfit',
-            linkId: outfitId,
-          });
-          await pushService.sendPushNotification(memberId, {
-            title: 'New outfit from your circle',
-            body: `${posterName} shared a new outfit just for their inner circle`,
-            data: { type: 'inner_circle', outfitId },
-          });
-        }
+        await Promise.all(circleMembers.map(({ memberId }) =>
+          Promise.all([
+            createNotification({
+              userId: memberId,
+              type: 'inner_circle',
+              title: 'New outfit from your circle',
+              body: `${posterName} shared a new outfit just for their inner circle`,
+              linkType: 'outfit',
+              linkId: outfitId,
+            }),
+            pushService.sendPushNotification(memberId, {
+              title: 'New outfit from your circle',
+              body: `${posterName} shared a new outfit just for their inner circle`,
+              data: { type: 'inner_circle', outfitId },
+            }),
+          ])
+        ));
       } catch (err) {
         // Non-fatal — outfit was created, notification is best-effort
         console.error('Inner circle notifications failed:', err);
@@ -416,24 +420,21 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
         ]);
 
         // Referral reward: first outfit check by a referred user earns their referrer +1 bonus daily check
+        // Uses updateMany with cap condition to prevent race condition exceeding limit of 3
         if (outfitCount === 1 && user.referredById) {
           try {
-            const referrer = await prisma.user.findUnique({
-              where: { id: user.referredById },
-              select: { bonusDailyChecks: true },
+            await prisma.user.updateMany({
+              where: { id: user.referredById, bonusDailyChecks: { lt: 3 } },
+              data: { bonusDailyChecks: { increment: 1 } },
             });
-            if (referrer && referrer.bonusDailyChecks < 3) {
-              await prisma.user.update({
-                where: { id: user.referredById },
-                data: { bonusDailyChecks: { increment: 1 } },
-              });
-            }
           } catch (err) {
             console.error('Referral reward failed:', err);
+            Sentry.captureException(err, { tags: { subsystem: 'referral_reward' } });
           }
         }
       } catch (err) {
         console.error('Post-submit checks failed:', err);
+        Sentry.captureException(err, { tags: { subsystem: 'post_submit_checks' } });
       }
     })();
 

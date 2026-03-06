@@ -44,10 +44,26 @@ import creatorRoutes from './routes/creator.routes.js';
 import learnRoutes from './routes/learn.routes.js';
 import affiliateRoutes from './routes/affiliate.routes.js';
 import shareRoutes from './routes/share.routes.js';
+import weekRoutes from './routes/week.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
 dotenv.config();
+
+// Validate security-critical env vars before anything else starts
+{
+  const REQUIRED = [
+    'CLERK_SECRET_KEY',
+    'FOLLOW_UP_HMAC_SECRET',
+    'REVENUECAT_WEBHOOK_AUTH_TOKEN',
+    'RESEND_WEBHOOK_SECRET',
+  ];
+  const missing = REQUIRED.filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`[STARTUP] Missing required env vars: ${missing.join(', ')}. Refusing to start.`);
+    process.exit(1);
+  }
+}
 
 // Initialize Sentry before any middleware (only if DSN configured)
 if (process.env.SENTRY_DSN) {
@@ -337,6 +353,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin/creators', creatorRoutes);
 app.use('/api/learn', learnRoutes);
 app.use('/api/affiliate', affiliateRoutes);
+app.use('/api/week', weekRoutes);
 
 // 404 handler
 app.use((_req, res) => {

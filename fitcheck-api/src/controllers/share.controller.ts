@@ -11,7 +11,11 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { prisma } from '../utils/prisma.js';
 import { buildScorePage } from '../templates/score-page.js';
 
-const HMAC_SECRET = process.env.SHARE_HMAC_SECRET || process.env.FOLLOW_UP_HMAC_SECRET || 'share-default';
+const _hmacSecret = process.env.SHARE_HMAC_SECRET || process.env.FOLLOW_UP_HMAC_SECRET;
+if (!_hmacSecret) {
+  throw new Error('[share.controller] SHARE_HMAC_SECRET env var must be set');
+}
+const HMAC_SECRET: string = _hmacSecret;
 
 /** Generate an HMAC share token for a private outfit */
 export function generateShareToken(outfitId: string): string {

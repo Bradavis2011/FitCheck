@@ -19,7 +19,11 @@ import { prisma } from '../utils/prisma.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
 const BASE_URL = process.env.API_BASE_URL || 'https://fitcheck-production-0f92.up.railway.app';
-const HMAC_SECRET = process.env.FOLLOW_UP_HMAC_SECRET || 'growth-intern-default';
+const _hmacSecret = process.env.FOLLOW_UP_HMAC_SECRET;
+if (!_hmacSecret) {
+  throw new Error('[growth-intern.service] FOLLOW_UP_HMAC_SECRET env var must be set');
+}
+const HMAC_SECRET: string = _hmacSecret;
 
 // ─── HMAC Token Helpers ───────────────────────────────────────────────────────
 
