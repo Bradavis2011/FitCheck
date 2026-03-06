@@ -480,7 +480,6 @@ export default function ContextScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.submitButtonText}>Get Verdict</Text>
-            <Ionicons name="sparkles" size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>

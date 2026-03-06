@@ -247,14 +247,14 @@ const styles = StyleSheet.create({
   headerButton: {
     width: 40,
     height: 40,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: FontSize.xl,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     color: Colors.text,
   },
   headerSubtitle: {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   filterButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.surface,
   },
   filterButtonActive: {
@@ -375,16 +375,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSize.xl,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
   },
   sectionOr: {
     color: Colors.text,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.sansMedium,
   },
   sectionThis: {
     color: Colors.primary,
-    fontStyle: 'italic',
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serifItalic,
   },
   sectionSubtitle: {
     fontSize: FontSize.sm,

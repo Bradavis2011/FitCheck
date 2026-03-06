@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   rule: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.primary,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
   },
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: Colors.primary,
     marginBottom: Spacing.lg,
   },
   articleBody: {

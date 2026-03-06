@@ -300,15 +300,15 @@ export default function FeedbackScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       track('score_card_shared', { score: outfit.aiScore ?? 0, method: 'native_share' });
 
-      const scoreEmoji = score >= 8 ? '🔥' : score >= 6 ? '✨' : '💭';
       const shareText = normalized?.editorialSummary || `I got a ${score}/10 on Or This?`;
       const webScoreUrl = isPublic ? `${WEB_BASE_URL}/s/${outfit.id}` : null;
-      const callToAction = webScoreUrl
-        ? `See my look: ${webScoreUrl}`
+      const webScoreShort = webScoreUrl ? webScoreUrl.replace('https://', '') : null;
+      const callToAction = webScoreShort
+        ? webScoreShort
         : referralStats?.link
-        ? `Try it yourself: ${referralStats.link}`
-        : `Get your outfit scored: ${APP_STORE_URL}`;
-      const shareMessage = `Or This? Score: ${scoreEmoji} ${score}/10\n\n${shareText}\n\n${callToAction}`;
+        ? referralStats.link.replace('https://', '')
+        : 'orthis.app';
+      const shareMessage = `${score}/10 — Or This?\n\n${shareText}\n\n${callToAction}`;
 
       let imageShared = false;
       if (viewShotRef.current?.capture) {

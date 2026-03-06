@@ -444,7 +444,7 @@ export default function CompareScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.subtitle}>
-          Add two outfits. AI picks a winner.
+          Two options. One verdict.
         </Text>
 
         {/* Image slots */}
@@ -524,13 +524,8 @@ export default function CompareScreen() {
             disabled={!canAnalyze}
             activeOpacity={0.85}
           >
-            <Ionicons
-              name="sparkles"
-              size={16}
-              color={canAnalyze ? Colors.white : Colors.textMuted}
-            />
-            <Text style={[styles.analyzeBtnText, !canAnalyze && styles.analyzeBtnTextDisabled]}>
-              Get AI Verdict
+              <Text style={[styles.analyzeBtnText, !canAnalyze && styles.analyzeBtnTextDisabled]}>
+              Get Verdict
             </Text>
           </TouchableOpacity>
         )}
@@ -561,7 +556,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: Fonts.serif,
-    fontSize: FontSize.lg,
+    fontSize: 24,
     color: Colors.text,
   },
   subtitle: {
@@ -778,9 +773,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   verdictCardRule: {
-    width: 40,
+    width: 60,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: Colors.primary,
     marginBottom: Spacing.sm,
   },
   verdictCardText: {

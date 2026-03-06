@@ -211,7 +211,7 @@ export default function RecommendationsScreen() {
           {/* Header */}
           <View style={styles.cardHeader}>
             <View style={styles.iconBadge}>
-              <Ionicons name="sparkles" size={20} color={Colors.primary} />
+              <Ionicons name="flower-outline" size={20} color={Colors.primary} />
             </View>
             <View style={styles.cardTitleContainer}>
               <Text style={styles.cardTitle}>{rec.title}</Text>
@@ -303,7 +303,7 @@ const recUpgradeButtonStyle = {
 const recUpgradeButtonTextStyle = {
   color: '#FFF',
   fontSize: 16,
-  fontFamily: Fonts.sansBold,
+  fontFamily: Fonts.sansMedium,
 };
 
 const styles = StyleSheet.create({

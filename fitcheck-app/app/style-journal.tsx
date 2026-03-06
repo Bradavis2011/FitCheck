@@ -52,7 +52,11 @@ function ArticleCard({
           <Text style={styles.thresholdText}>{item.dataThresholdMessage}</Text>
         </View>
       ) : !isPaid ? (
-        <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.upgradeButton}
+          activeOpacity={0.85}
+          onPress={() => router.push('/upgrade' as any)}
+        >
           <Ionicons name="lock-closed" size={14} color={Colors.white} />
           <Text style={styles.upgradeButtonText}>UPGRADE TO UNLOCK</Text>
         </TouchableOpacity>
@@ -72,7 +76,7 @@ function ArticleCard({
             {isGenerating ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Ionicons name="sparkles" size={14} color={Colors.white} />
+              <Ionicons name="create-outline" size={14} color={Colors.white} />
             )}
             <Text style={styles.generateButtonText}>
               {isGenerating ? 'GENERATING…' : isStaleOrNew ? 'GENERATE' : 'REFRESH'}

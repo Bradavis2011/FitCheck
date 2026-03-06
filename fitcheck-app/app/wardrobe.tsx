@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   tabTextActive: {
-    color: Colors.text,
+    color: Colors.primary,
   },
   tabIndicator: {
     position: 'absolute',
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   itemCard: {
     width: '47%',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.border,

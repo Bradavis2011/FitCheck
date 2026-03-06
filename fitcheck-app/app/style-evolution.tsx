@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sharp,
   },
   upgradeButtonText: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.sansMedium,
     color: Colors.white,
     fontSize: 16,
     textTransform: 'uppercase',

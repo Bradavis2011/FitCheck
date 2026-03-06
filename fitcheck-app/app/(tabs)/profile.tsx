@@ -701,7 +701,7 @@ const styles = StyleSheet.create({
   },
   headerDivider: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: Colors.primary,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
   },
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
   rule: {
     width: 60,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: Colors.primary,
     marginBottom: Spacing.md,
   },
   sectionLabelRow: {

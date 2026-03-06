@@ -241,7 +241,7 @@ export default function OutfitBuilderScreen() {
             ) : (
               <View style={styles.aiSuggestBtn}>
                 <Ionicons
-                  name={canSuggest ? 'sparkles' : 'lock-closed-outline'}
+                  name={canSuggest ? 'color-wand-outline' : 'lock-closed-outline'}
                   size={16}
                   color={canSuggest ? Colors.primary : Colors.textMuted}
                 />
@@ -402,7 +402,7 @@ export default function OutfitBuilderScreen() {
             {aiReasoning && (
               <View style={styles.aiReasoningCard}>
                 <View style={styles.aiReasoningHeader}>
-                  <Ionicons name="sparkles" size={14} color={Colors.primary} />
+                  <Ionicons name="flower-outline" size={14} color={Colors.primary} />
                   <Text style={styles.aiReasoningLabel}>AI STYLED</Text>
                 </View>
                 <Text style={styles.aiReasoningText}>{aiReasoning}</Text>
@@ -492,7 +492,7 @@ export default function OutfitBuilderScreen() {
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
             <Ionicons
-              name={canAnalyze ? 'sparkles' : 'camera-outline'}
+              name={canAnalyze ? 'color-wand-outline' : 'camera-outline'}
               size={20}
               color={filledCount >= 2 ? Colors.white : Colors.textMuted}
             />
@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   sectionTitle: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
     color: Colors.text,
     marginBottom: Spacing.md,
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   outfitSlot: {
     width: '48%',
     aspectRatio: 3 / 4,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 0,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
     borderWidth: 2,
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
   },
   rule: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: Colors.primary,
     marginBottom: Spacing.lg,
   },
   feedbackSection: {

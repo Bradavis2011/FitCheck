@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.lg,
     color: Colors.text,
   },
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 0,
     padding: Spacing.lg,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   optionIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     backgroundColor: Colors.primaryAlpha10,
     justifyContent: 'center',
     alignItems: 'center',

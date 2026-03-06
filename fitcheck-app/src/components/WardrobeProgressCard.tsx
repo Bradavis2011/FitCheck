@@ -72,7 +72,7 @@ export default function WardrobeProgressCard() {
 
       {aiActive && (
         <View style={styles.aiActiveRow}>
-          <Ionicons name="sparkles" size={12} color={Colors.primary} />
+          <Ionicons name="checkmark-circle" size={12} color={Colors.primary} />
           <Text style={styles.aiActiveText}>AI styling active</Text>
         </View>
       )}

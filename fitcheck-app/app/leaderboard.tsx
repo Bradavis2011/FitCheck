@@ -47,10 +47,7 @@ export default function LeaderboardScreen() {
   });
 
   const getMedalEmoji = (rank: number): string | null => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return null;
+    return null; // text-only rank display
   };
 
   const getRankColor = (rank: number): string => {
@@ -273,7 +270,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSize.xl,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     color: Colors.text,
   },
   tabsContainer: {
@@ -286,7 +283,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -312,7 +309,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     backgroundColor: Colors.primaryAlpha10,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Colors.primary,
   },
@@ -344,7 +341,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 0,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
@@ -410,7 +407,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     backgroundColor: Colors.secondaryAlpha10,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 0,
   },
   levelText: {
     fontSize: FontSize.xs,
@@ -424,7 +421,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
     backgroundColor: Colors.warningAlpha10,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 0,
   },
   badgeCountText: {
     fontSize: FontSize.xs,

@@ -169,12 +169,12 @@ export default function GiveFeedbackScreen() {
   };
 
   const getScoreLabel = (value: number) => {
-    if (value >= 9) return '🔥 Amazing';
-    if (value >= 8) return '✨ Great';
-    if (value >= 7) return '👍 Good';
-    if (value >= 6) return '👌 Decent';
-    if (value >= 5) return '💭 Okay';
-    return '🤔 Needs Work';
+    if (value >= 9) return 'Amazing';
+    if (value >= 8) return 'Great';
+    if (value >= 7) return 'Good';
+    if (value >= 6) return 'Decent';
+    if (value >= 5) return 'Okay';
+    return 'Needs Work';
   };
 
   // Upgrade gate: free users cannot give community feedback
@@ -448,11 +448,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   headerTitle: {
     fontSize: FontSize.lg,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     color: Colors.text,
   },
   skipButton: {
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   },
   scoreValue: {
     fontSize: 48,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     marginBottom: 4,
   },
   scoreLabel: {
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 0,
     padding: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Colors.primary,
   },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   emptyButtonText: {
     fontSize: FontSize.md,

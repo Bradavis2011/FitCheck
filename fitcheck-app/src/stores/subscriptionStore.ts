@@ -45,7 +45,18 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         // Sync with backend
         await get().syncWithBackend();
       } else {
-        set({ isLoaded: true });
+        // RevenueCat unavailable (Expo Go) or no subscription found —
+        // fall back to backend as source of truth
+        try {
+          const status = await subscriptionService.getSubscriptionStatus();
+          set({
+            tier: (status.tier as 'free' | 'plus' | 'pro') || 'free',
+            limits: status.limits,
+            isLoaded: true,
+          });
+        } catch {
+          set({ isLoaded: true });
+        }
       }
     } catch (error) {
       console.error('[SubscriptionStore] Init failed:', error);
@@ -89,22 +100,18 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   syncWithBackend: async () => {
-    const { customerInfo } = get();
-    if (!customerInfo) return;
-
     try {
-      const syncData = purchasesService.getSyncData(customerInfo);
-      const result = await subscriptionService.syncSubscription(syncData);
-
-      // Also fetch limits from backend
+      const { customerInfo } = get();
+      if (customerInfo) {
+        const syncData = purchasesService.getSyncData(customerInfo);
+        const result = await subscriptionService.syncSubscription(syncData);
+        set({ tier: result.tier as 'free' | 'plus' | 'pro' });
+      }
+      // Always fetch limits from backend regardless of RC state
       const status = await subscriptionService.getSubscriptionStatus();
-      set({
-        tier: result.tier as 'free' | 'plus' | 'pro',
-        limits: status.limits,
-      });
+      set({ limits: status.limits });
     } catch (error) {
       console.error('[SubscriptionStore] Backend sync failed:', error);
-      // Non-fatal: RevenueCat state is still authoritative on client
     }
   },
 }));

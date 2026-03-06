@@ -174,7 +174,7 @@ export default function StyleProfileScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.evolutionIcon}>
-          <Ionicons name="sparkles" size={24} color={Colors.primaryLight} />
+          <Ionicons name="flower-outline" size={24} color={Colors.primaryLight} />
         </View>
         <View style={styles.evolutionText}>
           <Text style={styles.evolutionTitle}>Get Outfit Recommendations</Text>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sharp,
   },
   upgradeButtonText: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.sansMedium,
     color: Colors.white,
     fontSize: 16,
     textTransform: 'uppercase',
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   scoreValue: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     fontSize: 32,
   },
   scoreMax: {

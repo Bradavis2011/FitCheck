@@ -68,7 +68,7 @@ export default function NotificationsScreen() {
       case 'event_followup':
         return 'calendar';
       case 'style_narrative':
-        return 'sparkles';
+        return 'reader-outline';
       case 'nudge_push':
         return 'notifications';
       default:
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: 9999,
+    borderRadius: 0,
   },
   headerTitle: {
     fontFamily: Fonts.serif,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    borderRadius: 0,
     padding: Spacing.md,
     marginTop: Spacing.sm,
     borderWidth: 1,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',

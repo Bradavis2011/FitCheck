@@ -56,7 +56,7 @@ const CATEGORY_ICONS: Record<QuestionCategory, keyof typeof Ionicons.glyphMap> =
   occasion: 'calendar',
   layering: 'layers',
   casual: 'sunny',
-  formal: 'sparkles',
+  formal: 'ribbon-outline',
   styling: 'shirt',
   general: 'help-circle',
 };
@@ -361,7 +361,7 @@ export default function FollowUpModal({
                 {/* AI answer */}
                 <View style={styles.aiBubble}>
                   <View style={styles.aiIcon}>
-                    <Ionicons name="sparkles" size={16} color={Colors.primary} />
+                    <Ionicons name="flower-outline" size={16} color={Colors.primary} />
                   </View>
                   <View style={styles.aiContent}>
                     <Markdown style={markdownStyles}>{item.answer}</Markdown>
@@ -373,7 +373,7 @@ export default function FollowUpModal({
             {isLoading && (
               <View style={styles.loadingBubble}>
                 <View style={styles.aiIcon}>
-                  <Ionicons name="sparkles" size={16} color={Colors.primary} />
+                  <Ionicons name="flower-outline" size={16} color={Colors.primary} />
                 </View>
                 <TypingDots />
               </View>
