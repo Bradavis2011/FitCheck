@@ -5,13 +5,13 @@ export const Colors = {
   primaryLight: '#FF7A6B',  // coral light
   primaryDark: '#C94A3A',   // coral dark - active/pressed states
 
-  // Backgrounds - Confidence Cream
+  // Backgrounds - Studio Linen
   background: '#FBF7F4',    // cream - primary backgrounds
   backgroundSecondary: '#F5EDE7', // cream dark - cards, sections
   surface: '#FFFFFF',       // white - cards, elevated surfaces
   surfaceLight: '#F8F8F8',  // gray 100 - subtle backgrounds
 
-  // Text - Clarity Black
+  // Text - Editorial Black
   text: '#1A1A1A',          // black - primary text, icons
   textSecondary: '#2D2D2D', // charcoal - secondary text
   textMuted: '#9B9B9B',     // gray 400 - placeholder, captions, section labels

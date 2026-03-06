@@ -93,9 +93,7 @@ function CardOverlay({
           <Ionicons name="heart" size={18} color={Colors.secondary} />
         </TouchableOpacity>
       )}
-      <View style={[styles.scoreBadge, { backgroundColor: scoreColor }]}>
-        <Text style={styles.scoreText}>{score.toFixed(1)}</Text>
-      </View>
+      <Text style={[styles.scoreText, { color: scoreColor }]}>{score.toFixed(1)}</Text>
       <View style={styles.occasionTag}>
         <Text style={styles.occasionText}>{displayText}</Text>
       </View>
@@ -133,20 +131,15 @@ const styles = StyleSheet.create({
     top: Spacing.sm,
     left: Spacing.sm,
   },
-  scoreBadge: {
+  scoreText: {
     position: 'absolute',
     top: Spacing.sm,
     right: Spacing.sm,
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scoreText: {
-    color: Colors.white,
-    fontSize: FontSize.xs,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   occasionTag: {
     position: 'absolute',

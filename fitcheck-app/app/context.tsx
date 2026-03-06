@@ -15,7 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../src/stores/auth';
-import { occasions, settings, weather, vibes, loadingMessages } from '../src/lib/mockData';
+import { occasions, settings, loadingMessages } from '../src/lib/mockData';
 import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../src/constants/theme';
 import LoadingOverlay from '../src/components/LoadingOverlay';
 import PillButton from '../src/components/PillButton';
@@ -49,8 +49,6 @@ export default function ContextScreen() {
     eventDate,
     toggleOccasion,
     setSelectedSetting,
-    setSelectedWeather,
-    toggleVibe,
     setConcerns,
     setEventDate,
     isAnalyzing,
@@ -58,7 +56,6 @@ export default function ContextScreen() {
     setRevisionSource,
   } = useAppStore();
 
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [shareWith, setShareWith] = useState<ShareWith>('private');
   const [showDateModal, setShowDateModal] = useState(false);
   const [customDateText, setCustomDateText] = useState('');
@@ -240,7 +237,7 @@ export default function ContextScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={Colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Almost there!</Text>
+          <Text style={styles.headerTitle}>Set the scene.</Text>
           <View style={styles.backButton} />
         </View>
 
@@ -280,10 +277,10 @@ export default function ContextScreen() {
 
           {/* Occasion selector */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              What's the occasion? <Text style={styles.required}>*</Text>
+            <View style={styles.editorialRule} />
+            <Text style={styles.editorialSectionLabel}>
+              Occasion <Text style={styles.required}>*</Text>
             </Text>
-            <Text style={styles.sectionHint}>Select one or more</Text>
             <View style={styles.pillsContainer}>
               {occasions.map((occasion) => (
                 <PillButton
@@ -394,112 +391,56 @@ export default function ContextScreen() {
             </View>
           )}
 
-          {/* Details accordion */}
-          <TouchableOpacity
-            style={styles.accordionHeader}
-            onPress={() => setDetailsExpanded(!detailsExpanded)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.accordionTitle}>Add more details (optional)</Text>
-            <Ionicons
-              name={detailsExpanded ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={Colors.textMuted}
-            />
-          </TouchableOpacity>
-
-          {detailsExpanded && (
-            <View style={styles.detailsContainer}>
-              {/* Setting */}
-              <View style={styles.subsection}>
-                <Text style={styles.subsectionTitle}>Setting</Text>
-                <View style={styles.toggleButtonGroup}>
-                  {settings.map((setting) => (
-                    <TouchableOpacity
-                      key={setting}
+          {/* Setting */}
+          <View style={styles.detailsContainer}>
+            <View style={styles.subsection}>
+              <View style={styles.editorialRule} />
+              <Text style={styles.editorialSectionLabel}>Setting</Text>
+              <View style={styles.toggleButtonGroup}>
+                {settings.map((setting) => (
+                  <TouchableOpacity
+                    key={setting}
+                    style={[
+                      styles.toggleButton,
+                      selectedSetting === setting && styles.toggleButtonActive,
+                    ]}
+                    onPress={() => setSelectedSetting(setting)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
                       style={[
-                        styles.toggleButton,
-                        selectedSetting === setting && styles.toggleButtonActive,
+                        styles.toggleButtonText,
+                        selectedSetting === setting && styles.toggleButtonTextActive,
                       ]}
-                      onPress={() => setSelectedSetting(setting)}
-                      activeOpacity={0.7}
                     >
-                      <Text
-                        style={[
-                          styles.toggleButtonText,
-                          selectedSetting === setting && styles.toggleButtonTextActive,
-                        ]}
-                      >
-                        {setting}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Weather */}
-              <View style={styles.subsection}>
-                <Text style={styles.subsectionTitle}>Weather</Text>
-                <View style={styles.toggleButtonGroup}>
-                  {weather.map((w) => (
-                    <TouchableOpacity
-                      key={w}
-                      style={[
-                        styles.toggleButton,
-                        selectedWeather === w && styles.toggleButtonActive,
-                      ]}
-                      onPress={() => setSelectedWeather(w)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.toggleButtonText,
-                          selectedWeather === w && styles.toggleButtonTextActive,
-                        ]}
-                      >
-                        {w}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Vibe */}
-              <View style={styles.subsection}>
-                <Text style={styles.subsectionTitle}>Vibe you're going for</Text>
-                <View style={styles.pillsContainer}>
-                  {vibes.map((vibe) => (
-                    <PillButton
-                      key={vibe}
-                      label={vibe}
-                      selected={selectedVibes.includes(vibe)}
-                      onPress={() => toggleVibe(vibe)}
-                      small
-                    />
-                  ))}
-                </View>
-              </View>
-
-              {/* Concerns */}
-              <View style={styles.subsection}>
-                <Text style={styles.subsectionTitle}>Any specific concerns?</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g., Is this too formal? Does the color work?"
-                  placeholderTextColor={Colors.textMuted}
-                  value={concerns}
-                  onChangeText={setConcerns}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
+                      {setting}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
-          )}
 
-          {/* Who sees this? */}
+            {/* Concerns */}
+            <View style={styles.subsection}>
+              <View style={styles.editorialRule} />
+              <Text style={styles.editorialSectionLabel}>Anything specific?</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g., Is this too formal? Does the color work?"
+                placeholderTextColor={Colors.textMuted}
+                value={concerns}
+                onChangeText={setConcerns}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
+
+          {/* Visibility */}
           <View style={styles.shareSection}>
-            <Text style={styles.sectionTitle}>Who sees this?</Text>
+            <View style={styles.editorialRule} />
+            <Text style={styles.editorialSectionLabel}>Visibility</Text>
             <View style={styles.shareOptions}>
               {SHARE_OPTIONS.map((opt) => (
                 <TouchableOpacity
@@ -529,7 +470,7 @@ export default function ContextScreen() {
         <View style={[styles.footer, { paddingBottom: Spacing.lg + Math.round(insets.bottom * 0.75) }]}>
           {!isAtLimit && dailyChecksRemaining !== null && dailyChecksRemaining > 0 && (
             <Text style={styles.remainingText}>
-              {dailyChecksRemaining} check{dailyChecksRemaining !== 1 ? 's' : ''} remaining today
+              {dailyChecksRemaining} of {stats?.dailyChecksLimit ?? 3} remaining
             </Text>
           )}
           <TouchableOpacity
@@ -538,7 +479,7 @@ export default function ContextScreen() {
             disabled={!canSubmit}
             activeOpacity={0.8}
           >
-            <Text style={styles.submitButtonText}>Get My Feedback</Text>
+            <Text style={styles.submitButtonText}>Get Verdict</Text>
             <Ionicons name="sparkles" size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
@@ -631,8 +572,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontFamily: Fonts.sansBold,
-    fontSize: FontSize.lg,
+    fontFamily: Fonts.serif,
+    fontSize: 24,
     color: Colors.text,
   },
   scrollView: {
@@ -695,15 +636,19 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
   },
-  sectionTitle: {
-    fontFamily: Fonts.sansBold,
-    fontSize: FontSize.lg,
-    color: Colors.text,
+  editorialRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: '#E85D4C',
+    marginBottom: Spacing.sm,
   },
-  sectionHint: {
-    fontSize: FontSize.sm,
+  editorialSectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
     color: Colors.textMuted,
-    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
   },
   required: {
     color: Colors.primary,
@@ -713,18 +658,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  accordionTitle: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-  },
   detailsContainer: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
@@ -732,13 +665,6 @@ const styles = StyleSheet.create({
   },
   subsection: {
     gap: Spacing.sm,
-  },
-  subsectionTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   toggleButtonGroup: {
     flexDirection: 'row',

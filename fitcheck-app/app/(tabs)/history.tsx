@@ -167,14 +167,14 @@ export default function HistoryScreen() {
           <Ionicons name="shirt-outline" size={40} color={Colors.textMuted} />
           <Text style={styles.emptyTitle}>
             {activeFilter === 'All'
-              ? 'No outfit checks yet'
+              ? 'Nothing yet.'
               : activeFilter === 'Favorites'
               ? 'No favorites yet'
               : `No ${activeFilter.toLowerCase()} outfits`}
           </Text>
           <Text style={styles.emptySubtitle}>
             {activeFilter === 'All'
-              ? 'Start your first check to see your outfits here'
+              ? 'Your first verdict is 30 seconds away.'
               : activeFilter === 'Favorites'
               ? 'Heart your favorite looks to save them here'
               : `No ${activeFilter.toLowerCase()} outfits found`}
@@ -277,8 +277,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 17,
+    fontFamily: Fonts.serif,
+    fontSize: 20,
     color: Colors.text,
     marginTop: Spacing.md,
   },

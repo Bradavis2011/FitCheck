@@ -598,9 +598,9 @@ export default function FeedbackScreen() {
             </View>
           )}
 
-          {/* What's Right */}
+          {/* Working */}
           {normalized && normalized.whatsRight.length > 0 && (
-            <FeedbackCard title="What's Right" icon="" iconColor={Colors.success} delay={0}>
+            <FeedbackCard title="Working" icon="" iconColor={Colors.success} delay={0}>
               {normalized.whatsRight.map((bullet, i) => (
                 <View key={i} style={styles.bulletRow}>
                   <Text style={styles.bulletSymbol}>+</Text>
@@ -610,9 +610,9 @@ export default function FeedbackScreen() {
             </FeedbackCard>
           )}
 
-          {/* Could Improve */}
+          {/* Consider */}
           {normalized && normalized.couldImprove.length > 0 && (
-            <FeedbackCard title="Could Improve" icon="" iconColor={Colors.warning} delay={200}>
+            <FeedbackCard title="Consider" icon="" iconColor={Colors.warning} delay={200}>
               {normalized.couldImprove.map((bullet, i) => (
                 <View key={i} style={styles.bulletRow}>
                   <Text style={styles.bulletSymbol}>–</Text>
@@ -622,9 +622,9 @@ export default function FeedbackScreen() {
             </FeedbackCard>
           )}
 
-          {/* Take It Further */}
+          {/* Elevate */}
           {normalized && normalized.takeItFurther.length > 0 && (
-            <FeedbackCard title="Take It Further" icon="" iconColor={Colors.primary} delay={400}>
+            <FeedbackCard title="Elevate" icon="" iconColor={Colors.primary} delay={400}>
               {normalized.takeItFurther.map((bullet, i) => (
                 <View key={i} style={styles.bulletRow}>
                   <Text style={styles.bulletSymbol}>↑</Text>
@@ -843,7 +843,7 @@ export default function FeedbackScreen() {
             ) : (
               <>
                 <Ionicons name="share-social" size={18} color={Colors.white} />
-                <Text style={styles.shareButtonText}>Share Score</Text>
+                <Text style={styles.shareButtonText}>Share</Text>
               </>
             )}
           </TouchableOpacity>
@@ -1179,7 +1179,7 @@ const styles = StyleSheet.create({
   communityRule: {
     width: 60,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: '#E85D4C',
     marginBottom: Spacing.sm,
   },
   communityScore: {
@@ -1349,7 +1349,7 @@ const styles = StyleSheet.create({
   editorialRule: {
     width: 60,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: '#E85D4C',
   },
   editorialText: {
     fontFamily: Fonts.serif,
@@ -1380,7 +1380,7 @@ const styles = StyleSheet.create({
   inviteRule: {
     width: 60,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: '#E85D4C',
     marginBottom: Spacing.md,
   },
   inviteDesc: {

@@ -167,7 +167,7 @@ export default function HomeScreen() {
           {/* Daily checks counter — minimal */}
           {stats && (
             <Text style={styles.checksRemaining}>
-              {stats.dailyChecksRemaining}/{stats.dailyChecksLimit} checks remaining today
+              {stats.dailyChecksRemaining} of {stats.dailyChecksLimit} remaining
             </Text>
           )}
         </View>
@@ -219,7 +219,7 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>Recent</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
-                <Text style={styles.seeAll}>See archive</Text>
+                <Text style={styles.seeAll}>Archive</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -335,8 +335,8 @@ export default function HomeScreen() {
             <View style={styles.upgradeBlock}>
               <Text style={styles.upgradeSectionLabel}>Plus</Text>
               <View style={styles.rule} />
-              <Text style={styles.upgradeTitle}>Unlimited checks. Zero limits.</Text>
-              <Text style={styles.upgradeSubtitle}>Ad-free, full history, premium feedback.</Text>
+              <Text style={styles.upgradeTitle}>Unlimited verdicts.</Text>
+              <Text style={styles.upgradeSubtitle}>No daily limit. Full style intelligence.</Text>
               <TouchableOpacity
                 style={styles.upgradeButton}
                 onPress={() => router.push('/upgrade' as any)}
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   },
   // Recent section
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.xxl,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   },
   // Community
   communitySection: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xxl,
   },
   communityBlock: {
     paddingHorizontal: Spacing.lg,
@@ -529,11 +529,11 @@ const styles = StyleSheet.create({
   },
   // Wardrobe
   wardrobeSection: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xxl,
   },
   // Feature hint
   hintSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xxl,
   },
   hintBlock: {
     flexDirection: 'row',
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   },
   // Or This? promo
   orThisSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xxl,
   },
   orThisBlock: {
     paddingHorizontal: Spacing.lg,
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   },
   // Upgrade block
   upgradeSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xxl,
   },
   upgradeBlock: {
     paddingHorizontal: Spacing.lg,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   rule: {
     width: 60,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: '#E85D4C',
     marginBottom: Spacing.md,
   },
   upgradeTitle: {

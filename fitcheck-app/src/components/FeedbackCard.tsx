@@ -25,10 +25,10 @@ export default function FeedbackCard({ title, icon: _icon, iconColor, children, 
 
   return (
     <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
+      {/* 60px coral rule above label */}
+      <View style={styles.rule} />
       {/* Editorial section label */}
       <Text style={[styles.sectionLabel, { color: iconColor }]}>{title}</Text>
-      {/* 60px editorial rule */}
-      <View style={styles.rule} />
       <View style={styles.content}>
         {children}
       </View>
@@ -48,17 +48,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
   },
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: '#E85D4C',
+    marginBottom: Spacing.sm,
+  },
   sectionLabel: {
     fontFamily: Fonts.sansMedium,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 2.2,
-    marginBottom: 8,
-  },
-  rule: {
-    width: 60,
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.12)',
     marginBottom: Spacing.md,
   },
   content: {
