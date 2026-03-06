@@ -55,8 +55,6 @@ dotenv.config();
   const REQUIRED = [
     'CLERK_SECRET_KEY',
     'FOLLOW_UP_HMAC_SECRET',
-    'REVENUECAT_WEBHOOK_AUTH_TOKEN',
-    'RESEND_WEBHOOK_SECRET',
   ];
   const missing = REQUIRED.filter(k => !process.env[k]);
   if (missing.length > 0) {
