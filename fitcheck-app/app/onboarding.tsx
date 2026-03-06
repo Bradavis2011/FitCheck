@@ -2,12 +2,17 @@ import { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Fonts } from '../src/constants/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import OrThisLogo from '../src/components/OrThisLogo';
+import ScoreDisplay from '../src/components/ScoreDisplay';
 import { track } from '../src/lib/analytics';
 
 const { width } = Dimensions.get('window');
+
+const SLIDE_CAMERA_ID = 4;
 
 interface OnboardingSlide {
   id: number;
@@ -26,8 +31,8 @@ const slides: OnboardingSlide[] = [
   {
     id: 2,
     label: 'How it works',
-    headline: 'Shoot.\nSet the scene.\nGet honest feedback.',
-    body: 'Tell us the occasion, weather, and vibe. Our AI gives you a score, what\'s working, and what to fix.',
+    headline: 'Get your score.',
+    body: 'Set the scene — occasion, weather, vibe. Our AI scores your outfit and tells you exactly what to improve.',
   },
   {
     id: 3,
@@ -35,11 +40,18 @@ const slides: OnboardingSlide[] = [
     headline: 'The more you use it,\nthe smarter it gets.',
     body: 'Every outfit you check builds your digital wardrobe — so feedback gets sharper and more personal over time.',
   },
+  {
+    id: SLIDE_CAMERA_ID,
+    label: 'One more thing',
+    headline: 'Your camera.\nYour style.',
+    body: 'We need camera access to analyze your outfits. You can also upload from your gallery at any time.',
+  },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { completeOnboarding } = useAuthStore();
+  const [, requestCameraPermission] = useCameraPermissions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -51,10 +63,17 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleGetStarted = () => {
+  const finish = async () => {
     track('onboarding_completed');
-    completeOnboarding();
+    await completeOnboarding();
     router.replace('/(tabs)' as any);
+  };
+
+  const handleAllowCamera = async () => {
+    // Fire the OS dialog with context already set — improves grant rate
+    await requestCameraPermission();
+    track('onboarding_camera_permission_requested');
+    await finish();
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -79,16 +98,32 @@ export default function OnboardingScreen() {
           <View style={styles.rule} />
         </View>
       )}
-      <Text style={styles.headline}>{item.headline}</Text>
+
+      {item.id === 2 && (
+        <View style={styles.scorePreview}>
+          <ScoreDisplay score={8} />
+          <Text style={styles.scoreCaption}>Your outfit. Scored.</Text>
+        </View>
+      )}
+
+      {item.id === SLIDE_CAMERA_ID && (
+        <View style={styles.cameraIconWrap}>
+          <Ionicons name="camera-outline" size={64} color={Colors.primary} />
+        </View>
+      )}
+
+      <Text style={[styles.headline, item.id === 2 && styles.headlineSmall]}>
+        {item.headline}
+      </Text>
       <Text style={styles.body}>{item.body}</Text>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Skip */}
+      {/* Skip only shown on non-final slides */}
       {!isLastSlide && (
-        <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
+        <TouchableOpacity style={styles.skipButton} onPress={finish}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       )}
@@ -104,22 +139,19 @@ export default function OnboardingScreen() {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         style={styles.flatList}
+        scrollEnabled={false}
       />
 
       <View style={styles.footer}>
-        {/* Dot indicators */}
         <View style={styles.dots}>
           {slides.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, i === currentIndex && styles.dotActive]}
-            />
+            <View key={i} style={[styles.dot, i === currentIndex && styles.dotActive]} />
           ))}
         </View>
 
         {isLastSlide ? (
-          <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
-            <Text style={styles.primaryButtonText}>Check Your First Outfit</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleAllowCamera}>
+            <Text style={styles.primaryButtonText}>Allow Camera Access</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.secondaryButton} onPress={handleNext}>
@@ -178,12 +210,31 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.primary,
   },
+  scorePreview: {
+    alignItems: 'flex-start',
+    marginBottom: Spacing.lg,
+  },
+  scoreCaption: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  cameraIconWrap: {
+    marginBottom: Spacing.lg,
+  },
   headline: {
     fontFamily: Fonts.serif,
     fontSize: 36,
     color: Colors.text,
     lineHeight: 44,
     marginBottom: Spacing.lg,
+  },
+  headlineSmall: {
+    fontSize: 28,
+    lineHeight: 36,
   },
   body: {
     fontFamily: Fonts.sans,
