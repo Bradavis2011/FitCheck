@@ -9,6 +9,8 @@ import { checkMilestones } from './milestone-message.service.js';
 import { getActivePrompt, recordPromptResult } from './recursive-improvement.service.js';
 import { assemblePrompt, getLatestLearningMemory } from './prompt-assembly.service.js';
 import { recordUserTokens } from './token-budget.service.js';
+import { getWeatherForCity } from './weather.service.js';
+import { getFeedbackReframeContext, recordCategoriesAdvised, inferAndRecordActedOn, type FeedbackCategory } from './feedback-reframe.service.js';
 
 // In-memory AI counters (reset on server restart; used by metrics.service for digest)
 let _aiSuccessCount = 0;
@@ -318,6 +320,10 @@ Return ONLY valid JSON matching this exact structure:
     "<punchy plain string — specific issue, no hedging>",
     "<punchy plain string — specific issue, no hedging>"
   ],
+  "couldImproveCategories": [
+    "<category tag for couldImprove[0]: fit|color|proportion|formality|style_era|accessories|other>",
+    "<category tag for couldImprove[1]>"
+  ],
   "takeItFurther": [
     "<punchy plain string — one elevation move, concrete and actionable>"
   ],
@@ -394,6 +400,10 @@ export const RESPONSE_SCHEMA = {
     couldImprove: {
       type: SchemaType.ARRAY,
       items: { type: SchemaType.STRING }
+    },
+    couldImproveCategories: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING } // parallel to couldImprove: "fit"|"color"|"proportion"|"formality"|"style_era"|"accessories"|"other"
     },
     takeItFurther: {
       type: SchemaType.ARRAY,
@@ -727,6 +737,8 @@ export function buildUserPrompt(
     userCalibrationContext?: string | null;
     ratingCalibration?: string | null;
     revisionContext?: string | null;
+    weatherContext?: string | null;        // From weather.service.ts
+    reframeContext?: string | null;        // From feedback-reframe.service.ts
   }
 ): string {
   const parts = [
@@ -809,6 +821,25 @@ export function buildUserPrompt(
         parts.push(`- Comfort priority: ${prefs.comfortPriority}/10 (balance style vs comfort)`);
       }
     }
+
+    // Extended style preferences (Phase 1 — agentic platform)
+    const extUser = user as any;
+    if (extUser.honestyLevel) {
+      const honestyMap: Record<string, string> = {
+        brutal: 'Full editorial honesty — no softening, no diplomatic hedging',
+        balanced: 'Honest but constructive — balanced feedback',
+        gentle: 'Encouraging tone — focus on positives, soften improvements',
+      };
+      parts.push(`- Feedback tone preference: ${honestyMap[extUser.honestyLevel] ?? extUser.honestyLevel}`);
+    }
+
+    if (extUser.styleNoGos?.length > 0) {
+      parts.push(`- Style no-gos (never suggest these): ${extUser.styleNoGos.join(', ')}`);
+    }
+
+    if (extUser.styleDirection) {
+      parts.push(`- Style direction: ${extUser.styleDirection} (align suggestions with this intention)`);
+    }
   }
 
   // Add feedback history insights (weighted by ratings)
@@ -842,6 +873,16 @@ export function buildUserPrompt(
   // Self-correction based on user's rating history
   if (options?.ratingCalibration) {
     parts.push('', `Feedback quality note: ${options.ratingCalibration}`);
+  }
+
+  // Weather context — affects layering, fabric, and footwear advice
+  if (options?.weatherContext) {
+    parts.push('', `Weather context: ${options.weatherContext}`);
+  }
+
+  // Feedback reframe instructions — overrides default advice for stuck categories
+  if (options?.reframeContext) {
+    parts.push('', options.reframeContext);
   }
 
   // Revision context — injected last so it's salient
@@ -1067,6 +1108,8 @@ export async function analyzeOutfit(
   let ratingCalibration: string | null = null;
   let trendContext: string | null = null;
   let revisionContext: string | null = null;
+  let weatherContext: string | null = null;
+  let reframeContext: string | null = null;
 
   // Load original advice for revision prompt injection
   if (revisedFromId) {
@@ -1133,6 +1176,25 @@ export async function analyzeOutfit(
         getRatingCalibration(outfitCheck.userId),
         getLatestFashionTrendText(),
       ]);
+
+      // Weather context (requires city on user profile)
+      const extUser = user as any;
+      if (extUser?.city) {
+        try {
+          const weather = await getWeatherForCity(extUser.city);
+          if (weather) weatherContext = weather.promptText;
+        } catch (err) {
+          console.warn('[AI] Weather context fetch failed (non-fatal):', err);
+        }
+      }
+
+      // Feedback reframe context (detect stuck categories)
+      try {
+        const reframe = await getFeedbackReframeContext(outfitCheck.userId);
+        if (reframe.promptAddition) reframeContext = reframe.promptAddition;
+      } catch (err) {
+        console.warn('[AI] Reframe context fetch failed (non-fatal):', err);
+      }
     }
   } catch (error) {
     console.error('Failed to load personalization context:', error);
@@ -1213,6 +1275,8 @@ export async function analyzeOutfit(
           userCalibrationContext,
           ratingCalibration,
           revisionContext,
+          weatherContext,
+          reframeContext,
         }),
         imagePart,
       ]);
@@ -1342,6 +1406,41 @@ export async function analyzeOutfit(
             );
           } catch (syncError) {
             console.error('[AI] Wardrobe sync failed (non-fatal):', syncError);
+          }
+
+          // Track feedback categories advised (Feedback Reframe Engine)
+          // couldImproveCategories is a parallel array to couldImprove, one tag per bullet
+          const fb = feedback as any;
+          const advisedCategories: FeedbackCategory[] = Array.isArray(fb.couldImproveCategories)
+            ? (fb.couldImproveCategories as string[]).filter((c: string) =>
+                ['fit','color','proportion','formality','style_era','accessories','other'].includes(c)
+              ) as FeedbackCategory[]
+            : [];
+
+          if (advisedCategories.length > 0) {
+            recordCategoriesAdvised(outfit.userId, advisedCategories).catch(() => {});
+          }
+
+          // Infer acted-on categories by comparing to prior StyleDNA (non-fatal)
+          try {
+            const prevDNA = await prisma.styleDNA.findFirst({
+              where: { userId: outfit.userId, outfitCheckId: { not: outfitCheckId } },
+              orderBy: { createdAt: 'desc' },
+              select: { fitScore: true, colorScore: true, proportionScore: true, coherenceScore: true, outfitCheck: { select: { aiScore: true } } },
+            });
+
+            if (prevDNA) {
+              const prevOutfitScore = (prevDNA.outfitCheck as any)?.aiScore ?? null;
+              await inferAndRecordActedOn(
+                outfit.userId,
+                { fitScore: prevDNA.fitScore, colorScore: prevDNA.colorScore, proportionScore: prevDNA.proportionScore, coherenceScore: prevDNA.coherenceScore },
+                { fitScore: feedback.styleDNA.fitScore ?? null, colorScore: feedback.styleDNA.colorScore ?? null, proportionScore: feedback.styleDNA.proportionScore ?? null, coherenceScore: feedback.styleDNA.coherenceScore ?? null },
+                prevOutfitScore,
+                feedback.overallScore,
+              );
+            }
+          } catch (reframeErr) {
+            // Non-fatal
           }
         } catch (styleDNAError) {
           console.error('Failed to save Style DNA:', styleDNAError);

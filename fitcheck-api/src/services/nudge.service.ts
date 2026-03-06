@@ -17,6 +17,8 @@
 import { prisma } from '../utils/prisma.js';
 import { pushService } from './push.service.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { getWeatherForCity, getWeatherNudgeCopy } from './weather.service.js';
+import { canSendRelationshipNotification } from './event-followup.service.js';
 
 // ─── Variant Selection ────────────────────────────────────────────────────────
 
@@ -499,5 +501,211 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
     await checkNudgeConversions();
   } catch (err) {
     console.error('[Nudger] Outcome tracking failed:', err);
+  }
+}
+
+// ─── Weather-Aware Morning Nudge (Plus/Pro only) ───────────────────────────────
+// Runs daily at 7am UTC via scheduler.
+// Sends a weather-contextual push to Plus/Pro users who have a city set.
+// Only sends if the weather is notable (not generic mild day).
+
+export async function runWeatherAwareNudge(): Promise<void> {
+  try {
+    const plusUsers = await prisma.user.findMany({
+      where: {
+        tier: { in: ['plus', 'pro'] },
+        city: { not: null },
+      },
+      select: { id: true, city: true },
+    });
+
+    let sent = 0;
+
+    for (const user of plusUsers) {
+      if (!user.city) continue;
+
+      try {
+        if (await hasReceivedNudgeToday(user.id)) continue;
+
+        const weather = await getWeatherForCity(user.city);
+        if (!weather) continue;
+
+        // Only nudge on notable weather (skip generic mild days)
+        const isNotable = weather.condition === 'rainy' ||
+          weather.condition === 'snowy' ||
+          weather.feelsLike === 'warm' ||
+          weather.feelsLike === 'cold' ||
+          weather.feelsLike === 'freezing';
+        if (!isNotable) continue;
+
+        const { prefix, context } = getWeatherNudgeCopy(weather);
+
+        await sendNudge(
+          user.id,
+          prefix,
+          context,
+          { type: 'weather_nudge', condition: weather.condition, city: user.city },
+        );
+        sent++;
+      } catch (err) {
+        // Per-user errors are non-fatal
+      }
+    }
+
+    console.log(`[WeatherNudge] Sent ${sent} weather-aware nudges`);
+  } catch (err) {
+    console.error('[WeatherNudge] runWeatherAwareNudge failed:', err);
+  }
+}
+
+// ─── Wardrobe-Driven Suggestion Nudge (Plus/Pro only) ─────────────────────────
+// Finds items not worn in 60+ days that previously scored 8+ and nudges user.
+// Runs daily at 8am UTC via scheduler.
+
+export async function runWardrobeSuggestionNudge(): Promise<void> {
+  try {
+    const daysAgo60 = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+    // Find wardrobe items: not worn in 60 days, previously in a high-scoring outfit
+    const stalePieces = await prisma.wardrobeItem.findMany({
+      where: {
+        lastWorn: { lt: daysAgo60 },
+        user: { tier: { in: ['plus', 'pro'] } },
+        timesWorn: { gte: 1 },
+        outfitLinks: {
+          some: {
+            outfitCheck: { aiScore: { gte: 7.5 } },
+          },
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        normalizedName: true,
+        name: true,
+        lastWorn: true,
+        outfitLinks: {
+          take: 1,
+          orderBy: { outfitCheck: { aiScore: 'desc' } },
+          select: { outfitCheck: { select: { aiScore: true } } },
+        },
+      },
+      take: 200,
+    });
+
+    // Group by userId — one nudge per user per day
+    const byUser = new Map<string, typeof stalePieces[0]>();
+    for (const piece of stalePieces) {
+      if (!byUser.has(piece.userId)) byUser.set(piece.userId, piece);
+    }
+
+    let sent = 0;
+
+    for (const [userId, piece] of byUser) {
+      try {
+        if (await hasReceivedNudgeToday(userId)) continue;
+
+        const pieceName = piece.normalizedName ?? piece.name;
+        const score = (piece.outfitLinks[0]?.outfitCheck as any)?.aiScore ?? 8;
+        const daysSince = Math.round((Date.now() - new Date(piece.lastWorn!).getTime()) / (24 * 60 * 60 * 1000));
+
+        await sendNudge(
+          userId,
+          `Your ${pieceName} scored ${score.toFixed(1)} — wear it again?`,
+          `You haven't worn it in ${daysSince} days. It's a strong piece in your archive.`,
+          { type: 'wardrobe_suggestion', wardrobeItemId: piece.id },
+        );
+        sent++;
+      } catch (err) {
+        // Per-user errors are non-fatal
+      }
+    }
+
+    console.log(`[WardrobeNudge] Sent ${sent} wardrobe suggestion nudges`);
+  } catch (err) {
+    console.error('[WardrobeNudge] runWardrobeSuggestionNudge failed:', err);
+  }
+}
+
+// ─── Trend-Matched Nudge (Plus/Pro only) ──────────────────────────────────────
+// Cross-references latest FashionTrend data with user wardrobe.
+// "Oversized blazers are trending — you own one that scored 8.1."
+// Runs Fridays at 9am UTC via scheduler.
+
+export async function runTrendMatchedNudge(): Promise<void> {
+  try {
+    const latestTrend = await prisma.fashionTrend.findFirst({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!latestTrend) {
+      console.log('[TrendNudge] No fashion trend data available');
+      return;
+    }
+
+    const trendingPieces = latestTrend.trendingStyles ?? [];
+    const keyPieces = latestTrend.keyPieces ?? [];
+    const allTrending = [...trendingPieces, ...keyPieces];
+
+    if (allTrending.length === 0) return;
+
+    const plusUsers = await prisma.user.findMany({
+      where: { tier: { in: ['plus', 'pro'] } },
+      select: { id: true },
+    });
+
+    let sent = 0;
+
+    for (const { id: userId } of plusUsers) {
+      try {
+        if (await hasReceivedNudgeToday(userId)) continue;
+
+        // Find a wardrobe item that matches a trending piece + scored 7.5+
+        for (const trend of allTrending) {
+          const trendWords = trend.toLowerCase().split(/\s+/);
+
+          const match = await prisma.wardrobeItem.findFirst({
+            where: {
+              userId,
+              OR: trendWords.map(word => ({
+                normalizedName: { contains: word, mode: 'insensitive' as any },
+              })),
+              outfitLinks: {
+                some: { outfitCheck: { aiScore: { gte: 7.5 } } },
+              },
+            },
+            select: {
+              normalizedName: true,
+              name: true,
+              outfitLinks: {
+                take: 1,
+                orderBy: { outfitCheck: { aiScore: 'desc' } },
+                select: { outfitCheck: { select: { aiScore: true } } },
+              },
+            },
+          });
+
+          if (match) {
+            const pieceName = match.normalizedName ?? match.name;
+            const score = (match.outfitLinks[0]?.outfitCheck as any)?.aiScore ?? 8;
+
+            await sendNudge(
+              userId,
+              `${trend} is trending right now`,
+              `You own a ${pieceName} that scored ${score.toFixed(1)}. It's your moment.`,
+              { type: 'trend_matched_nudge', trend },
+            );
+            sent++;
+            break; // one nudge per user
+          }
+        }
+      } catch (err) {
+        // Per-user errors are non-fatal
+      }
+    }
+
+    console.log(`[TrendNudge] Sent ${sent} trend-matched nudges`);
+  } catch (err) {
+    console.error('[TrendNudge] runTrendMatchedNudge failed:', err);
   }
 }

@@ -2,17 +2,20 @@
  * Product Sources Service
  *
  * Provides a unified product search interface across multiple affiliate APIs.
- * Sources are tried in priority order; first one with results wins.
+ * Sources run in parallel; results are merged (CJ first, then Skimlinks).
  *
  * Priority:
- *   1. ShopStyle Collective API  — fashion-first, free, sign up at shopstylecollective.com
- *   2. Skimlinks Product API     — pending approval (SKIMLINKS_PUBLISHER_ID set but no product API yet)
- *   3. Static catalog fallback   — affiliate-catalog.ts (manual entries)
+ *   1. CJ Affiliate (Commission Junction) — GraphQL product catalog
+ *      Sign up at cj.com as Publisher. Apply to Nordstrom, ASOS, Nike, Macy's, Gap, H&M.
+ *      Env: CJ_API_KEY + CJ_WEBSITE_ID
+ *   2. Skimlinks Product API — set SKIMLINKS_PRODUCT_API_KEY when approved
+ *   3. Static catalog fallback — affiliate-catalog.ts (manual entries)
  *
- * Activation:
- *   - ShopStyle: set SHOPSTYLE_API_KEY → auto-activates
- *   - Skimlinks Product API: set SKIMLINKS_PRODUCT_API_KEY when approved → auto-activates
- *   - Amazon PA-API: set AMAZON_PA_ACCESS_KEY + AMAZON_PA_SECRET_KEY + AMAZON_PA_PARTNER_TAG
+ * DO NOT use ShopStyle/Collective Voice — permanently shutting down.
+ * DO NOT use LTK, ShopMy — no public API.
+ * DO NOT use Rakuten Advertising — rejected our application.
+ * DO NOT use Amazon PA API — requires 10 qualifying sales/trailing 30 days to get credentials.
+ *   Add searchAmazon() once that threshold is hit. Slot is reserved in SourceProduct.source.
  */
 
 export interface SourceProduct {
@@ -25,7 +28,7 @@ export interface SourceProduct {
   imageUrl: string;
   affiliateUrl: string;         // Ready-to-use affiliate URL (pre-wrapped)
   originalUrl: string;          // Original merchant URL
-  source: 'shopstyle' | 'cj' | 'skimlinks' | 'amazon' | 'catalog';
+  source: 'cj' | 'skimlinks' | 'amazon' | 'catalog';
 }
 
 // ─── Search query builder ─────────────────────────────────────────────────────
@@ -101,87 +104,6 @@ export function buildSearchQueries(ctx: SearchContext): string[] {
   if (!hasShoes) queries.push(`${topArchetype} shoes ${topOccasion}`);
 
   return queries.slice(0, 3); // max 3 queries to keep latency low
-}
-
-// ─── ShopStyle Collective API ─────────────────────────────────────────────────
-// Sign up: https://shopstylecollective.com
-// Docs:    https://api.shopstyle.com/api/v2/docs
-// Free plan includes product search, images, prices, auto-affiliate links
-
-const SHOPSTYLE_BASE = 'https://api.shopstyle.com/api/v2';
-
-interface ShopStyleProduct {
-  id: string;
-  name: string;
-  brand?: { name: string };
-  price: number;
-  salePrice?: number;
-  currency?: string;
-  image?: { sizes?: { IPhone?: { url: string }; Best?: { url: string } } };
-  clickUrl: string;     // ShopStyle's pre-built affiliate URL
-  categories?: Array<{ id: string; name: string }>;
-}
-
-interface ShopStyleResponse {
-  products?: ShopStyleProduct[];
-}
-
-export async function searchShopStyle(
-  queries: string[],
-  priceRange: PriceRange,
-  limit = 8,
-): Promise<SourceProduct[]> {
-  const apiKey = process.env.SHOPSTYLE_API_KEY;
-  if (!apiKey) return [];
-
-  const results: SourceProduct[] = [];
-
-  for (const query of queries) {
-    if (results.length >= limit) break;
-
-    try {
-      const params = new URLSearchParams({
-        pid: apiKey,
-        q: query,
-        min: priceRange.min.toString(),
-        max: priceRange.max.toString(),
-        limit: Math.min(4, limit - results.length).toString(),
-        format: 'json',
-      });
-
-      const res = await fetch(`${SHOPSTYLE_BASE}/products?${params}`, {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(5000),
-      });
-
-      if (!res.ok) continue;
-
-      const data = await res.json() as ShopStyleResponse;
-      const products = data.products ?? [];
-
-      for (const p of products) {
-        const imageUrl = p.image?.sizes?.IPhone?.url ?? p.image?.sizes?.Best?.url ?? '';
-        if (!imageUrl || !p.clickUrl) continue;
-
-        results.push({
-          id: `shopstyle-${p.id}`,
-          title: p.name,
-          brand: p.brand?.name ?? 'Unknown',
-          category: p.categories?.[0]?.name ?? 'fashion',
-          price: p.salePrice ?? p.price,
-          currency: p.currency ?? 'USD',
-          imageUrl,
-          affiliateUrl: p.clickUrl,   // ShopStyle handles affiliate tracking
-          originalUrl: p.clickUrl,
-          source: 'shopstyle',
-        });
-      }
-    } catch (err) {
-      console.warn('[ProductSources] ShopStyle query failed:', err);
-    }
-  }
-
-  return results;
 }
 
 // ─── Skimlinks Product API ────────────────────────────────────────────────────
@@ -351,18 +273,17 @@ export async function fetchProducts(
   const priceRange = budgetToPriceRange(ctx.budgetLevel);
   const queries = buildSearchQueries(ctx);
 
-  // All sources run in parallel — first results win after dedup
-  const [shopStyleResults, cjResults, skimlinkResults] = await Promise.all([
-    searchShopStyle(queries, priceRange, limit * 2),
+  // All sources run in parallel — CJ primary, Skimlinks secondary
+  const [cjResults, skimlinkResults] = await Promise.all([
     searchCJ(queries, priceRange, limit * 2),
     searchSkimlinks(queries, priceRange, limit * 2),
   ]);
 
-  // Merge priority: ShopStyle → CJ → Skimlinks, deduplicate by title prefix
+  // Merge priority: CJ → Skimlinks, deduplicate by title prefix
   const merged: SourceProduct[] = [];
   const seenTitles = new Set<string>();
 
-  for (const product of [...shopStyleResults, ...cjResults, ...skimlinkResults]) {
+  for (const product of [...cjResults, ...skimlinkResults]) {
     const titleKey = product.title.toLowerCase().replace(/\s+/g, '').slice(0, 20);
     if (seenTitles.has(titleKey)) continue;
     seenTitles.add(titleKey);

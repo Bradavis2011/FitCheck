@@ -42,6 +42,15 @@ model User {
   dailyChecksUsed    Int      @default(0) @map("daily_checks_used")
   dailyChecksResetAt DateTime @default(now()) @map("daily_checks_reset_at") @db.Date
 
+  // Location + occasion preferences (set during onboarding or profile)
+  city             String?  @map("city") // Used for weather-aware nudges (no GPS required)
+  primaryOccasions String[] @default([]) @map("primary_occasions") // e.g. ["work", "casual", "date night"]
+
+  // Style preferences (extended — honesty, no-go zones, direction)
+  honestyLevel   String? @map("honesty_level")  // "brutal" | "balanced" | "gentle"
+  styleNoGos     String[] @default([]) @map("style_no_gos") // e.g. ["crop tops", "formal wear"]
+  styleDirection String? @map("style_direction") // free text: "I'm trying to dress more minimally"
+
   // Nudge personalization
   preferredNudgeHour Int? @map("preferred_nudge_hour") // UTC hour with most outfit check activity (0-23)
 
@@ -100,6 +109,7 @@ model User {
   userFeedback           UserFeedback[]
   styleArticles          StyleArticle[]
   affiliateImpressions   AffiliateImpression[]
+  feedbackPatterns       UserFeedbackPattern[]
 
   @@index([tier])
   @@index([emailOptOut])
@@ -1443,4 +1453,24 @@ model AffiliateImpression {
   @@index([placement, createdAt])
   @@index([createdAt])
   @@map("affiliate_impressions")
+}
+
+// ─── Feedback Reframe Engine ──────────────────────────────────────────────────
+// Tracks per-user per-category feedback engagement to detect "stuck" patterns.
+// When a category has low acted-on rate (< 20% after 5+ instances), AI reframes advice.
+
+model UserFeedbackPattern {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    String   // "fit" | "color" | "proportion" | "formality" | "style_era" | "accessories" | "other"
+  timesAdvised Int     @default(0) @map("times_advised")
+  timesActedOn Int     @default(0) @map("times_acted_on")  // did StyleDNA improve in this dimension next check?
+  lastAdvisedAt DateTime? @map("last_advised_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, category])
+  @@index([userId])
+  @@map("user_feedback_patterns")
 }

@@ -1,10 +1,10 @@
 /**
  * Brand Voice Validator
  *
- * Ensures AI responses match the Or This? brand voice:
- * - Decisive, Warm, Confident, Real
- * - Avoids judgmental or negative language
- * - Maintains supportive and encouraging tone
+ * Ensures AI responses match the Or This? brand voice v3.0:
+ * - Decisive, Direct, Confident, Discerning
+ * - SoHo stylist who charges $400/hour — not a supportive friend
+ * - The score IS the verdict. Delivered without apology or cushioning.
  */
 
 export interface BrandVoiceValidation {
@@ -15,24 +15,28 @@ export interface BrandVoiceValidation {
 }
 
 export interface BrandVoiceIssue {
-  type: 'prohibited_phrase' | 'negative_tone' | 'lack_of_specificity' | 'missing_encouragement' | 'too_hedging';
+  type: 'prohibited_phrase' | 'empty_validation' | 'lack_of_specificity' | 'too_hedging' | 'negative_tone';
   severity: 'critical' | 'warning' | 'minor';
   message: string;
   suggestion?: string;
 }
 
-// Phrases that violate Or This? brand voice
+// Phrases that violate Or This? brand voice v3.0
 const PROHIBITED_PHRASES = [
-  // Judgmental
-  { phrase: 'not flattering', severity: 'critical' as const },
-  { phrase: 'unflattering', severity: 'critical' as const },
-  { phrase: 'wrong', severity: 'critical' as const },
-  { phrase: 'bad choice', severity: 'critical' as const },
-  { phrase: 'mistake', severity: 'critical' as const },
-  { phrase: 'doesn\'t work', severity: 'warning' as const },
-  { phrase: 'won\'t work', severity: 'warning' as const },
+  // Empty validation — positivity without specificity
+  { phrase: 'you\'ve got this', severity: 'critical' as const },
+  { phrase: 'chef\'s kiss', severity: 'critical' as const },
+  { phrase: 'nailed it', severity: 'critical' as const },
+  { phrase: 'trust your instincts', severity: 'critical' as const },
+  { phrase: 'trust your', severity: 'warning' as const },
+  { phrase: 'gorgeous', severity: 'warning' as const },
+  { phrase: 'stunning', severity: 'warning' as const },
+  { phrase: 'almost there', severity: 'warning' as const },
+  { phrase: 'you look amazing', severity: 'critical' as const },
+  { phrase: 'you look great', severity: 'warning' as const },
+  { phrase: 'cute!!!', severity: 'critical' as const },
 
-  // Undermining confidence
+  // Undermining confidence / hedging decisions
   { phrase: 'should probably change', severity: 'critical' as const },
   { phrase: 'you should change', severity: 'critical' as const },
   { phrase: 'are you sure', severity: 'critical' as const },
@@ -45,28 +49,28 @@ const PROHIBITED_PHRASES = [
   { phrase: 'conceal', severity: 'warning' as const },
   { phrase: 'cover up', severity: 'warning' as const },
 
-  // Overly clinical/cold
+  // Overly clinical/cold without direction
   { phrase: 'suboptimal', severity: 'warning' as const },
   { phrase: 'adequate', severity: 'warning' as const },
-  { phrase: 'acceptable', severity: 'minor' as const },
 ];
 
-// Phrases that indicate good brand voice
+// Phrases that indicate good brand voice v3.0 — specific, declarative, editorial
 const ENCOURAGED_PHRASES = [
-  'you\'ve got this',
-  'gorgeous',
-  'stunning',
-  'beautiful',
-  'love',
-  'perfect',
-  'nailed it',
-  'confident',
-  'trust your',
-  'chef\'s kiss',
-  'game changer',
-  'show-stopping',
-  'absolutely',
-  'exactly right',
+  'proportions carry',
+  'clean choice',
+  'strong color story',
+  'not there yet',
+  'the silhouette',
+  'simplify by',
+  'reads sharper',
+  'the layering',
+  'both work',
+  'the hem',
+  'color story',
+  'the proportions',
+  'a look that',
+  'the occasion',
+  'carrying this',
 ];
 
 // Hedging words (decisive voice avoids these)
@@ -84,7 +88,7 @@ const HEDGING_WORDS = [
 
 export class BrandVoiceValidator {
   /**
-   * Validates feedback text against Or This? brand voice guidelines
+   * Validates feedback text against Or This? brand voice guidelines v3.0
    */
   validate(feedback: string): BrandVoiceValidation {
     const issues: BrandVoiceIssue[] = [];
@@ -102,25 +106,18 @@ export class BrandVoiceValidator {
     issues.push(...hedgingIssues);
     score -= hedgingIssues.length * 10;
 
-    // Check for encouraging language
-    const lackOfEncouragement = this.checkEncouragement(feedback);
-    if (lackOfEncouragement) {
-      issues.push(lackOfEncouragement);
-      score -= 15;
-    }
-
-    // Check for specificity
-    const specificityIssue = this.checkSpecificity(feedback);
-    if (specificityIssue) {
-      issues.push(specificityIssue);
+    // Check for editorial/specific language
+    const lackOfSpecificity = this.checkSpecificity(feedback);
+    if (lackOfSpecificity) {
+      issues.push(lackOfSpecificity);
       score -= 10;
     }
 
-    // Check tone/sentiment
-    const toneIssue = this.checkTone(feedback);
-    if (toneIssue) {
-      issues.push(toneIssue);
-      score -= 20;
+    // Check for empty validation (no encouraged phrases)
+    const emptyValidation = this.checkEmptyValidation(feedback);
+    if (emptyValidation) {
+      issues.push(emptyValidation);
+      score -= 15;
     }
 
     score = Math.max(0, Math.min(100, score));
@@ -146,8 +143,8 @@ export class BrandVoiceValidator {
           severity,
           message: `Contains prohibited phrase: "${phrase}"`,
           suggestion: severity === 'critical'
-            ? 'Remove this phrase and reframe constructively'
-            : 'Consider more positive phrasing',
+            ? 'Replace with specific editorial observation — name the garment, the proportion, the color relationship'
+            : 'Be more specific and declarative',
         });
       }
     }
@@ -173,25 +170,25 @@ export class BrandVoiceValidator {
         type: 'too_hedging',
         severity: 'warning',
         message: `Too many hedging words (${hedgeCount} found)`,
-        suggestion: 'Be more decisive—state recommendations clearly and confidently',
+        suggestion: 'State the verdict. "The proportions compete" not "might want to consider the proportions"',
       });
     }
 
     return issues;
   }
 
-  private checkEncouragement(text: string): BrandVoiceIssue | null {
+  private checkEmptyValidation(text: string): BrandVoiceIssue | null {
     const lowerText = text.toLowerCase();
-    const hasEncouragement = ENCOURAGED_PHRASES.some(phrase =>
+    const hasEditorialLanguage = ENCOURAGED_PHRASES.some(phrase =>
       lowerText.includes(phrase)
     );
 
-    if (!hasEncouragement) {
+    if (!hasEditorialLanguage) {
       return {
-        type: 'missing_encouragement',
+        type: 'empty_validation',
         severity: 'warning',
-        message: 'Lacks encouraging/supportive language',
-        suggestion: 'Add warm, supportive phrases like "you\'ve got this!", "gorgeous", or "stunning"',
+        message: 'Lacks specific editorial observations',
+        suggestion: 'Name the specific element: "The proportions carry this." "Strong color story." "The layering is competing."',
       };
     }
 
@@ -212,7 +209,7 @@ export class BrandVoiceValidator {
     // Good feedback should have specific details (colors, silhouettes, proportions)
     const specificTerms = [
       'silhouette', 'proportion', 'color', 'fit', 'waist', 'hem',
-      'neckline', 'sleeve', 'fabric', 'texture', 'pattern',
+      'neckline', 'sleeve', 'fabric', 'texture', 'pattern', 'layering',
     ];
 
     const lowerText = text.toLowerCase();
@@ -223,45 +220,7 @@ export class BrandVoiceValidator {
         type: 'lack_of_specificity',
         severity: 'minor',
         message: 'Feedback could be more specific',
-        suggestion: 'Instead of "looks good", say WHY it looks good (e.g., "the A-line silhouette balances your proportions perfectly")',
-      };
-    }
-
-    return null;
-  }
-
-  private checkTone(text: string): BrandVoiceIssue | null {
-    // Simple sentiment check: count positive vs. negative words
-    const positiveWords = [
-      'beautiful', 'gorgeous', 'stunning', 'perfect', 'great', 'excellent',
-      'love', 'amazing', 'fantastic', 'wonderful', 'fabulous', 'chic',
-      'elegant', 'polished', 'flattering', 'confident',
-    ];
-
-    const negativeWords = [
-      'avoid', 'problem', 'issue', 'concern', 'wrong', 'bad',
-      'poor', 'terrible', 'awful', 'harsh', 'unflattering',
-    ];
-
-    const positiveCount = positiveWords.reduce((count, word) => {
-      const regex = new RegExp(`\\b${word}`, 'gi');
-      const matches = text.match(regex);
-      return count + (matches ? matches.length : 0);
-    }, 0);
-
-    const negativeCount = negativeWords.reduce((count, word) => {
-      const regex = new RegExp(`\\b${word}`, 'gi');
-      const matches = text.match(regex);
-      return count + (matches ? matches.length : 0);
-    }, 0);
-
-    // Ratio should be at least 2:1 positive:negative
-    if (negativeCount > 0 && positiveCount / negativeCount < 2) {
-      return {
-        type: 'negative_tone',
-        severity: 'warning',
-        message: `Tone may be too negative (${positiveCount} positive vs ${negativeCount} negative words)`,
-        suggestion: 'Lead with positives and frame suggestions constructively. Always more "what\'s working" than "consider".',
+        suggestion: 'Instead of "looks good", say WHY: "the A-line silhouette is doing the work here" or "the color story is clean"',
       };
     }
 
@@ -272,28 +231,24 @@ export class BrandVoiceValidator {
     const suggestions: string[] = [];
 
     if (issues.some(i => i.type === 'prohibited_phrase')) {
-      suggestions.push('Remove judgmental phrases and reframe feedback constructively');
+      suggestions.push('Remove empty validation phrases. Replace with editorial observation: name the garment, the proportion, the color relationship.');
     }
 
     if (issues.some(i => i.type === 'too_hedging')) {
-      suggestions.push('Be more decisive—replace "maybe" and "you could" with clear recommendations');
+      suggestions.push('Deliver the verdict. "The proportions compete — simplify by one piece." Not "you might want to consider."');
     }
 
-    if (issues.some(i => i.type === 'missing_encouragement')) {
-      suggestions.push('Add warm, supportive language: "You\'ve got this!", "Gorgeous!", "Stunning!"');
+    if (issues.some(i => i.type === 'empty_validation')) {
+      suggestions.push('Lead with what IS: "Strong color story." "The proportions carry this." "Not there yet." Specific. Declarative. Brief.');
     }
 
     if (issues.some(i => i.type === 'lack_of_specificity')) {
-      suggestions.push('Be specific—explain WHY something works (silhouette, color, proportions)');
+      suggestions.push('Be specific — explain WHY something works or doesn\'t (silhouette, color, proportions, the specific garment)');
     }
 
-    if (issues.some(i => i.type === 'negative_tone')) {
-      suggestions.push('Lead with positives. The "what\'s working" section should be longer than "consider"');
-    }
-
-    // General suggestions
+    // General v3.0 reminder
     if (issues.length > 0) {
-      suggestions.push('Remember: Decisive, Warm, Confident, Real');
+      suggestions.push('Brand voice v3.0: Decisive. Direct. Confident. Discerning. SoHo stylist, not a supportive friend.');
     }
 
     return suggestions;

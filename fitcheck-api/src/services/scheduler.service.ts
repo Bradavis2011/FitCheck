@@ -6,7 +6,7 @@ import { sendDailyDigest, sendWeeklyDigest } from './email-report.service.js';
 import { resetWeeklyPoints, resetMonthlyPoints } from './gamification.service.js';
 import { prisma } from '../utils/prisma.js';
 import { Resend } from 'resend';
-import { runEngagementNudger, measureNudgeMetrics, computePreferredNudgeHours, runPersonalizedNudge } from './nudge.service.js';
+import { runEngagementNudger, measureNudgeMetrics, computePreferredNudgeHours, runPersonalizedNudge, runWeatherAwareNudge, runWardrobeSuggestionNudge, runTrendMatchedNudge } from './nudge.service.js';
 import { runOpsLearning, pollTwitterEngagement } from './ops-learning.service.js';
 // content-calendar runContentCalendar replaced by sendWeeklySocialDigest — getTrendData still used by other services
 import { runGrowthDashboard } from './growth-dashboard.service.js';
@@ -42,7 +42,7 @@ import { runOnboardingOptimizer } from './onboarding-optimizer.service.js';
 import { runCompetitiveIntel } from './competitive-intel.service.js';
 import { runE2eTests } from './e2e-test.service.js';
 import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
-import { runEventFollowUp, runFollowUpEmailFallback } from './event-followup.service.js';
+import { runEventFollowUp, runFollowUpEmailFallback, runPreEventReminder } from './event-followup.service.js';
 import { runMilestoneScanner } from './milestone-message.service.js';
 import { runStyleNarrativeAgent } from './style-narrative.service.js';
 import { checkAndTriggerImprovement, runCohortImprovementCycle } from './recursive-improvement.service.js';
@@ -532,9 +532,31 @@ export function initializeScheduler(): void {
     guardedRun('event-followup', '', runEventFollowUp),
   { timezone: 'UTC' });
 
+  // Pre-event reminder: every 30 minutes (only fires in 6-11pm UTC window)
+  cron.schedule('*/30 * * * *', () =>
+    guardedRun('pre-event-reminder', '', runPreEventReminder),
+  { timezone: 'UTC' });
+
   // Follow-up email fallback: every 6 hours
   cron.schedule('0 */6 * * *', () =>
     guardedRun('event-followup', '📧 [Scheduler] Running follow-up email fallback...', runFollowUpEmailFallback),
+  { timezone: 'UTC' });
+
+  // ── Proactive Plus Outreach (weather, wardrobe, trends) ──────────────────────
+
+  // Weather-aware morning nudge: daily 7am UTC (Plus/Pro only)
+  cron.schedule('0 7 * * *', () =>
+    guardedRun('weather-nudge', '🌤️ [Scheduler] Running weather-aware nudge...', runWeatherAwareNudge),
+  { timezone: 'UTC' });
+
+  // Wardrobe suggestion nudge: daily 8am UTC (Plus/Pro only)
+  cron.schedule('0 8 * * *', () =>
+    guardedRun('wardrobe-nudge', '👗 [Scheduler] Running wardrobe suggestion nudge...', runWardrobeSuggestionNudge),
+  { timezone: 'UTC' });
+
+  // Trend-matched nudge: Fridays at 9am UTC (Plus/Pro only)
+  cron.schedule('0 9 * * 5', () =>
+    guardedRun('trend-nudge', '✨ [Scheduler] Running trend-matched nudge...', runTrendMatchedNudge),
   { timezone: 'UTC' });
 
   // Milestone scanner: daily 3pm UTC

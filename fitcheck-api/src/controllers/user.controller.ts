@@ -26,6 +26,12 @@ const UpdateProfileSchema = z.object({
     visibility: z.enum(['all', 'followers', 'trusted']).optional(),
     autoDelete: z.enum(['never', '24h', '7d', '30d']).optional(),
   }).optional(),
+  // Location + style preferences (Phase 1 — agentic platform)
+  city: z.string().max(100).optional(),
+  primaryOccasions: z.array(z.string()).max(5).optional(),
+  honestyLevel: z.enum(['brutal', 'balanced', 'gentle']).optional(),
+  styleNoGos: z.array(z.string()).max(20).optional(),
+  styleDirection: z.string().max(300).optional(),
 });
 
 export async function getProfile(req: AuthenticatedRequest, res: Response) {
@@ -50,6 +56,11 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
         subscriptionExpiresAt: true,
         dailyChecksUsed: true,
         createdAt: true,
+        city: true,
+        primaryOccasions: true,
+        honestyLevel: true,
+        styleNoGos: true,
+        styleDirection: true,
       },
     });
 
@@ -106,6 +117,11 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
         colorSeason: true,
         privacySettings: true,
         tier: true,
+        city: true,
+        primaryOccasions: true,
+        honestyLevel: true,
+        styleNoGos: true,
+        styleDirection: true,
       },
     });
 

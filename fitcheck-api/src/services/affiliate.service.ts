@@ -5,17 +5,24 @@
  * occasion, and outfit score. Supports multiple live product API sources.
  *
  * Source priority (first with results wins):
- *   1. ShopStyle Collective API  — set SHOPSTYLE_API_KEY to activate
+ *   1. CJ Affiliate (primary)    — set CJ_API_KEY + CJ_WEBSITE_ID
  *   2. Skimlinks Product API     — set SKIMLINKS_PRODUCT_API_KEY when approved
  *   3. Static catalog fallback   — affiliate-catalog.ts (manual entries, no placeholder)
  *
  * Affiliate URL wrapping:
- *   - ShopStyle: URLs are already affiliate-tracked (no wrapping needed)
- *   - All others: wrapped via https://go.skimresources.com?id=PUBLISHER_ID&url=...
+ *   - CJ: links already include affiliate tracking (no wrapping needed)
+ *   - Skimlinks/catalog: wrapped via https://go.skimresources.com?id=PUBLISHER_ID&url=...
  *
- * New env vars:
- *   SKIMLINKS_PUBLISHER_ID     — your publisher ID (299508X1787287)
- *   SHOPSTYLE_API_KEY          — from shopstylecollective.com (activate now)
+ * Amazon PA API: requires 10 qualifying sales/trailing 30 days to get credentials.
+ *   Add when that threshold is reached — slot reserved in SourceProduct.source.
+ *
+ * DO NOT use ShopStyle/Collective Voice — permanently shutting down.
+ * DO NOT use Rakuten Advertising — rejected our application.
+ *
+ * Env vars:
+ *   CJ_API_KEY                 — from cj.com Account > API Keys
+ *   CJ_WEBSITE_ID              — your CJ website/property ID
+ *   SKIMLINKS_PUBLISHER_ID     — your Skimlinks publisher ID
  *   SKIMLINKS_PRODUCT_API_KEY  — from Publisher Hub (activate when approved)
  */
 
@@ -203,15 +210,18 @@ function staticToAffiliateProduct(product: CatalogProduct, ctx: UserContext): Af
     price: product.price,
     currency: product.currency,
     imageUrl: product.imageUrl,
-    affiliateUrl: wrapWithSkimlinks(product.merchantUrl),
+    // Use pre-built affiliate URL when provided (e.g. Amazon SiteStripe links —
+    // wrapping those with Skimlinks would strip the associate tag)
+    affiliateUrl: product.affiliateUrl ?? wrapWithSkimlinks(product.merchantUrl),
     relevanceReason,
     source: 'catalog',
   };
 }
 
 function sourceToAffiliateProduct(product: SourceProduct, ctx: UserContext): AffiliateProduct {
-  // ShopStyle handles its own affiliate tracking — don't double-wrap
-  const affiliateUrl = product.source === 'shopstyle'
+  // CJ links already include affiliate tracking — use as-is
+  // Skimlinks/catalog items need manual wrapping via go.skimresources.com
+  const affiliateUrl = product.source === 'cj'
     ? product.affiliateUrl
     : wrapWithSkimlinks(product.originalUrl);
 
@@ -246,7 +256,7 @@ export async function getRecommendations(
   let products: AffiliateProduct[] = [];
 
   // ── Try live API sources first ─────────────────────────────────────────────
-  const hasLiveSource = process.env.SHOPSTYLE_API_KEY || process.env.SKIMLINKS_PRODUCT_API_KEY;
+  const hasLiveSource = process.env.CJ_API_KEY || process.env.SKIMLINKS_PRODUCT_API_KEY;
 
   if (hasLiveSource) {
     const sourceProducts = await fetchProducts(

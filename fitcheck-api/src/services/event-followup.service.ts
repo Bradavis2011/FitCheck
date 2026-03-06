@@ -304,3 +304,71 @@ function buildFollowUpEmail(
 </body>
 </html>`;
 }
+
+// ─── Pre-Event Reminder (evening before event) ────────────────────────────────
+// Runs every 30 minutes (same cadence as runEventFollowUp).
+// Finds EventFollowUp records where the eventDate is TOMORROW and a
+// pre-event push hasn't been sent yet — notifies user to prep their outfit.
+// Field: we check eventDate !== null and reuse the EventFollowUp record's eventDate.
+
+export async function runPreEventReminder(): Promise<void> {
+  try {
+    const now = new Date();
+
+    // Tonight = between 6pm and 11pm UTC
+    const currentHour = now.getUTCHours();
+    if (currentHour < 18 || currentHour >= 23) return; // Only run in the 6-11pm window
+
+    const tomorrowStart = new Date(now);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    tomorrowStart.setUTCHours(0, 0, 0, 0);
+
+    const tomorrowEnd = new Date(tomorrowStart);
+    tomorrowEnd.setUTCDate(tomorrowEnd.getUTCDate() + 1);
+
+    // Find event follow-ups with eventDate = tomorrow, pre-reminder not sent
+    const upcoming = await prisma.eventFollowUp.findMany({
+      where: {
+        eventDate: { gte: tomorrowStart, lt: tomorrowEnd },
+        status: 'pending',
+        // Use metadata JSON to track whether pre-event push was already sent
+        // We store a flag in the pushSentAt + custom status after pre-event send
+        pushSentAt: null, // haven't sent the morning-after push yet either
+      },
+      include: {
+        outfitCheck: { select: { aiScore: true } },
+      },
+      take: 200,
+    });
+
+    let sent = 0;
+
+    for (const followUp of upcoming) {
+      try {
+        if (!(await canSendRelationshipNotification(followUp.userId))) continue;
+
+        const score = (followUp.outfitCheck as any)?.aiScore;
+        const scoreText = score ? ` (scored ${score.toFixed(1)}/10)` : '';
+
+        await createNotification({
+          userId: followUp.userId,
+          type: 'event_followup',
+          title: `Your ${followUp.occasion} is tomorrow`,
+          body: `Your outfit${scoreText} is locked in. Sleep easy — you're ready.`,
+          linkType: 'outfit',
+          linkId: followUp.outfitCheckId,
+        });
+
+        sent++;
+      } catch (err) {
+        // Per-user errors are non-fatal
+      }
+    }
+
+    if (sent > 0) {
+      console.log(`[PreEventReminder] Sent ${sent} pre-event reminders`);
+    }
+  } catch (err) {
+    console.error('[PreEventReminder] runPreEventReminder failed:', err);
+  }
+}

@@ -46,17 +46,21 @@ export async function checkContent(text: string, context: string): Promise<Brand
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
-    const prompt = `You are a brand safety reviewer for "Or This?", an AI-powered outfit feedback app.
+    const prompt = `You are a brand safety reviewer for "Or This?", the first agentic platform for fashion.
 
-Brand voice: Warm, encouraging, supportive, confidence-building. Like a supportive best friend who happens to know fashion.
-Tagline: "Confidence in every choice"
+Brand voice v3.0: A SoHo stylist who charges $400/hour — direct, specific, decisive, and worth every word. Not warm or encouraging. The app delivers verdicts, not validation. Tagline: "Confidence in every choice."
+
+Approved language examples: "The proportions carry this. Clean choice." / "Strong color story. The hem is the one edit." / "Not there yet. The layering is competing — simplify by one piece."
+
+Rejected language examples: "You've got this!" / "chef's kiss" / "gorgeous" / "Trust your instincts" / "Almost there!" / "cute!!!"
 
 Review the following content and flag if it:
 - Uses inappropriate, offensive, or profane language
 - Mentions competitor apps or services by name
 - Uses spam-like language (EXCESSIVE CAPS, multiple exclamation marks!!!, urgent/pushy sales pressure)
 - Uses more than 3 emoji in a row or more than 5 emoji total
-- Is off-brand: judgmental about body types, fashion choices, or people
+- Is off-brand: empty validation without specific observations, gushing positivity without specificity, judgmental about body types
+- Uses prohibited phrases from brand voice v3.0: "you've got this", "chef's kiss", "nailed it", "gorgeous", "stunning", "trust your instincts", "almost there"
 - Makes false or unsubstantiated claims or guarantees
 - Contains personally identifiable information (names, emails, etc.)
 
