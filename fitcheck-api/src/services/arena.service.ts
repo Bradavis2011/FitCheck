@@ -78,7 +78,7 @@ export async function runPiggybackJudge(): Promise<void> {
   // Build batch evaluation prompt
   const batchPrompt = buildBatchJudgePrompt(outfits);
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     batchPrompt,
@@ -430,7 +430,7 @@ Return JSON:
   }
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     batchPrompt,
@@ -484,7 +484,7 @@ Return ONLY JSON array:
   ...
 ]`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     comparePrompt,
@@ -561,7 +561,7 @@ ${JSON.stringify(c.contextSnapshot)}
 Return JSON array:
 [{"id": "<case id>", "scores": {"specificity": <n>, "voiceConsistency": <n>, "actionability": <n>, "styleAlignment": <n>, "occasionFit": <n>}}]`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     regressionPrompt,
@@ -625,7 +625,7 @@ ${cases.map((c, i) => `Case ${i + 1} (ID: ${c.id}): ${JSON.stringify(c.contextSn
 
 Return JSON: [{"id": "<id>", "scores": {"specificity": n, "voiceConsistency": n, "actionability": n, "styleAlignment": n, "occasionFit": n}}]`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(model, calibrationPrompt, 6_000, 'regression_calibrate');
   if (!result) return;
 

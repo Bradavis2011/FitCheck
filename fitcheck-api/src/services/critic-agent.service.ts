@@ -151,7 +151,7 @@ export async function runCriticAgent(): Promise<CritiqueResult | null> {
   // Step 5: One batched Critic call (~10K tokens)
   const critiquePrompt = buildCritiquePrompt(weakDimensions, weakOutfitExamples);
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     critiquePrompt,
@@ -375,7 +375,7 @@ Return JSON:
   "pattern": "<what causes weakness>"
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(model, prompt, 4_000, 'followup_critic');
 
   if (!result) return;

@@ -143,7 +143,7 @@ async function discoverCreatorsForQuery(
   email?: string;
 }>> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-lite',
+    model: 'gemini-2.5-flash-lite',
     tools: [{ googleSearch: {} }],
   });
 
@@ -204,7 +204,7 @@ async function generateDMs(
 ): Promise<Record<string, string>> {
   if (prospects.length === 0) return {};
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const listText = prospects
     .map((p, i) => `${i + 1}. @${p.handle} on ${p.platform} | Niche: ${p.niche || 'fashion'} | Style: ${p.contentStyle || 'outfit content'}`)
@@ -247,7 +247,7 @@ async function generateEmails(
 ): Promise<Record<string, { subject: string; body: string }>> {
   if (prospects.length === 0) return {};
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const listText = prospects
     .map((p, i) => `${i + 1}. @${p.handle} on ${p.platform} | Niche: ${p.niche || 'fashion'} | Style: ${p.contentStyle || 'outfit content'}`)

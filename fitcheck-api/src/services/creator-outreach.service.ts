@@ -31,7 +31,7 @@ async function generateFollowUpEmail(
   prospect: { handle: string; platform: string; niche?: string | null; emailBody?: string | null },
   followUpNumber: 1 | 2,
 ): Promise<{ subject: string; body: string }> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const angle = followUpNumber === 1
     ? 'A different angle — mention a specific use case or result. Still enthusiastic but shorter.'
@@ -82,7 +82,7 @@ async function generateCreatorKit(
   genAI: any,
   prospect: { handle: string; platform: string; niche?: string | null },
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const prompt = `Write a "Creator Kit" welcome email for a fashion creator who responded to our pitch for Or This? AI outfit app.
 

@@ -251,7 +251,7 @@ async function generateArticleContent(
   type: ArticleType
 ): Promise<{ content: string; data: Record<string, unknown>; inputHash: string; tokensUsed: number }> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-lite',
+    model: 'gemini-2.5-flash-lite',
     generationConfig: { temperature: 0.5, maxOutputTokens: 2048 },
   });
 

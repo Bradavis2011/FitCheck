@@ -129,7 +129,7 @@ Return JSON:
   "rationale": "<one sentence: why this will fix the weakness>"
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     editPrompt,
@@ -245,7 +245,7 @@ Return JSON:
   }
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(
     model,
     mutationPrompt,
@@ -420,7 +420,7 @@ Return JSON:
   "changelog": "<what changed and why>"
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(model, editPrompt, 5_000, 'followup_surgeon');
   if (!result) return;
 
@@ -469,7 +469,7 @@ Return JSON:
   "changelog": "<what changed>"
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(model, mutationPrompt, 4_000, 'followup_mutation');
   if (!result) return;
 
@@ -557,7 +557,7 @@ Return JSON:
   "changelog": "<what was replaced and why>"
 }`;
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
   const result = await trackedGenerateContent(model, rotationPrompt, 7_000, 'example_rotation');
   if (!result) return;
 

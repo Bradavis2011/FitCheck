@@ -74,7 +74,7 @@ async function generateTikTokIdea(): Promise<string> {
     if (!apiKey) throw new Error('no key');
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const prompt = `Generate ONE specific TikTok video idea for "Or This?" — an AI outfit scoring app.
 

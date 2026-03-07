@@ -161,7 +161,7 @@ async function scoreThreads(
 ): Promise<Array<{ id: string; relevanceScore: number; category: string }>> {
   if (threads.length === 0) return [];
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const threadList = threads.map((t, i) =>
     `${i + 1}. [${t.subreddit}] "${t.title}" — ${t.selfText.slice(0, 100)}`
@@ -208,7 +208,7 @@ async function generateThreadResponse(
   genAI: any,
   thread: { subreddit: string; title: string; selfText: string; category: string },
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const isBetaOrDiscovery = ['betatesting', 'SideProject', 'indiehackers', 'AndroidApps'].includes(thread.subreddit);
 
