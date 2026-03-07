@@ -65,6 +65,122 @@ function buildScriptCard(script: {
   </div>`;
 }
 
+// ─── Daily Script Email ───────────────────────────────────────────────────────
+
+export async function sendDailyScriptEmail(): Promise<void> {
+  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+  const recipient = process.env.REPORT_RECIPIENT_EMAIL;
+
+  if (!resend || !recipient) {
+    console.log('[DailyScriptEmail] RESEND_API_KEY or REPORT_RECIPIENT_EMAIL not set — skipping');
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const from = process.env.REPORT_FROM_EMAIL || 'alerts@orthis.app';
+
+  const scripts = await prisma.blogDraft.findMany({
+    where: {
+      contentType: { in: ['series_episode', 'data_drop', 'trend_take', 'style_tip'] },
+      trendPeriod: today,
+    },
+    orderBy: { createdAt: 'asc' },
+    take: 10,
+  });
+
+  if (scripts.length === 0) {
+    console.log(`[DailyScriptEmail] No scripts found for ${today} — skipping`);
+    return;
+  }
+
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const scriptCards = scripts.map((s, i) => {
+    const data = s.scriptData as Record<string, unknown> | null;
+    const cold = data?.coldOpen as { exactWords?: string; duration?: string } | undefined;
+    const cta = data?.callToAction as { exactWords?: string } | undefined;
+    const sects = data?.sections as Array<{ label?: string; exactWords?: string; duration?: string; cameraDirection?: string }> | undefined;
+    const seriesInfo = data?.seriesInfo as { seriesTitle?: string; episodeNumber?: number } | undefined;
+
+    const typeLabel = s.contentType === 'series_episode'
+      ? `Series: ${seriesInfo?.seriesTitle || ''} — Ep. ${seriesInfo?.episodeNumber || ''}`
+      : s.contentType.replace('_', ' ').toUpperCase();
+
+    const sectionsHtml = (sects || []).map(sec =>
+      `<div style="margin-bottom:12px;">
+        <p style="font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">
+          ${sec.label || 'Section'} (${sec.duration || ''})
+        </p>
+        <p style="font-size:14px;color:#1A1A1A;margin:0 0 4px;line-height:1.6;">${sec.exactWords || ''}</p>
+        <p style="font-size:12px;color:#9B9B9B;font-style:italic;margin:0;">Camera: ${sec.cameraDirection || ''}</p>
+      </div>`,
+    ).join('');
+
+    return `
+    <div style="background:#F5EDE7;padding:24px;margin-bottom:20px;">
+      <p style="font-size:11px;font-weight:700;color:#E85D4C;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 4px;">
+        Script ${i + 1} · ${typeLabel}
+      </p>
+      <h3 style="font-size:18px;font-weight:700;color:#1A1A1A;margin:0 0 16px;">${s.title}</h3>
+
+      <p style="font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">
+        COLD OPEN (${cold?.duration || '5s'})
+      </p>
+      <p style="font-size:15px;font-weight:600;color:#1A1A1A;margin:0 0 16px;line-height:1.5;border-left:3px solid #E85D4C;padding-left:12px;">
+        "${cold?.exactWords || ''}"
+      </p>
+
+      ${sectionsHtml}
+
+      <p style="font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">CALL TO ACTION</p>
+      <p style="font-size:14px;color:#1A1A1A;margin:0 0 16px;line-height:1.6;">${cta?.exactWords || ''}</p>
+
+      <div style="background:#fff;padding:12px;border-top:2px solid #E85D4C;">
+        <p style="font-size:12px;color:#2D2D2D;margin:0;line-height:1.6;">
+          <strong>Caption:</strong> ${String(data?.caption || '')}<br>
+          <strong>Hashtags:</strong> ${(data?.hashtags as string[] | undefined || []).join(' ')}<br>
+          <strong>Duration:</strong> ${String(data?.totalDuration || '')}
+        </p>
+      </div>
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;background:#FBF7F4;padding:40px;margin:0;">
+  <div style="max-width:680px;margin:0 auto;background:#fff;padding:40px;">
+    <p style="font-size:11px;font-weight:700;color:#E85D4C;text-transform:uppercase;letter-spacing:2px;margin:0 0 8px;">
+      Or This? · Daily Script Queue
+    </p>
+    <h1 style="font-size:28px;color:#1A1A1A;margin:0 0 4px;font-weight:700;">Today's ${scripts.length} Scripts</h1>
+    <p style="font-size:14px;color:#9B9B9B;margin:0 0 32px;">${dateStr}</p>
+
+    ${scriptCards}
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #F5EDE7;">
+      <p style="font-size:12px;color:#9B9B9B;margin:0;">
+        Or This? · Daily Script Email · ${new Date().toISOString()}
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await resend.emails.send({
+      from,
+      to: recipient,
+      subject: `Or This? ${scripts.length} scripts ready to film — ${today}`,
+      html,
+    });
+    console.log(`✅ [DailyScriptEmail] Sent ${scripts.length} scripts to ${recipient}`);
+  } catch (err) {
+    console.error('[DailyScriptEmail] Failed to send:', err);
+  }
+}
+
+// ─── Weekly Founder Content Digest ───────────────────────────────────────────
+
 export async function sendFounderContentDigest(): Promise<void> {
   const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
   const recipient = process.env.REPORT_RECIPIENT_EMAIL;

@@ -1,3 +1,5 @@
+> **DEPRECATED** — This file is no longer maintained. The single source of truth for Or This? product requirements is the root `PRD.md` at `D:/Users/Brandon/FitCheck/PRD.md`. This copy is retained for reference only.
+
 # Product Requirements Document: Or This?
 ## AI-Powered Outfit Feedback App
 

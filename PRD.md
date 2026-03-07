@@ -1,18 +1,18 @@
 # Product Requirements Document: Or This?
 ## AI-Powered Outfit Feedback App
 
-**Version:** 2.0
-**Date:** February 17, 2026
-**Status:** Updated to reflect current build state
-**Previous Version:** 1.0 (January 29, 2026) — original concept document
+**Version:** 3.0
+**Date:** March 6, 2026
+**Status:** Updated to reflect agentic platform framing and Brand v3.0
+**Previous Version:** 2.0 (February 17, 2026)
 
 ---
 
 ## Executive Summary
 
-**Or This?** is a mobile application that gives women instant, honest outfit feedback at the exact moment they need it — standing in front of the mirror, about to leave the house.
+**Or This?** is the first agentic platform for fashion — a system that accumulates personalized style intelligence, proactively reaches users before moments that matter, and converts that intelligence into commerce. The entry point is the moment of decision (standing at the mirror, about to leave). The platform is what's built around that moment.
 
-The original concept (FitCheck, v1.0) described a 3-phase vision: AI bootstrap, community feedback, and expert stylists. That vision has been fully realized. **All three phases are built.** The product has been rebranded to "Or This?" — a name that captures the central user behavior: holding up an outfit and asking, *"or this one?"*
+The original concept (FitCheck, v1.0) described a 3-phase vision: AI bootstrap, community feedback, and expert stylists. That vision has been fully realized and extended. **All three phases are built, plus a complete agentic backend (16+ agents) and affiliate commerce layer.** The product has been rebranded to "Or This?" — a name that captures the central user behavior: holding up an outfit and asking, *"or this one?"*
 
 This is not a concept document. Or This? is a complete product ready for deployment.
 
@@ -33,23 +33,28 @@ A full-stack mobile application with:
 
 ### Core Value Proposition
 
-> "Never leave the house wondering if your outfit works. Get instant, honest feedback in 30 seconds."
+> "The platform that works for you — a verdict in 30 seconds, and 16 agents working while you're not looking."
 
 **Tagline:** Confidence in every choice.
 
-### Key Differentiator
+### Three Pillars
 
-Unlike AI styling apps that focus on wardrobe management and shopping recommendations, Or This? solves the **moment-of-decision problem**: "I'm dressed and about to leave — does this actually look good?" It's the only app combining instant AI feedback with community validation, live streaming, and professional stylist access in one product.
+**Pillar 1 — Accumulating Intelligence:** Every outfit verdict builds Style DNA — a personalized style profile tracking color harmonies, occasion patterns, garment performance, and AI scoring history. Verdicts get sharper with every use.
+
+**Pillar 2 — Proactive Outreach:** 16 server-side agents run continuously without the user opening the app. Weather alerts, event follow-ups, milestone messages, push nudges timed to each user's peak engagement hour.
+
+**Pillar 3 — Intelligence-to-Commerce:** When the AI identifies a color story that works, it surfaces affiliated product recommendations calibrated to that verdict. Affiliate commerce via CJ / Rakuten / Skimlinks.
 
 ### Strategic Positioning
 
-Or This? is a consumer app built on a fashion intelligence platform. The consumer app is the data collection engine — every outfit check generates structured, queryable fashion intelligence (StyleDNA) that no competitor can replicate without the same user base. At scale, this dataset becomes the premier real-time source of what real people actually wear to real occasions, scored by AI and validated by community consensus.
+Or This? is the first agentic platform for fashion. The consumer app is the data collection engine — every outfit verdict generates structured, queryable fashion intelligence (Style DNA) that no competitor can replicate without the same user base. At scale, this dataset becomes the premier real-time source of what real people actually wear to real occasions, scored by AI and validated by community consensus.
 
-This positions Or This? at the intersection of two markets:
-- **Consumer**: Online personal styling services ($5.5B → $15B by 2032)
-- **B2B**: Fashion data, analytics, and trend intelligence — serving brands, retailers, and trend forecasters
+Three revenue layers:
+- **Consumer subscriptions**: Free / $7.99 Plus / $14.99 Pro
+- **Affiliate commerce**: CJ Affiliate / Rakuten / Skimlinks — commission on conversions, no ad spend
+- **B2B data**: Fashion intelligence for brands, retailers, and trend forecasters ($5.5B → $15B market)
 
-The consumer app drives engagement and subscription revenue. The data layer drives the moat, the B2B revenue expansion, and the defensibility that makes this a venture-scale business.
+The consumer app drives engagement. The agentic layer drives retention. The data layer drives the moat and B2B expansion.
 
 ---
 
@@ -70,10 +75,10 @@ Women frequently face the "outfit anxiety" moment — standing in front of a mir
 ### Market Validation
 
 - r/malefashionadvice and r/femalefashionadvice have millions of users posting outfit photos for feedback — organic demand proven at scale
-- The Virtual Personal Styling Services market was $4.5B in 2024, growing at 20% CAGR
-- AI-Based Personalized Stylist market projected to reach $2.8B by 2034 at 36.5% CAGR
+- AI-Based Personal Styling market at $2.8B today, growing at 40% CAGR to $8.5B by 2032 (Grand View Research, 2025)
+- 47M AI fashion tool users in 2024, projected 85M by 2026
 - US retailers saw $890B in returns in 2024 — much driven by "doesn't look right on me" regret
-*(Market data sourced from 2024 reports)*
+*(Market data sourced from 2024–2025 reports)*
 
 ### Target User
 
@@ -90,13 +95,17 @@ Women frequently face the "outfit anxiety" moment — standing in front of a mir
 
 ### Competitive Landscape
 
-| Competitor | Focus | What We Do Better |
-|------------|-------|-------------------|
-| Fits | Digital wardrobe + AI styling | Real-time "does this work?" feedback; live community |
-| Style DNA | Color analysis + shopping | Outfit feedback, not just color seasons |
-| Combyne | Outfit collages + community | AI feedback, not just browsing; expert access |
-| Stitch Fix | Subscription box + stylists | Instant feedback; no subscription box required |
-| Indyx | Human stylists + wardrobe | 3 feedback modes in one app; significantly lower cost |
+Five categories fail at the platform problem:
+
+| Category | Examples | What They Miss |
+|----------|----------|----------------|
+| **Virtual Try-On** | Snap, Zeekit | Novelty, not utility. No real outfit intelligence. No memory. |
+| **Wardrobe Cataloging** | Stylebook, Whering | Manual entry burden. No occasion AI. No commerce. |
+| **Subscription Boxes** | Stitch Fix, Trunk Club | Days, not seconds. Shopping service, not feedback. |
+| **Color Analysis** | Dressika, Colorwise | Single-dimension insight. No occasion context. No memory. |
+| **Shallow Scoring** | TikTok #outfitcheck | No memory, no personalization, no platform. |
+
+**Or This? is not in any of these categories.** It is the platform that makes all of them obsolete for users who want intelligence, not just input.
 
 **Or This? is the only product combining instant AI, community, live streaming, and professional stylists in a single mobile experience.**
 
@@ -121,7 +130,7 @@ This section describes the actual, implemented product as of February 17, 2026.
 - Free-text concerns ("worried about the color combo")
 
 **AI-Powered Feedback**
-- GPT-4 Vision analysis of outfit image + context
+- Gemini Flash analysis of outfit image + context
 - Structured output: Overall score, What's Working, Consider, Quick Fixes, Verdict
 - Score display with color coding (≥8 green, ≥6 amber, <6 red)
 - Follow-up conversation (3/5/10 per check depending on tier)
@@ -279,7 +288,7 @@ This section describes the actual, implemented product as of February 17, 2026.
 - **API domains:** 16 (auth, outfits, social, user, comparison, live, challenges, wardrobe, events, expert-review, stylist, subscription, notification, push, trends, admin)
 
 ### AI & External Services
-- **Outfit analysis:** OpenAI GPT-4 Vision
+- **Outfit analysis:** Google Gemini Flash (primary AI — outfit verdicts, content generation, trend analysis)
 - **Event outfit comparison:** Google Gemini
 - **Live streaming:** LiveKit (WebRTC, cloud-hosted)
 - **Auth:** Clerk
@@ -295,16 +304,16 @@ This section describes the actual, implemented product as of February 17, 2026.
 
 | Tier | Price | Key Limits |
 |------|-------|------------|
-| **Free** | $0/month | 3 AI checks/day, 3 follow-ups/check, 7-day history, ads |
-| **Plus** | $4.99/month | Unlimited checks, 5 follow-ups, unlimited history, ad-free, community, live streaming |
+| **Free** | $0/month | 3 AI verdicts/day, 3 follow-ups/check, 7-day history, ads |
+| **Plus** | $7.99/month | Unlimited verdicts, 5 follow-ups, unlimited history, ad-free, community, live streaming |
 | **Pro** | $14.99/month | Everything in Plus, 10 follow-ups, 5 expert reviews/month, event planning, style analytics |
 
 *Tier limits are enforced in `fitcheck-api/src/constants/tiers.ts` and validated on every gated API endpoint.*
 
 ### Additional Revenue Streams
 
-1. **Expert Reviews (a la carte)** — Pro tier includes 5/month; additional reviews purchasable independently
-2. **Affiliate/Shopping Integration** — AI suggests specific items with affiliate links (future)
+1. **Affiliate Commerce** — AI verdict intelligence converts to curated product recommendations via CJ Affiliate / Rakuten / Skimlinks. Commission on conversions, no ad spend. Active and operational.
+2. **Expert Reviews (a la carte)** — Pro tier includes 5/month; additional reviews purchasable independently
 3. **Brand Partnerships** — Sponsored styling tips, clearly labeled (future)
 4. **Fashion Intelligence Platform (B2B)** — The core strategic expansion:
    - **Trend Reports** ($15-50K/quarter) — real-time consumer styling data for brands, retailers, and trend forecasters
@@ -317,28 +326,37 @@ This section describes the actual, implemented product as of February 17, 2026.
 
 ## Design System
 
-### Brand Colors
-| Name | Hex | Usage |
-|------|-----|-------|
-| Decision Coral | `#E85D4C` | Primary actions, highlights |
-| Coral Light | `#FF7A6B` | Gradients, secondary accent |
-| Coral Dark | `#C94A3A` | Pressed states |
-| Confidence Cream | `#FBF7F4` | Background |
-| Cream Dark | `#F5EDE7` | Card backgrounds |
-| Clarity Black | `#1A1A1A` | Primary text |
+*See `Branding/ORTHIS_BRAND_GUIDELINES.md` v3.0 (SoHo Authority Standard) — the single source of truth for all brand decisions.*
+
+### Brand v3.0 Summary
+
+| Token | Hex | Use |
+|-------|-----|-----|
+| Decision Coral | `#E85D4C` | CTAs, interactive states, coral rule |
+| Studio Linen | `#FBF7F4` | App/dashboard backgrounds |
+| Editorial Black | `#1A1A1A` | All primary text |
 | Charcoal | `#2D2D2D` | Secondary text |
-| Soft Sage | `#A8B5A0` | Tertiary accent |
-| Sage Light | `#C4CFBD` | Subtle backgrounds |
 
-### Typography
-- **Body:** DM Sans
-- **Display/Headings:** Playfair Display Italic
+**No Sage.** Sage (`#A8B5A0`, `#C4CFBD`) is legacy only — do not use in new work.
 
-### Logo
-"Or" in DM Sans Medium + "This?" in Playfair Display Italic (coral) + oversized italic ? mark
+### Typography (v3.0)
+- **Body/UI:** DM Sans (400, 500, 600, 700)
+- **Display/Editorial:** Playfair Display Regular (screen titles, scores) + Italic (logo "This?", pull quotes only)
+
+### Border Radius (v3.0)
+- **Buttons/inputs/chips:** 0px (sharp — the editorial rule)
+- **Cards:** 8px
+- **Toggles/avatars:** 9999px (platform convention exceptions only)
+- No pill buttons. No 24px card radius. No box shadows.
 
 ### App Icon
-White italic ? on coral gradient (`#E85D4C` → `#FF7A6B`)
+White Playfair Italic `?` on flat coral `#E85D4C` background (no gradient)
+
+### Voice v3.0
+SoHo stylist who charges $400/hour — direct, specific, decisive. Not a supportive friend.
+- Do: "The proportions carry this. Clean choice."
+- Do: "Not there yet. The layering is competing — simplify by one piece."
+- Don't: "You've got this!" / "chef's kiss" / "gorgeous" / "Almost there!"
 
 ### Score Colors
 - ≥ 8: Green (`#10B981`)

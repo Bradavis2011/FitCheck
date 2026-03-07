@@ -10,38 +10,40 @@ Ready-to-paste copy for each platform. Personalise before submitting.
 
 **Tagline** (60 chars max):
 ```
-AI outfit feedback before you walk out the door
+The agentic platform for fashion — verdict in 30 seconds
 ```
 
 **Description** (300–500 chars):
 ```
-Or This? gives you an honest score out of 10 for any outfit — instantly.
+Or This? gives you an honest verdict on any outfit — instantly.
 
-Take a photo. Get a real AI analysis: what's working, what isn't, and one specific thing to fix right now. Add context like occasion or weather for smarter advice.
+Snap a photo. Get a specific AI analysis: what's working, what isn't, and one precise edit. Add context like occasion or weather for a sharper read. Ask follow-ups until you're sure.
 
-You can keep asking follow-ups until you're sure. "Should I swap the shoes?" It doesn't care how many times you ask.
+Style DNA accumulates your taste over time. The app learns you. The verdict gets more accurate with every check.
 
-Free on iOS. Style DNA learns your taste over time.
+Free on iOS.
 ```
 
 **First Comment (Maker Story)** — post this yourself right when it goes live:
 ```
-Hey PH! 👋 I built Or This? because I kept texting friends "does this look ok?" before leaving the house — and they'd always say "cute!!!" which is useless.
+I built Or This? because I kept texting people "does this work?" before leaving the house — and they'd say "cute!" which is useless.
 
-I wanted an app that tells you the actual truth. Not "you look great," but "the proportions are off, try tucking in the shirt."
+I wanted an app that tells you the actual truth. Not "you look great," but "the proportions are competing — pull the shirt down."
 
-It uses GPT-4 Vision to score outfits out of 10 with specific, honest feedback. The more you use it, the more it learns your style.
+I was a signed model. I spent 8 years managing AI at Apple and Verily. I built the entire product myself — 121,000 lines of code, one founder.
 
-Just launched on the App Store. Would genuinely love your feedback — especially if the AI gives you a score you disagree with. Happy to chat in the comments.
+The app uses Gemini Flash to score outfits with specific, honest verdicts. The more you use it, the more it learns your style. There's a full agentic backend that sends you proactive alerts — weather warnings before meetings, event follow-ups, style nudges — without you having to open the app.
+
+Just launched on the App Store. Would genuinely appreciate feedback, especially if the AI gives you a verdict you disagree with.
 ```
 
-**Category**: Productivity / Health & Fitness / Lifestyle
+**Category**: Productivity / Lifestyle
 **Tags**: AI, Fashion, Lifestyle, iOS
 
 **Screenshot captions** (for the 5 required screenshots):
-1. "Snap any outfit — get a score out of 10"
-2. "Honest AI feedback: what's working, what isn't"
-3. "Add context — occasion, weather, vibe"
+1. "Verdict in 30 seconds — specific, honest, decisive"
+2. "What's working. What isn't. One precise edit."
+3. "Set the scene — occasion, weather, vibe"
 4. "Ask follow-ups until you're sure"
 5. "Style DNA learns your taste over time"
 
@@ -56,14 +58,14 @@ Just launched on the App Store. Would genuinely love your feedback — especiall
 
 **Tagline**:
 ```
-AI outfit feedback before you walk out the door
+The agentic platform for fashion — verdict in 30 seconds
 ```
 
 **Website**: https://orthis.app
 
 **Description** (200 chars):
 ```
-Take a photo of any outfit and get an honest AI score out of 10, specific style advice, and follow-up Q&A. Like a personal stylist in your pocket — for free.
+Take a photo of any outfit and get an honest AI verdict — specific style advice and follow-up Q&A. Like a SoHo stylist in your pocket, for free.
 ```
 
 **Category**: Lifestyle / Mobile
@@ -80,24 +82,25 @@ Take a photo of any outfit and get an honest AI score out of 10, specific style 
 
 **Title**:
 ```
-Show HN: Or This? – AI outfit feedback app (score out of 10 before you leave the house)
+Show HN: Or This? – AI outfit verdict app (agentic backend, Style DNA, 30 seconds)
 ```
 
 **Body** (post as a comment on your own submission):
 ```
-I built Or This? to solve the "does this look ok?" problem.
+I built Or This? to solve the "does this look ok?" problem — and ended up building more than that.
 
-Most of us text a friend a mirror selfie before going out. They say "cute!!!" which tells you nothing. Or we agonize between two outfits and leave in the first one anyway.
+Most of us text a friend a mirror selfie before going out. They say "cute!" which tells you nothing. Or we agonize between two outfits and leave in the first one anyway.
 
-Or This? lets you take a photo of your outfit and get:
-- A score out of 10 with specific reasoning
-- What's working and what isn't
-- Follow-up questions ("should I swap the shoes?" "is this too casual for this occasion?")
-- Style DNA that learns your taste over time
+Or This? gives you an AI verdict on your outfit in 30 seconds — specific, honest, no hedging. But the more interesting part is what runs underneath:
 
-It uses GPT-4 Vision for the outfit analysis. I built the backend in Node/Express/Prisma on Railway, the app in Expo/React Native.
+- Style DNA: accumulates a personalized fashion profile from every check. The AI learns your color season, body type, occasion patterns. Verdicts get sharper over time.
+- 16 autonomous backend agents: content calendar, growth monitoring, agentic email sequences, affiliate sourcing, weather alerts ("rain tomorrow — that meeting outfit won't work"), event follow-ups. One founder operating at team scale.
+- Self-calibrating AI quality: an automated critic pipeline finds prompt weaknesses overnight and corrects them without a new release.
+- Affiliate commerce: style intelligence converts to curated product recommendations via CJ/Rakuten. Commission on conversions.
 
-It's on the App Store now (iOS). Would love feedback on the AI quality — specifically cases where it's confidently wrong.
+Tech: Expo/React Native, Node/Express/Prisma on Railway, Gemini Flash for outfit analysis. 121K lines of TypeScript, 66 DB models, 136 API endpoints.
+
+On the App Store now (iOS). Looking for feedback on AI verdict quality — specifically cases where it's confidently wrong.
 
 https://orthis.app
 ```
@@ -112,30 +115,30 @@ https://orthis.app
 
 **Post title**:
 ```
-[iOS] Or This? — AI outfit feedback before you leave the house. Score out of 10, honest style advice. Looking for feedback on AI quality.
+[iOS] Or This? — AI outfit verdict app. Score out of 10, honest style advice. Looking for feedback on AI quality.
 ```
 
 **Body**:
 ```
-Built this to solve the "does this look ok?" text. You take a photo of your outfit, get a score out of 10 with specific feedback, and can ask follow-up questions.
+Built this to solve the "does this look ok?" text. You take a photo of your outfit, get a verdict out of 10 with specific feedback, and can ask follow-up questions.
 
 **What it does:**
-- GPT-4 Vision analyzes your outfit
-- Score (0-10) with explanation of what's working and what isn't
+- Gemini Flash analyzes your outfit
+- Verdict (0-10) with explanation of what's working and what isn't
 - Context options: occasion, setting, weather, vibe
 - Follow-up Q&A — "should I swap the shoes?" "is this too casual?"
-- Style DNA that improves over time
+- Style DNA that builds a personalized profile over time
 
 **Feedback I'm looking for:**
 - Is the AI feedback actually useful or is it generic?
-- Does the score feel accurate?
+- Does the verdict feel calibrated?
 - Any crashes or UX weirdness?
 - Does it work well for different body types, skin tones, and style aesthetics?
 
 **Platform**: iOS (App Store) — Android early access via Gmail signup
 **App Store**: https://apps.apple.com/app/or-this/id6759472490
 
-Free to use (3 outfit checks/day free tier). No payment required to test.
+Free to use (3 outfit verdicts/day free tier). No payment required to test.
 ```
 
 ---
@@ -144,27 +147,27 @@ Free to use (3 outfit checks/day free tier). No payment required to test.
 
 **Post title**:
 ```
-[iOS/Android] Or This? — AI outfit feedback app, just launched on App Store. Need iOS feedback + Android testers
+[iOS/Android] Or This? — AI outfit verdict app, just launched on App Store. Need iOS feedback + Android testers
 ```
 
 **Body**:
 ```
-Hi — I'm the creator of Or This?, an AI outfit feedback app that just launched on the App Store.
+I'm the creator of Or This?, an AI outfit verdict app that just launched on the App Store.
 
-**The app**: Take a photo of your outfit → get a score out of 10 → see what's working, what isn't, and follow-up Q&A with the AI stylist.
+**The app**: Take a photo of your outfit → get a verdict out of 10 → see what's working, what isn't, and follow-up Q&A with the AI.
 
 **What I need**:
-- iOS: App Store downloads and honest feedback on AI quality
+- iOS: App Store downloads and honest feedback on AI verdict quality
 - Android: drop your Gmail in the comments — building toward Play Store launch and need testers added to the early access list
 
 **What to give feedback on**:
-- Accuracy and usefulness of AI feedback
+- Accuracy and usefulness of AI verdicts
 - Performance across outfit types (formal, casual, streetwear, etc.)
 - Any bugs or technical issues
 
 **App Store (iOS)**: https://apps.apple.com/app/or-this/id6759472490
 
-Free. Takes 2 minutes to get your first outfit check. DMs open for Android testers.
+Free. Takes 2 minutes to get your first verdict. DMs open for Android testers.
 ```
 
 ---
@@ -180,18 +183,20 @@ I built an AI that tells you if your outfit works before you leave the house —
 ```
 Been building this for a while, just launched on the App Store.
 
-**The problem**: You're standing in front of the mirror in two possible outfits. You can't tell which one actually looks better. You text your friend. She says "cute!!!". Useless.
+**The problem**: You're standing in front of the mirror in two possible outfits. You can't tell which one actually looks better. You text your friend. She says "cute!". Useless.
 
-**What I built**: Or This? — take a photo of your outfit, get an honest score out of 10 from an AI that actually explains its reasoning. Add context (occasion, weather, vibe). Ask follow-ups until you're sure.
+**What I built**: Or This? — take a photo of your outfit, get an honest verdict out of 10 from an AI that explains its reasoning precisely. Add context (occasion, weather, vibe). Ask follow-ups until you're sure.
 
-**Tech stack**: Expo/React Native, Node/Express, Prisma, Railway, GPT-4 Vision for analysis
+The more interesting part: there's a full agentic backend — 16 autonomous agents that handle content, growth monitoring, weather alerts, event follow-ups, and more. One founder operating at team scale.
 
-**What I'd love feedback on**: Is the AI feedback actually useful? Does the score feel calibrated? Is there a use case I'm missing?
+**Tech stack**: Expo/React Native, Node/Express, Prisma, Railway, Gemini Flash for analysis. 121K lines of TypeScript.
+
+**What I'd love feedback on**: Is the AI verdict actually useful? Does the score feel calibrated? Is there a use case I'm missing?
 
 App Store: https://apps.apple.com/app/or-this/id6759472490
 Website: https://orthis.app
 
-Happy to share what I learned building it if anyone's interested.
+Happy to share what I learned building the agentic layer if anyone's interested.
 ```
 
 ---
@@ -203,9 +208,9 @@ Happy to share what I learned building it if anyone's interested.
 **Category**: Lifestyle / Utility
 **Description**:
 ```
-Or This? is an AI outfit feedback app. Take a photo of any outfit to get an honest score out of 10, specific style advice, and an AI you can ask follow-up questions. Like a personal stylist in your pocket, for free.
+Or This? is an AI outfit verdict platform. Take a photo of any outfit to get an honest verdict out of 10, specific style advice, and an AI you can ask follow-up questions. Style DNA learns your taste over time.
 ```
-**Testing focus**: AI feedback quality and accuracy, UX, performance across device types
+**Testing focus**: AI verdict quality and accuracy, UX, performance across device types
 **Compensation**: None (no payment required for core features)
 **Submit**: https://www.betabound.com/announce/
 
@@ -214,7 +219,7 @@ Or This? is an AI outfit feedback app. Take a photo of any outfit to get an hone
 ### BetaPage
 
 **Name**: Or This?
-**Tagline**: AI outfit feedback before you walk out the door
+**Tagline**: The agentic platform for fashion — verdict in 30 seconds
 **Website**: https://orthis.app
 **Description**: Same as BetaList description above
 **Submit**: https://betapage.co/submit
@@ -228,7 +233,7 @@ Or This? is an AI outfit feedback app. Take a photo of any outfit to get an hone
 **Where to find them**: Discord.com search for "fashion", "OOTD", "style", "streetwear"
 **Intro message template**:
 ```
-Hey! Just joined. I build apps and recently launched one that gives AI outfit feedback — it scores your outfit out of 10 and explains the reasoning. Not sure if that's relevant here but happy to share feedback on anyone's fits too. What's the best channel for this kind of thing?
+Hey! Just joined. I build apps and recently launched one that gives AI outfit verdicts — it scores your outfit out of 10 and explains the reasoning precisely. Not sure if that's relevant here but happy to share feedback on anyone's fits too. What's the best channel for this kind of thing?
 ```
 
 ---
@@ -241,9 +246,9 @@ Hey! Just joined. I build apps and recently launched one that gives AI outfit fe
 
 **DM template**:
 ```
-Hey [name] — been watching your outfit content, it's genuinely good.
+Hey [name] — been watching your outfit content, it's solid.
 
-I built an app that gives AI feedback on outfits (score out of 10, honest breakdown). Thought you'd find it interesting or maybe annoying lol.
+I built an app that gives AI verdicts on outfits (score out of 10, specific breakdown). Thought you'd find it interesting or maybe annoying lol.
 
 App Store link if you want to try it: https://apps.apple.com/app/or-this/id6759472490
 
@@ -266,14 +271,14 @@ No ask — just thought it fit what you do.
 - Open Or This?
 - Take photo of outfit on body / laid flat
 - Camera tap, processing spinner
-- SCORE REVEALS: big number + 2-3 lines of feedback
+- VERDICT REVEALS: big number + 2-3 lines of specific feedback
 
-**Reveal (12-15s)**: React to score
+**Reveal (12-15s)**: React to verdict
 **Text overlay**: "the app that actually tells you the truth"
 **Caption**: got a 6/10 and honestly fair 😭 #outfitcheck #AIstyle #ratemyoutfit #OrThis
 **Hashtags**: #outfitcheck #ratemyoutfit #ootd #whattowear #fashionapp #AIstyle #OrThis
 
-**Key**: The score number is the hook. High score = validation. Low score = relatable. Either works.
+**Key**: The verdict number is the hook. High verdict = validation. Low verdict = relatable. Either works.
 
 ---
 
@@ -281,11 +286,11 @@ No ask — just thought it fit what you do.
 
 **Tweet 1** (pin this):
 ```
-Or This? is live on the App Store 🎉
+Or This? is live on the App Store.
 
-It's the AI that tells you if your outfit actually works — before you leave the house.
+The AI that tells you if your outfit actually works — before you leave the house.
 
-Score out of 10. Honest feedback. Ask follow-up questions.
+Verdict out of 10. Honest. Specific. Decisive.
 
 → [App Store link]
 → orthis.app
@@ -293,38 +298,38 @@ Score out of 10. Honest feedback. Ask follow-up questions.
 
 **Tweet 2**:
 ```
-The problem: you text your friend a mirror selfie
+The problem: you text a friend a mirror selfie
 
-She says "cute!!!"
+She says "cute!"
 
 You know exactly what that means
 
-Or This? tells you the actual truth
+Or This? gives you the actual verdict
 ```
 
 **Tweet 3**:
 ```
 What it does:
-• Photo → score out of 10
+• Photo → verdict out of 10
 • What's working, what isn't
 • Ask follow-ups ("should I swap the shoes?")
-• Learns your style over time
+• Style DNA learns your taste over time
 
-Free. 3 outfit checks/day.
+Free. 3 outfit verdicts/day.
 ```
 
 **Tweet 4**:
 ```
-Built this because I kept second-guessing my outfits before leaving the house
+Built this because I kept second-guessing my outfits before leaving
 
-The only feedback I wanted was: does this actually work, yes or no
+The only answer I wanted: does this work, yes or no
 
-Now I have it
+Now there's an answer
 ```
 
 **Tweet 5**:
 ```
-If you try it and the AI gives you a score you disagree with — I want to know
+If the AI gives you a verdict you disagree with — I want to know
 
 It's the only way to make it better
 

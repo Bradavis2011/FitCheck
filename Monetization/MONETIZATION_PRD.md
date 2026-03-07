@@ -14,14 +14,16 @@ This document outlines Or This?'s monetization strategy across six revenue strea
 
 ### Revenue Streams Overview
 
-| Stream | Launch Phase | Projected % of Revenue (Month 24) |
-|--------|--------------|-----------------------------------|
-| Consumer Subscriptions | Phase 1 (Month 1) | 35% |
-| Expert Marketplace | Phase 2 (Month 8) | 25% |
-| Affiliate Commerce | Phase 1 (Month 3) | 15% |
-| Sponsored Recommendations | Phase 2 (Month 9) | 15% |
-| Data & Insights | Phase 3 (Month 18) | 10-15% |
-| Enterprise/B2B | Phase 3 (Month 20) | 10% |
+| Stream | Launch Phase | Projected % of Revenue (Month 24) | Status |
+|--------|--------------|-----------------------------------|--------|
+| Consumer Subscriptions | Phase 1 (Month 1) | 35% | Live — $7.99 Plus / $14.99 Pro |
+| Affiliate Commerce | Phase 1 (Month 1) | 20% | **Active** — CJ Affiliate / Rakuten / Skimlinks (pending approvals) |
+| Expert Marketplace | Phase 2 (Month 8) | 20% | Built, not activated |
+| Sponsored Recommendations | Phase 2 (Month 9) | 10% | Future |
+| Data & Insights | Phase 3 (Month 18) | 10% | Future — requires scale |
+| Enterprise/B2B | Phase 3 (Month 20) | 5% | Future — requires scale |
+
+> **Strategic update (March 2026):** Affiliate commerce is elevated from Phase 3 to Phase 1. The intelligence layer that makes AI verdicts trustworthy is the same intelligence that makes product recommendations convert. CJ Affiliate (application in progress), Rakuten (revisit at 1K MAU), Skimlinks (approval pending). This is the Intelligence-to-Commerce pillar of the agentic platform thesis.
 
 > **Note:** At scale (Year 3+), B2B data licensing and enterprise represent the highest-margin, fastest-growing revenue streams — projected to exceed 25% of total revenue.
 
@@ -53,7 +55,7 @@ This document outlines Or This?'s monetization strategy across six revenue strea
 | Ads | Yes (non-intrusive) |
 
 #### Plus Tier
-**Price:** $5.99/month or $49.99/year (30% discount)  
+**Price:** $7.99/month or $59.99/year (37% discount)
 **Purpose:** Core paid tier, majority of subscription revenue
 
 | Feature | Limit |
@@ -120,7 +122,7 @@ This document outlines Or This?'s monetization strategy across six revenue strea
 │                                         │
 │  ┌─────────────────────────────────┐    │
 │  │  PLUS                           │    │
-│  │  $5.99/month                    │    │
+│  │  $7.99/month                    │    │
 │  │                                 │    │
 │  │  ✓ Unlimited AI checks          │    │
 │  │  ✓ Community feedback           │    │
@@ -1111,10 +1113,9 @@ By Month 36, data licensing is projected to be the highest-margin revenue stream
 ## Appendix A: Pricing A/B Test Plan
 
 **Test 1: Plus Pricing**
-- Control: $5.99/month
-- Variant A: $4.99/month
-- Variant B: $6.99/month
-- Variant C: $7.99/month
+- Current price: $7.99/month (set March 2026, selected from A/B test plan)
+- Historical variants tested: $4.99, $5.99, $6.99
+- Note: $7.99 is the active price — update this appendix if changed in RevenueCat
 - Metric: Revenue per visitor (conversion × price)
 
 **Test 2: Trial Length**

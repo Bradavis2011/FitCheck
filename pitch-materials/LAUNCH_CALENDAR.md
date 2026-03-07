@@ -1,7 +1,9 @@
 # Or This? — Launch Calendar (Revised March 2026)
 
 Parallel-track strategy. Real customers and bug testers run simultaneously.
-One shot at Product Hunt — wait until AI quality is confirmed solid.
+One shot at Product Hunt — wait until AI verdict quality is confirmed solid.
+
+**Positioning in all launch copy:** "First agentic platform for fashion" — not "AI outfit feedback app". Verdicts, not checks. Archive, not history. GET VERDICT, not CHECK MY OUTFIT.
 
 ---
 
@@ -78,8 +80,8 @@ One shot at Product Hunt — wait until AI quality is confirmed solid.
 - [ ] Prepare all Product Hunt assets (screenshots, description, GIF if possible)
 
 **Launch day (pick Tuesday or Wednesday, 12:01am PT)**:
-- [ ] Submit to **Product Hunt** — use Tier 1 copy from LAUNCH_SUBMISSIONS.md
-- [ ] Post **Show HN** on Hacker News — 7–9am ET — use Tier 1 copy from LAUNCH_SUBMISSIONS.md
+- [ ] Submit to **Product Hunt** — use Tier 1 copy from LAUNCH_SUBMISSIONS.md (updated for agentic framing)
+- [ ] Post **Show HN** on Hacker News — 7–9am ET — use Tier 1 copy from LAUNCH_SUBMISSIONS.md (updated for agentic framing)
 - [ ] Respond to every comment on both platforms within the hour
 - [ ] Share on LinkedIn (personal post, not company page)
 - [ ] Ask 10 more people to upvote on PH throughout the day

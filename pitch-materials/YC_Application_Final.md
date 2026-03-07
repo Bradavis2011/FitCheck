@@ -41,7 +41,7 @@
 **Company name:** Or This?
 
 **50-character description** *(49 chars — verified)*:
-> `AI outfit feedback in 30 seconds before you leave`
+> `Agentic fashion platform — AI verdict in 30 seconds`
 
 **Company URL:** https://orthis.app
 
@@ -55,13 +55,17 @@
 
 **What is your company going to make?**
 
-> Or This? gives women instant, honest outfit feedback at the moment they need it — standing in front of the mirror, about to leave. Snap a photo, say where you're going, get editorial-quality AI feedback in 30 seconds, then ask follow-ups like you would with a stylish friend.
+> Or This? is the first agentic platform for fashion. Not an AI feedback app — a platform built on three pillars.
 >
-> We own the moment of decision. Not inspiration. Not shopping. The 30 seconds before you walk out the door.
+> **Pillar 1 — Accumulating Intelligence.** Every outfit verdict builds a personalized style profile (Style DNA). The AI learns your color season, body type, occasion patterns, and fashion goals. Feedback gets sharper with every use. The platform knows you.
 >
-> The AI is fashion-specialized — not generic ChatGPT. It evaluates color harmony, proportions, fit, and occasion-appropriateness using a 3,000+ line prompt system with real fashion expertise baked in. Style DNA builds a personalized profile over time — feedback gets sharper the more you use it.
+> **Pillar 2 — Proactive Outreach.** 16 server-side agents run continuously without the user opening the app. Weather alerts before a meeting. Event follow-ups after a date night. Style nudges timed to each user's peak engagement hour. The platform works for users while they're not looking.
 >
-> Every outfit analyzed generates structured fashion data. At scale, this becomes a B2B fashion intelligence asset — what real people actually wear, to real occasions, scored and validated. Think WGSN ($100M+ ARR) but built on consumer behavior, not runway predictions.
+> **Pillar 3 — Intelligence-to-Commerce.** When the AI identifies a color story that works, it surfaces affiliated product recommendations calibrated to that verdict. Style intelligence converts to curated shopping — affiliate commission, no ad spend.
+>
+> The entry point is the moment of decision: standing in front of the mirror, about to leave. The platform is what's built around that moment.
+>
+> Every outfit analyzed generates structured fashion intelligence. At scale, this becomes a B2B asset — what real people actually wear to real occasions, scored by AI, validated by community consensus. Think WGSN ($100M+ ARR) built on actual consumer behavior rather than runway predictions.
 
 ---
 
@@ -69,16 +73,17 @@
 
 **How far along are you?**
 
-> Product is fully built and deployment-ready. Not a prototype — a production application.
+> Product is fully built and deployment-ready. Not a prototype — a production application with a complete agentic backend.
 >
-> — 31 app screens covering the complete user journey (camera, context input, AI feedback, follow-up conversation, history, community, comparisons, wardrobe, profile, referrals, subscriptions, onboarding)
+> — 31 app screens covering the complete user journey (camera, context input, AI verdict, follow-up conversation, archive, community, comparisons, wardrobe, profile, referrals, subscriptions, onboarding)
 > — 136 API endpoints across 23 route domains
 > — 66 database models in PostgreSQL via Prisma
-> — Backend deployed on Railway, AI pipeline live with Gemini Vision
-> — Monetization implemented (RevenueCat subscriptions: Free / $4.99 / $14.99, Google AdMob ads)
+> — Backend deployed on Railway, Gemini Flash AI pipeline live with prompt v3.0 and Style DNA personalization
+> — Monetization implemented (RevenueCat subscriptions: Free / $7.99 / $14.99, Google AdMob ads)
 > — 241 test files with extensive coverage
-> — Self-improving AI: automated critic agents that find and fix prompt weaknesses overnight
-> — A system of autonomous backend agents handling content creation, growth monitoring, user engagement, app store management, and weekly founder briefings — one founder operating at the scale of a 10-person team
+> — 16 autonomous backend agents running: content calendar, growth monitoring, agentic email sequences, affiliate sourcing, weather alerts, event follow-ups, app store management, weekly founder briefing — one founder operating at team scale
+> — executeOrQueue security model: low-risk actions auto-execute, high-risk actions queue for human review
+> — Self-improving AI: automated critic agents find and fix prompt weaknesses overnight without a new release
 >
 > What we haven't done: launched publicly. Zero users. The product is complete — every day without users is wasted.
 
@@ -94,9 +99,9 @@
 
 > **Frontend:** Expo SDK 54, React Native, TypeScript, Clerk (auth), Zustand (state), React Query, RevenueCat (subscriptions), Google Mobile Ads, PostHog (analytics), Sentry (errors)
 >
-> **Backend:** Node.js, Express, TypeScript, PostgreSQL, Prisma ORM, Google Gemini Vision API (outfit analysis), AWS S3 (image storage), Resend (email), Socket.io (real-time)
+> **Backend:** Node.js, Express, TypeScript, PostgreSQL, Prisma ORM, Google Gemini Flash (outfit analysis + agentic operations), AWS S3 (image storage), Resend (email), Socket.io (real-time)
 >
-> **AI:** Google Gemini 2.0 Flash (primary — outfit analysis, content generation, trend analysis) with 3,000+ lines of fashion-specialized prompt engineering. Automated critic/improvement pipeline that self-calibrates AI quality without a new release.
+> **AI:** Google Gemini 2.0 Flash (primary — outfit analysis, content generation, trend analysis, brand guard) with 3,000+ lines of fashion-specialized prompt engineering. Automated critic/improvement pipeline that self-calibrates AI quality without a new release.
 >
 > **AI coding tools:** Claude Code (Anthropic) — used throughout development as a pair programming partner. This is how one person writes 121,000 lines of production TypeScript.
 >
@@ -132,23 +137,24 @@
 >
 > The intersection of "I lived this problem" and "I know how to build and ship AI products" is genuine. This isn't a founder who read a market research report. I'm building the product I needed.
 >
-> How I know people need it: 72% of women report outfit indecision causes daily stress. r/femalefashionadvice has 2M+ members asking strangers for outfit feedback. #OOTD and #fitcheck have billions of views on TikTok. The behavior already exists — it's just solved badly.
+> How I know people need it: 72% of women report outfit indecision causes daily stress. r/femalefashionadvice has 2M+ members asking strangers for outfit feedback. #OOTD and #fitcheck have billions of views on TikTok. The behavior already exists — it's just solved badly. And no existing tool builds a persistent intelligence layer from those interactions, or reaches users proactively before the next occasion.
 
 ---
 
 **Who are your competitors? What do you understand about your business that they don't?**
 
-> **Direct competitors:** None own the moment of decision.
+> **Five categories fail at the platform problem:**
 >
-> — **Stitch Fix** — sends boxes in the mail. Days, not seconds. Shopping service, not feedback.
-> — **ChatGPT/generic AI** — no fashion specialization. Generic responses. No Style DNA, no occasion context, no editorial voice.
-> — **Pinterest/fashion apps** — inspiration and discovery, not feedback on what you're wearing right now.
-> — **Human stylists** — $100–500/session, appointment-only, not available when you need them.
+> — **Virtual try-on** (Snap, Zeekit) — novelty, not utility. No real outfit intelligence. No memory.
+> — **Wardrobe cataloging** (Stylebook, Whering) — manual entry burden. No occasion AI. No commerce.
+> — **Subscription boxes** (Stitch Fix, Trunk Club) — days, not seconds. Shopping service, not feedback.
+> — **Color analysis** (Dressika, Colorwise) — single-dimension insight. No occasion context. No memory.
+> — **Shallow scoring** (TikTok #outfitcheck trend) — no memory, no personalization, no platform.
 >
 > **What I understand that they don't:**
 >
-> 1. The valuable moment is the DECISION, not the inspiration or the shopping. Nobody owns that 30-second window.
-> 2. Fashion AI quality crossed the threshold in 2023–24 — this category literally couldn't exist before. First movers who build the dataset win.
+> 1. The opportunity is a platform, not a tool. Every interaction should make the next one more valuable. Style DNA compounds. Proactive outreach drives return visits. Affiliate commerce monetizes the intelligence without ads.
+> 2. Fashion AI quality crossed the threshold in 2023–24 — this category literally couldn't exist before. Agentic infrastructure now lets one engineer run what would have taken a team 18 months ago. First movers who build the compounding dataset win.
 > 3. The consumer app is a data collection engine. The real business at scale is fashion intelligence (B2B) — what real people actually wear. WGSN makes $100M+/yr on runway predictions. Actual consumer behavior data is fundamentally better.
 
 ---
@@ -157,11 +163,15 @@
 
 > **Near-term: Consumer subscriptions (freemium)**
 >
-> — Free: 3 AI checks/day with ads
-> — Plus ($4.99/mo): Unlimited checks, no ads, community features
+> — Free: 3 AI verdicts/day with ads
+> — Plus ($7.99/mo): Unlimited verdicts, no ads, community features
 > — Pro ($14.99/mo): Expert reviews, style analytics, priority AI
 >
-> Cost per AI check: ~$0.003. Blended monthly cost per user: ~$0.50. AI costs dropping ~50% year-over-year — our margins improve automatically.
+> **Near-term: Affiliate commerce**
+>
+> When the AI identifies a color story that works or a wardrobe gap, it surfaces curated product recommendations via CJ Affiliate / Rakuten. Commission on conversions — no ad spend required. The same intelligence that makes the verdict trustworthy makes the recommendation convert.
+>
+> Cost per AI verdict: ~$0.003. Blended monthly cost per user: ~$0.50. AI costs dropping ~50% year-over-year — margins improve automatically.
 >
 > **Long-term: B2B fashion intelligence licensing**
 >
@@ -169,7 +179,7 @@
 >
 > Comparable: WGSN earns ~$100M+ ARR on fashion intelligence built from runway predictions.
 >
-> **How much:** Target $1M ARR at Month 18 from subscriptions alone. If the B2B data play works, the ceiling is $100M+ ARR — but that requires scale we don't have yet. The subscription business alone is venture-scale if we hit 2M paid users (Duolingo has 8M). The data business is upside.
+> **How much:** Target $1M ARR at Month 18 from subscriptions alone. If the affiliate commerce layer performs and the B2B data play works, the ceiling is $100M+ ARR. The subscription business alone is venture-scale if we hit 2M paid users (Duolingo has 8M). The data business is upside.
 
 ---
 
@@ -209,7 +219,7 @@
 
 **What convinced you to apply to Y Combinator?**
 
-> Three things: (1) YC has cracked the consumer cold-start problem dozens of times — I need that expertise more than anything. (2) The YC brand compresses a 6-month fundraise into 6 weeks. (3) I want YC partners to pressure-test the B2B data platform thesis before I'm 18 months in. If the fashion intelligence play is wrong, I'd rather know now.
+> Three things: (1) YC has cracked the consumer cold-start problem dozens of times — I need that expertise more than anything. (2) The YC brand compresses a 6-month fundraise into 6 weeks. (3) I want YC partners to pressure-test the agentic platform thesis and the affiliate commerce layer before I'm 18 months in. If the intelligence-to-commerce play is wrong, I'd rather know now.
 
 ---
 
@@ -225,17 +235,17 @@
 
 ## FOUNDER VIDEO SCRIPT (1 minute)
 
-*Film in good lighting, plain background. Dress well — you're a former model, this is on-brand. Look at camera, not a script. Energy: confident but not manic.*
+*Film in good lighting, plain background. Dress well — you're a former model, this is on-brand. Look at camera, not a script. Energy: confident, unhurried.*
 
 **0–5s:** "I'm Brandon Davis, founder of Or This?"
 
-**5–20s:** "Every day, millions of women stand in front of the mirror asking 'does this work?' Their options are terrible. Friends are biased. Social media is too slow. Stylists cost hundreds."
+**5–20s:** "Every day, millions of women stand in front of the mirror asking 'does this work?' Their options are bad. Friends are biased. Stylists cost hundreds. Generic AI has no fashion expertise."
 
-**20–35s:** "Or This? gives you honest AI outfit feedback in 30 seconds. Snap a photo, tell us where you're going, get specific feedback, ask follow-ups. Like a stylish friend in your pocket."
+**20–35s:** "Or This? is the first agentic platform for fashion. You get a verdict in 30 seconds. The app learns your style over time. 16 backend agents work for you between sessions — weather alerts, event follow-ups, style nudges — without you opening the app."
 
 **35–50s:** "I was a signed model — I lived this problem. I spent 8 years managing AI at Apple and Verily. And I built the entire product myself — 121,000 lines of code, one founder."
 
-**50–60s:** "The product is built. I need YC to help me get it into users' hands and validate the data platform thesis. I'm ready."
+**50–60s:** "The product is built. The platform is operational. I need YC to help me get it into users' hands. I'm ready."
 
 ---
 
@@ -246,15 +256,15 @@
 1. **Cold open** — camera screen (5s)
 2. **Take a photo** of an actual outfit (10s)
 3. **Context input** — tap occasion, setting, weather, vibe (15s)
-4. **AI analysis loading → results** — show score, What's Working, Consider, Quick Fixes (30s)
-5. **Follow-up question** — type "Would different shoes help?" → AI responds conversationally (20s)
-6. **History/Archive** — scroll through past checks (10s)
-7. **Community features** — A/B comparison, community feed (15s)
-8. **Wardrobe** — AI-built wardrobe from outfit checks (10s)
+4. **AI analysis loading → verdict** — show score, What's Working, Consider, Quick Fixes (30s)
+5. **Follow-up question** — type "Would different shoes help?" → AI responds (20s)
+6. **Archive** — scroll through past verdicts (10s)
+7. **Proactive notification** — show a weather alert or event follow-up from the agentic backend (15s)
+8. **Wardrobe** — AI-built wardrobe from outfit verdicts (10s)
 9. **Quick montage** — profile, referrals, upgrade (10s)
-10. **End card** — "Or This? — built and ready to launch." (5s)
+10. **End card** — "Or This? — the agentic platform for fashion. Built and ready to launch." (5s)
 
-Total: ~2:10. Show the real product. Every second should demonstrate something.
+Total: ~2:10. Show the real product. Show the agentic layer. Every second should demonstrate something.
 
 ---
 
@@ -269,9 +279,9 @@ YC added this experimental question for Spring 2026 — it's a major differentia
 
 **Which session to pick:**
 Pick a transcript that shows a complex, multi-file feature being designed and built — architectural reasoning, not just code generation. Strong options:
+- The agentic platform (executeOrQueue pattern, agent-manager, brand-guard, kill switch)
 - The self-improving AI pipeline (critic/surgeon agents that improve prompts automatically)
-- The wardrobe sync system (normalize, dedup, upsert garments from AI feedback)
-- The autonomous agent framework (executeOrQueue pattern, brand-guard, kill switch)
+- The wardrobe sync system (normalize, dedup, upsert garments from AI verdicts)
 - The referral system (schema + backend + frontend + deep linking in one session)
 
 **What to highlight in the submission:**

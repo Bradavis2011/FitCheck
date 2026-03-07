@@ -53,11 +53,14 @@ export async function getContentDigest(req: AuthenticatedRequest, res: Response)
   const { days } = DigestQuerySchema.parse(req.query);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const [tiktokScripts, trendReports, styleTips, pendingPosts] = await Promise.all([
+  const [dailyScripts, trendReports, styleTips, pendingPosts] = await Promise.all([
     prisma.blogDraft.findMany({
-      where: { contentType: 'tiktok_script', createdAt: { gte: since } },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
+      where: {
+        contentType: { in: ['series_episode', 'data_drop', 'trend_take', 'tiktok_script'] },
+        createdAt: { gte: since },
+      },
+      orderBy: [{ trendPeriod: 'desc' }, { createdAt: 'desc' }],
+      take: 30,
     }),
     prisma.blogDraft.findMany({
       where: { contentType: 'trend_report', createdAt: { gte: since } },
@@ -76,16 +79,25 @@ export async function getContentDigest(req: AuthenticatedRequest, res: Response)
     }),
   ]);
 
+  // Group daily scripts by trendPeriod date
+  const scriptsByDate = dailyScripts.reduce<Record<string, typeof dailyScripts>>((acc, s) => {
+    const key = s.trendPeriod || 'unknown';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
+
   res.json({
     generatedAt: new Date().toISOString(),
     period: { days, since: since.toISOString() },
     summary: {
-      tiktokScripts: tiktokScripts.length,
+      dailyScripts: dailyScripts.length,
       trendReports: trendReports.length,
       styleTips: styleTips.length,
       pendingPosts: pendingPosts.length,
     },
-    tiktokScripts,
+    scriptsByDate,
+    dailyScripts,
     trendReports,
     styleTips,
     pendingPosts,

@@ -359,6 +359,11 @@ export async function runPreEventReminder(): Promise<void> {
           linkId: followUp.outfitCheckId,
         });
 
+        await prisma.eventFollowUp.update({
+          where: { id: followUp.id },
+          data: { pushSentAt: new Date() },
+        });
+
         sent++;
       } catch (err) {
         // Per-user errors are non-fatal
