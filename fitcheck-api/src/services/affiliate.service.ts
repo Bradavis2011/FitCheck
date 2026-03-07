@@ -277,6 +277,29 @@ export async function getRecommendations(
 
   const ctx = await getUserContext(userId, outfitCheckId);
 
+  // Resolve gender filter (same B→A→C priority as inline matching)
+  const userRaw = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { genderPreference: true } as any,
+  }) as any;
+
+  let outfitAiGender: string | null = null;
+  if (outfitCheckId) {
+    const outfitRow = await prisma.outfitCheck.findUnique({
+      where: { id: outfitCheckId },
+      select: { aiFeedback: true },
+    });
+    const fb = outfitRow?.aiFeedback as Record<string, unknown> | null;
+    outfitAiGender = (fb?.subjectGender as string | undefined) ?? null;
+    if (!outfitAiGender) {
+      const garments = ((fb?.styleDNA as any)?.garments as string[] | undefined) ?? [];
+      const inferred = inferGenderFromGarments(garments);
+      if (inferred !== 'unknown') outfitAiGender = inferred === 'men' ? 'male' : 'female';
+    }
+  }
+
+  const subjectGender = resolveSubjectGender(userRaw?.genderPreference, outfitAiGender, []);
+
   let products: AffiliateProduct[] = [];
 
   // ── Try live API sources first ─────────────────────────────────────────────
@@ -302,8 +325,17 @@ export async function getRecommendations(
 
   // ── Fallback: static catalog ───────────────────────────────────────────────
   if (products.length === 0) {
-    const liveStatic = AFFILIATE_CATALOG.filter(p => !p.isPlaceholder && p.imageUrl);
-    if (liveStatic.length === 0) return null; // catalog not populated yet
+    const liveStatic = AFFILIATE_CATALOG.filter(p => {
+      if (!p.isPlaceholder && p.imageUrl) {
+        if (subjectGender !== 'unknown') {
+          const pg = getProductGender(p);
+          if (pg !== 'unisex' && pg !== subjectGender) return false;
+        }
+        return true;
+      }
+      return false;
+    });
+    if (liveStatic.length === 0) return null;
 
     products = liveStatic
       .map(p => ({ product: p, score: scoreStaticProduct(p, ctx) }))
