@@ -404,18 +404,51 @@ function getProductGender(p: CatalogProduct): 'men' | 'women' | 'unisex' {
 }
 
 /**
+ * Garment-keyword heuristic — last-resort fallback for outfit checks
+ * that were analyzed before subjectGender was added to the AI schema.
+ * Returns 'unknown' when signals are ambiguous.
+ */
+function inferGenderFromGarments(garments: string[]): 'men' | 'women' | 'unknown' {
+  const text = garments.join(' ').toLowerCase();
+
+  const femaleHits = [
+    /\bskirt\b/, /\bdress\b(?!.*suit)/, /\b(kitten |stiletto |block )?heel[s]?\b/,
+    /\bpump[s]?\b/, /\bblouse\b/, /\bbralette\b/, /\bcorset\b/, /\bromper\b/,
+    /\bslingback\b/, /\bmary jane\b/, /\bmidi skirt\b/, /\bwrap dress\b/,
+  ].filter(r => r.test(text)).length;
+
+  const maleHits = [
+    /\b(neck)?tie\b/, /\btuxedo\b/, /\bdress shirt\b/, /\bpocket square\b/,
+    /\boxford shoe\b/, /\bderby shoe\b/, /\bmonk strap\b/, /\bmen'?s\b/,
+    /\bsport coat\b/, /\bsuit jacket\b/,
+  ].filter(r => r.test(text)).length;
+
+  const suitBoost = /\bsuit\b/.test(text) && !/\bpantsuit\b/.test(text) ? 0.5 : 0;
+
+  if (femaleHits > maleHits + suitBoost) return 'women';
+  if (maleHits + suitBoost > femaleHits) return 'men';
+  return 'unknown';
+}
+
+/**
  * Resolve final gender filter for product matching.
- * B (user profile) overrides A (AI-detected per-outfit).
- * Falls back to 'unknown' (show all) if neither is available.
+ * Priority: B (user profile) → A (AI field) → C (garment heuristic for old outfits)
  */
 function resolveSubjectGender(
   profileGender: string | null | undefined,
   aiGender: string | null | undefined,
+  garmentFallback: string[],
 ): 'men' | 'women' | 'unknown' {
-  const src = profileGender ?? aiGender ?? 'unknown';
-  if (src === 'male') return 'men';
-  if (src === 'female') return 'women';
-  return 'unknown';
+  // B: explicit user preference always wins
+  if (profileGender === 'male') return 'men';
+  if (profileGender === 'female') return 'women';
+
+  // A: AI-detected from photo (new outfits only)
+  if (aiGender === 'male') return 'men';
+  if (aiGender === 'female') return 'women';
+
+  // C: garment keyword heuristic (old outfits without subjectGender)
+  return inferGenderFromGarments(garmentFallback);
 }
 
 export async function getInlineMatches(
@@ -431,9 +464,10 @@ export async function getInlineMatches(
   const feedback = outfit.aiFeedback as Record<string, unknown>;
   const couldImprove = (feedback.couldImprove as string[] | undefined) ?? [];
   const takeItFurther = (feedback.takeItFurther as string[] | undefined) ?? [];
+  const currentGarments: string[] = ((feedback.styleDNA as any)?.garments as string[] | undefined) ?? [];
 
-  // A: AI-detected gender from the photo (reliable — model sees the actual subject)
-  const aiGender = (feedback.subjectGender as string | undefined) ?? 'unknown';
+  // A: AI-detected gender from the photo (present on outfits analyzed after schema update)
+  const aiGender = (feedback.subjectGender as string | undefined) ?? null;
 
   const ctx = await getUserContext(userId, outfitCheckId);
 
@@ -446,8 +480,8 @@ export async function getInlineMatches(
     ? (userRaw.affiliatePreferences as UserAffiliatePreferences)
     : undefined;
 
-  // B overrides A: profile preference wins if set, otherwise use AI-detected
-  const subjectGender = resolveSubjectGender(userRaw?.genderPreference, aiGender);
+  // B → A → C: profile wins, then AI field, then garment heuristic for old outfits
+  const subjectGender = resolveSubjectGender(userRaw?.genderPreference, aiGender, currentGarments);
 
   const liveStatic = AFFILIATE_CATALOG.filter(p => !p.isPlaceholder && p.imageUrl);
   if (liveStatic.length === 0) return null;
