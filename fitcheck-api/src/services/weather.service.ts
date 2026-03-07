@@ -51,7 +51,7 @@ function setCached(city: string, data: WeatherContext): void {
 
 // ─── Geocoding ─────────────────────────────────────────────────────────────────
 
-async function geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
+export async function geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
   const cacheKey = city.toLowerCase();
   if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey)!;
 

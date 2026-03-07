@@ -190,8 +190,8 @@ def build_deck():
 
     # One-liner
     add_multiline_text(slide, Inches(6.5), Inches(4.6), Inches(5.5), Inches(0.8), [
-        {"text": "AI-powered outfit feedback in 30 seconds.", "size": 16, "color": GRAY},
-        {"text": "Your honest friend in your pocket.",        "size": 16, "color": GRAY},
+        {"text": "The first agentic platform for fashion.", "size": 16, "color": GRAY},
+        {"text": "Intelligence. Outreach. Commerce.",       "size": 16, "color": GRAY},
     ])
 
     # Stage line
@@ -248,18 +248,18 @@ def build_deck():
                  "THE SOLUTION", font_size=11, font_color=CORAL, font_name="DM Sans")
 
     add_multiline_text(slide, Inches(6.2), Inches(1.2), Inches(6.5), Inches(1.0), [
-        {"text": "Your honest friend", "size": 36, "color": BLACK, "font_name": "Playfair Display"},
-        {"text": "in your pocket.",    "size": 36, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "The platform that", "size": 36, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "works for you.",    "size": 36, "color": BLACK, "font_name": "Playfair Display"},
     ], line_spacing=1.15)
 
     coral_rule(slide, left=Inches(6.2), top=Inches(2.6))
 
-    # 4-step process
+    # 3-pillar process
     steps = [
-        ("01", "Snap",         "Full-body photo or selfie."),
-        ("02", "Context",      "Occasion, setting, vibe."),
-        ("03", "Feedback",     "AI analysis in 30 seconds."),
-        ("04", "Conversation", "Follow-ups like a friend."),
+        ("01", "Intelligence",  "Style DNA learns you with every verdict."),
+        ("02", "Outreach",      "16 agents work for you between sessions."),
+        ("03", "Commerce",      "AI intelligence converts to curated shopping."),
+        ("04", "Verdict",       "Specific. Decisive. 30 seconds."),
     ]
     for i, (num, title, desc) in enumerate(steps):
         y = Inches(3.0 + i * 1.0)
@@ -272,7 +272,7 @@ def build_deck():
 
     gray_rule(slide, left=Inches(6.2), top=Inches(6.6), width=Inches(6.5))
     add_text_box(slide, Inches(6.2), Inches(6.8), Inches(6.5), Inches(0.5),
-                 "Not inspiration. Not shopping. Just honest, instant, private feedback.",
+                 "Not a tool you open. A platform that works for you.",
                  font_size=15, font_color=CHARCOAL, font_name="Playfair Display")
 
     # ══════════════════════════════════════════════════════════════
@@ -292,7 +292,7 @@ def build_deck():
                  font_size=40, font_color=WHITE, font_name="Playfair Display")
 
     add_text_box(slide, Inches(6.2), Inches(2.1), Inches(6.0), Inches(0.4),
-                 "A Vogue editor in your pocket \u2014 powered by vision AI.",
+                 "A SoHo stylist who charges $400/hour \u2014 at software scale.",
                  font_size=16, font_color=GRAY, font_name="DM Sans")
 
     coral_rule(slide, left=Inches(6.2), top=Inches(2.7))
@@ -314,7 +314,7 @@ def build_deck():
                  font_size=13, font_color=GRAY, font_name="DM Sans")
 
     add_text_box(slide, Inches(6.2), Inches(6.1), Inches(6.5), Inches(0.35),
-                 "Automated 7-stage training pipeline  \u2022  Prompt v3.0",
+                 "16 autonomous agents  \u2022  Self-calibrating quality  \u2022  Prompt v3.0",
                  font_size=13, font_color=GRAY, font_name="DM Sans")
 
     # ══════════════════════════════════════════════════════════════
@@ -334,7 +334,7 @@ def build_deck():
     ], line_spacing=1.2)
 
     add_text_box(slide, Inches(0.8), Inches(1.8), Inches(7.8), Inches(0.5),
-                 "Consumer subscriptions + B2B fashion intelligence licensing.",
+                 "Three pillars: Accumulating Intelligence. Proactive Outreach. Intelligence-to-Commerce.",
                  font_size=17, font_color=CHARCOAL, font_name="DM Sans")
 
     coral_rule(slide, left=Inches(0.8), top=Inches(2.5))
@@ -342,8 +342,8 @@ def build_deck():
     # TAM / SAM / SOM — dark cards
     markets = [
         ("TAM",  "$1.8T",  "Global apparel\nmarket",              Inches(0.8)),
-        ("SAM",  "$5.5B",  "Online personal styling\n(+$15B by 2032, 15% CAGR)", Inches(3.4)),
-        ("SOM",  "$200M",  "Year 5 ARR\n2M subs \u00d7 $100/yr + B2B data", Inches(6.0)),
+        ("SAM",  "$2.8B",  "AI personal styling\n(+$8.5B by 2032, 40% CAGR)", Inches(3.4)),
+        ("SOM",  "$200M",  "Year 5 ARR\n2M subs + affiliate + B2B", Inches(6.0)),
     ]
     for label, value, desc, x in markets:
         add_shape(slide, x, Inches(2.9), Inches(2.4), Inches(2.6), BLACK)
@@ -470,7 +470,7 @@ def build_deck():
             "7-day history",
             "Ad-supported",
         ], "outline", BLACK, CHARCOAL),
-        ("PLUS",     "$4.99/mo",    [
+        ("PLUS",     "$7.99/mo",    [
             "Unlimited AI checks",
             "5 follow-ups per check",
             "Full outfit history",
@@ -505,9 +505,8 @@ def build_deck():
 
     gray_rule(slide, left=Inches(0.8), top=Inches(6.85))
     add_text_box(slide, Inches(0.8), Inches(6.95), Inches(8.5), Inches(0.4),
-                 "Layer 2 \u2014 Fashion Intelligence (B2B):  "
-                 "Trend reports  \u2022  Trend API  \u2022  White-label SDK  \u2022  Custom research  "
-                 "\u2014  highest-margin revenue at scale",
+                 "Layer 2 \u2014 Affiliate commerce (CJ / Rakuten / Skimlinks):  intelligence converts to curated shopping  "
+                 "\u2022  Layer 3 \u2014 B2B data: Trend API  \u2022  White-label SDK",
                  font_size=13, font_color=CORAL, font_name="DM Sans")
 
     # ══════════════════════════════════════════════════════════════
@@ -526,9 +525,9 @@ def build_deck():
     coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
 
     metrics = [
-        ("~$0.003",     "Cost per\nAI check",           "Gemini Vision API\ncost per analysis"),
+        ("~$0.003",     "Cost per\nAI verdict",          "Gemini Flash API\ncost per analysis"),
         ("~$0.50",      "Blended monthly\ncost per user","Including infra,\nstorage, AI calls"),
-        ("$4.99\u2013$14.99", "Monthly revenue\nper paid user", "Strong gross margins\non subscriptions"),
+        ("$7.99\u2013$14.99", "Monthly revenue\nper paid user", "Strong gross margins\non subscriptions"),
         ("10\u201330x",       "Target\nLTV:CAC",              "Organic-first\nacquisition"),
     ]
     for i, (value, label, detail) in enumerate(metrics):
@@ -560,22 +559,22 @@ def build_deck():
                  "GROWTH", font_size=11, font_color=CORAL, font_name="DM Sans")
 
     add_text_box(slide, Inches(0.8), Inches(0.8), Inches(7.0), Inches(0.7),
-                 "\u201cOr This?\u201d is inherently shareable.",
+                 "The flywheel compounds.",
                  font_size=34, font_color=BLACK, font_name="Playfair Display")
 
     add_text_box(slide, Inches(0.8), Inches(2.0), Inches(7.0), Inches(0.4),
-                 "Built-in virality. Every outfit is a potential share.",
+                 "Every interaction makes the next one more valuable.",
                  font_size=16, font_color=CHARCOAL, font_name="DM Sans")
 
     coral_rule(slide, left=Inches(0.8), top=Inches(2.6))
 
     add_multiline_text(slide, Inches(0.8), Inches(2.9), Inches(4.5), Inches(3.0), [
-        {"text": "The core loop:", "size": 17, "color": BLACK, "space_after": 8},
-        {"text": "1.  User gets feedback \u2192 tells friends",  "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "2.  A/B comparisons shared for votes",         "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "3.  Friends download to participate",          "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "4.  New users try AI \u2192 get hooked",       "size": 16, "color": CHARCOAL, "space_after": 6},
-        {"text": "5.  Every outfit = potential share",           "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "The 8-node flywheel:", "size": 17, "color": BLACK, "space_after": 8},
+        {"text": "1.  Verdict submitted \u2192 Style DNA builds",    "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "2.  Next verdict gets sharper, more personal",   "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "3.  Agent reaches user before next occasion",    "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "4.  User returns \u2192 higher engagement",       "size": 16, "color": CHARCOAL, "space_after": 6},
+        {"text": "5.  Commerce converts \u2192 affiliate revenue",  "size": 16, "color": CHARCOAL, "space_after": 6},
     ])
 
     # Dark GTM card
@@ -601,17 +600,17 @@ def build_deck():
                  "COMPETITION", font_size=11, font_color=CORAL, font_name="DM Sans")
 
     add_multiline_text(slide, Inches(0.8), Inches(1.2), Inches(11.0), Inches(0.8), [
-        {"text": "We own the \u201cmoment of decision.\u201d", "size": 34, "color": BLACK, "font_name": "Playfair Display"},
-        {"text": "Nobody else does.",                           "size": 34, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "Five categories. None of them platform.", "size": 34, "color": BLACK, "font_name": "Playfair Display"},
+        {"text": "Or This? is not in any of them.",         "size": 34, "color": BLACK, "font_name": "Playfair Display"},
     ], line_spacing=1.15)
 
     coral_rule(slide, left=Inches(0.8), top=Inches(2.5))
 
     competitors = [
-        ("Stitch Fix",  "Subscription boxes.",        "Days, not seconds.\nExpensive.",          "outline",  BLACK, CHARCOAL),
-        ("Pinterest",   "Inspiration.",               "Not feedback.\nNot private.",             "outline",  BLACK, CHARCOAL),
-        ("ChatGPT",     "General AI.",                "No fashion expertise.\nNo specialized UX.", "outline", BLACK, CHARCOAL),
-        ("Or This?",    "Instant AI feedback\nat the moment of decision.", "Fast. Private.\nExpert. Always on.", CORAL, WHITE, WHITE),
+        ("Try-On",       "Snap, Zeekit",              "Novelty, not utility.\nNo intelligence.",    "outline",  BLACK, CHARCOAL),
+        ("Wardrobe",     "Stylebook, Whering",         "Manual entry.\nNo occasion AI.",             "outline",  BLACK, CHARCOAL),
+        ("Sub Boxes",    "Stitch Fix",                 "Days, not seconds.\nShopping, not feedback.","outline",  BLACK, CHARCOAL),
+        ("Or This?",     "Agentic platform\nfor fashion.", "Intelligence. Outreach.\nCommerce.", CORAL, WHITE, WHITE),
     ]
     for i, (name, what, diff, bg, name_clr, body_clr) in enumerate(competitors):
         x = Inches(0.8 + i * 3.1)
@@ -628,9 +627,9 @@ def build_deck():
 
     gray_rule(slide, left=Inches(0.8), top=Inches(5.6))
     add_text_box(slide, Inches(0.8), Inches(5.8), Inches(11.0), Inches(0.5),
-                 "Our moat: The world\u2019s only real-time consumer fashion dataset \u2014 "
-                 "every outfit analyzed generates structured intelligence that compounds in value. "
-                 "Style DNA profiles that deepen over time. Community network effects.",
+                 "Moat: Style DNA compounds per user (2+ years to replicate). "
+                 "Agentic infrastructure (18+ months to rebuild). "
+                 "Affiliate commerce intelligence calibrates with every conversion.",
                  font_size=15, font_color=CHARCOAL, font_name="DM Sans")
 
     # ══════════════════════════════════════════════════════════════
@@ -649,10 +648,10 @@ def build_deck():
     coral_rule(slide, left=Inches(0.8), top=Inches(2.2))
 
     status_items = [
-        ("BUILT",    "Full-stack app",    "37 screens\n16 API domains\n54+ database tables"),
+        ("BUILT",    "Full-stack app",    "31 screens\n136 API endpoints\n66 database models"),
         ("DEPLOYED", "Backend live",      "Railway hosting\nPostgreSQL\nAll services up"),
-        ("READY",    "App store",         "iOS + Android\nbuilds prepared"),
-        ("ACTIVE",   "AI pipeline",       "7-stage training\nPrompt v3.0"),
+        ("ACTIVE",   "16 agents",         "Agentic backend\noperational\nexecuteOrQueue model"),
+        ("ACTIVE",   "AI pipeline",       "Gemini Flash\nPrompt v3.0\nSelf-calibrating"),
     ]
     for i, (badge, title, desc) in enumerate(status_items):
         x = Inches(0.8 + i * 3.1)
@@ -671,7 +670,7 @@ def build_deck():
 
     targets = [
         ("50K",     "MAU"),
-        ("10K",     "Daily checks"),
+        ("10K",     "Daily verdicts"),
         ("30%",     "D7 retention"),
         ("4.0 / 5", "Helpfulness"),
     ]
@@ -700,27 +699,27 @@ def build_deck():
     phases = [
         ("NOW",     "Core Loop",  CORAL,    WHITE, WHITE, GRAY, [
             "App store launch",
-            "AI refinement",
+            "AI verdict quality",
             "Beta (500 users)",
             "Organic seeding",
         ]),
+        ("Q2 2026", "Commerce",   BLACK,    WHITE, WHITE, GRAY, [
+            "Affiliate commerce live",
+            "CJ / Rakuten active",
+            "First conversions",
+            "Commerce intelligence",
+        ]),
         ("Q3 2026", "Community",  BLACK,    WHITE, WHITE, GRAY, [
-            "Community feedback",
             "\u201cOr This?\u201d A/B",
             "Give-to-get flywheel",
-            "Gamification",
-        ]),
-        ("Q4 2026", "Monetize",   BLACK,    WHITE, WHITE, GRAY, [
-            "Plus & Pro tiers",
-            "Expert marketplace",
-            "A/B test pricing",
-            "Revenue optimization",
+            "Proactive agents tuned",
+            "Network effects",
         ]),
         ("2027",    "Scale",      WHITE,    BLACK, BLACK, CHARCOAL, [
-            "B2B trend API launch",
+            "B2B trend API",
             "Fashion intelligence",
-            "Shopping integration",
             "International",
+            "Series A",
         ]),
     ]
 
@@ -834,7 +833,7 @@ def build_deck():
     add_text_box(slide, Inches(0.8), Inches(5.8), Inches(8.0), Inches(0.3),
                  "18-MONTH MILESTONES", font_size=11, font_color=GRAY, font_name="DM Sans")
     add_text_box(slide, Inches(0.8), Inches(6.1), Inches(8.5), Inches(0.5),
-                 "250K MAU  \u2022  75K daily checks  \u2022  $1M+ ARR  \u2022  Series A metrics",
+                 "250K MAU  \u2022  75K daily verdicts  \u2022  $1M+ ARR  \u2022  Series A metrics",
                  font_size=17, font_color=WHITE, font_name="DM Sans")
 
     # ══════════════════════════════════════════════════════════════

@@ -27,14 +27,16 @@ import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreato
 import { runCreatorScout } from './creator-scout.service.js';
 import { runEmailOutreach, runEmailFollowUp, runCreatorOnboardingFollowUps } from './creator-outreach.service.js';
 import { runRedditDiscovery } from './reddit-scout.service.js';
+import { runSubredditManager, registerExecutors as registerSubredditExecutors } from './subreddit-manager.service.js';
 import { runMorningBrief, runStaleProspectCleanup } from './growth-intern.service.js';
 import { runLearningContentAgent, generateStyleTips } from './learning-content.service.js';
-import { sendFounderContentDigest } from './founder-content-digest.service.js';
+import { sendFounderContentDigest, sendDailyScriptEmail } from './founder-content-digest.service.js';
 import { runFashionTrendCron } from './fashion-trends.service.js';
 import { runUptimeCheck, trackDailyUptime } from './uptime-monitor.service.js';
 import { retryFailedDeletions } from './data-deletion.service.js';
 import { runChurnPrediction } from './churn-prediction.service.js';
-import { measureAffiliateMetrics } from './affiliate.service.js';
+import { measureAffiliateMetrics, computeUserAffiliatePreferences } from './affiliate.service.js';
+import { runFashionEventDiscovery, runFashionEventNudge } from './fashion-events.service.js';
 import { runFeedbackAnalyst } from './feedback-analyst.service.js';
 import { runSeoContentAgent } from './seo-content.service.js';
 import { runInfraMonitor } from './infra-monitor.service.js';
@@ -237,6 +239,7 @@ export function initializeScheduler(): void {
   registerAppstoreExecutors();
   registerOutreachExecutors();
   registerCreatorExecutors();
+  registerSubredditExecutors();
 
   console.log('⏰ [Scheduler] Initializing cron jobs...');
 
@@ -394,6 +397,13 @@ export function initializeScheduler(): void {
     guardedRun('reddit-scout', '🤝 [Scheduler] Running Reddit discovery...', runRedditDiscovery),
   { timezone: 'UTC' });
 
+  // ── Subreddit Manager — Mon/Wed/Fri 2pm UTC ───────────────────────────
+  // Posts curated fashion content to r/OrThis 3x/week.
+  // Mon=celebrity breakdown, Wed=street style, Fri=rate this look.
+  cron.schedule('0 14 * * 1,3,5', () =>
+    guardedRun('subreddit-manager', '[Scheduler] Running subreddit manager...', runSubredditManager),
+  { timezone: 'UTC' });
+
   // ── Growth Intern: Morning Brief — Daily 12pm UTC (8am ET) ───────────
   cron.schedule('0 12 * * *', () =>
     guardedRun('growth-intern', '🌅 [Scheduler] Running morning brief...', runMorningBrief),
@@ -509,6 +519,18 @@ export function initializeScheduler(): void {
       }),
     { timezone: 'UTC' });
   }
+
+  // ── Content Factory — Daily 5 production scripts (6am UTC) ─────────────────
+  // Generates 2× series_episode, 1× data_drop, 1× trend_take, 1× style_tip
+  // Also generates weekly trend report on Tuesdays
+  cron.schedule('0 6 * * *', () =>
+    guardedRun('content-factory', '🎬 [Scheduler] Running content factory...', runLearningContentAgent),
+  { timezone: 'UTC' });
+
+  // ── Daily Script Email — 6:15am UTC (15 min after generation) ───────────────
+  cron.schedule('15 6 * * *', () =>
+    guardedRun('content-factory', '📧 [Scheduler] Sending daily script email...', sendDailyScriptEmail),
+  { timezone: 'UTC' });
 
   // ── Ops Learning Loop — Daily Measurers (6am UTC, DB only, $0) ──────────────
   cron.schedule('0 6 * * *', () =>
@@ -695,6 +717,21 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Affiliate metrics failed:', err); }
   }, { timezone: 'UTC' });
 
+  // ── Affiliate Preference Learning — Daily 4am UTC (before nudge hour computation) ─
+  cron.schedule('0 4 * * *', () =>
+    guardedRun('affiliate-learning', '🛍️ [Scheduler] Computing user affiliate preferences...', computeUserAffiliatePreferences),
+  { timezone: 'UTC' });
+
+  // ── Fashion Event Discovery — Wednesday 8am UTC ───────────────────────────
+  cron.schedule('0 8 * * 3', () =>
+    guardedRun('fashion-events', '🗓️ [Scheduler] Running fashion event discovery...', runFashionEventDiscovery),
+  { timezone: 'UTC' });
+
+  // ── Fashion Event Nudge — Daily 8:30am UTC (Plus/Pro only) ───────────────
+  cron.schedule('30 8 * * *', () =>
+    guardedRun('fashion-events', '🗓️ [Scheduler] Running fashion event nudge...', runFashionEventNudge),
+  { timezone: 'UTC' });
+
   // ── Tier 2: Churn Prediction — Daily 7:30am UTC ───────────────────────────
   cron.schedule('30 7 * * *', () =>
     guardedRun('churn-prediction', '📉 [Scheduler] Running churn prediction...', runChurnPrediction),
@@ -759,14 +796,11 @@ export function initializeScheduler(): void {
     catch (err) { console.error('[Scheduler] Style tips failed:', err); }
   }, { timezone: 'UTC' });
 
-  // ── Learning Content Agent — Tuesday 8am UTC ─────────────────────────────
-  // Runs after Mon 7am fashion trends. Generates trend report + TikTok scripts.
-  // (Style tips run daily above — no need to duplicate here.)
-  cron.schedule('0 8 * * 2', async () => {
-    console.log('📚 [Scheduler] Running learning content agent...');
-    try { await runLearningContentAgent(); }
-    catch (err) { console.error('[Scheduler] Learning content agent failed:', err); }
-  }, { timezone: 'UTC' });
+  // ── Learning Content Agent (weekly trend report only) — Tuesday 8am UTC ─────
+  // Daily script generation runs at 6am via content-factory cron above.
+  // This Tuesday run handles the weekly trend report separately.
+  // NOTE: generateWeeklyTrendReport() is called inside runLearningContentAgent()
+  // only on Tuesdays (guarded by day-of-week check in the function itself).
 
   // ── Founder Content Digest — Tuesday 10am UTC ────────────────────────────
   // Sent after content is generated. Includes TikTok scripts, trend report, tips, pending posts.

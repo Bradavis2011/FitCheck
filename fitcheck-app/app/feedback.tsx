@@ -32,6 +32,7 @@ import { APP_STORE_URL, WEB_BASE_URL } from '../src/constants/urls';
 import AdBanner from '../src/components/AdBanner';
 import { recordOutfitCheck } from '../src/lib/adManager';
 import AffiliateCard from '../src/components/AffiliateCard';
+import InlineProductCard from '../src/components/InlineProductCard';
 import FeedbackCard from '../src/components/FeedbackCard';
 import FollowUpModal from '../src/components/FollowUpModal';
 import StyleDNACard from '../src/components/StyleDNACard';
@@ -41,7 +42,7 @@ import { FeedbackSkeleton } from '../src/components/SkeletonLoader';
 import ScoreReveal from '../src/components/ScoreReveal';
 import ScoreCelebration from '../src/components/ScoreCelebration';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
-import { useTogglePublic, useCommunityFeedback, useReferralStats, useUserStats } from '../src/hooks/useApi';
+import { useTogglePublic, useCommunityFeedback, useReferralStats, useUserStats, useInlineProducts } from '../src/hooks/useApi';
 import { maybeRequestReview } from '../src/lib/storeReview';
 import { useAuthStore } from '../src/stores/authStore';
 import { track } from '../src/lib/analytics';
@@ -75,6 +76,8 @@ export default function FeedbackScreen() {
   const user = useAuthStore((s) => s.user);
   const { data: referralStats } = useReferralStats();
   const { data: stats } = useUserStats();
+  const { data: inlineData } = useInlineProducts(outfitId);
+  const inlineMatches = inlineData?.inlineMatches ?? null;
 
   const [outfit, setOutfit] = useState<OutfitCheck | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -613,25 +616,59 @@ export default function FeedbackScreen() {
           {/* Consider */}
           {normalized && normalized.couldImprove.length > 0 && (
             <FeedbackCard title="Consider" icon="" iconColor={Colors.warning} delay={200}>
-              {normalized.couldImprove.map((bullet, i) => (
-                <View key={i} style={styles.bulletRow}>
-                  <Text style={styles.bulletSymbol}>–</Text>
-                  <Text style={styles.bulletText}>{bullet}</Text>
-                </View>
-              ))}
+              {normalized.couldImprove.map((bullet, i) => {
+                const match = inlineMatches?.matches.find(
+                  m => m.section === 'couldImprove' && m.index === i,
+                );
+                return (
+                  <View key={i}>
+                    <View style={styles.bulletRow}>
+                      <Text style={styles.bulletSymbol}>–</Text>
+                      <Text style={styles.bulletText}>{bullet}</Text>
+                    </View>
+                    {match && (
+                      <InlineProductCard
+                        product={match.product}
+                        impressionId={inlineMatches!.impressionId}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </FeedbackCard>
           )}
 
           {/* Elevate */}
           {normalized && normalized.takeItFurther.length > 0 && (
             <FeedbackCard title="Elevate" icon="" iconColor={Colors.primary} delay={400}>
-              {normalized.takeItFurther.map((bullet, i) => (
-                <View key={i} style={styles.bulletRow}>
-                  <Text style={styles.bulletSymbol}>↑</Text>
-                  <Text style={styles.bulletText}>{bullet}</Text>
-                </View>
-              ))}
+              {normalized.takeItFurther.map((bullet, i) => {
+                const match = inlineMatches?.matches.find(
+                  m => m.section === 'takeItFurther' && m.index === i,
+                );
+                return (
+                  <View key={i}>
+                    <View style={styles.bulletRow}>
+                      <Text style={styles.bulletSymbol}>↑</Text>
+                      <Text style={styles.bulletText}>{bullet}</Text>
+                    </View>
+                    {match && (
+                      <InlineProductCard
+                        product={match.product}
+                        impressionId={inlineMatches!.impressionId}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </FeedbackCard>
+          )}
+
+          {/* Affiliate recommendations — "browse more" shown after Elevate when score >= 6 */}
+          {outfitId && normalized?.aiScore !== undefined && normalized.aiScore >= 6 && (
+            <AffiliateCard
+              outfitCheckId={outfitId}
+              score={normalized.aiScore}
+            />
           )}
 
           {/* Revision Notes — shown when this is a revision with notes */}
@@ -668,14 +705,6 @@ export default function FeedbackScreen() {
           {/* Style DNA */}
           {normalized?.styleDNA && (
             <StyleDNACard styleDNA={normalized.styleDNA} delay={600} />
-          )}
-
-          {/* Affiliate recommendations — only shown when score >= 6 and catalog is populated */}
-          {outfitId && normalized?.aiScore !== undefined && normalized.aiScore >= 6 && (
-            <AffiliateCard
-              outfitCheckId={outfitId}
-              score={normalized.aiScore}
-            />
           )}
 
           {/* Follow-up — sharp-corner input area */}

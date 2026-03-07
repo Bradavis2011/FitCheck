@@ -784,3 +784,36 @@ export function useYourWeek(enabled: boolean) {
     staleTime: 1000 * 60 * 15, // 15 min
   });
 }
+
+// ─── Affiliate hooks ──────────────────────────────────────────────────────────
+
+export interface AffiliateProduct {
+  id: string;
+  title: string;
+  brand: string;
+  category: string;
+  price: number;
+  currency: string;
+  imageUrl: string;
+  affiliateUrl: string;
+  relevanceReason: string;
+}
+
+export interface InlineMatch {
+  section: 'couldImprove' | 'takeItFurther';
+  index: number;
+  product: AffiliateProduct;
+}
+
+export function useInlineProducts(outfitId: string | undefined) {
+  return useQuery({
+    queryKey: ['affiliate', 'inline', outfitId],
+    queryFn: () =>
+      api.get('/api/affiliate/inline-matches', { params: { outfitId } }).then(r => r.data as {
+        inlineMatches: { impressionId: string; matches: InlineMatch[] } | null;
+      }),
+    enabled: !!outfitId,
+    staleTime: 10 * 60 * 1000, // 10 min — inline products don't change per session
+  });
+}
+

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { getWeatherForCity } from '../services/weather.service.js';
+import { matchEventsToUser } from '../services/fashion-events.service.js';
 
 /**
  * GET /api/week
@@ -52,6 +53,9 @@ export async function getYourWeek(req: Request, res: Response) {
     followUpAt: fu.followUpAt.toISOString(),
   }));
 
+  // ── Local fashion events ─────────────────────────────────────────────────────
+  const localEvents = await matchEventsToUser(userId).catch(() => []);
+
   // ── Suggestions ─────────────────────────────────────────────────────────────
   // Short, proactive copy strings surfaced in the "Your Week" card.
   const suggestions: string[] = [];
@@ -67,7 +71,7 @@ export async function getYourWeek(req: Request, res: Response) {
     suggestions.push(`${next.occasion} ${dayLabel}. Your look${scoreText} is locked in.`);
   }
 
-  res.json({ weather, upcomingEvents, suggestions });
+  res.json({ weather, upcomingEvents, localEvents, suggestions });
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

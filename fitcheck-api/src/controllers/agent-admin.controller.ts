@@ -181,6 +181,10 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
 
   const agentMap: Record<string, () => Promise<void>> = {
     // ── Content & Social ──────────────────────────────────────────────────────
+    'content-factory': async () => {
+      const { runLearningContentAgent } = await import('../services/learning-content.service.js');
+      await runLearningContentAgent();
+    },
     'content-calendar': async () => {
       const { runContentCalendar } = await import('../services/content-calendar.service.js');
       await runContentCalendar();

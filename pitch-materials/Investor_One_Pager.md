@@ -2,67 +2,89 @@
 
 ---
 
-## Confidence in every choice.
+## The first agentic platform for fashion.
 
-**Or This?** gives women instant, honest outfit feedback at the exact moment they need it — standing in front of the mirror, about to leave the house. Snap a photo. Tell us where you're going. Get editorial-quality AI feedback in 30 seconds. Ask follow-ups like you would with a trusted, stylish friend.
-
-We own the **moment of decision**. Not inspiration. Not shopping. Not social media. The 30 seconds before you walk out the door — that moment, specifically, belongs to us.
+**Or This?** is the first agentic platform for fashion — a system that accumulates personalized style intelligence, proactively reaches users before moments that matter, and converts that intelligence into commerce. The moment of decision (standing at the mirror, about to leave) is the entry point. The platform is what's built.
 
 ---
 
 ## The Problem
 
-Outfit indecision is a universal daily friction point. 72% of women report it causes daily stress. The average woman changes outfits 2–3 times before leaving for anything important. And every existing solution fails:
+Outfit indecision is a universal daily friction point. 72% of women report it causes daily stress. Every existing solution fails at the moment it matters:
 
 - **Friends** — biased, unavailable, or "you look fine"
 - **Social media** — too slow, too public, not actionable
 - **Stylists** — $100–500/session, appointment-only, not available at 7:45am on a Tuesday
-- **ChatGPT** — no fashion expertise, no occasion context, no voice
+- **Generic AI** — no fashion expertise, no occasion context, no persistent memory
 
-There is no honest, instant, private feedback source at the moment of decision. That gap is our entire reason for existing.
-
----
-
-## The Solution
-
-A Vogue editor in your pocket. Powered by vision AI.
-
-Our AI evaluates color harmony, proportions, fit, and occasion-appropriateness — then speaks plainly. No hedging. No "it depends." Specific praise, honest critique, and quick fixes you can make before you leave. Then keep asking — "What shoes would work better?" "Is this too casual for a client dinner?" — until you're sure.
-
-Over time, **Style DNA** builds a personalized style profile from every check. Feedback gets sharper. The AI knows your color season, your body type, your fashion goals. It gets better the more you use it.
+No existing tool learns from you, works for you between sessions, or connects feedback to commerce. That gap is the platform opportunity.
 
 ---
 
-## Two Markets. One Product.
+## The Solution: Three Pillars
 
-Or This? sits at the intersection of consumer subscriptions and fashion intelligence data.
+### Pillar 1 — Accumulating Intelligence
+Every outfit check builds a personalized style profile. Style DNA tracks color harmonies, occasion patterns, garment performance, body type context, and AI scoring history. Feedback gets sharper with every use. Cold start is solved — the platform learns immediately. Warm users get calibrated, hyper-personalized verdicts no human stylist could replicate at speed.
+
+### Pillar 2 — Proactive Outreach
+16+ server-side agents run continuously — without the user opening the app. Weather alerts ("rain tomorrow — your Tuesday meeting outfit won't work"). Event follow-ups after a big occasion. Milestone messages. Style narrative insights. Push nudges timed to each user's personal engagement peak. The platform works for users while they're not looking.
+
+### Pillar 3 — Intelligence-to-Commerce
+Style intelligence converts to curated shopping. When the AI identifies a color story that works, it surfaces affiliate product recommendations calibrated to that verdict. When a garment is identified as a wardrobe gap, the platform fills it. Affiliate commerce via CJ / Rakuten / Skimlinks — commission on conversions, zero ad spend required.
+
+---
+
+## Competitive Landscape
+
+Five categories fail at the platform problem:
+
+| Category | Examples | What They Miss |
+|----------|----------|----------------|
+| **Virtual Try-On** | Snap, Zeekit | No real outfit intelligence. Novelty, not utility |
+| **Wardrobe Cataloging** | Stylebook, Whering | Manual entry burden. No occasion AI. No commerce |
+| **Subscription Boxes** | Stitch Fix, Trunk Club | Days, not seconds. Shopping service, not feedback |
+| **Color Analysis** | Dressika, Colorwise | Single-dimension insight. No occasion context |
+| **Shallow Scoring** | Outfit check TikTok trends | No memory, no personalization, no platform |
+
+**Or This? is not in any of these categories.** It is the platform that makes all of these tools obsolete for the user who wants intelligence, not just input.
+
+---
+
+## Market Opportunity
 
 | | Size | Basis |
 |---|---|---|
-| **TAM** | $1.8T | Global apparel market (Grand View Research, 2025) |
-| **SAM** | $5.5B → $15B | Online personal styling services, 15% CAGR (FutureDataStats, 2024) |
-| **SOM** | $200M Year 5 ARR | 2M paying subscribers × ~$100/yr blended ARPU + B2B data licensing |
+| **TAM** | $1.8T | Global apparel market |
+| **SAM** | $2.8B → $8.5B | AI-based personal styling, 40% CAGR (Grand View Research, 2025) |
+| **SOM** | $200M Year 5 ARR | 2M paying subscribers × ~$100/yr blended ARPU + affiliate commerce + B2B |
 
-**Why now:** Vision AI crossed the quality threshold in 2023–24. For the first time, models can reliably analyze a real outfit photo and give specific, useful, fashion-literate feedback. This category could not have existed 18 months ago. AI API costs have dropped 90% since 2022 and keep falling — our COGS improves automatically, every quarter, without us doing anything.
+**Why now:** Fashion AI quality crossed the threshold in 2023–24. Models can reliably analyze a real outfit photo and give specific, useful, fashion-literate feedback. Platform-scale agentic infrastructure now costs one engineer what it would have taken a team to run 18 months ago. The category could not have existed before — and most competitors haven't caught up.
+
+**User growth:** 47M AI fashion tool users in 2024 → projected 85M by 2026 (40% CAGR).
 
 ---
 
-## The Data Layer
+## The Flywheel
 
-Every outfit check generates structured fashion intelligence: StyleDNA attributes, color harmonies, occasion patterns, garment frequencies, AI scores, and community signals. At scale, this becomes something no competitor can replicate without the same user base — **the world's only real-time, bottom-up consumer fashion dataset**.
+```
+User submits outfit
+      ↓
+Style DNA accumulates intelligence
+      ↓
+AI verdict gets sharper and more personal
+      ↓
+Proactive agent reaches user before next occasion
+      ↓
+User returns — higher engagement, higher trust
+      ↓
+Commerce conversion fires on curated recommendation
+      ↓
+Platform earns affiliate revenue + refines commerce model
+      ↓
+Data depth compounds — moat widens
+```
 
-**Comparable:** WGSN earns ~$100M+ ARR selling fashion intelligence built on runway predictions and trend surveys. Ours is built on what real people actually wear, to real occasions, scored by AI and validated by community consensus. It's a fundamentally better data source.
-
-**B2B revenue products:**
-
-| Product | Price | Buyer |
-|---|---|---|
-| Trend Reports | $15–50K / quarter | Brands, retailers, forecasters |
-| Custom Research | $25–100K per study | Brands with specific questions |
-| Real-Time Trend API | $5–20K / month | Fast-fashion retailers |
-| White-Label Styling SDK | $10–50K / month | Retailer apps |
-
-At scale, B2B data licensing is the highest-margin revenue stream — and the deepest moat. The consumer app is the data collection engine. The dataset is the asset.
+Every interaction makes the next one more valuable. Every user makes the model smarter. Every conversion refines the commerce layer.
 
 ---
 
@@ -70,50 +92,55 @@ At scale, B2B data licensing is the highest-margin revenue stream — and the de
 
 **Layer 1 — Consumer subscriptions:**
 
-**Free** (3 checks/day, ads) → **Plus** ($4.99/mo, unlimited) → **Pro** ($14.99/mo, expert reviews + analytics)
+**Free** (3 verdicts/day) → **Plus** ($7.99/mo, unlimited) → **Pro** ($14.99/mo, expert reviews + style analytics)
 
-**Layer 2 — Fashion intelligence (B2B):** Trend reports · API access · Custom research · White-label SDK
+**Layer 2 — Affiliate commerce:** Curated product recommendations tied to AI verdicts. CJ Affiliate / Rakuten / Skimlinks. Commission on conversions — no ad spend.
+
+**Layer 3 — Fashion intelligence (B2B):** Trend reports · Real-time API · Custom research · White-label SDK
 
 | Metric | Value |
 |---|---|
 | Cost per AI check | ~$0.003 |
 | Blended monthly cost per user | ~$0.50 |
-| Subscription price | $4.99–$14.99/mo |
+| Subscription price | $7.99–$14.99/mo |
 | Target LTV:CAC | 10–30x |
 | Gross margin trend | Improving (AI costs dropping ~50% YoY) |
 
 ---
 
-## Product Status
+## Moat
 
-**Fully built and deployment-ready.**
-
-37 app screens. 16 active API domains. 54+ database models. Backend deployed on Railway. AI pipeline live with prompt v3.0 and Style DNA personalization. 16 autonomous AI agents running backend operations — content, growth, engagement, app store management, weekly founder briefings.
-
-**What's built:** Camera capture, context input, AI feedback, follow-up conversation, outfit history, community feed, A/B comparisons, live streaming, expert marketplace, challenges, gamification, wardrobe management, event planning, referral system, privacy controls, and complete brand identity.
-
-**What's not built yet:** A user base. The product is complete. We're pre-launch.
+| Asset | Replication Time |
+|---|---|
+| Style DNA dataset (per-user fashion intelligence) | 2–3 years minimum with equivalent user base |
+| Agentic infrastructure (16+ agents, executeOrQueue security model) | 18+ months for a funded team |
+| Prompt engineering corpus (3,000+ lines, self-calibrating) | Not replicable without equivalent outfit volume |
+| Affiliate commerce intelligence (what converts for which style profile) | 12–18 months post-launch |
+| Community signals (helpful votes, A/B comparison data) | Requires equivalent community scale |
+| Brand authority (SoHo stylist positioning, editorial voice) | First-mover advantage, then defended by quality |
 
 ---
 
-## Competitive Advantage
+## Product Status
 
-Nobody owns the moment of decision. Stitch Fix sends boxes — that's days, not seconds. Pinterest is inspiration, not feedback. ChatGPT is generic, not fashion-literate.
+**Fully built. Operational. Pre-launch.**
 
-**Our moat compounds:**
-- **Style DNA** — personalized profiles that deepen with every check. The app gets smarter about *you* over time.
-- **Dataset** — every outfit analyzed adds to a proprietary, real-time fashion intelligence corpus that competitors can't replicate without our user base.
-- **AI quality pipeline** — automated self-calibration. When helpfulness drops, the AI corrects. Our quality improves automatically.
-- **Network effects** — community feedback, A/B comparisons, and give-to-get mechanics make the product better as it grows.
-- **16 AI agents** — one founder can operate this at the scale of a 10-person team.
+121,743 lines of TypeScript across React Native app + Node.js backend. 31 app screens. 136 API endpoints. 66 database models. Backend deployed on Railway. Gemini Flash AI pipeline live with prompt v3.0 and Style DNA personalization.
+
+16+ autonomous backend agents running operations — content calendar, growth monitoring, user engagement, affiliate sourcing, app store management, agentic email sequences, weekly founder briefings. One founder operates at the scale of a 10-person team.
+
+**What's built:** Camera capture, context input, AI verdict, follow-up conversation, outfit archive, community feed, A/B comparisons, wardrobe management, event planning, referral system, proactive agent infrastructure, affiliate commerce layer, complete brand identity.
+
+**What's not built:** A user base. The product is ready. Every day without users is wasted.
 
 ---
 
 ## Growth Strategy
 
 1. **Private beta** — 500 users from Reddit fashion communities (r/femalefashionadvice: 2M+ members) + founder's modeling/acting network
-2. **TikTok + ProductHunt** — the 30-second feedback loop is inherently short-form video. Outfit content dominates the platform.
+2. **TikTok + Product Hunt** — the verdict reveal is inherently short-form video. Outfit content dominates the platform.
 3. **Organic flywheel** — "Or This?" A/B comparisons are designed to be shared. Every outfit check is a potential acquisition moment.
+4. **Affiliate network** — CJ / Rakuten / Skimlinks approvals in progress. Commerce layer activates as user base grows.
 
 **Built-in virality:** The brand name is a conversation. Every share is a product demo.
 
@@ -121,7 +148,7 @@ Nobody owns the moment of decision. Stitch Fix sends boxes — that's days, not 
 
 ## Key Metrics Targets
 
-| Timeframe | MAU | Daily Checks | D7 Retention | Helpfulness |
+| Timeframe | MAU | Daily Verdicts | D7 Retention | Helpfulness |
 |---|---|---|---|---|
 | Month 6 | 50K | 10K | 30% | 4.0/5 |
 | Month 12 | 250K | 75K | 40% | 4.2/5 |
@@ -139,7 +166,7 @@ Nobody owns the moment of decision. Stitch Fix sends boxes — that's days, not 
 | 20% | AI/Data — training pipeline, Style DNA, dataset development |
 | 15% | Operations — team, legal, compliance |
 
-**18-month milestones:** 250K MAU · 75K daily checks · $1M+ ARR · proven unit economics · B2B data pipeline seeded.
+**18-month milestones:** 250K MAU · 75K daily verdicts · $1M+ ARR · proven unit economics · affiliate commerce pipeline generating revenue.
 
 ---
 

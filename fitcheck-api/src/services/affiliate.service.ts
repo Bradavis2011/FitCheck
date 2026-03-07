@@ -62,6 +62,8 @@ const PLACEMENT_COPY: Record<string, { headline: string; subtext: string }> = {
   post_feedback_mid:  { headline: 'Level it up',        subtext: 'Pieces that could close the gap' },
   archive:            { headline: 'Build on your archive', subtext: 'Picks based on what you wear most' },
   style_dna:          { headline: 'Curated for your DNA',  subtext: 'Brands that match your archetype' },
+  inline:             { headline: 'Shop the look',      subtext: 'Picked to match this suggestion' },
+  your_week:          { headline: 'Prep for the week',  subtext: 'Curated for what\'s coming up' },
 };
 
 // ─── Skimlinks URL wrapper ────────────────────────────────────────────────────
@@ -181,9 +183,22 @@ async function getUserContext(userId: string, outfitCheckId?: string): Promise<U
   };
 }
 
+// ─── User affiliate preferences (learning) ───────────────────────────────────
+
+export interface UserAffiliatePreferences {
+  preferredCategories: string[];
+  preferredBrands: string[];
+  priceRange: { min: number; max: number };
+  avoidCategories: string[];
+}
+
 // ─── Static catalog scoring (fallback) ───────────────────────────────────────
 
-function scoreStaticProduct(product: CatalogProduct, ctx: UserContext): number {
+function scoreStaticProduct(
+  product: CatalogProduct,
+  ctx: UserContext,
+  userPrefs?: UserAffiliatePreferences,
+): number {
   let score = 0;
   if (product.archetypes.includes(ctx.topArchetype.toLowerCase())) score += 40;
   else if (product.archetypes.includes('all')) score += 15;
@@ -192,6 +207,15 @@ function scoreStaticProduct(product: CatalogProduct, ctx: UserContext): number {
   if (ctx.avgFormalityLevel >= fMin && ctx.avgFormalityLevel <= fMax) score += 20;
   else if (Math.abs(ctx.avgFormalityLevel - (fMin + fMax) / 2) <= 1) score += 10;
   if (ctx.topOccasions.some(o => product.occasions.map(p => p.toLowerCase()).includes(o.toLowerCase()))) score += 10;
+
+  // Per-user learned preferences
+  if (userPrefs) {
+    if (userPrefs.preferredCategories.includes(product.category)) score += 25;
+    if (userPrefs.preferredBrands.some(b => product.brand.toLowerCase() === b.toLowerCase())) score += 15;
+    if (product.price >= userPrefs.priceRange.min && product.price <= userPrefs.priceRange.max) score += 10;
+    if (userPrefs.avoidCategories.includes(product.category)) score -= 20;
+  }
+
   return score;
 }
 
@@ -324,12 +348,242 @@ export async function trackAffiliateClick(
   productId: string,
   userId: string,
 ): Promise<void> {
+  // Look up product metadata from catalog so we can store it on the impression
+  const product = AFFILIATE_CATALOG.find(p => p.id === productId);
+
   await prisma.affiliateImpression.updateMany({
     where: { id: impressionId, userId, clickedId: null },
-    data: { clickedId: productId, clickedAt: new Date() },
+    data: {
+      clickedId: productId,
+      clickedAt: new Date(),
+      clickedCategory: product?.category ?? null,
+      clickedBrand: product?.brand ?? null,
+      clickedPrice: product?.price ?? null,
+    } as any, // new fields added via migration
   });
 
   trackServerEvent(userId, 'affiliate_click', { impressionId, productId });
+}
+
+// ─── Inline product matching ─────────────────────────────────────────────────
+
+export interface InlineMatch {
+  section: 'couldImprove' | 'takeItFurther';
+  index: number;
+  product: AffiliateProduct;
+}
+
+export interface InlineMatchResult {
+  impressionId: string;
+  matches: InlineMatch[];
+}
+
+const GARMENT_CATEGORY_MAP: Array<{ regex: RegExp; category: string }> = [
+  { regex: /blazer|jacket|coat|layer|outerwear/i,                          category: 'outerwear' },
+  { regex: /sneaker|shoe|boot|heel|sandal|loafer/i,                        category: 'shoes' },
+  { regex: /bag|crossbody|tote|purse|clutch/i,                             category: 'bags' },
+  { regex: /jean|trouser|pant|skirt|short/i,                               category: 'bottoms' },
+  { regex: /dress/i,                                                        category: 'dresses' },
+  { regex: /top|shirt|blouse|sweater|cami|turtleneck/i,                    category: 'tops' },
+  { regex: /necklace|earring|bracelet|jewelry|belt|watch|ring/i,           category: 'accessories' },
+];
+
+function detectCategory(text: string): string | null {
+  for (const { regex, category } of GARMENT_CATEGORY_MAP) {
+    if (regex.test(text)) return category;
+  }
+  return null;
+}
+
+export async function getInlineMatches(
+  userId: string,
+  outfitCheckId: string,
+): Promise<InlineMatchResult | null> {
+  const outfit = await prisma.outfitCheck.findUnique({
+    where: { id: outfitCheckId },
+    select: { aiFeedback: true },
+  });
+  if (!outfit?.aiFeedback) return null;
+
+  const feedback = outfit.aiFeedback as Record<string, unknown>;
+  const couldImprove = (feedback.couldImprove as string[] | undefined) ?? [];
+  const takeItFurther = (feedback.takeItFurther as string[] | undefined) ?? [];
+
+  const ctx = await getUserContext(userId, outfitCheckId);
+
+  // Load user affiliate preferences (may be null for new users)
+  const userRaw = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { affiliatePreferences: true } as any,
+  }) as any;
+  const userPrefs: UserAffiliatePreferences | undefined = userRaw?.affiliatePreferences
+    ? (userRaw.affiliatePreferences as UserAffiliatePreferences)
+    : undefined;
+
+  const liveStatic = AFFILIATE_CATALOG.filter(p => !p.isPlaceholder && p.imageUrl);
+  if (liveStatic.length === 0) return null;
+
+  const matches: InlineMatch[] = [];
+  const usedProductIds = new Set<string>();
+  const usedCategories = new Set<string>();
+
+  const bullets: Array<{ section: 'couldImprove' | 'takeItFurther'; text: string; index: number }> = [
+    ...couldImprove.map((text, i) => ({ section: 'couldImprove' as const, text, index: i })),
+    ...takeItFurther.map((text, i) => ({ section: 'takeItFurther' as const, text, index: i })),
+  ];
+
+  for (const bullet of bullets) {
+    if (matches.length >= 3) break;
+
+    const category = detectCategory(bullet.text);
+    if (!category || usedCategories.has(category)) continue;
+
+    const candidates = liveStatic.filter(p => p.category === category);
+    if (candidates.length === 0) continue;
+
+    const best = candidates
+      .map(p => ({ product: p, score: scoreStaticProduct(p, ctx, userPrefs) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)[0];
+
+    if (!best || usedProductIds.has(best.product.id)) continue;
+
+    usedProductIds.add(best.product.id);
+    usedCategories.add(category);
+
+    matches.push({
+      section: bullet.section,
+      index: bullet.index,
+      product: staticToAffiliateProduct(best.product, ctx),
+    });
+  }
+
+  if (matches.length === 0) return null;
+
+  const impression = await prisma.affiliateImpression.create({
+    data: {
+      userId,
+      outfitCheckId,
+      placement: 'inline',
+      archetype: ctx.topArchetype,
+      cohort: ctx.cohort,
+      productIds: matches.map(m => m.product.id),
+    },
+  });
+
+  trackServerEvent(userId, 'affiliate_impression', {
+    placement: 'inline',
+    productCount: matches.length,
+    archetype: ctx.topArchetype,
+    source: 'catalog',
+  });
+
+  return { impressionId: impression.id, matches };
+}
+
+// ─── Per-user affiliate preference learning ───────────────────────────────────
+
+export async function computeUserAffiliatePreferences(): Promise<void> {
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+  // Find users with 3+ impressions
+  const impressionGroups = await prisma.affiliateImpression.groupBy({
+    by: ['userId'],
+    where: { createdAt: { gte: ninetyDaysAgo } },
+    _count: { id: true },
+    having: { id: { _count: { gte: 3 } } },
+  });
+
+  let processed = 0;
+
+  for (const group of impressionGroups) {
+    const userId = group.userId;
+
+    try {
+      const impressions = await prisma.affiliateImpression.findMany({
+        where: { userId, createdAt: { gte: ninetyDaysAgo } },
+        select: {
+          placement: true,
+          productIds: true,
+          clickedId: true,
+          clickedCategory: true,
+          clickedBrand: true,
+          clickedPrice: true,
+        } as any,
+      }) as Array<{
+        placement: string;
+        productIds: string[];
+        clickedId: string | null;
+        clickedCategory: string | null;
+        clickedBrand: string | null;
+        clickedPrice: number | null;
+      }>;
+
+      const clicks = impressions.filter(i => (i as any).clickedId !== null);
+      if (clicks.length === 0) continue;
+
+      // Count clicks per category
+      const categoryCounts = new Map<string, number>();
+      const brandCounts = new Map<string, number>();
+      const clickedPrices: number[] = [];
+
+      for (const imp of clicks) {
+        const cat = (imp as any).clickedCategory;
+        if (cat) categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
+        const brand = (imp as any).clickedBrand;
+        if (brand) brandCounts.set(brand, (brandCounts.get(brand) || 0) + 1);
+        const price = (imp as any).clickedPrice;
+        if (price !== null && price > 0) clickedPrices.push(price);
+      }
+
+      // Categories with >30% click rate
+      const categoryImpressionCounts = new Map<string, number>();
+      for (const imp of impressions) {
+        // For each shown product, look up category
+        for (const pid of imp.productIds) {
+          const p = AFFILIATE_CATALOG.find(c => c.id === pid);
+          if (p) categoryImpressionCounts.set(p.category, (categoryImpressionCounts.get(p.category) || 0) + 1);
+        }
+      }
+
+      const preferredCategories: string[] = [];
+      const avoidCategories: string[] = [];
+      for (const [cat, impressionCount] of categoryImpressionCounts) {
+        const clickCount = categoryCounts.get(cat) || 0;
+        const ctr = impressionCount > 0 ? clickCount / impressionCount : 0;
+        if (ctr > 0.3) preferredCategories.push(cat);
+        if (impressionCount >= 5 && clickCount === 0) avoidCategories.push(cat);
+      }
+
+      // Brands clicked 2+ times
+      const preferredBrands: string[] = [];
+      for (const [brand, count] of brandCounts) {
+        if (count >= 2) preferredBrands.push(brand);
+      }
+
+      // Price range: avg ± 1 stddev
+      let priceRange = { min: 0, max: 500 };
+      if (clickedPrices.length >= 2) {
+        const avg = clickedPrices.reduce((a, b) => a + b, 0) / clickedPrices.length;
+        const variance = clickedPrices.reduce((s, p) => s + Math.pow(p - avg, 2), 0) / clickedPrices.length;
+        const stddev = Math.sqrt(variance);
+        priceRange = { min: Math.max(0, Math.round(avg - stddev)), max: Math.round(avg + stddev) };
+      }
+
+      const prefs: UserAffiliatePreferences = { preferredCategories, preferredBrands, priceRange, avoidCategories };
+
+      await (prisma.user as any).update({
+        where: { id: userId },
+        data: { affiliatePreferences: prefs as any },
+      });
+
+      processed++;
+    } catch (err) {
+      console.error(`[Affiliate] Failed to compute preferences for user ${userId}:`, err);
+    }
+  }
+
+  console.log(`[Affiliate] computeUserAffiliatePreferences: processed ${processed} users`);
 }
 
 // ─── Daily metrics cron ───────────────────────────────────────────────────────

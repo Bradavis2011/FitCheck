@@ -46,29 +46,31 @@ interface RecommendationResult {
 }
 
 interface Props {
-  outfitCheckId: string;
-  score: number;
-  placement?: 'post_feedback_high' | 'post_feedback_mid' | 'archive' | 'style_dna';
+  outfitCheckId?: string;
+  score?: number;
+  placement?: 'post_feedback_high' | 'post_feedback_mid' | 'archive' | 'style_dna' | 'your_week';
 }
 
 export default function AffiliateCard({ outfitCheckId, score, placement }: Props) {
   const [result, setResult] = useState<RecommendationResult | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const derivedPlacement = placement ?? (score >= 8 ? 'post_feedback_high' : 'post_feedback_mid');
+  const derivedPlacement = placement ?? ((score ?? 0) >= 8 ? 'post_feedback_high' : 'post_feedback_mid');
 
   useEffect(() => {
-    if (score < 6) {
+    if (score !== undefined && score < 6 && !placement) {
       setLoading(false);
       return;
     }
 
     let cancelled = false;
 
+    const params: Record<string, unknown> = { placement: derivedPlacement };
+    if (outfitCheckId) params.outfitId = outfitCheckId;
+    if (score !== undefined) params.score = score;
+
     api
-      .get('/api/affiliate/recommendations', {
-        params: { outfitId: outfitCheckId, placement: derivedPlacement, score },
-      })
+      .get('/api/affiliate/recommendations', { params })
       .then(res => {
         if (!cancelled) setResult(res.data?.recommendations ?? null);
       })
