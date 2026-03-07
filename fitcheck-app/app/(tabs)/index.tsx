@@ -380,31 +380,39 @@ export default function HomeScreen() {
         </View>
 
         {/* Community — shared outfits preview */}
-        {communityOutfits.length > 0 && (
-          <View style={styles.communitySection}>
-            <View style={styles.sectionDivider} />
-            <View style={styles.communityBlock}>
-              <Text style={styles.sectionLabel}>Community</Text>
-              <View style={styles.rule} />
-              <Text style={styles.communityTitle}>Rate each other's fits</Text>
-              <Text style={styles.communitySubtitle}>Real feedback from real people</Text>
-            </View>
-            {communityOutfits.map((outfit) => (
-              <View key={outfit.id} style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
-                <OutfitFeedCard
-                  outfit={outfit}
-                  onPress={() => router.push(`/outfit/${outfit.id}` as any)}
-                />
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.seeMoreLink}
-              onPress={() => router.push('/(tabs)/community')}
-            >
-              <Text style={styles.seeAll}>See community feed</Text>
-            </TouchableOpacity>
+        <View style={styles.communitySection}>
+          <View style={styles.sectionDivider} />
+          <View style={styles.communityBlock}>
+            <Text style={styles.sectionLabel}>Community</Text>
+            <View style={styles.rule} />
+            <Text style={styles.communityTitle}>What they're wearing.</Text>
+            <Text style={styles.communitySubtitle}>Score real looks. Get scored back.</Text>
           </View>
-        )}
+          {communityOutfits.length > 0 ? (
+            <>
+              {communityOutfits.map((outfit) => (
+                <View key={outfit.id} style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
+                  <OutfitFeedCard
+                    outfit={outfit}
+                    onPress={() => router.push(`/outfit/${outfit.id}` as any)}
+                  />
+                </View>
+              ))}
+            </>
+          ) : (
+            <View style={styles.communityEmpty}>
+              <Text style={styles.communityEmptyText}>
+                No looks shared yet. Be the first.
+              </Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.seeMoreLink}
+            onPress={() => router.push('/(tabs)/community')}
+          >
+            <Text style={styles.seeAll}>See the feed →</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Upgrade — editorial style (free tier only) */}
         {tier === 'free' && (
@@ -604,6 +612,17 @@ const styles = StyleSheet.create({
   seeMoreLink: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  communityEmpty: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  communityEmptyText: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
   },
   // Wardrobe
   wardrobeSection: {

@@ -18,6 +18,13 @@ import { useCommunityFeed, useComparisonFeed, useVoteOnComparison } from '../../
 
 type FeedFilter = 'recent' | 'popular' | 'top-rated' | 'inner_circle';
 
+const FILTERS: { label: string; value: FeedFilter }[] = [
+  { label: 'Recent', value: 'recent' },
+  { label: 'Popular', value: 'popular' },
+  { label: 'Top Rated', value: 'top-rated' },
+  { label: 'Following', value: 'inner_circle' },
+];
+
 export default function CommunityScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<FeedFilter>('recent');
@@ -43,9 +50,7 @@ export default function CommunityScreen() {
   };
 
   const handleLoadMore = () => {
-    if (!isFetching && hasMore) {
-      setOffset(offset + 20);
-    }
+    if (!isFetching && hasMore) setOffset(offset + 20);
   };
 
   const handleFilterChange = (newFilter: FeedFilter) => {
@@ -53,40 +58,6 @@ export default function CommunityScreen() {
     setOffset(0);
   };
 
-  const renderFilterButton = (label: string, value: FeedFilter) => (
-    <TouchableOpacity
-      style={[styles.filterButton, filter === value && styles.filterButtonActive]}
-      onPress={() => handleFilterChange(value)}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.filterText, filter === value && styles.filterTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderFooter = () => {
-    if (!isFetching) return null;
-    return (
-      <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={Colors.primary} />
-      </View>
-    );
-  };
-
-  const renderEmpty = () => {
-    if (isLoading || isFetching) return null;
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>No outfits yet</Text>
-        <Text style={styles.emptyText}>
-          Be the first to share your style with the community!
-        </Text>
-      </View>
-    );
-  };
-
-  // Transform API data to match component props
   const transformedOutfits = outfits.map((outfit) => ({
     id: outfit.id,
     imageUrl: outfit.thumbnailUrl || outfit.imageUrl || '',
@@ -99,17 +70,52 @@ export default function CommunityScreen() {
     aiFeedback: (outfit as any).aiFeedback ?? null,
   }));
 
+  const renderFooter = () => {
+    if (!isFetching) return null;
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={Colors.primary} />
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (isLoading || isFetching) return null;
+
+    if (filter === 'inner_circle') {
+      return (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Your circle is quiet.</Text>
+          <Text style={styles.emptyText}>
+            Follow people from their profiles to see their outfit shares here.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>No looks yet.</Text>
+        <Text style={styles.emptyText}>
+          Be the first to share — the community scores back.
+        </Text>
+      </View>
+    );
+  };
+
   const renderComparisonSection = () => {
     if (comparisonPosts.length === 0) return null;
 
     return (
       <View style={styles.comparisonSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            <Text style={styles.sectionOr}>Or </Text>
-            <Text style={styles.sectionThis}>This?</Text>
+        <View style={styles.comparisonHeader}>
+          <Text style={styles.sectionLabel}>Or This?</Text>
+          <View style={styles.sectionRule} />
+          <Text style={styles.comparisonTitle}>
+            <Text style={{ fontFamily: Fonts.sansMedium, color: Colors.text }}>Or </Text>
+            <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
           </Text>
-          <Text style={styles.sectionSubtitle}>Help others decide</Text>
+          <Text style={styles.comparisonSubtitle}>Help people decide.</Text>
         </View>
         {comparisonPosts.slice(0, 3).map((post) => {
           const toUri = (url?: string | null, data?: string | null) =>
@@ -143,40 +149,35 @@ export default function CommunityScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Community</Text>
-          <Text style={styles.headerSubtitle}>Discover style inspiration</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.eyebrow}>Community</Text>
+          <View style={styles.headerRule} />
+          <Text style={styles.headerTitle}>What they're wearing.</Text>
         </View>
-        <View style={styles.headerActions}>
-          {/* LAUNCH: Challenges trophy button hidden — re-enable when challenges go live */}
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => router.push('/notifications' as any)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="notifications-outline" size={20} color={Colors.text} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Filter chips */}
+      <View style={styles.filterRow}>
+        {FILTERS.map(({ label, value }) => (
           <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/notifications' as any)}
+            key={value}
+            style={[styles.filterChip, filter === value && styles.filterChipActive]}
+            onPress={() => handleFilterChange(value)}
             activeOpacity={0.7}
           >
-            <Ionicons name="notifications-outline" size={20} color={Colors.text} />
+            <Text style={[styles.filterLabel, filter === value && styles.filterLabelActive]}>
+              {label}
+            </Text>
           </TouchableOpacity>
-        </View>
+        ))}
       </View>
-
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
-        {renderFilterButton('Recent', 'recent')}
-        {renderFilterButton('Popular', 'popular')}
-        {renderFilterButton('Top Rated', 'top-rated')}
-        {renderFilterButton('Inner Circle', 'inner_circle')}
-      </View>
-
-      {/* Inner Circle empty state hint */}
-      {filter === 'inner_circle' && outfits.length === 0 && !isLoading && (
-        <View style={styles.innerCircleHint}>
-          <Ionicons name="people-outline" size={32} color={Colors.textMuted} />
-          <Text style={styles.innerCircleHintTitle}>Your inner circle is quiet</Text>
-          <Text style={styles.innerCircleHintText}>
-            Add people to your inner circle from their profiles, then share outfits with them.
-          </Text>
-        </View>
-      )}
 
       {/* Feed */}
       <FlatList
@@ -202,26 +203,15 @@ export default function CommunityScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
-        ListFooterComponentStyle={styles.listFooter}
       />
 
-      {/* Guidelines Link */}
-      <View style={styles.guidelinesFooter}>
-        <TouchableOpacity
-          onPress={() => router.push('/community-guidelines' as any)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.guidelinesLink}>Community Guidelines</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Floating Action Buttons */}
+      {/* Give feedback FAB */}
       <TouchableOpacity
-        style={[styles.fab, styles.fabSecondary]}
+        style={styles.fab}
         onPress={() => router.push('/give-feedback' as any)}
         activeOpacity={0.9}
       >
-        <Ionicons name="heart-outline" size={24} color={Colors.white} />
+        <Ionicons name="heart-outline" size={22} color={Colors.white} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -232,17 +222,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+
+  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+  headerLeft: {
+    flex: 1,
+  },
+  eyebrow: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  headerRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: Colors.primary,
+    marginBottom: 10,
+  },
+  headerTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 26,
+    color: Colors.text,
+    lineHeight: 32,
   },
   headerButton: {
     width: 40,
@@ -251,142 +262,115 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 4,
   },
-  headerTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: Fonts.serif,
-    color: Colors.text,
-  },
-  headerSubtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  filterContainer: {
+
+  // ── Filter chips ─────────────────────────────────────────────────────────────
+  filterRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
-  filterButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 0,
-    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
   },
-  filterButtonActive: {
+  filterChipActive: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  filterText: {
-    fontSize: FontSize.sm,
-    fontFamily: Fonts.sansSemiBold,
+  filterLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
     color: Colors.text,
   },
-  filterTextActive: {
+  filterLabelActive: {
     color: Colors.white,
   },
+
+  // ── Feed ─────────────────────────────────────────────────────────────────────
   feedContent: {
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingBottom: 100,
   },
+
+  // ── Comparison section ────────────────────────────────────────────────────────
+  comparisonSection: {
+    marginBottom: Spacing.lg,
+  },
+  comparisonHeader: {
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  sectionRule: {
+    width: 60,
+    height: 1,
+    backgroundColor: Colors.primary,
+    marginBottom: 10,
+  },
+  comparisonTitle: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  comparisonSubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+
+  // ── Empty states ──────────────────────────────────────────────────────────────
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl * 2,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+
+  // ── Loading ───────────────────────────────────────────────────────────────────
   loadingFooter: {
     paddingVertical: Spacing.lg,
     alignItems: 'center',
   },
-  innerCircleHint: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl * 2,
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  innerCircleHintTitle: {
-    fontSize: FontSize.md,
-    fontFamily: Fonts.sansSemiBold,
-    color: Colors.text,
-    textAlign: 'center',
-  },
-  innerCircleHintText: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xxl * 2,
-    paddingHorizontal: Spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: Fonts.sansSemiBold,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    textAlign: 'center',
-  },
-  listFooter: {
-    paddingBottom: 60, // Extra space for guidelines footer
-  },
-  guidelinesFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.background,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    alignItems: 'center',
-  },
-  guidelinesLink: {
-    fontSize: FontSize.sm,
-    color: Colors.primary,
-    fontFamily: Fonts.sansSemiBold,
-  },
+
+  // ── FAB ──────────────────────────────────────────────────────────────────────
   fab: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 32,
     right: Spacing.lg,
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  fabSecondary: {
-    bottom: 80,
-    backgroundColor: Colors.secondary,
-  },
-  comparisonSection: {
-    marginBottom: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: Fonts.serif,
-  },
-  sectionOr: {
-    color: Colors.text,
-    fontFamily: Fonts.sansMedium,
-  },
-  sectionThis: {
-    color: Colors.primary,
-    fontFamily: Fonts.serifItalic,
-  },
-  sectionSubtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
   },
 });
