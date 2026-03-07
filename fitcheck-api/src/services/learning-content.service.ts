@@ -303,9 +303,10 @@ interface SeriesPosition {
 
 /** Determine the next series/episode to generate, offset by `advance` additional steps. */
 async function getNextSeriesPosition(advance = 0): Promise<SeriesPosition> {
-  // Find the last generated series episode in chronological order
+  const today = new Date().toISOString().slice(0, 10);
+  // Find the last generated series episode, excluding today's (so retries don't duplicate)
   const lastEpisodes = await prisma.blogDraft.findMany({
-    where: { contentType: 'series_episode' },
+    where: { contentType: 'series_episode', trendPeriod: { not: today } },
     orderBy: { createdAt: 'desc' },
     take: 5,
   });

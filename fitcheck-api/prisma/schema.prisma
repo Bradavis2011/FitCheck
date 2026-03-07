@@ -1346,7 +1346,7 @@ model BlogDraft {
 
   // Learning Center extensions
   contentType   String   @default("article") @map("content_type")
-  // "trend_report" | "style_tip" | "style_guide" | "article" | "tiktok_script"
+  // "trend_report" | "style_tip" | "style_guide" | "article" | "series_episode" | "data_drop" | "trend_take"
   category      String?
   // "color-theory" | "fit-guide" | "occasion-guide" | "archetype-guide" | etc.
   excerpt       String?  @db.Text

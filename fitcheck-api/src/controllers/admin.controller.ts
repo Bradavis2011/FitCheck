@@ -56,7 +56,7 @@ export async function getContentDigest(req: AuthenticatedRequest, res: Response)
   const [dailyScripts, trendReports, styleTips, pendingPosts] = await Promise.all([
     prisma.blogDraft.findMany({
       where: {
-        contentType: { in: ['series_episode', 'data_drop', 'trend_take', 'tiktok_script'] },
+        contentType: { in: ['series_episode', 'data_drop', 'trend_take'] },
         createdAt: { gte: since },
       },
       orderBy: [{ trendPeriod: 'desc' }, { createdAt: 'desc' }],

@@ -86,7 +86,7 @@ export async function sendDailyScriptEmail(): Promise<void> {
 
   const scripts = await prisma.blogDraft.findMany({
     where: {
-      contentType: { in: ['series_episode', 'data_drop', 'trend_take', 'style_tip'] },
+      contentType: { in: ['series_episode', 'data_drop', 'trend_take'] },
       trendPeriod: today,
     },
     orderBy: { createdAt: 'asc' },

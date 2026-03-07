@@ -791,9 +791,8 @@ export function initializeScheduler(): void {
   }, { timezone: 'UTC' });
 
   // ── Style Tips — Daily 11:30am UTC (picks up new DiscoveredRules as they accumulate) ──
-  cron.schedule('30 11 * * *', async () => {
-    try { await generateStyleTips(); }
-    catch (err) { console.error('[Scheduler] Style tips failed:', err); }
+  cron.schedule('30 11 * * *', () => {
+    guardedRun('content-factory', '✍️ [Scheduler] Generating style tips...', generateStyleTips);
   }, { timezone: 'UTC' });
 
   // ── Learning Content Agent (weekly trend report only) — Tuesday 8am UTC ─────
@@ -803,11 +802,9 @@ export function initializeScheduler(): void {
   // only on Tuesdays (guarded by day-of-week check in the function itself).
 
   // ── Founder Content Digest — Tuesday 10am UTC ────────────────────────────
-  // Sent after content is generated. Includes TikTok scripts, trend report, tips, pending posts.
-  cron.schedule('0 10 * * 2', async () => {
-    console.log('📧 [Scheduler] Running founder content digest...');
-    try { await sendFounderContentDigest(); }
-    catch (err) { console.error('[Scheduler] Founder content digest failed:', err); }
+  // Sent after content is generated. Includes video scripts, trend report, tips, pending posts.
+  cron.schedule('0 10 * * 2', () => {
+    guardedRun('content-factory', '📧 [Scheduler] Sending founder content digest...', sendFounderContentDigest);
   }, { timezone: 'UTC' });
 
   console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest + Growth Intern + Creator Install Attribution)');
