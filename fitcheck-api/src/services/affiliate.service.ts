@@ -510,7 +510,7 @@ export async function computeUserAffiliatePreferences(): Promise<void> {
           clickedBrand: true,
           clickedPrice: true,
         } as any,
-      }) as Array<{
+      }) as unknown as Array<{
         placement: string;
         productIds: string[];
         clickedId: string | null;
