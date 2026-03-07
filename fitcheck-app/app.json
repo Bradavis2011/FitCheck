@@ -57,6 +57,7 @@
         "android.permission.READ_MEDIA_IMAGES"
       ]
     },
+    "platforms": ["ios", "android"],
     "web": {
       "favicon": "./assets/favicon.png"
     },
