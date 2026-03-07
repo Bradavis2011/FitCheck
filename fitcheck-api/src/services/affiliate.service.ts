@@ -328,8 +328,11 @@ export async function getRecommendations(
   if (products.length === 0) {
     const liveStatic = AFFILIATE_CATALOG.filter(p => {
       if (!p.isPlaceholder && p.imageUrl) {
-        if (subjectGender !== 'unknown') {
-          const pg = getProductGender(p);
+        const pg = getProductGender(p);
+        // unknown gender → unisex only; known gender → unisex or matching
+        if (subjectGender === 'unknown') {
+          if (pg !== 'unisex') return false;
+        } else {
           if (pg !== 'unisex' && pg !== subjectGender) return false;
         }
         return true;
@@ -536,9 +539,11 @@ export async function getInlineMatches(
 
     const candidates = liveStatic.filter(p => {
       if (p.category !== category) return false;
-      // Gender filter — skip products that are explicitly for the wrong gender
-      if (subjectGender !== 'unknown') {
-        const pg = getProductGender(p);
+      const pg = getProductGender(p);
+      // unknown gender → unisex only; known gender → unisex or matching
+      if (subjectGender === 'unknown') {
+        if (pg !== 'unisex') return false;
+      } else {
         if (pg !== 'unisex' && pg !== subjectGender) return false;
       }
       return true;
