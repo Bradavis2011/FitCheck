@@ -32,6 +32,7 @@ const UpdateProfileSchema = z.object({
   honestyLevel: z.enum(['brutal', 'balanced', 'gentle']).optional(),
   styleNoGos: z.array(z.string()).max(20).optional(),
   styleDirection: z.string().max(300).optional(),
+  genderPreference: z.enum(['male', 'female']).nullable().optional(),
 });
 
 export async function getProfile(req: AuthenticatedRequest, res: Response) {
@@ -61,6 +62,7 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
         honestyLevel: true,
         styleNoGos: true,
         styleDirection: true,
+        genderPreference: true,
       },
     });
 
@@ -122,6 +124,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
         honestyLevel: true,
         styleNoGos: true,
         styleDirection: true,
+        genderPreference: true,
       },
     });
 

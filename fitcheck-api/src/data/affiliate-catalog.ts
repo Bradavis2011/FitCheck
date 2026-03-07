@@ -32,6 +32,7 @@ export interface CatalogProduct {
   title: string;
   brand: string;
   category: 'tops' | 'bottoms' | 'shoes' | 'accessories' | 'outerwear' | 'bags' | 'dresses' | 'activewear';
+  gender?: 'men' | 'women' | 'unisex'; // omit = inferred from title at runtime
   merchantUrl: string;
   affiliateUrl?: string;       // Pre-built affiliate URL — used as-is, bypasses Skimlinks wrapping
   price: number;               // Verify on Amazon periodically — prices change

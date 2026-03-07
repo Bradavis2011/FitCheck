@@ -410,6 +410,7 @@ export const RESPONSE_SCHEMA = {
       items: { type: SchemaType.STRING }
     },
     editorialSummary: { type: SchemaType.STRING },
+    subjectGender: { type: SchemaType.STRING, nullable: true }, // "male" | "female" | "unknown"
     styleDNA: {
       type: SchemaType.OBJECT,
       properties: {
@@ -891,6 +892,7 @@ export function buildUserPrompt(
   }
 
   parts.push('', 'Provide your analysis as JSON, using all context above to personalize recommendations.');
+  parts.push('Include "subjectGender" set to "male", "female", or "unknown" based on the apparent gender of the primary person in the photo — used only for product recommendations, not in any feedback text.');
 
   return parts.join('\n');
 }
@@ -940,6 +942,7 @@ export function fillMissingFeedbackFields(feedback: Partial<OutfitFeedbackV3>): 
   if (!filled.couldImprove || !Array.isArray(filled.couldImprove)) filled.couldImprove = ['Consider the overall proportions of the outfit.'];
   if (!filled.takeItFurther || !Array.isArray(filled.takeItFurther)) filled.takeItFurther = [];
   if (!filled.editorialSummary) filled.editorialSummary = 'A solid foundation to build on.';
+  if (!(filled as any).subjectGender) (filled as any).subjectGender = 'unknown';
   if (!filled.styleDNA) filled.styleDNA = { dominantColors: [], styleArchetypes: ['Casual'], garments: [], patterns: ['solid'], textures: ['cotton'], colorHarmony: 'neutral', formalityLevel: 2, colorCount: 1, silhouetteType: null, colorScore: null, proportionScore: null, fitScore: null, coherenceScore: null };
   return filled;
 }

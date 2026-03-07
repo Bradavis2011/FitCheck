@@ -47,6 +47,7 @@ model User {
   primaryOccasions String[] @default([]) @map("primary_occasions") // e.g. ["work", "casual", "date night"]
 
   // Style preferences (extended — honesty, no-go zones, direction)
+  genderPreference String? @map("gender_preference") // "male" | "female" | null (use AI-detected per-outfit)
   honestyLevel   String? @map("honesty_level")  // "brutal" | "balanced" | "gentle"
   styleNoGos     String[] @default([]) @map("style_no_gos") // e.g. ["crop tops", "formal wear"]
   styleDirection String? @map("style_direction") // free text: "I'm trying to dress more minimally"

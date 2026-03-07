@@ -18,7 +18,13 @@ import { Colors, Spacing, FontSize, Fonts, Editorial } from '../src/constants/th
 import PillButton from '../src/components/PillButton';
 import { useUser, useUpdateProfile } from '../src/hooks/useApi';
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
+
+const GENDER_OPTIONS = [
+  { id: 'female', label: "Women's", icon: 'woman-outline' as const, description: "Show me women's product recommendations." },
+  { id: 'male',   label: "Men's",   icon: 'man-outline' as const,   description: "Show me men's product recommendations." },
+  { id: null,     label: 'No preference', icon: 'people-outline' as const, description: "Use the AI's best guess per photo." },
+];
 
 const STYLE_CATEGORIES = [
   'Casual', 'Formal', 'Streetwear', 'Minimalist',
@@ -78,11 +84,12 @@ export default function StylePreferencesScreen() {
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
 
-  // Steps 4–6 (new)
+  // Steps 4–7
   const [selectedHonesty, setSelectedHonesty] = useState<string>('');
   const [selectedNoGos, setSelectedNoGos] = useState<string[]>([]);
   const [customNoGo, setCustomNoGo] = useState('');
   const [styleDirection, setStyleDirection] = useState('');
+  const [selectedGender, setSelectedGender] = useState<string | null>(undefined as any);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -97,6 +104,8 @@ export default function StylePreferencesScreen() {
       if ((user as any).honestyLevel) setSelectedHonesty((user as any).honestyLevel);
       if ((user as any).styleNoGos) setSelectedNoGos((user as any).styleNoGos);
       if ((user as any).styleDirection) setStyleDirection((user as any).styleDirection);
+      // undefined = not yet loaded; null = no preference; 'male'/'female' = explicit
+      setSelectedGender((user as any).genderPreference ?? null);
     }
   }, [user]);
 
@@ -149,6 +158,7 @@ export default function StylePreferencesScreen() {
         honestyLevel: selectedHonesty || undefined,
         styleNoGos: selectedNoGos,
         styleDirection: styleDirection.trim() || undefined,
+        genderPreference: selectedGender ?? null,
       } as any);
 
       Alert.alert('Saved', 'Your style profile is updated.', [
@@ -395,6 +405,41 @@ export default function StylePreferencesScreen() {
                 returnKeyType="default"
               />
               <Text style={styles.charCount}>{styleDirection.length} / 300</Text>
+            </>
+          )}
+
+          {/* ── Step 7: Shopping Gender Preference ─────────────────────────── */}
+          {step === 7 && (
+            <>
+              <StepIcon icon="bag-handle-outline" />
+              <Text style={styles.stepTitle}>Shopping for?</Text>
+              <Text style={styles.stepSubtitle}>
+                Sets which products appear in recommendations — optional
+              </Text>
+              <View style={styles.optionList}>
+                {GENDER_OPTIONS.map((opt) => {
+                  const selected = selectedGender === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={String(opt.id)}
+                      style={[styles.honestyCard, selected && styles.honestyCardSelected]}
+                      onPress={() => setSelectedGender(opt.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.honestyCardTop}>
+                        <View style={[styles.optionIcon, selected && styles.optionIconSelected]}>
+                          <Ionicons name={opt.icon} size={22} color={selected ? Colors.white : Colors.primary} />
+                        </View>
+                        <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
+                          {opt.label}
+                        </Text>
+                        {selected && <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />}
+                      </View>
+                      <Text style={styles.honestyDesc}>{opt.description}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </>
           )}
         </ScrollView>

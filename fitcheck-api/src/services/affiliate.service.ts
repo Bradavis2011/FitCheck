@@ -395,6 +395,29 @@ function detectCategory(text: string): string | null {
   return null;
 }
 
+/** Infer product gender from the explicit `gender` field or product title. */
+function getProductGender(p: CatalogProduct): 'men' | 'women' | 'unisex' {
+  if (p.gender) return p.gender;
+  if (/\bwomen'?s\b/i.test(p.title)) return 'women';
+  if (/\bmen'?s\b/i.test(p.title)) return 'men';
+  return 'unisex';
+}
+
+/**
+ * Resolve final gender filter for product matching.
+ * B (user profile) overrides A (AI-detected per-outfit).
+ * Falls back to 'unknown' (show all) if neither is available.
+ */
+function resolveSubjectGender(
+  profileGender: string | null | undefined,
+  aiGender: string | null | undefined,
+): 'men' | 'women' | 'unknown' {
+  const src = profileGender ?? aiGender ?? 'unknown';
+  if (src === 'male') return 'men';
+  if (src === 'female') return 'women';
+  return 'unknown';
+}
+
 export async function getInlineMatches(
   userId: string,
   outfitCheckId: string,
@@ -409,16 +432,22 @@ export async function getInlineMatches(
   const couldImprove = (feedback.couldImprove as string[] | undefined) ?? [];
   const takeItFurther = (feedback.takeItFurther as string[] | undefined) ?? [];
 
+  // A: AI-detected gender from the photo (reliable — model sees the actual subject)
+  const aiGender = (feedback.subjectGender as string | undefined) ?? 'unknown';
+
   const ctx = await getUserContext(userId, outfitCheckId);
 
-  // Load user affiliate preferences (may be null for new users)
+  // Load user profile: B-override gender preference + affiliate preferences
   const userRaw = await prisma.user.findUnique({
     where: { id: userId },
-    select: { affiliatePreferences: true } as any,
+    select: { affiliatePreferences: true, genderPreference: true } as any,
   }) as any;
   const userPrefs: UserAffiliatePreferences | undefined = userRaw?.affiliatePreferences
     ? (userRaw.affiliatePreferences as UserAffiliatePreferences)
     : undefined;
+
+  // B overrides A: profile preference wins if set, otherwise use AI-detected
+  const subjectGender = resolveSubjectGender(userRaw?.genderPreference, aiGender);
 
   const liveStatic = AFFILIATE_CATALOG.filter(p => !p.isPlaceholder && p.imageUrl);
   if (liveStatic.length === 0) return null;
@@ -438,7 +467,15 @@ export async function getInlineMatches(
     const category = detectCategory(bullet.text);
     if (!category || usedCategories.has(category)) continue;
 
-    const candidates = liveStatic.filter(p => p.category === category);
+    const candidates = liveStatic.filter(p => {
+      if (p.category !== category) return false;
+      // Gender filter — skip products that are explicitly for the wrong gender
+      if (subjectGender !== 'unknown') {
+        const pg = getProductGender(p);
+        if (pg !== 'unisex' && pg !== subjectGender) return false;
+      }
+      return true;
+    });
     if (candidates.length === 0) continue;
 
     const best = candidates
