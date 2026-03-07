@@ -337,6 +337,14 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       },
     });
 
+    // When sharing publicly, auto-make the user's profile public so the outfit appears in the community feed
+    if (shareWith === 'public' && !user!.isPublic) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isPublic: true },
+      }).catch((err) => console.error('[submitOutfitCheck] Failed to auto-set user.isPublic:', err));
+    }
+
     trackServerEvent(userId, 'outfit_check_created', {
       occasion: data.occasions[0],
       shareWith: shareWith,

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, BorderRadius, Spacing, getScoreColor, Fonts } from '../constants/theme';
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export default function OutfitFeedCard({ outfit, onPress }: Props) {
+  const [imageError, setImageError] = useState(false);
   const hasScore = outfit.score != null && outfit.score > 0;
   const scoreColor = hasScore ? getScoreColor(outfit.score!) : Colors.textMuted;
   const rawThumb = outfit.thumbnailData;
@@ -29,7 +31,7 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
     : null;
   const imageUri = outfit.thumbnailUrl || thumbUri || outfit.imageUrl;
   // Ensure imageUri is valid (not empty string or just whitespace)
-  const hasValidImage = imageUri && imageUri.trim().length > 0;
+  const hasValidImage = !imageError && imageUri && imageUri.trim().length > 0;
 
   const displayOccasion = outfit.occasions.length > 1
     ? `${outfit.occasions[0]} +${outfit.occasions.length - 1}`
@@ -45,7 +47,7 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
               source={{ uri: imageUri }}
               style={styles.thumbnail}
               resizeMode="cover"
-              onError={(error) => console.warn('[OutfitFeedCard] Image failed to load:', imageUri)}
+              onError={() => { console.warn('[OutfitFeedCard] Image failed to load:', imageUri); setImageError(true); }}
             />
           ) : (
             <View style={[styles.thumbnail, styles.placeholderThumbnail]}>
