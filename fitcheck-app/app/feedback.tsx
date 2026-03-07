@@ -41,6 +41,7 @@ import RevisionNotesCard from '../src/components/RevisionNotesCard';
 import { FeedbackSkeleton } from '../src/components/SkeletonLoader';
 import ScoreReveal from '../src/components/ScoreReveal';
 import ScoreCelebration from '../src/components/ScoreCelebration';
+import BrandActionSheet from '../src/components/BrandActionSheet';
 import { outfitService, type OutfitCheck } from '../src/services/api.service';
 import { useTogglePublic, useCommunityFeedback, useReferralStats, useUserStats, useInlineProducts } from '../src/hooks/useApi';
 import { maybeRequestReview } from '../src/lib/storeReview';
@@ -83,6 +84,7 @@ export default function FeedbackScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [showSharedConfirm, setShowSharedConfirm] = useState(false);
   const [showHelpful, setShowHelpful] = useState(false);
   const [helpfulResponse, setHelpfulResponse] = useState<boolean | null>(null);
   const [showFollowUp, setShowFollowUp] = useState(false);
@@ -281,9 +283,7 @@ export default function FeedbackScreen() {
       setIsPublic(newPublicState);
       await togglePublicMutation.mutateAsync(outfit.id);
       if (newPublicState) {
-        Alert.alert('Shared to Community', 'Your outfit is now visible in the Community feed.', [
-          { text: 'OK' },
-        ]);
+        setShowSharedConfirm(true);
       }
     } catch (error: any) {
       console.error('Failed to toggle public:', error);
@@ -892,6 +892,14 @@ export default function FeedbackScreen() {
         occasions={outfit.occasions}
         specificConcerns={outfit.specificConcerns}
         existingFollowUps={outfit.followUps}
+      />
+
+      <BrandActionSheet
+        visible={showSharedConfirm}
+        title="Shared to Community"
+        message="Your outfit is now visible in the Community feed."
+        actions={[{ text: 'Got it', onPress: () => setShowSharedConfirm(false) }]}
+        onClose={() => setShowSharedConfirm(false)}
       />
 
       {ViewShot && (

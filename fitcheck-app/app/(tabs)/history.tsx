@@ -9,6 +9,7 @@ import AdBanner from '../../src/components/AdBanner';
 import AffiliateCard from '../../src/components/AffiliateCard';
 import { HistoryGridSkeleton } from '../../src/components/SkeletonLoader';
 import ErrorState from '../../src/components/ErrorState';
+import BrandActionSheet from '../../src/components/BrandActionSheet';
 import { useOutfits, useToggleFavorite, useDeleteOutfit, useReanalyzeOutfit } from '../../src/hooks/useApi';
 
 const FILTERS = ['All', 'Favorites', 'Work', 'Casual', 'Date Night', 'Event', 'Interview'];
@@ -33,6 +34,9 @@ export default function HistoryScreen() {
 
   const outfits = data?.outfits || [];
 
+  const [actionSheet, setActionSheet] = useState<{ visible: boolean; outfitId: string | null }>({ visible: false, outfitId: null });
+  const [showReanalyzeQueued, setShowReanalyzeQueued] = useState(false);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try { await refetch(); } finally { setRefreshing(false); }
@@ -47,36 +51,22 @@ export default function HistoryScreen() {
   };
 
   const handleLongPress = (outfitId: string) => {
-    Alert.alert('Outfit Options', '', [
-      {
-        text: 'Re-analyze',
-        onPress: () => {
-          reanalyzeMutation.mutate(outfitId, {
-            onSuccess: () => Alert.alert('Re-analyzing', 'Your outfit is being re-analyzed. Check back in a moment.'),
-            onError: () => Alert.alert('Error', 'Failed to start re-analysis. Please try again.'),
-          });
-        },
-      },
-      { text: 'Compare Outfits', onPress: () => router.push(`/compare?preselectA=${outfitId}` as any) },
+    setActionSheet({ visible: true, outfitId });
+  };
+
+  const handleDeleteConfirm = (outfitId: string) => {
+    setActionSheet({ visible: false, outfitId: null });
+    Alert.alert('Delete Outfit', 'This will permanently remove this outfit from your history.', [
+      { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          Alert.alert('Delete Outfit', 'This will permanently remove this outfit from your history.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: () => {
-                deleteOutfitMutation.mutate(outfitId, {
-                  onError: () => Alert.alert('Error', 'Failed to delete outfit. Please try again.'),
-                });
-              },
-            },
-          ]);
+          deleteOutfitMutation.mutate(outfitId, {
+            onError: () => Alert.alert('Error', 'Failed to delete outfit. Please try again.'),
+          });
         },
       },
-      { text: 'Cancel', style: 'cancel' },
     ]);
   };
 
@@ -205,6 +195,42 @@ export default function HistoryScreen() {
         <Ionicons name="git-compare-outline" size={18} color={Colors.white} />
         <Text style={styles.compareFabText}>Compare</Text>
       </TouchableOpacity>
+
+      <BrandActionSheet
+        visible={actionSheet.visible}
+        title="Outfit Options"
+        actions={[
+          {
+            text: 'Re-analyze',
+            onPress: () => {
+              const id = actionSheet.outfitId!;
+              reanalyzeMutation.mutate(id, {
+                onSuccess: () => setShowReanalyzeQueued(true),
+                onError: () => Alert.alert('Error', 'Failed to start re-analysis. Please try again.'),
+              });
+            },
+          },
+          {
+            text: 'Compare Outfits',
+            onPress: () => router.push(`/compare?preselectA=${actionSheet.outfitId}` as any),
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => handleDeleteConfirm(actionSheet.outfitId!),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]}
+        onClose={() => setActionSheet({ visible: false, outfitId: null })}
+      />
+
+      <BrandActionSheet
+        visible={showReanalyzeQueued}
+        title="Re-analysis queued"
+        message="Your outfit is being re-analyzed. Open it from your archive in a moment to see updated feedback."
+        actions={[{ text: 'Got it', onPress: () => setShowReanalyzeQueued(false) }]}
+        onClose={() => setShowReanalyzeQueued(false)}
+      />
     </SafeAreaView>
   );
 }

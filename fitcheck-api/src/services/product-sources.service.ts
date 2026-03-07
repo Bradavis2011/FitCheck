@@ -43,6 +43,7 @@ interface SearchContext {
   budgetLevel: string;          // 'budget' | 'mid-range' | 'investment'
   outfitScore: number;
   feedbackText?: string;        // e.g. "consider adding a structured layer"
+  gender?: 'men' | 'women' | 'unknown'; // resolved subject gender
 }
 
 interface PriceRange {
@@ -58,12 +59,12 @@ function budgetToPriceRange(budgetLevel: string): PriceRange {
   }
 }
 
-// Occasion → search modifier
+// Occasion → search modifier (gender-neutral)
 const OCCASION_MODIFIERS: Record<string, string> = {
   work:             'office professional',
   'business casual': 'smart casual work',
-  date:             'chic feminine',
-  'date night':     'evening chic',
+  date:             'evening style',
+  'date night':     'evening style',
   casual:           'everyday casual',
   weekend:          'casual weekend',
   wedding:          'wedding guest formal',
@@ -79,8 +80,14 @@ export function buildSearchQueries(ctx: SearchContext): string[] {
   const topOccasion = ctx.occasions[0] ?? 'casual';
   const occasionMod = OCCASION_MODIFIERS[topOccasion.toLowerCase()] ?? topOccasion;
 
+  // Gender prefix — inject when known so live APIs return the right results
+  const genderPrefix = ctx.gender === 'men' ? "men's" : ctx.gender === 'women' ? "women's" : '';
+
   // Primary: archetype + occasion blend
-  queries.push(`${topArchetype} ${occasionMod} outfit`);
+  const primaryQuery = genderPrefix
+    ? `${genderPrefix} ${topArchetype} ${occasionMod}`
+    : `${topArchetype} ${occasionMod} outfit`;
+  queries.push(primaryQuery);
 
   // Secondary: complement what AI said to improve
   if (ctx.feedbackText) {
@@ -88,8 +95,8 @@ export function buildSearchQueries(ctx: SearchContext): string[] {
     const shoeMatch = /shoes|footwear|boots|sneakers/i.test(ctx.feedbackText);
     const colorMatch = /color|tone|palette/i.test(ctx.feedbackText);
 
-    if (structuredLayerMatch) queries.push(`${topArchetype} blazer jacket`);
-    if (shoeMatch) queries.push(`${topArchetype} shoes ${topOccasion}`);
+    if (structuredLayerMatch) queries.push(`${genderPrefix} ${topArchetype} blazer jacket`.trim());
+    if (shoeMatch) queries.push(`${genderPrefix} ${topArchetype} shoes ${topOccasion}`.trim());
     if (colorMatch && ctx.dominantColors[0]) queries.push(`${ctx.dominantColors[0]} ${topArchetype} outfit`);
   }
 
@@ -99,9 +106,9 @@ export function buildSearchQueries(ctx: SearchContext): string[] {
   const hasTops = ctx.garments.some(g => /shirt|blouse|top|tee|sweater|jacket|blazer/i.test(g));
   const hasShoes = ctx.garments.some(g => /shoe|boot|sneaker|heel|sandal/i.test(g));
 
-  if (hasBottoms && !hasTops) queries.push(`${topArchetype} ${occasionMod} top blouse`);
-  if (hasTops && !hasBottoms) queries.push(`${topArchetype} ${occasionMod} trousers skirt`);
-  if (!hasShoes) queries.push(`${topArchetype} shoes ${topOccasion}`);
+  if (hasBottoms && !hasTops) queries.push(`${genderPrefix} ${topArchetype} ${occasionMod} top`.trim());
+  if (hasTops && !hasBottoms) queries.push(`${genderPrefix} ${topArchetype} ${occasionMod} trousers`.trim());
+  if (!hasShoes) queries.push(`${genderPrefix} ${topArchetype} shoes ${topOccasion}`.trim());
 
   return queries.slice(0, 3); // max 3 queries to keep latency low
 }

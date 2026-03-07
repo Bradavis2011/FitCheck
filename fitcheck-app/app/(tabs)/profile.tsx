@@ -44,6 +44,7 @@ export default function ProfileScreen() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editIsPublic, setEditIsPublic] = useState(false);
+  const [editGenderPreference, setEditGenderPreference] = useState<'male' | 'female' | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('general');
@@ -112,6 +113,7 @@ export default function ProfileScreen() {
     setEditUsername(userProfile?.username || '');
     setEditBio(userProfile?.bio || '');
     setEditIsPublic(userProfile?.isPublic || false);
+    setEditGenderPreference((userProfile as any)?.genderPreference ?? null);
     setShowEditProfile(true);
   };
 
@@ -125,7 +127,7 @@ export default function ProfileScreen() {
       return;
     }
     try {
-      await updateProfile.mutateAsync({ username: editUsername || undefined, bio: editBio || undefined, isPublic: editIsPublic } as any);
+      await updateProfile.mutateAsync({ username: editUsername || undefined, bio: editBio || undefined, isPublic: editIsPublic, genderPreference: editGenderPreference } as any);
       setShowEditProfile(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error: any) {
@@ -605,6 +607,25 @@ export default function ProfileScreen() {
                 numberOfLines={4}
               />
               <Text style={styles.modalHint}>{editBio.length}/150 characters</Text>
+            </View>
+
+            <View style={styles.modalSection}>
+              <Text style={styles.modalLabel}>Recommendations for</Text>
+              <Text style={styles.modalHint}>Sets the gender of products shown in your outfit feedback</Text>
+              <View style={styles.genderRow}>
+                {([['male', "Men's"], ['female', "Women's"], [null, 'Not set']] as const).map(([val, label]) => (
+                  <TouchableOpacity
+                    key={String(val)}
+                    style={[styles.genderChip, editGenderPreference === val && styles.genderChipActive]}
+                    onPress={() => setEditGenderPreference(val)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.genderChipText, editGenderPreference === val && styles.genderChipTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <View style={styles.modalSection}>
@@ -1089,6 +1110,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textMuted,
     marginTop: Spacing.xs,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  genderChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.2)',
+    alignItems: 'center',
+    borderRadius: 0,
+  },
+  genderChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  genderChipText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+    color: Colors.textMuted,
+  },
+  genderChipTextActive: {
+    color: Colors.white,
   },
   modalToggleRow: {
     flexDirection: 'row',

@@ -316,6 +316,7 @@ export async function getRecommendations(
         budgetLevel: ctx.budgetLevel,
         outfitScore: score ?? 7,
         feedbackText: ctx.latestFeedbackText,
+        gender: subjectGender,
       },
       4,
     );
