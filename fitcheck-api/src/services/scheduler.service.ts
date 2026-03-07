@@ -446,32 +446,24 @@ export function initializeScheduler(): void {
   }, { timezone: 'UTC' });
 
   // ── Lifecycle Email: Process due email sequences — every 30 min ───────────
-  cron.schedule('*/30 * * * *', async () => {
-    console.log('📧 [Scheduler] Running lifecycle email...');
-    try { await runLifecycleEmail(); }
-    catch (err) { console.error('[Scheduler] Lifecycle email failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('*/30 * * * *', () =>
+    guardedRun('lifecycle-email', '📧 [Scheduler] Running lifecycle email...', runLifecycleEmail),
+  { timezone: 'UTC' });
 
   // ── Conversion Intelligence: Scan for signals — Daily 11am UTC ───────────
-  cron.schedule('0 11 * * *', async () => {
-    console.log('📊 [Scheduler] Running conversion intelligence...');
-    try { await runConversionIntelligence(); }
-    catch (err) { console.error('[Scheduler] Conversion intelligence failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 11 * * *', () =>
+    guardedRun('conversion-intelligence', '📊 [Scheduler] Running conversion intelligence...', runConversionIntelligence),
+  { timezone: 'UTC' });
 
   // ── Community Manager: Daily highlights — Daily 10am UTC ─────────────────
-  cron.schedule('0 10 * * *', async () => {
-    console.log('🌟 [Scheduler] Running community manager (daily)...');
-    try { await runCommunityManagerDaily(); }
-    catch (err) { console.error('[Scheduler] Community manager daily failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 10 * * *', () =>
+    guardedRun('community-manager', '🌟 [Scheduler] Running community manager (daily)...', runCommunityManagerDaily),
+  { timezone: 'UTC' });
 
   // ── Community Manager: Weekly challenge — Monday 9:30am UTC ─────────────────
-  cron.schedule('30 9 * * 1', async () => {
-    console.log('🏆 [Scheduler] Running community manager (weekly challenge)...');
-    try { await runCommunityManagerWeekly(); }
-    catch (err) { console.error('[Scheduler] Community manager weekly failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('30 9 * * 1', () =>
+    guardedRun('community-manager', '🏆 [Scheduler] Running community manager (weekly challenge)...', runCommunityManagerWeekly),
+  { timezone: 'UTC' });
 
   // ── Social Media Manager: Content engine — Mon/Wed/Fri 8:30am UTC ────────────
   // 3x/week × 3 generators × 1-2 posts each ≈ 9 posts/week (~1-2/day with approval backlog)
@@ -485,18 +477,14 @@ export function initializeScheduler(): void {
   }, { timezone: 'UTC' });
 
   // ── App Store Manager: Fetch + respond to reviews — Daily 2:15pm UTC ────────
-  cron.schedule('15 14 * * *', async () => {
-    console.log('⭐ [Scheduler] Running app store manager...');
-    try { await runAppStoreManager(); }
-    catch (err) { console.error('[Scheduler] App store manager failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('15 14 * * *', () =>
+    guardedRun('appstore-manager', '⭐ [Scheduler] Running app store manager...', runAppStoreManager),
+  { timezone: 'UTC' });
 
   // ── App Store Manager: Weekly review summary — Sunday 7pm UTC ────────────
-  cron.schedule('0 19 * * 0', async () => {
-    console.log('📊 [Scheduler] Running app store weekly summary...');
-    try { await runAppStoreWeeklySummary(); }
-    catch (err) { console.error('[Scheduler] App store weekly summary failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 19 * * 0', () =>
+    guardedRun('appstore-manager', '📊 [Scheduler] Running app store weekly summary...', runAppStoreWeeklySummary),
+  { timezone: 'UTC' });
 
   // ── Outreach Agent: Generate outreach drafts — Wednesday 10:30am UTC ─────────
   cron.schedule('30 10 * * 3', async () => {
@@ -587,11 +575,9 @@ export function initializeScheduler(): void {
   { timezone: 'UTC' });
 
   // Style narrative agent: Sunday 5pm UTC
-  cron.schedule('0 17 * * 0', async () => {
-    console.log('✍️  [Scheduler] Running style narrative agent...');
-    try { await runStyleNarrativeAgent(); }
-    catch (err) { console.error('[Scheduler] Style narrative agent failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 17 * * 0', () =>
+    guardedRun('style-narrative', '✍️  [Scheduler] Running style narrative agent...', runStyleNarrativeAgent),
+  { timezone: 'UTC' });
 
   // ── Recursive Self-Improvement: Check quality + evaluate A/B tests — Daily 4am UTC ──
   cron.schedule('0 4 * * *', () =>

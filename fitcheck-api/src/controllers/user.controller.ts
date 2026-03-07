@@ -63,7 +63,7 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
         styleNoGos: true,
         styleDirection: true,
         genderPreference: true,
-      },
+      } as any,
     });
 
     if (!user) {
@@ -125,7 +125,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
         styleNoGos: true,
         styleDirection: true,
         genderPreference: true,
-      },
+      } as any,
     });
 
     res.json(user);

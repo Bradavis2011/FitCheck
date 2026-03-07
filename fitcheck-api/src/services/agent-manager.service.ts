@@ -405,7 +405,6 @@ const ALL_AGENT_NAMES = [
   'surgeon',
   'followup-critic',
   'followup-surgeon',
-  'arena',
   'learning-memory',
   // Security & Quality
   'security-auditor',
@@ -415,9 +414,6 @@ const ALL_AGENT_NAMES = [
   // Tier 0: Compliance & Ops
   'uptime-monitor',
   'data-deletion',
-  'legal',
-  // Tier 1: Launch Week
-  'support-bot',
   // Tier 2: Post-Launch Growth
   'churn-prediction',
   'feedback-analyst',
@@ -451,6 +447,11 @@ const ALL_AGENT_NAMES = [
   'affiliate-learning',
   // Fashion Events
   'fashion-events',
+  // Proactive Plus nudges
+  'pre-event-reminder',
+  'weather-nudge',
+  'wardrobe-nudge',
+  'trend-nudge',
 ];
 
 export async function getAgentHealth() {
