@@ -168,8 +168,8 @@ Look in listicles, articles, and profile pages. Include ALL creators found, even
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
-    // Extract JSON array from response
-    const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    // Extract JSON array from response (greedy — captures full array, not first bracket pair)
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return [];
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -230,7 +230,7 @@ Return ONLY a JSON object mapping handle to DM text:
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const jsonMatch = text.match(/\{[\s\S]*?\}/);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return {};
     return JSON.parse(jsonMatch[0]);
   } catch (err) {

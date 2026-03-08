@@ -196,14 +196,14 @@ export async function sendFounderContentDigest(): Promise<void> {
   }
 
   const from = process.env.REPORT_FROM_EMAIL || 'alerts@orthis.app';
-  const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const ago24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // Fetch all content created this week
+  // Fetch all content created today
   const [weeklyScripts, trendReport, newTips, pendingPosts] = await Promise.all([
     prisma.blogDraft.findMany({
       where: {
         contentType: { in: ['series_episode', 'data_drop', 'trend_take'] },
-        createdAt: { gte: ago7d },
+        createdAt: { gte: ago24h },
       },
       orderBy: { createdAt: 'desc' },
       take: 5,
@@ -211,14 +211,14 @@ export async function sendFounderContentDigest(): Promise<void> {
     prisma.blogDraft.findFirst({
       where: {
         contentType: 'trend_report',
-        createdAt: { gte: ago7d },
+        createdAt: { gte: ago24h },
       },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.blogDraft.findMany({
       where: {
         contentType: 'style_tip',
-        createdAt: { gte: ago7d },
+        createdAt: { gte: ago24h },
       },
       orderBy: { createdAt: 'desc' },
       take: 10,
@@ -237,9 +237,9 @@ export async function sendFounderContentDigest(): Promise<void> {
       .filter(s => s.scriptData)
       .map((s, i) => buildScriptCard({ title: s.title, contentType: s.contentType, scriptData: s.scriptData }, i))
       .join('');
-    scriptsHtml = cards || '<p style="color:#9B9B9B;font-size:14px;">No scripts generated this week.</p>';
+    scriptsHtml = cards || '<p style="color:#9B9B9B;font-size:14px;">No scripts generated today.</p>';
   } else {
-    scriptsHtml = '<p style="color:#9B9B9B;font-size:14px;">No scripts generated this week.</p>';
+    scriptsHtml = '<p style="color:#9B9B9B;font-size:14px;">No scripts generated today.</p>';
   }
 
   // Build trend summary
@@ -256,7 +256,7 @@ export async function sendFounderContentDigest(): Promise<void> {
         <p style="font-size:14px;color:#2D2D2D;margin:12px 0 0;line-height:1.6;">${preview}…</p>
       </div>`;
   } else {
-    trendHtml = '<p style="color:#9B9B9B;font-size:14px;">No trend report generated this week.</p>';
+    trendHtml = '<p style="color:#9B9B9B;font-size:14px;">No trend report generated today.</p>';
   }
 
   // Build tips table
@@ -274,7 +274,7 @@ export async function sendFounderContentDigest(): Promise<void> {
     }).join('');
     tipsHtml = `<table width="100%" style="border-collapse:collapse;">${rows}</table>`;
   } else {
-    tipsHtml = '<p style="color:#9B9B9B;font-size:14px;">No new style tips this week.</p>';
+    tipsHtml = '<p style="color:#9B9B9B;font-size:14px;">No new style tips today.</p>';
   }
 
   // Build pending posts summary
@@ -313,7 +313,7 @@ export async function sendFounderContentDigest(): Promise<void> {
       <p style="font-size:11px;font-weight:700;color:#E85D4C;text-transform:uppercase;
         letter-spacing:2px;margin:0 0 8px;">Or This? · Founder Content Digest</p>
       <h1 style="font-size:28px;color:#1A1A1A;margin:0 0 8px;font-weight:700;">
-        This Week's Content
+        Today's Content
       </h1>
       <p style="font-size:14px;color:#9B9B9B;margin:0;">${dateStr}</p>
     </div>
@@ -340,7 +340,7 @@ export async function sendFounderContentDigest(): Promise<void> {
 
     <table width="100%" style="border-collapse:collapse;">
 
-      ${section('Video Scripts — Ready to Film')}
+      ${section("Today's Video Scripts — Ready to Film")}
       <tr><td colspan="2" style="padding-bottom:16px;">${scriptsHtml}</td></tr>
 
       ${section('Weekly Trend Report')}

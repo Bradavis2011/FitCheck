@@ -447,14 +447,18 @@ Return ONLY the JSON array. No markdown fences, no explanatory text.`;
 
   try {
     const result = await model.generateContent(scriptPrompt);
-    const raw = result.response.text().trim()
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/, '');
+    const text = result.response.text().trim();
 
     await recordTokenUsage(estimated, estimated, 'content_factory');
 
-    const scripts = JSON.parse(raw) as Array<Record<string, unknown>>;
+    // Extract JSON array — handles preamble text and markdown code fences robustly
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.error('[ContentFactory] Gemini returned no JSON array — raw:', text.slice(0, 200));
+      return;
+    }
+
+    const scripts = JSON.parse(jsonMatch[0]) as Array<Record<string, unknown>>;
 
     if (!Array.isArray(scripts) || scripts.length === 0) {
       console.error('[ContentFactory] Gemini returned empty or non-array response');

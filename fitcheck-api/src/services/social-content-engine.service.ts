@@ -690,7 +690,7 @@ Suggested format: [e.g., "POV", "Hot take", "Unpopular opinion", "Story time"]`;
 export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [trends, trendText, weekStats] = await Promise.all([
+  const [trends, trendText, weekStats, topRule] = await Promise.all([
     getTrendData().catch(() => ({ topStyles: [], popularOccasions: [], colorTrends: [] })),
     getLatestFashionTrendText().catch(() => null),
     prisma.outfitCheck.aggregate({
@@ -698,6 +698,10 @@ export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
       _count: { id: true },
       _avg: { aiScore: true },
     }),
+    prisma.discoveredRule.findFirst({
+      where: { confidence: { gte: 0.65 } },
+      orderBy: { confidence: 'desc' },
+    }).catch(() => null),
   ]);
 
   const totalChecks = weekStats._count.id;
@@ -716,6 +720,7 @@ export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
     trends.colorTrends.length > 0 ? `Trending colors: ${trends.colorTrends.slice(0, 3).join(', ')}` : '',
     avgScore ? `Average confidence score: ${avgScore}/10` : '',
     trendText ? `Broader fashion context: ${trendText.slice(0, 200)}` : '',
+    topRule ? `Community insight (AI-discovered): ${topRule.rule} (${Math.round(topRule.confidence * 100)}% confidence, n=${topRule.sampleSize})` : '',
   ].filter(Boolean).join('\n');
 
   const recentPosts = await getRecentPosts('community_spotlight');
@@ -735,6 +740,7 @@ ${dedupBlock}
 Rules:
 - Celebrate the PEOPLE and their choices, not the product
 - Reference specific trends in a way that feels personal ("y'all are really into earth tones this week", "the work outfit game has been strong")
+- If the community insight is interesting, weave it in naturally
 - Conversational, warm, Gen Z-friendly
 - Max 250 chars
 - Don't mention app features or download CTAs
@@ -761,7 +767,7 @@ Return ONLY the tweet text.`;
 export async function generateStyleDataDrop(): Promise<GeneratedPost[]> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [occasionStats, dnaStats, totalChecks] = await Promise.all([
+  const [occasionStats, dnaStats, totalChecks, topRules] = await Promise.all([
     prisma.outfitCheck.findMany({
       where: { createdAt: { gte: weekAgo }, isDeleted: false },
       select: { occasions: true, aiScore: true },
@@ -775,6 +781,11 @@ export async function generateStyleDataDrop(): Promise<GeneratedPost[]> {
     prisma.outfitCheck.count({
       where: { createdAt: { gte: weekAgo }, isDeleted: false },
     }),
+    prisma.discoveredRule.findMany({
+      where: { confidence: { gte: 0.65 } },
+      orderBy: { confidence: 'desc' },
+      take: 3,
+    }).catch(() => []),
   ]);
 
   if (totalChecks < 5) {
@@ -814,13 +825,18 @@ export async function generateStyleDataDrop(): Promise<GeneratedPost[]> {
   const topHarmony = [...harmonyCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
   const topSilhouette = [...silhouetteCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 
+  const rulesContext = topRules.length > 0
+    ? '\nAI-discovered style rules (highest confidence, from real outfit data):\n' +
+      topRules.map(r => `- [${r.category}] ${r.rule} (${Math.round(r.confidence * 100)}% confidence, n=${r.sampleSize})`).join('\n')
+    : '';
+
   const statsContext = [
     `Total outfit checks this week: ${totalChecks}`,
     topOccasion && topOccasionPct ? `Most common occasion: "${topOccasion[0]}" (${topOccasionPct}% of checks)` : '',
     topOccasionAvgScore ? `Average AI score for ${topOccasion?.[0]} outfits: ${topOccasionAvgScore}/10` : '',
     topHarmony ? `Most common color harmony: ${topHarmony}` : '',
     topSilhouette ? `Most common silhouette: ${topSilhouette}` : '',
-  ].filter(Boolean).join('\n');
+  ].filter(Boolean).join('\n') + rulesContext;
 
   const recentPosts = await getRecentPosts('style_data_drop');
   const dedupBlock = buildDeduplicationBlock(recentPosts);
@@ -828,7 +844,7 @@ export async function generateStyleDataDrop(): Promise<GeneratedPost[]> {
 
   const tweetPrompt = `${BRAND_VOICE}
 
-Turn this style data into a surprising, shareable social media post. Pick the single most interesting or unexpected stat and frame it as a discovery.
+Turn this style data into a surprising, shareable social media post. Pick the single most interesting or unexpected stat and frame it as a discovery. You can use stats from the outfit data OR one of the AI-discovered rules — whichever is more surprising.
 
 Data:
 ${statsContext}
@@ -837,6 +853,7 @@ ${asoBlock}
 Good examples:
 - "68% of outfit checks this week were for work. y'all are STRESSED about office fits and honestly same"
 - "turns out people who wear warm tones score 12% higher on average. earth tones really said 'I'm the main character'"
+- "our AI analyzed 500 outfits and found that [rule from data] in 78% of cases. the data doesn't lie"
 ${dedupBlock}
 Rules:
 - Lead with the number or stat ("73% of you...", "Turns out...")
@@ -956,8 +973,20 @@ Return ONLY the tweet text.`;
 // ─── Generator 6: Conversation Starter ────────────────────────────────────────
 
 export async function generateConversationStarter(): Promise<GeneratedPost[]> {
-  const recentPosts = await getRecentPosts('conversation_starter');
+  const [recentPosts, debateRules] = await Promise.all([
+    getRecentPosts('conversation_starter'),
+    prisma.discoveredRule.findMany({
+      where: { confidence: { gte: 0.65 } },
+      orderBy: { confidence: 'desc' },
+      take: 2,
+    }).catch(() => []),
+  ]);
   const dedupBlock = buildDeduplicationBlock(recentPosts);
+
+  const rulesBlock = debateRules.length > 0
+    ? '\nOptional debate topics from real outfit data (use one if it sparks a good post, or ignore and go freeform):\n' +
+      debateRules.map(r => `- "${r.rule}" — found in ${Math.round(r.confidence * 100)}% of ${r.sampleSize} real outfits. Agree or disagree?`).join('\n')
+    : '';
 
   const prompt = `${BRAND_VOICE}
 
@@ -965,7 +994,10 @@ Write a conversation-starting social media post for a fashion/style app's Twitte
 
 The post should NOT mention any app, product, AI, or brand at all. It should be a genuine question, hot take, or observation about fashion, style confidence, or getting dressed that will spark replies and engagement.
 
-Good examples:
+You can use one of the data-backed debate topics below if they're interesting, or go completely freeform.
+${rulesBlock}
+
+Good freeform examples:
 - "honest question: when you look good, do you perform better at work? because I swear there's a direct correlation"
 - "the gap between 'I have nothing to wear' and 'I have too many clothes' is exactly zero"
 - "unpopular opinion: repeating outfits is actually a power move"
@@ -977,6 +1009,7 @@ Rules:
 - No mention of "Or This?", AI, apps, or products
 - Make people want to reply or quote tweet
 - Can be a question, hot take, observation, or implicit poll prompt
+- If using a debate rule: frame it as personal observation ("our data found X" is NOT allowed — frame it as "do you think X works?")
 - Lowercase casual tone is usually good but not required
 - Max 250 chars
 - No hashtags in the text itself

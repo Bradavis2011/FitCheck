@@ -23,7 +23,6 @@
       "supportsTablet": true,
       "requireFullScreen": true,
       "bundleIdentifier": "com.bradavis.orthis",
-      "associatedDomains": ["applinks:orthis.app"],
       "infoPlist": {
         "NSCameraUsageDescription": "Or This? uses your camera to take photos of your outfit for AI-powered style analysis.",
         "NSPhotoLibraryUsageDescription": "Or This? accesses your photo library so you can select outfit photos for AI style analysis.",

@@ -180,36 +180,24 @@ export async function runSocialMediaManager(options?: { force?: boolean }): Prom
   const dayOfWeek = new Date().getUTCDay(); // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
 
   type Generator = () => Promise<GeneratedPost[]>;
-  let generators: Generator[];
-  let dayLabel: string;
 
-  switch (dayOfWeek) {
-    case 1: // Monday
-      dayLabel = 'Monday';
-      generators = [generateFounderStory, generateFashionNewsTake, generateCommunitySpotlight];
-      break;
-    case 3: // Wednesday
-      dayLabel = 'Wednesday';
-      generators = [generateStyleDataDrop, generateConversationStarter, generateWardrobeInsight];
-      break;
-    case 5: // Friday
-      dayLabel = 'Friday';
-      generators = [generateBehindTheScenes, generateFashionNewsTake, generateCommunitySpotlight];
-      break;
-    default:
-      if (!options?.force) {
-        console.log(`[SocialMediaManager] Not a content day (UTC day ${dayOfWeek}) — skipping`);
-        return;
-      }
-      // force=true: run all 7 generators for testing
-      dayLabel = 'Forced';
-      generators = [
-        generateFounderStory, generateFashionNewsTake, generateCommunitySpotlight,
-        generateStyleDataDrop, generateConversationStarter, generateWardrobeInsight,
-        generateBehindTheScenes,
-      ];
-      break;
-  }
+  // 7-day rotation — all 7 generators cycle through the week
+  const DAILY_GENERATORS: Generator[][] = [
+    [generateFounderStory, generateFashionNewsTake, generateCommunitySpotlight],      // Sun
+    [generateStyleDataDrop, generateConversationStarter, generateWardrobeInsight],    // Mon
+    [generateBehindTheScenes, generateFounderStory, generateFashionNewsTake],         // Tue
+    [generateCommunitySpotlight, generateStyleDataDrop, generateConversationStarter], // Wed
+    [generateWardrobeInsight, generateBehindTheScenes, generateFounderStory],         // Thu
+    [generateFashionNewsTake, generateCommunitySpotlight, generateStyleDataDrop],     // Fri
+    [generateConversationStarter, generateWardrobeInsight, generateBehindTheScenes],  // Sat
+  ];
+  const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const generators = options?.force
+    ? [generateFounderStory, generateFashionNewsTake, generateCommunitySpotlight,
+       generateStyleDataDrop, generateConversationStarter, generateWardrobeInsight, generateBehindTheScenes]
+    : DAILY_GENERATORS[dayOfWeek];
+  const dayLabel = options?.force ? 'Forced' : DAY_LABELS[dayOfWeek];
 
   console.log(`[SocialMediaManager] ${dayLabel} content run — ${generators.length} generators`);
 
