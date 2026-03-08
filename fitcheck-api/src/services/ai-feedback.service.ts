@@ -1445,6 +1445,13 @@ export async function analyzeOutfit(
           } catch (reframeErr) {
             // Non-fatal
           }
+
+          // Trigger wardrobe prescription immediately if conditions met (non-blocking)
+          // This fires within seconds of an outfit check rather than waiting for the Wednesday cron.
+          import('./wardrobe-prescription.service.js')
+            .then(({ maybeRunPrescriptionForUser }) => maybeRunPrescriptionForUser(outfit.userId))
+            .catch(() => {});
+
         } catch (styleDNAError) {
           console.error('Failed to save Style DNA:', styleDNAError);
         }

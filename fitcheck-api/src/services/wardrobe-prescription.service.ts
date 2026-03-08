@@ -261,6 +261,45 @@ export async function runWardrobePrescriptionAgent(): Promise<void> {
   console.log(`[WardrobePrescription] Done. Generated ${generated}/${qualified.length} prescriptions for week ${week}`);
 }
 
+// ─── Event-driven trigger (called after each outfit check) ───────────────────
+//
+// Fires immediately when a user checks an outfit, rather than waiting for the
+// Wednesday batch cron. Eligibility + dedup logic is identical — if a
+// prescription already exists for this week it's a no-op. The Wednesday cron
+// remains as a fallback for users who don't check outfits that week.
+
+export async function maybeRunPrescriptionForUser(userId: string): Promise<void> {
+  if (!process.env.GEMINI_API_KEY) return;
+
+  // Fast eligibility check — avoid Gemini call if user isn't qualified
+  const weekPeriod = getWeekPeriod(new Date());
+  const [user, checkCount, existingThisWeek] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { tier: true },
+    }),
+    prisma.outfitCheck.count({
+      where: { userId, isDeleted: false },
+    }),
+    prisma.wardrobePrescription.findUnique({
+      where: { userId_weekPeriod: { userId, weekPeriod } },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!user || !['plus', 'pro'].includes(user.tier)) return;
+  if (checkCount < 5) return;
+  if (existingThisWeek) return; // Already prescribed this week — skip
+
+  // Conditions met: run now instead of waiting for Wednesday
+  console.log(`[WardrobePrescription] Triggering on outfit-check for user ${userId} (week ${weekPeriod})`);
+  try {
+    await runPrescriptionForUser(userId, weekPeriod);
+  } catch (err) {
+    console.error(`[WardrobePrescription] Triggered run failed for user ${userId}:`, err);
+  }
+}
+
 function getWeekPeriod(date: Date): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
