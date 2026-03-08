@@ -68,7 +68,7 @@ export default function HomeScreen() {
 
   const isPlus = tier === 'plus' || tier === 'pro';
   const { data: weekData, refetch: refetchWeek } = useYourWeek(isPlus);
-  const { data: insightsData, refetch: refetchInsights } = useInsights(isPlus ? 3 : 0);
+  const { data: insightsData, refetch: refetchInsights } = useInsights(isPlus ? 3 : 2);
 
   // A7: archetype-personalized hero copy
   const heroContent = getHeroCopy((userProfile as any)?.topArchetype);
@@ -287,7 +287,7 @@ export default function HomeScreen() {
             </View>
           )
         ) : (
-          // Free: teaser with upgrade CTA
+          // Free: show real milestone/AI improvement insights (max 2) + upgrade CTA
           <View style={styles.stylistSection}>
             <View style={styles.sectionDivider} />
             <View style={styles.sectionHeader}>
@@ -297,19 +297,42 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.rule} />
-            <TouchableOpacity
-              style={styles.stylistTeaser}
-              onPress={() => router.push('/upgrade' as any)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.stylistTeaserTitle}>Meet your AI stylist</Text>
-              <Text style={styles.stylistTeaserBody}>
-                Your stylist analyzes every outfit overnight, improves itself, and surfaces personalized observations — style patterns, event follow-ups, and wardrobe picks.
-              </Text>
-              <View style={styles.stylistTeaserCta}>
-                <Text style={styles.stylistTeaserCtaText}>Unlock with Plus →</Text>
-              </View>
-            </TouchableOpacity>
+            {insightsData && insightsData.insights.filter(i => !dismissedInsights.has(i.id)).length > 0 ? (
+              <>
+                <View style={styles.insightsList}>
+                  {insightsData.insights
+                    .filter(i => !dismissedInsights.has(i.id))
+                    .map(insight => (
+                      <InsightCard
+                        key={insight.id}
+                        insight={insight}
+                        onDismiss={(id) => setDismissedInsights(prev => new Set([...prev, id]))}
+                      />
+                    ))}
+                </View>
+                <TouchableOpacity
+                  style={styles.stylistFreeCta}
+                  onPress={() => router.push('/upgrade' as any)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.stylistFreeCtaText}>Unlock your full AI stylist →</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.stylistTeaser}
+                onPress={() => router.push('/upgrade' as any)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.stylistTeaserTitle}>Meet your AI stylist</Text>
+                <Text style={styles.stylistTeaserBody}>
+                  Your stylist analyzes every outfit overnight, improves itself, and surfaces personalized observations — style patterns, event follow-ups, and wardrobe picks.
+                </Text>
+                <View style={styles.stylistTeaserCta}>
+                  <Text style={styles.stylistTeaserCtaText}>Unlock with Plus →</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -664,6 +687,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.primary,
     letterSpacing: 0.3,
+  },
+  stylistFreeCta: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 0,
+    alignItems: 'center',
+  },
+  stylistFreeCtaText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.primary,
   },
   // Recent section
   section: {

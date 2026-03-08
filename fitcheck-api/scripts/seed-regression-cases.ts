@@ -13,6 +13,7 @@ const prisma = new PrismaClient();
 
 interface RegressionCase {
   scenarioName: string;
+  category: string;
   contextSnapshot: {
     occasion: string;
     setting?: string;
@@ -33,6 +34,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   // ── Occasion 1: Job Interview ─────────────────────────────────────────────
   {
     scenarioName: 'job-interview-tech-startup',
+    category: 'semi-formal',
     contextSnapshot: {
       occasion: 'job interview tech startup',
       setting: 'office',
@@ -43,6 +45,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'job-interview-finance-formal',
+    category: 'formal',
     contextSnapshot: {
       occasion: 'job interview corporate finance',
       setting: 'downtown office',
@@ -54,6 +57,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'job-interview-creative-agency',
+    category: 'semi-formal',
     contextSnapshot: {
       occasion: 'job interview creative agency',
       setting: 'open plan office',
@@ -64,6 +68,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'job-interview-casual-remote',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'video interview remote tech company',
       setting: 'home office',
@@ -74,6 +79,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'job-interview-retail-management',
+    category: 'semi-formal',
     contextSnapshot: {
       occasion: 'job interview retail store manager',
       setting: 'retail environment',
@@ -86,6 +92,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   // ── Occasion 2: Date Night ────────────────────────────────────────────────
   {
     scenarioName: 'date-night-first-date-restaurant',
+    category: 'semi-formal',
     contextSnapshot: {
       occasion: 'first date nice restaurant',
       setting: 'upscale casual restaurant',
@@ -97,6 +104,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'date-night-casual-bowling',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'date night bowling alley',
       setting: 'bowling alley',
@@ -107,6 +115,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'date-night-rooftop-bar',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'date rooftop bar summer',
       setting: 'rooftop bar',
@@ -118,6 +127,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'date-night-theatre',
+    category: 'semi-formal',
     contextSnapshot: {
       occasion: 'date night theatre performance',
       setting: 'theatre',
@@ -128,6 +138,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'date-night-winter-cozy',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'date night winter cozy',
       setting: 'cozy wine bar',
@@ -141,6 +152,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   // ── Occasion 3: Wedding Guest ─────────────────────────────────────────────
   {
     scenarioName: 'wedding-guest-garden-summer',
+    category: 'special-occasion',
     contextSnapshot: {
       occasion: 'wedding guest garden ceremony summer',
       setting: 'outdoor garden venue',
@@ -152,6 +164,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'wedding-guest-black-tie',
+    category: 'formal',
     contextSnapshot: {
       occasion: 'black tie wedding guest',
       setting: 'grand ballroom',
@@ -162,6 +175,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'wedding-guest-beach-destination',
+    category: 'special-occasion',
     contextSnapshot: {
       occasion: 'beach destination wedding guest',
       setting: 'beach ceremony',
@@ -173,6 +187,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'wedding-guest-autumn-rustic',
+    category: 'special-occasion',
     contextSnapshot: {
       occasion: 'autumn rustic barn wedding guest',
       setting: 'barn venue',
@@ -184,6 +199,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'wedding-guest-male-semiformal',
+    category: 'semi-formal',
     contextSnapshot: {
       occasion: 'semi-formal wedding guest male',
       setting: 'hotel ballroom',
@@ -196,6 +212,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   // ── Occasion 4: Casual Everyday ───────────────────────────────────────────
   {
     scenarioName: 'casual-weekend-brunch',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'weekend brunch with friends',
       setting: 'cafe',
@@ -207,6 +224,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'casual-grocery-errands',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'running errands grocery shopping',
       setting: 'everyday',
@@ -217,6 +235,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'casual-gym-activewear',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'gym workout',
       setting: 'gym',
@@ -227,6 +246,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'casual-art-museum-weekend',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'art museum weekend visit',
       setting: 'art gallery',
@@ -237,6 +257,7 @@ const REGRESSION_CASES: RegressionCase[] = [
   },
   {
     scenarioName: 'casual-airport-travel',
+    category: 'casual',
     contextSnapshot: {
       occasion: 'airport travel long flight',
       setting: 'airport',
@@ -268,6 +289,7 @@ async function main() {
     await prisma.regressionCase.create({
       data: {
         scenarioName: rc.scenarioName,
+        category: rc.category,
         contextSnapshot: rc.contextSnapshot as any,
         baselineScores: rc.baselineScores as any,
         isActive: true,

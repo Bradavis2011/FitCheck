@@ -1446,6 +1446,85 @@ export async function analyzeOutfit(
             // Non-fatal
           }
 
+          // Proactive style discovery notifications — $0 cost, pure DB comparison + push
+          try {
+            const { canSendRelationshipNotification } = await import('./event-followup.service.js');
+            if (user?.id && await canSendRelationshipNotification(outfit.userId)) {
+              const currentArchetype = (feedback.styleDNA.styleArchetypes || [])[0] || null;
+              const currentColor = (feedback.styleDNA.dominantColors || [])[0] || null;
+              const currentScore = feedback.overallScore;
+
+              // Fetch prior StyleDNA (last 5) for comparison
+              const priorDNAs = await prisma.styleDNA.findMany({
+                where: { userId: outfit.userId, outfitCheckId: { not: outfitCheckId } },
+                orderBy: { createdAt: 'desc' },
+                take: 5,
+                select: { styleArchetypes: true, dominantColors: true, outfitCheck: { select: { aiScore: true } } },
+              });
+
+              let discoveryTitle: string | null = null;
+              let discoveryBody: string | null = null;
+
+              if (priorDNAs.length >= 2 && currentArchetype) {
+                const priorArchetypes = priorDNAs.slice(0, 3).map(d => (d.styleArchetypes as string[])[0] || '');
+                const dominantPrior = priorArchetypes[0];
+
+                // Consistency streak — 3+ checks with same archetype
+                if (priorArchetypes.filter(a => a === currentArchetype).length >= 2) {
+                  discoveryTitle = 'Style pattern locked in';
+                  discoveryBody = `Your ${currentArchetype} style is locking in. Your AI is tuning recommendations.`;
+                }
+
+                // Archetype shift — current differs from all 3 prior checks
+                if (!discoveryTitle && dominantPrior && dominantPrior !== currentArchetype && priorArchetypes.every(a => a !== currentArchetype)) {
+                  discoveryTitle = 'Your AI noticed a style shift';
+                  discoveryBody = `You're trending ${currentArchetype} — something has shifted in your recent looks.`;
+                }
+
+                // Color evolution — new dominant color not in last 5
+                if (!discoveryTitle && currentColor) {
+                  const priorColors = priorDNAs.flatMap(d => (d.dominantColors as string[]) || []);
+                  if (!priorColors.includes(currentColor)) {
+                    discoveryTitle = 'New color in your palette';
+                    discoveryBody = `Your AI spotted a new color entering your looks: ${currentColor}.`;
+                  }
+                }
+              }
+
+              // Score milestone — first time scoring 9+
+              if (!discoveryTitle && currentScore >= 9) {
+                const priorHighScores = priorDNAs.map(d => (d.outfitCheck as any)?.aiScore ?? 0);
+                if (!priorHighScores.some((s: number) => s >= 9)) {
+                  discoveryTitle = 'Your highest score yet';
+                  discoveryBody = 'Your AI is learning what works for you.';
+                }
+              }
+
+              if (discoveryTitle && discoveryBody) {
+                // Create in-app notification record
+                createNotification({
+                  userId: outfit.userId,
+                  type: 'style_discovery',
+                  title: discoveryTitle,
+                  body: discoveryBody,
+                  linkType: 'outfit',
+                  linkId: outfitCheckId,
+                }).catch(() => {});
+
+                // Fire push notification
+                const { PushService } = await import('./push.service.js');
+                const pushService = new PushService();
+                pushService.sendPushNotification(outfit.userId, {
+                  title: discoveryTitle,
+                  body: discoveryBody,
+                  data: { type: 'style_discovery', route: '/insights' },
+                }).catch(() => {});
+              }
+            }
+          } catch (discoveryErr) {
+            // Non-fatal — never block outfit analysis
+          }
+
           // Trigger wardrobe prescription immediately if conditions met (non-blocking)
           // This fires within seconds of an outfit check rather than waiting for the Wednesday cron.
           import('./wardrobe-prescription.service.js')

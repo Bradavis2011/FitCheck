@@ -13,7 +13,7 @@ export default function InsightsScreen() {
   const { tier } = useSubscriptionStore();
   const isPlus = tier === 'plus' || tier === 'pro';
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-  const { data, isLoading, refetch, isFetching } = useInsights(isPlus ? 50 : 0);
+  const { data, isLoading, refetch, isFetching } = useInsights(isPlus ? 50 : 2);
 
   const handleDismiss = (id: string) => {
     setDismissedIds(prev => new Set([...prev, id]));
@@ -66,24 +66,47 @@ export default function InsightsScreen() {
       )}
 
       {!isPlus ? (
-        <View style={styles.paywall}>
-          <Ionicons name="sparkles" size={48} color={Colors.primary} />
-          <Text style={styles.paywallTitle}>Your AI Stylist</Text>
-          <Text style={styles.paywallBody}>
-            Your stylist runs overnight — analyzing your outfits, improving itself, and surfacing personalized observations, event follow-ups, and wardrobe picks.
-          </Text>
-          <View style={styles.paywallFeatures}>
-            {['Weekly style narrative', 'AI improvement notifications', 'Event outfit follow-ups', 'Wardrobe gap analysis'].map(f => (
-              <View key={f} style={styles.paywallFeatureRow}>
-                <View style={styles.paywallDot} />
-                <Text style={styles.paywallFeatureText}>{f}</Text>
-              </View>
-            ))}
+        // Free: show real milestone/AI improvement cards + upgrade banner after
+        isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={Colors.primary} />
           </View>
-          <TouchableOpacity style={styles.paywallBtn} onPress={() => router.push('/upgrade' as any)} activeOpacity={0.85}>
-            <Text style={styles.paywallBtnText}>Unlock with Plus</Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <FlatList
+            data={visibleInsights}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={visibleInsights.length > 0 ? undefined : (
+              <View style={styles.emptyState}>
+                <Ionicons name="sparkles-outline" size={40} color={Colors.textMuted} />
+                <Text style={styles.emptyTitle}>Your AI is learning</Text>
+                <Text style={styles.emptyBody}>Check more outfits and your AI will start surfacing observations here.</Text>
+              </View>
+            )}
+            ListFooterComponent={
+              <View style={styles.upgradeBanner}>
+                <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.upgradeBannerTitle}>More is waiting</Text>
+                  <Text style={styles.upgradeBannerBody}>Event follow-ups, weekly style narratives, and wardrobe picks — unlocked with Plus.</Text>
+                </View>
+                <TouchableOpacity style={styles.upgradeBannerBtn} onPress={() => router.push('/upgrade' as any)} activeOpacity={0.85}>
+                  <Text style={styles.upgradeBannerBtnText}>Upgrade</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={isFetching && !isLoading}
+                onRefresh={refetch}
+                tintColor={Colors.primary}
+                colors={[Colors.primary]}
+              />
+            }
+          />
+        )
       ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={Colors.primary} />
@@ -243,6 +266,42 @@ const styles = StyleSheet.create({
   paywallBtnText: {
     fontFamily: Fonts.sansMedium,
     fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 1.65,
+    color: Colors.white,
+  },
+  upgradeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.primaryAlpha10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.sharp,
+  },
+  upgradeBannerTitle: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  upgradeBannerBody: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    lineHeight: 16,
+  },
+  upgradeBannerBtn: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.sharp,
+  },
+  upgradeBannerBtnText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1.65,
     color: Colors.white,

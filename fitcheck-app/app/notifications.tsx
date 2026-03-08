@@ -20,6 +20,7 @@ type NotificationType =
   | 'event_followup'
   | 'style_narrative'
   | 'nudge_push'
+  | 'style_discovery'
   | string;
 
 type Notification = {
@@ -71,6 +72,8 @@ export default function NotificationsScreen() {
         return 'reader-outline';
       case 'nudge_push':
         return 'notifications';
+      case 'style_discovery':
+        return 'sparkles';
       default:
         return 'notifications';
     }

@@ -505,6 +505,23 @@ export async function getContextPreferences(req: AuthenticatedRequest, res: Resp
     .slice(0, 2)
     .map(([v]) => v);
 
+  // 4B: Time/day-of-week defaults when user has no history
+  if (topOccasions.length === 0) {
+    const now = new Date();
+    const day = now.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const hour = now.getUTCHours();
+    // Rough mapping: Saturday evening (day=6, hour>=18) or Friday evening
+    if ((day === 6 || day === 5) && hour >= 17) {
+      topOccasions.push('Date Night');
+    } else if (day === 0) {
+      topOccasions.push('Brunch');
+    } else if (day >= 1 && day <= 5 && hour >= 6 && hour < 20) {
+      topOccasions.push('Work');
+    } else {
+      topOccasions.push('Casual');
+    }
+  }
+
   res.json({ topOccasions, topVibes });
 }
 

@@ -36,7 +36,8 @@ export interface InsightsPayload {
 export async function getUserInsights(
   userId: string,
   limit = 10,
-  offset = 0
+  offset = 0,
+  tier = 'free'
 ): Promise<InsightsPayload> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -233,14 +234,21 @@ export async function getUserInsights(
     });
   }
 
-  // Sort by createdAt desc, paginate
+  // Sort by createdAt desc
   allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const paginated = allItems.slice(offset, offset + limit);
+
+  // Free tier: only milestones and AI improvement insights (max 2) — cheap types with no per-user Gemini cost
+  const isPlus = tier === 'plus' || tier === 'pro';
+  const filteredItems = isPlus
+    ? allItems
+    : allItems.filter(i => i.type === 'milestone' || i.type === 'ai_improvement').slice(0, 2);
+
+  const paginated = filteredItems.slice(offset, offset + limit);
 
   const agentActivity: AgentActivity = {
     outfitsAnalyzedOvernight: piggybackCount,
     improvementsMade: arenaDeployCount,
-    insightsGenerated: allItems.length,
+    insightsGenerated: filteredItems.length,
   };
 
   return { insights: paginated, agentActivity };

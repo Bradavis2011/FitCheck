@@ -809,7 +809,7 @@ export interface InlineMatch {
 
 export interface InsightItem {
   id: string;
-  type: 'style_narrative' | 'milestone' | 'event_followup' | 'ai_improvement';
+  type: 'style_narrative' | 'milestone' | 'event_followup' | 'ai_improvement' | 'wardrobe_prescription';
   title: string;
   body: string;
   actionType: 'view' | 'respond' | 'dismiss' | null;
