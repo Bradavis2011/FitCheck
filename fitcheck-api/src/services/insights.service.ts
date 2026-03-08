@@ -95,15 +95,6 @@ export async function getUserInsights(
       take: 3,
     }),
 
-    // Piggyback judge count in last 24h (for agentActivity)
-    prisma.outfitCheck.count({
-      where: {
-        judgeEvaluated: true,
-        aiProcessedAt: { gte: oneDayAgo },
-        isDeleted: false,
-      },
-    }),
-
     // WardrobePrescriptions — last 2 weeks
     prisma.wardrobePrescription.findMany({
       where: {
@@ -112,6 +103,15 @@ export async function getUserInsights(
       },
       orderBy: { createdAt: 'desc' },
       take: 2,
+    }),
+
+    // Piggyback judge count in last 24h (for agentActivity)
+    prisma.outfitCheck.count({
+      where: {
+        judgeEvaluated: true,
+        aiProcessedAt: { gte: oneDayAgo },
+        isDeleted: false,
+      },
     }),
 
     // Arena deploys in last 7 days (for agentActivity)
