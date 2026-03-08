@@ -266,8 +266,8 @@ export async function runArenaSession(
     const baselineAssembly = await assemblePrompt();
     const baselinePrompt = baselineAssembly.fromDB ? baselineAssembly.text : SYSTEM_PROMPT;
 
-    // Build candidate prompt (replace section)
-    const candidatePrompt = buildCandidatePrompt(baselinePrompt, sectionKey, candidateContent);
+    // Build candidate prompt (replace section via assemblePrompt overrides)
+    const candidatePrompt = await buildCandidatePrompt(sectionKey, candidateContent);
 
     // Get 10-15 scenarios
     const scenarios = await getArenaScenarios(12);
@@ -342,11 +342,12 @@ export async function runArenaSession(
   }
 }
 
-function buildCandidatePrompt(baselinePrompt: string, sectionKey: string, newContent: string): string {
-  // For sectional prompts assembled from DB, just substitute the section
-  // For hardcoded fallback, append new content
-  if (!baselinePrompt) return newContent;
-  return baselinePrompt + '\n\n[CANDIDATE SECTION UPDATE: ' + sectionKey + ']\n' + newContent;
+async function buildCandidatePrompt(sectionKey: string, newContent: string): Promise<string> {
+  // Use assemblePrompt with overrides so the candidate section replaces (not appends) the DB section
+  const candidateAssembly = await assemblePrompt(false, { [sectionKey]: newContent });
+  if (candidateAssembly.fromDB) return candidateAssembly.text;
+  // Fallback: hardcoded SYSTEM_PROMPT — append as best-effort (no sections to substitute)
+  return SYSTEM_PROMPT + '\n\n[CANDIDATE SECTION: ' + sectionKey + ']\n' + newContent;
 }
 
 async function getArenaScenarios(count: number): Promise<ArenaScenario[]> {

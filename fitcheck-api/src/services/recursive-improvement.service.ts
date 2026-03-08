@@ -19,6 +19,7 @@ import { AiFeedback } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { SYSTEM_PROMPT, PROMPT_VERSION } from './ai-feedback.service.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { trackedGenerateContent } from './token-budget.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -181,8 +182,9 @@ Return JSON only (no markdown):
       model: 'gemini-2.5-flash-lite',
       generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
     });
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text().trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+    const tracked = await trackedGenerateContent(model, prompt, 3_000, 'rsi_followup_mining');
+    if (!tracked) return [];
+    const raw = tracked.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return [];
 
@@ -580,12 +582,14 @@ OUTPUT: Return ONLY the complete improved system prompt text. No preamble, no ma
       },
     });
 
-    const result = await model.generateContent([
-      metaPrompt,
-      `\n\n=== CURRENT SYSTEM PROMPT ===\n\n${currentPrompt}`,
-    ]);
+    const combinedPrompt = metaPrompt + `\n\n=== CURRENT SYSTEM PROMPT ===\n\n${currentPrompt}`;
+    const tracked = await trackedGenerateContent(model, combinedPrompt, 20_000, 'rsi_prompt_improvement');
+    if (!tracked) {
+      console.log('[RecursiveImprovement] Blocked by token budget');
+      return null;
+    }
 
-    const improved = result.response.text().trim();
+    const improved = tracked.text.trim();
 
     // Basic validation — must contain key structural markers
     const requiredMarkers = ['PERSONALITY:', 'RESPONSE FORMAT:', 'overallScore', 'styleDNA'];
@@ -1166,8 +1170,12 @@ Return the addition text only, no JSON wrapper, max 400 words.`;
         model: 'gemini-2.5-flash-lite',
         generationConfig: { temperature: 0.5, maxOutputTokens: 512 },
       });
-      const result = await model.generateContent(prompt);
-      const cohortAddition = result.response.text().trim();
+      const tracked = await trackedGenerateContent(model, prompt, 2_000, 'rsi_cohort');
+      if (!tracked) {
+        console.log(`[CohortImprovement] Blocked by token budget for cohort ${cohortKey}`);
+        continue;
+      }
+      const cohortAddition = tracked.text.trim();
 
       if (!cohortAddition || cohortAddition.length < 50) continue;
 

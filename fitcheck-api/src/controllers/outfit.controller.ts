@@ -809,6 +809,18 @@ export async function respondToFollowUp(req: AuthenticatedRequest, res: Response
   res.json({ success: true });
 }
 
+export async function getPendingFollowUp(req: AuthenticatedRequest, res: Response) {
+  const userId = req.userId!;
+  const { id: outfitId } = req.params;
+
+  const followUp = await prisma.eventFollowUp.findFirst({
+    where: { outfitCheckId: outfitId, userId, status: 'pending' },
+    select: { id: true, outfitCheckId: true },
+  });
+
+  res.json({ followUp: followUp || null });
+}
+
 export async function getOutfitMemoryHandler(req: AuthenticatedRequest, res: Response) {
   const userId = req.userId!;
   const occasionsParam = (req.query.occasions as string) || '';

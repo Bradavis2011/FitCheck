@@ -45,6 +45,7 @@ import learnRoutes from './routes/learn.routes.js';
 import affiliateRoutes from './routes/affiliate.routes.js';
 import shareRoutes from './routes/share.routes.js';
 import weekRoutes from './routes/week.routes.js';
+import insightsRoutes from './routes/insights.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
@@ -352,6 +353,7 @@ app.use('/api/admin/creators', creatorRoutes);
 app.use('/api/learn', learnRoutes);
 app.use('/api/affiliate', affiliateRoutes);
 app.use('/api/week', weekRoutes);
+app.use('/api/insights', insightsRoutes);
 
 // 404 handler
 app.use((_req, res) => {

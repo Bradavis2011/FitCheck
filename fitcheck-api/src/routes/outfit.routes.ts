@@ -27,6 +27,9 @@ router.get('/memory', asyncHandler(outfitController.getOutfitMemoryHandler));
 // Post-event follow-up response
 router.post('/follow-up/:followUpId/respond', validateRequest({ body: RespondToFollowUpSchema }), asyncHandler(outfitController.respondToFollowUp));
 
+// Get pending EventFollowUp for an outfit
+router.get('/:id/follow-up', asyncHandler(outfitController.getPendingFollowUp));
+
 // Get outfit feedback by ID
 router.get('/:id', asyncHandler(outfitController.getOutfitFeedback));
 

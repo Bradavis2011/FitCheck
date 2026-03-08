@@ -44,7 +44,8 @@ interface AssembledPrompt {
 
 /** Assemble the full system prompt from DB sections (or fallback to hardcoded) */
 export async function assemblePrompt(
-  includeFollowup = false
+  includeFollowup = false,
+  overrides?: Partial<Record<string, string>>
 ): Promise<AssembledPrompt> {
   try {
     const keys = includeFollowup
@@ -92,12 +93,23 @@ export async function assemblePrompt(
       .map(([k, v]) => `${k}:${v}`)
       .join('|');
 
-    // Concatenate sections
-    let text = orderedSections.map(s => s.content).join('\n\n');
+    // Concatenate sections, applying overrides where provided
+    let text = orderedSections
+      .map(s => overrides?.[s.sectionKey] ?? s.content)
+      .join('\n\n');
 
     // A5: Append per-occasion calibration corrections if community data supports them
     const biasCorrections = await getCategoryBiasCorrections();
     if (biasCorrections) text += biasCorrections;
+
+    // 1C: Append distilled learning memory (capped at 500 chars)
+    const learningMemory = await getLatestLearningMemory();
+    if (learningMemory) {
+      const capped = learningMemory.length > 500
+        ? learningMemory.slice(0, 497) + '...'
+        : learningMemory;
+      text += `\n\n[LEARNING CONTEXT]\n${capped}`;
+    }
 
     return { text, versionFingerprint: fingerprint, fromDB: true, sectionVersions };
   } catch (err) {

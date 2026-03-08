@@ -21,7 +21,9 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser, useNotifications, useYourWeek } from '../../src/hooks/useApi';
+import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser, useNotifications, useYourWeek, useInsights } from '../../src/hooks/useApi';
+import InsightCard from '../../src/components/InsightCard';
+import AgentActivityBanner from '../../src/components/AgentActivityBanner';
 import ErrorState from '../../src/components/ErrorState';
 import UserAvatar from '../../src/components/UserAvatar';
 
@@ -62,9 +64,11 @@ export default function HomeScreen() {
   const { data: notificationsData } = useNotifications(true);
   const unreadCount = notificationsData?.unreadCount ?? 0;
   const [refreshing, setRefreshing] = useState(false);
+  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
 
   const isPlus = tier === 'plus' || tier === 'pro';
   const { data: weekData, refetch: refetchWeek } = useYourWeek(isPlus);
+  const { data: insightsData, refetch: refetchInsights } = useInsights(isPlus ? 3 : 0);
 
   // A7: archetype-personalized hero copy
   const heroContent = getHeroCopy((userProfile as any)?.topArchetype);
@@ -95,7 +99,7 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchOutfits(), refetchStats(), refetchCommunity(), ...(isPlus ? [refetchWeek()] : [])]);
+      await Promise.all([refetchOutfits(), refetchStats(), refetchCommunity(), refetchInsights(), ...(isPlus ? [refetchWeek()] : [])]);
     } finally {
       setRefreshing(false);
     }
@@ -247,6 +251,65 @@ export default function HomeScreen() {
 
             {/* Affiliate picks — contextual for the week ahead */}
             <AffiliateCard placement="your_week" />
+          </View>
+        )}
+
+        {/* Agent Activity Banner — Plus/Pro only */}
+        {isPlus && insightsData?.agentActivity && (
+          <AgentActivityBanner activity={insightsData.agentActivity} />
+        )}
+
+        {/* Your Stylist section */}
+        {isPlus ? (
+          // Plus/Pro: real agentic feed
+          insightsData && insightsData.insights.filter(i => !dismissedInsights.has(i.id)).length > 0 && (
+            <View style={styles.stylistSection}>
+              <View style={styles.sectionDivider} />
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>Your Stylist</Text>
+                <TouchableOpacity onPress={() => router.push('/insights' as any)}>
+                  <Text style={styles.seeAll}>See all →</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.rule} />
+              <View style={styles.insightsList}>
+                {insightsData.insights
+                  .filter(i => !dismissedInsights.has(i.id))
+                  .slice(0, 3)
+                  .map(insight => (
+                    <InsightCard
+                      key={insight.id}
+                      insight={insight}
+                      onDismiss={(id) => setDismissedInsights(prev => new Set([...prev, id]))}
+                    />
+                  ))}
+              </View>
+            </View>
+          )
+        ) : (
+          // Free: teaser with upgrade CTA
+          <View style={styles.stylistSection}>
+            <View style={styles.sectionDivider} />
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Your Stylist</Text>
+              <TouchableOpacity onPress={() => router.push('/upgrade' as any)}>
+                <Text style={styles.upgradeChip}>Upgrade</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.rule} />
+            <TouchableOpacity
+              style={styles.stylistTeaser}
+              onPress={() => router.push('/upgrade' as any)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.stylistTeaserTitle}>Meet your AI stylist</Text>
+              <Text style={styles.stylistTeaserBody}>
+                Your stylist analyzes every outfit overnight, improves itself, and surfaces personalized observations — style patterns, event follow-ups, and wardrobe picks.
+              </Text>
+              <View style={styles.stylistTeaserCta}>
+                <Text style={styles.stylistTeaserCtaText}>Unlock with Plus →</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -558,6 +621,49 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
+  },
+  // Your Stylist section
+  stylistSection: {
+    marginBottom: Spacing.xl,
+  },
+  insightsList: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  upgradeChip: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.65,
+    color: Colors.primary,
+  },
+  stylistTeaser: {
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.primaryAlpha30,
+    gap: Spacing.sm,
+  },
+  stylistTeaserTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    color: Colors.text,
+  },
+  stylistTeaserBody: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  stylistTeaserCta: {
+    marginTop: Spacing.xs,
+  },
+  stylistTeaserCtaText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 13,
+    color: Colors.primary,
+    letterSpacing: 0.3,
   },
   // Recent section
   section: {

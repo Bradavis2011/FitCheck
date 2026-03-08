@@ -47,12 +47,12 @@ import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 import { runEventFollowUp, runFollowUpEmailFallback, runPreEventReminder } from './event-followup.service.js';
 import { runMilestoneScanner } from './milestone-message.service.js';
 import { runStyleNarrativeAgent } from './style-narrative.service.js';
-import { checkAndTriggerImprovement, runCohortImprovementCycle } from './recursive-improvement.service.js';
+import { runCohortImprovementCycle } from './recursive-improvement.service.js';
 // ── Self-Improving StyleDNA Engine ────────────────────────────────────────────
 import { resetDailyBudget, hasLearningBudget } from './token-budget.service.js';
 import { purgeExpiredBusEntries } from './intelligence-bus.service.js';
 import { distillLearningMemory } from './prompt-assembly.service.js';
-import { runPiggybackJudge } from './arena.service.js';
+import { runPiggybackJudge, calibrateRegressionBaselines } from './arena.service.js';
 import { runCriticAgent, runFollowUpCritic } from './critic-agent.service.js';
 import {
   runSurgeonAgent,
@@ -579,10 +579,9 @@ export function initializeScheduler(): void {
     guardedRun('style-narrative', '✍️  [Scheduler] Running style narrative agent...', runStyleNarrativeAgent),
   { timezone: 'UTC' });
 
-  // ── Recursive Self-Improvement: Check quality + evaluate A/B tests — Daily 4am UTC ──
-  cron.schedule('0 4 * * *', () =>
-    guardedRun('surgeon', '🧠 [Scheduler] Running recursive self-improvement check...', checkAndTriggerImprovement),
-  { timezone: 'UTC' });
+  // NOTE: checkAndTriggerImprovement (whole-prompt rewrite) disabled — section-level
+  // Critic → Surgeon → Arena system is the primary improvement engine (runs at 5am).
+  // Keeping runCohortImprovementCycle and rule discovery separate below.
 
   // ── C1+C2: StyleDNA Cohort Improvement — Monthly (Wed 6am UTC, days 1-7) ──
   cron.schedule('0 6 1-7 * 3', () =>
@@ -653,6 +652,11 @@ export function initializeScheduler(): void {
     // Sunday 6pm UTC: Weekly example rotation (~14K tokens)
     cron.schedule('0 18 * * 0', () =>
       guardedRun('surgeon', '🔄 [Scheduler] Running Example Rotation...', runExampleRotation),
+    { timezone: 'UTC' });
+
+    // Sunday midnight UTC: Calibrate regression baselines with current prompt performance
+    cron.schedule('0 0 * * 0', () =>
+      guardedRun('surgeon', '📏 [Scheduler] Calibrating regression baselines...', calibrateRegressionBaselines),
     { timezone: 'UTC' });
 
     // Daily midnight: purge expired Intelligence Bus entries

@@ -805,6 +805,42 @@ export interface InlineMatch {
   product: AffiliateProduct;
 }
 
+// ─── Insights / Agentic Feed ──────────────────────────────────────────────────
+
+export interface InsightItem {
+  id: string;
+  type: 'style_narrative' | 'milestone' | 'event_followup' | 'ai_improvement';
+  title: string;
+  body: string;
+  actionType: 'view' | 'respond' | 'dismiss' | null;
+  actionRoute: string | null;
+  metadata: Record<string, any>;
+  createdAt: string;
+}
+
+export interface AgentActivity {
+  outfitsAnalyzedOvernight: number;
+  improvementsMade: number;
+  insightsGenerated: number;
+}
+
+export function useInsights(limit = 5) {
+  return useQuery({
+    queryKey: ['insights', limit],
+    queryFn: () => api.get<{ insights: InsightItem[]; agentActivity: AgentActivity }>(`/api/insights?limit=${limit}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000, // 5 min
+  });
+}
+
+export function usePendingFollowUp(outfitId: string | undefined) {
+  return useQuery({
+    queryKey: ['outfit', 'followup', outfitId],
+    queryFn: () => api.get<{ followUp: { id: string; outfitCheckId: string } | null }>(`/api/outfits/${outfitId}/follow-up`).then(r => r.data.followUp),
+    enabled: !!outfitId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
 export function useInlineProducts(outfitId: string | undefined) {
   return useQuery({
     queryKey: ['affiliate', 'inline', outfitId],

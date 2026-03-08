@@ -22,8 +22,10 @@ import CommunityFeedbackCard from '../../src/components/CommunityFeedbackCard';
 import FeedbackScoreSlider from '../../src/components/FeedbackScoreSlider';
 import ReportModal from '../../src/components/ReportModal';
 import { socialService } from '../../src/services/api.service';
-import { useCommunityFeedback, useSubmitCommunityFeedback, useReferralStats } from '../../src/hooks/useApi';
+import { useCommunityFeedback, useSubmitCommunityFeedback, useReferralStats, usePendingFollowUp } from '../../src/hooks/useApi';
+import EventFollowUpModal from '../../src/components/EventFollowUpModal';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 
 const QUICK_SUGGESTIONS = ['Great fit!', 'Love the colors', 'Try different shoes', 'Perfect for the occasion'];
 
@@ -43,6 +45,13 @@ export default function PublicOutfitScreen() {
   const { data: communityFeedbackData, refetch: refetchFeedback } = useCommunityFeedback(outfitId);
   const submitFeedbackMutation = useSubmitCommunityFeedback();
   const { data: referralStats } = useReferralStats();
+  const { tier } = useSubscriptionStore();
+  const isPlus = tier === 'plus' || tier === 'pro';
+  const { data: pendingFollowUp } = usePendingFollowUp(isPlus ? outfitId : undefined);
+
+  // Show EventFollowUpModal when navigated from event_followup notification or pending follow-up exists
+  const fromFollowUp = params.from === 'event_followup';
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
 
   const communityFeedback = communityFeedbackData?.feedback || [];
   const userExistingFeedback = communityFeedback.find((f: any) => f.userId === user?.id);
@@ -58,6 +67,13 @@ export default function PublicOutfitScreen() {
   useEffect(() => {
     loadOutfit();
   }, [outfitId]);
+
+  // Show EventFollowUpModal when there's a pending follow-up or navigated from notification
+  useEffect(() => {
+    if (fromFollowUp || pendingFollowUp) {
+      setShowFollowUpModal(true);
+    }
+  }, [fromFollowUp, pendingFollowUp]);
 
   // Pre-fill form when user's existing feedback loads
   useEffect(() => {
@@ -379,6 +395,18 @@ export default function PublicOutfitScreen() {
         targetName={outfit?.user?.username || 'unknown'}
         onSubmit={handleReport}
       />
+
+      {/* Event Follow-Up Modal */}
+      {pendingFollowUp && (
+        <EventFollowUpModal
+          visible={showFollowUpModal}
+          followUpId={pendingFollowUp.id}
+          occasion={(outfit?.occasions?.[0]) || 'your event'}
+          thumbnailUrl={outfit?.thumbnailUrl}
+          thumbnailData={outfit?.thumbnailData}
+          onDismiss={() => setShowFollowUpModal(false)}
+        />
+      )}
     </View>
   );
 }
