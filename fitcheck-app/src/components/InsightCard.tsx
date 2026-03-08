@@ -4,6 +4,7 @@ import { Colors, Fonts, Spacing, FontSize, BorderRadius } from '../constants/the
 import { InsightItem } from '../hooks/useApi';
 import { useRespondToEventFollowUp } from '../hooks/useApi';
 import { EventFollowUpResponse } from '../services/api.service';
+import WardrobePrescriptionCard from './WardrobePrescriptionCard';
 
 interface InsightCardProps {
   insight: InsightItem;
@@ -20,6 +21,23 @@ const FOLLOW_UP_OPTIONS: { key: EventFollowUpResponse; label: string }[] = [
 export default function InsightCard({ insight, onDismiss }: InsightCardProps) {
   const router = useRouter();
   const respond = useRespondToEventFollowUp();
+
+  // Delegate wardrobe_prescription to its own card
+  if (insight.type === 'wardrobe_prescription') {
+    const { gaps, totalItems, weekPeriod } = insight.metadata as {
+      gaps: any[];
+      totalItems: number;
+      weekPeriod: string;
+    };
+    return (
+      <WardrobePrescriptionCard
+        gaps={gaps}
+        totalItems={totalItems}
+        weekPeriod={weekPeriod}
+        onDismiss={onDismiss ? () => onDismiss(insight.id) : undefined}
+      />
+    );
+  }
 
   const handleAction = () => {
     if (insight.actionRoute) {
@@ -91,6 +109,7 @@ function getSectionLabel(type: InsightItem['type']): string {
     case 'milestone': return 'Achievement';
     case 'event_followup': return 'Event check-in';
     case 'ai_improvement': return 'AI update';
+    case 'wardrobe_prescription': return 'Wardrobe prescription';
   }
 }
 

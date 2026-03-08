@@ -13,7 +13,7 @@ import { prisma } from '../utils/prisma.js';
 
 export interface InsightItem {
   id: string;
-  type: 'style_narrative' | 'milestone' | 'event_followup' | 'ai_improvement';
+  type: 'style_narrative' | 'milestone' | 'event_followup' | 'ai_improvement' | 'wardrobe_prescription';
   title: string;
   body: string;
   actionType: 'view' | 'respond' | 'dismiss' | null;
@@ -47,6 +47,7 @@ export async function getUserInsights(
     followUps,
     arenaSessions,
     critiqueReports,
+    prescriptions,
     piggybackCount,
     arenaDeployCount,
   ] = await Promise.all([
@@ -101,6 +102,16 @@ export async function getUserInsights(
         aiProcessedAt: { gte: oneDayAgo },
         isDeleted: false,
       },
+    }),
+
+    // WardrobePrescriptions — last 2 weeks
+    prisma.wardrobePrescription.findMany({
+      where: {
+        userId,
+        createdAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 2,
     }),
 
     // Arena deploys in last 7 days (for agentActivity)
@@ -198,6 +209,27 @@ export async function getUserInsights(
         weaknessCount: weaknesses.length,
       },
       createdAt: c.createdAt.toISOString(),
+    });
+  }
+
+  // Map WardrobePrescriptions
+  for (const p of prescriptions) {
+    const gaps = Array.isArray(p.gaps) ? p.gaps as Array<{ gapCategory: string; reasoning: string; products: any[] }> : [];
+    const topGap = gaps[0];
+    if (!topGap) continue;
+    allItems.push({
+      id: p.id,
+      type: 'wardrobe_prescription',
+      title: `Your AI picked ${p.totalItems} items for your wardrobe`,
+      body: topGap.reasoning,
+      actionType: 'view',
+      actionRoute: '/insights',
+      metadata: {
+        weekPeriod: p.weekPeriod,
+        gaps,
+        totalItems: p.totalItems,
+      },
+      createdAt: p.createdAt.toISOString(),
     });
   }
 

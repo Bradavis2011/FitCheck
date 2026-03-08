@@ -114,6 +114,7 @@ model User {
   styleArticles          StyleArticle[]
   affiliateImpressions   AffiliateImpression[]
   feedbackPatterns       UserFeedbackPattern[]
+  wardrobePrescriptions  WardrobePrescription[]
 
   @@index([tier])
   @@index([emailOptOut])
@@ -848,6 +849,22 @@ model MilestoneMessage {
   @@unique([userId, milestoneKey])
   @@index([userId])
   @@map("milestone_messages")
+}
+
+// ─── Wardrobe Prescription (Agentic Affiliate) ────────────────────────────────
+
+model WardrobePrescription {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekPeriod  String   @map("week_period") // "2026-W10"
+  gaps        Json     @default("[]")      // Array of PrescriptionGap (see wardrobe-prescription.service.ts)
+  totalItems  Int      @default(0)         @map("total_items")
+  createdAt   DateTime @default(now())     @map("created_at")
+
+  @@unique([userId, weekPeriod])
+  @@index([userId, createdAt])
+  @@map("wardrobe_prescriptions")
 }
 
 // ─── Growth Intern Models ─────────────────────────────────────────────────────

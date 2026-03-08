@@ -22,11 +22,10 @@ import { runConversionIntelligence } from './conversion-intelligence.service.js'
 import { runCommunityManagerDaily, runCommunityManagerWeekly } from './community-manager.service.js';
 import { runSocialMediaManager, sendWeeklySocialDigest, registerExecutors as registerSocialExecutors } from './social-media-manager.service.js';
 import { runAppStoreManager, runAppStoreWeeklySummary, registerExecutors as registerAppstoreExecutors } from './appstore-manager.service.js';
-import { runOutreachAgent, registerExecutors as registerOutreachExecutors } from './outreach-agent.service.js';
 import { runCreatorHookDistribution, runCreatorPerformanceDigest, registerCreatorExecutors, updateCreatorInstallCounts } from './creator-manager.service.js';
 import { runCreatorScout } from './creator-scout.service.js';
 import { runEmailOutreach, runEmailFollowUp, runCreatorOnboardingFollowUps } from './creator-outreach.service.js';
-import { runRedditDiscovery } from './reddit-scout.service.js';
+import { runRedditDiscovery, runRedditAutoPost } from './reddit-scout.service.js';
 import { runSubredditManager, registerExecutors as registerSubredditExecutors } from './subreddit-manager.service.js';
 import { runMorningBrief, runStaleProspectCleanup } from './growth-intern.service.js';
 import { runLearningContentAgent, generateStyleTips } from './learning-content.service.js';
@@ -47,6 +46,7 @@ import { runCalibrationSnapshot } from './calibration-snapshot.service.js';
 import { runEventFollowUp, runFollowUpEmailFallback, runPreEventReminder } from './event-followup.service.js';
 import { runMilestoneScanner } from './milestone-message.service.js';
 import { runStyleNarrativeAgent } from './style-narrative.service.js';
+import { runWardrobePrescriptionAgent } from './wardrobe-prescription.service.js';
 import { runCohortImprovementCycle } from './recursive-improvement.service.js';
 // ── Self-Improving StyleDNA Engine ────────────────────────────────────────────
 import { resetDailyBudget, hasLearningBudget } from './token-budget.service.js';
@@ -237,7 +237,6 @@ export function initializeScheduler(): void {
   // Register executors for high-risk agents so processApprovedActions works after restart
   registerSocialExecutors();
   registerAppstoreExecutors();
-  registerOutreachExecutors();
   registerCreatorExecutors();
   registerSubredditExecutors();
 
@@ -358,11 +357,11 @@ export function initializeScheduler(): void {
     guardedRun('calibration-snapshot', '📐 [Scheduler] Running calibration snapshot...', runCalibrationSnapshot),
   { timezone: 'UTC' });
 
-  // ── Weekly Social Digest — Monday 8am UTC ────────────────────────────────
-  // Replaces separate content calendar + social manager emails with one copy-paste-ready digest.
+  // ── Daily Social Digest — 8am UTC ─────────────────────────────────────────
+  // Daily digest of ready-to-copy social posts.
   // getTrendData() (from content-calendar) is still used by other services (SEO, social engine).
-  cron.schedule('0 8 * * 1', () =>
-    guardedRun('social-media-manager', '📱 [Scheduler] Sending weekly social digest...', sendWeeklySocialDigest),
+  cron.schedule('0 8 * * *', () =>
+    guardedRun('social-media-manager', '📱 [Scheduler] Sending daily social digest...', sendWeeklySocialDigest),
   { timezone: 'UTC' });
 
   // ── Agent 11: Growth Dashboard — Daily 9am UTC ───────────────────────────
@@ -397,11 +396,15 @@ export function initializeScheduler(): void {
     guardedRun('reddit-scout', '🤝 [Scheduler] Running Reddit discovery...', runRedditDiscovery),
   { timezone: 'UTC' });
 
-  // ── Subreddit Manager — Mon/Wed/Fri 2pm UTC ───────────────────────────
-  // Posts curated fashion content to r/OrThis 3x/week.
-  // Mon=celebrity breakdown, Wed=street style, Fri=rate this look.
-  cron.schedule('0 14 * * 1,3,5', () =>
+  // ── Subreddit Manager — Daily 2pm UTC ────────────────────────────────────
+  // Posts 7 rotating content types daily to r/OrThis (data-grounded).
+  cron.schedule('0 14 * * *', () =>
     guardedRun('subreddit-manager', '[Scheduler] Running subreddit manager...', runSubredditManager),
+  { timezone: 'UTC' });
+
+  // ── Reddit Auto-Post — Daily 12:30pm UTC (after discovery at 11am) ───────
+  cron.schedule('30 12 * * *', () =>
+    guardedRun('reddit-scout', '📮 [Scheduler] Running Reddit auto-post...', runRedditAutoPost),
   { timezone: 'UTC' });
 
   // ── Growth Intern: Morning Brief — Daily 12pm UTC (8am ET) ───────────
@@ -465,16 +468,11 @@ export function initializeScheduler(): void {
     guardedRun('community-manager', '🏆 [Scheduler] Running community manager (weekly challenge)...', runCommunityManagerWeekly),
   { timezone: 'UTC' });
 
-  // ── Social Media Manager: Content engine — Mon/Wed/Fri 8:30am UTC ────────────
-  // 3x/week × 3 generators × 1-2 posts each ≈ 9 posts/week (~1-2/day with approval backlog)
-  // Mon: Founder Story + Fashion News + Community Spotlight
-  // Wed: Style Data Drop + Conversation Starter + Wardrobe Insight
-  // Fri: Behind the Scenes + Fashion News + Community Spotlight
-  cron.schedule('30 8 * * 1,3,5', async () => {
-    console.log('📱 [Scheduler] Running social media manager...');
-    try { await runSocialMediaManager(); }
-    catch (err) { console.error('[Scheduler] Social media manager failed:', err); }
-  }, { timezone: 'UTC' });
+  // ── Social Media Manager: Content engine — Daily 8:30am UTC ─────────────────
+  // 7-day rotation across all 7 generators × 3 per day ≈ 21 posts/week
+  cron.schedule('30 8 * * *', () =>
+    guardedRun('social-media-manager', '📱 [Scheduler] Running social media manager...', () => runSocialMediaManager()),
+  { timezone: 'UTC' });
 
   // ── App Store Manager: Fetch + respond to reviews — Daily 2:15pm UTC ────────
   cron.schedule('15 14 * * *', () =>
@@ -485,13 +483,6 @@ export function initializeScheduler(): void {
   cron.schedule('0 19 * * 0', () =>
     guardedRun('appstore-manager', '📊 [Scheduler] Running app store weekly summary...', runAppStoreWeeklySummary),
   { timezone: 'UTC' });
-
-  // ── Outreach Agent: Generate outreach drafts — Wednesday 10:30am UTC ─────────
-  cron.schedule('30 10 * * 3', async () => {
-    console.log('📨 [Scheduler] Running outreach agent...');
-    try { await runOutreachAgent(); }
-    catch (err) { console.error('[Scheduler] Outreach agent failed:', err); }
-  }, { timezone: 'UTC' });
 
   // ── A1: Compute preferred nudge hours — Daily 4:30am UTC (before Surgeon at 5am) ──
   if (isNudgeEnabled()) {
@@ -577,6 +568,11 @@ export function initializeScheduler(): void {
   // Style narrative agent: Sunday 5pm UTC
   cron.schedule('0 17 * * 0', () =>
     guardedRun('style-narrative', '✍️  [Scheduler] Running style narrative agent...', runStyleNarrativeAgent),
+  { timezone: 'UTC' });
+
+  // Wardrobe Prescription: Wednesday 11am UTC (Plus/Pro, weekly agentic affiliate picks)
+  cron.schedule('0 11 * * 3', () =>
+    guardedRun('wardrobe-prescription', '🛍️ [Scheduler] Running wardrobe prescription agent...', runWardrobePrescriptionAgent),
   { timezone: 'UTC' });
 
   // NOTE: checkAndTriggerImprovement (whole-prompt rewrite) disabled — section-level
@@ -791,9 +787,9 @@ export function initializeScheduler(): void {
   // NOTE: generateWeeklyTrendReport() is called inside runLearningContentAgent()
   // only on Tuesdays (guarded by day-of-week check in the function itself).
 
-  // ── Founder Content Digest — Tuesday 10am UTC ────────────────────────────
-  // Sent after content is generated. Includes video scripts, trend report, tips, pending posts.
-  cron.schedule('0 10 * * 2', () => {
+  // ── Founder Content Digest — Daily 10am UTC ──────────────────────────────
+  // Sent daily after content is generated. Includes video scripts, trend report, tips, pending posts.
+  cron.schedule('0 10 * * *', () => {
     guardedRun('content-factory', '📧 [Scheduler] Sending founder content digest...', sendFounderContentDigest);
   }, { timezone: 'UTC' });
 
