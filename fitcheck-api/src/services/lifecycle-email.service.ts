@@ -33,7 +33,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 2 * 24 * 60 * 60 * 1000,
         subject: 'What\'s scoring highest this week',
-        buildHtml: (u, extraData?: unknown) => {
+        buildHtml: (_u, extraData?: unknown) => {
           const topStyles = extraData as Array<{ archetype: string; avgScore: number }> | undefined;
           return buildEmail(
             'What\'s scoring highest this week',
@@ -54,7 +54,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 5 * 24 * 60 * 60 * 1000,
         subject: 'The closet you\'re building without trying',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'The closet you\'re building without trying',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Every outfit you check builds a digital wardrobe. After 10 checks, the AI starts suggesting outfits from pieces you already own. After 20, it knows your weak spots.</p>
@@ -72,7 +72,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 60 * 60 * 1000, // 1 hour after first check
         subject: 'Three rules the highest-scoring outfits share',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'Three rules the highest-scoring outfits share',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 20px;">You just got scored. Here's what separates an 8 from a 6.</p>
@@ -96,7 +96,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 2 * 24 * 60 * 60 * 1000,
         subject: 'The other side of Or This?',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'The other side of Or This?',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Can't decide between two outfits? Two photos. One verdict. The community weighs in.</p>
@@ -115,7 +115,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 0,
         subject: 'Your wardrobe is still here',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'Your wardrobe is still here',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">The AI has gotten sharper since your last check. Your digital wardrobe hasn't changed.</p>
@@ -128,7 +128,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 3 * 24 * 60 * 60 * 1000,
         subject: 'What\'s working right now',
-        buildHtml: (u, extraData?: unknown) => {
+        buildHtml: (_u, extraData?: unknown) => {
           const topStyles = extraData as Array<{ archetype: string; avgScore: number }> | undefined;
           const topStyle = topStyles && topStyles.length > 0
             ? topStyles[0].archetype.charAt(0).toUpperCase() + topStyles[0].archetype.slice(1)
@@ -152,7 +152,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 0,
         subject: 'You\'ve hit the ceiling',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'You\'ve hit the ceiling',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">3 checks a day. 3 follow-ups per outfit. 30-day history. Here's what changes with Plus:</p>
@@ -184,7 +184,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 0,
         subject: 'Your Pro subscription is active',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'Your Pro subscription is active',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Unlimited outfit checks. AI wardrobe suggestions from your actual closet. Personalized style articles. All active.</p>
@@ -197,7 +197,7 @@ const SEQUENCES: Record<string, SequenceDef> = {
       {
         delayMs: 3 * 24 * 60 * 60 * 1000,
         subject: 'What changed while you were away',
-        buildHtml: (u) => buildEmail(
+        buildHtml: (_u) => buildEmail(
           'What changed while you were away',
           '',
           `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Since your last check, we've shipped:</p>
