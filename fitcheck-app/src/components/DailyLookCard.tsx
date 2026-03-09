@@ -6,10 +6,13 @@ import { useSubscriptionStore } from '../stores/subscriptionStore';
 
 export default function DailyLookCard() {
   const router = useRouter();
-  const { tier } = useSubscriptionStore();
+  const { tier, isLoaded } = useSubscriptionStore();
   const isPaid = tier === 'plus' || tier === 'pro';
 
   const { data, isLoading } = useDailyLook(isPaid);
+
+  // Wait for subscription state to resolve before rendering anything
+  if (!isLoaded) return null;
 
   // Free tier — show teaser card
   if (!isPaid) {
