@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, Fonts, getScoreColor } from '../../src/constants/theme';
+import { Colors, Spacing, FontSize, Fonts } from '../../src/constants/theme';
 import { usePublicUserProfile, useFollowUser, useUnfollowUser, useFollowers, useFollowing } from '../../src/hooks/useApi';
 import { useAuthStore } from '../../src/stores/authStore';
 import { socialService } from '../../src/services/api.service';
@@ -315,7 +315,6 @@ export default function PublicUserProfileScreen() {
                     ? `data:image/jpeg;base64,${outfit.thumbnailData}`
                     : outfit.imageUrl;
                   const score = outfit.aiScore || 0;
-                  const scoreColor = getScoreColor(score);
 
                   return (
                     <TouchableOpacity
@@ -335,7 +334,7 @@ export default function PublicUserProfileScreen() {
                           <Ionicons name="shirt-outline" size={32} color={Colors.textMuted} />
                         </View>
                       )}
-                      <View style={[styles.gridScoreBadge, { backgroundColor: scoreColor }]}>
+                      <View style={styles.gridScoreBadge}>
                         <Text style={styles.gridScoreText}>{score.toFixed(1)}</Text>
                       </View>
                     </TouchableOpacity>
@@ -609,16 +608,16 @@ const styles = StyleSheet.create({
   },
   gridScoreBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 9999,
+    top: 0,
+    right: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(26,26,26,0.75)',
   },
   gridScoreText: {
     fontSize: 11,
-    fontFamily: Fonts.sansBold,
-    color: Colors.white,
+    fontFamily: Fonts.serif,
+    color: '#fff',
   },
   emptyState: {
     alignItems: 'center',

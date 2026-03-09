@@ -34,8 +34,8 @@ async function generateFollowUpEmail(
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const angle = followUpNumber === 1
-    ? 'A different angle — mention a specific use case or result. Still enthusiastic but shorter.'
-    : 'Final nudge — super short, warm, "no worries if not the right time" vibe. 2-3 sentences max.';
+    ? 'Lead with a specific result — a creator metric or viewer engagement data. Direct and brief.'
+    : 'Final follow-up — 2-3 sentences, no hedging, leave the door open professionally.';
 
   const prompt = `Write a follow-up email for a creator we previously contacted about Or This? AI outfit app.
 
@@ -47,11 +47,12 @@ Original pitch: ${prospect.emailBody?.slice(0, 100) || 'AI outfit scoring app, f
 Follow-up angle: ${angle}
 
 Rules:
-- Subject: short, casual, different from original
+- Subject: short, specific, outcome-focused (e.g. "Score reveal videos: engagement data")
 - Body: under 60 words for #1, under 30 words for #2
-- Don't be pushy
-- For #2: explicitly say "totally fine if not interested, just wanted to follow up"
-- Sound human, not automated
+- Speak to the creator's content goals: views, engagement, differentiation
+- Lead with the result: "Creators filming their AI outfit score reveal are averaging X views"
+- No hedging, no apologizing for the follow-up. Be direct and brief.
+- Sound like a business partner, not a fan asking for a favor
 
 Return ONLY JSON: {"subject": "...", "body": "..."}`;
 
@@ -60,18 +61,18 @@ Return ONLY JSON: {"subject": "...", "body": "..."}`;
     const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*?\}/);
     if (!jsonMatch) return {
-      subject: followUpNumber === 1 ? 'Quick question' : 'Last one, I promise',
+      subject: followUpNumber === 1 ? 'Score reveal content: what the data shows' : 'One more',
       body: followUpNumber === 1
-        ? `Hey! Just wanted to circle back. Or This? has been getting some really interesting reactions when creators score their outfits live on camera. Totally understand if it's not your thing — just thought it might make fun content. Happy to set up free premium access if you want to try it: ${APP_STORE_URL}`
-        : `Hey, totally fine if now isn't the right time! Just wanted to give it one more shot. If you ever want to try the AI outfit scorer, I'm here. — Brandon`,
+        ? `Creators filming their AI outfit score reveal are getting strong completion rates — the suspense of the countdown drives watch time. Free premium access is ready whenever you want to test it: ${APP_STORE_URL} — Brandon`
+        : `Still happy to set you up with premium access if you want to test it. ${APP_STORE_URL} — Brandon`,
     };
     return JSON.parse(jsonMatch[0]);
   } catch {
     return {
-      subject: followUpNumber === 1 ? 'Quick thought for you' : 'All good if not!',
+      subject: followUpNumber === 1 ? 'What creators are seeing in the data' : 'Quick note',
       body: followUpNumber === 1
-        ? `Wanted to share one more thing about Or This? — creators are filming their AI outfit score reactions and they're doing really well. Free premium access is still on the table. Would love to help you try it: ${APP_STORE_URL}`
-        : `Hey, no worries at all if this isn't for you! Just wanted to follow up one last time. — Brandon from Or This?`,
+        ? `The score reveal format is performing well — audiences stay through the countdown. Free access is yours whenever you're ready to test it: ${APP_STORE_URL} — Brandon`
+        : `Still here if you want to test Or This? with your audience. ${APP_STORE_URL} — Brandon`,
     };
   }
 }
@@ -84,41 +85,42 @@ async function generateCreatorKit(
 ): Promise<string> {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
-  const prompt = `Write a "Creator Kit" welcome email for a fashion creator who responded to our pitch for Or This? AI outfit app.
+  const prompt = `Write a "Creator Playbook" email for a ${prospect.niche || 'fashion'} creator on ${prospect.platform} who agreed to partner with Or This? AI outfit app.
 
-Creator: @${prospect.handle} on ${prospect.platform}, niche: ${prospect.niche || 'fashion'}
+Creator: @${prospect.handle}
 
 Include:
-1. Warm welcome + congrats on joining
-2. How to get premium access (say "reply to this email and I'll manually upgrade your account within 24h")
-3. 3 content ideas specific to their niche (TikTok/Instagram format)
-   - Each idea: hook line + what to film + why audiences love it
-   - Center around "filming my reaction to the AI outfit score" concept
-4. Best hashtags for their niche
-5. Note: "The reveal moment when the score appears is the best part — lean into that!"
+1. Brief, professional confirmation that they're in — no excessive enthusiasm
+2. Access: "Reply to this email and I'll upgrade your account within 24h"
+3. 3 content formats specific to their niche — each with: hook line, what to film, why it works for the algorithm
+   - Center around the score reveal moment as the hook
+4. Performance insight: what's driving watch time in this format
+5. Best hashtags for their niche
 
-Tone: excited, like you're personally onboarding them. Under 250 words.
+Tone: professional and specific — give them a content playbook, not a pep talk. Under 250 words.
 Return plain text email body (no subject needed).`;
 
   try {
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch {
-    return `Hey! So excited you're in 🎉
+    return `You're in.
 
-Reply to this email and I'll manually upgrade your Or This? account to premium within 24 hours.
+Reply to this email and I'll upgrade your Or This? account to premium within 24 hours.
 
-**3 content ideas for your feed:**
-1. "Rating all my outfits with AI" — film your reactions to each score. The reveal moment is GOLD.
-2. "AI gave my best look a ${Math.floor(Math.random() * 3) + 7}/10" — hook with the score in the caption.
-3. "Asking AI to rate my worst outfit" — comedic twist, great engagement.
+3 content formats that are working:
+1. "AI rates my outfit" — hook with the score number in the caption. Film the full reveal with your reaction.
+2. "I wore this to [occasion]. The AI gave me a ${Math.floor(Math.random() * 3) + 7}/10" — occasion-specific content performs well.
+3. "Rating my worst outfit ever" — low scores drive as much engagement as high ones.
 
-**Hashtags:** #outfitcheck #ootd #fashionai #outfitrating #stylecheck
+What's driving watch time: the scanning animation before the score appears. Don't cut away from it. The suspense is the content.
 
-The moment the score appears on screen is the best part — lean into that reaction! Can't wait to see what you create.
+Hashtags: #outfitcheck #ootd #fashionai #outfitrating #stylecheck
 
-— Brandon from Or This?
-Download: ${APP_STORE_URL}`;
+Reply with your post when you go live and I'll amplify it.
+
+— Brandon
+${APP_STORE_URL}`;
   }
 }
 
@@ -358,7 +360,7 @@ export async function handleCreatorResponse(prospectId: string): Promise<void> {
     await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: prospect.email,
-      subject: `Welcome to Or This? — Your creator kit is here 🎉`,
+      subject: `Your Or This? creator playbook`,
       html: buildOutreachEmailHtml(kitBody, prospect.handle),
       replyTo: FROM_EMAIL,
     });
@@ -429,7 +431,8 @@ function buildOutreachEmailHtml(bodyText: string, _handle: string): string {
           <td style="padding:16px 36px 24px;border-top:1px solid #F5EDE7;">
             <p style="color:#9CA3AF;font-size:11px;margin:0;line-height:1.5;">
               Or This? · AI Outfit Scoring App ·
-              <a href="https://orthis.app" style="color:#9CA3AF;">orthis.app</a>
+              <a href="https://orthis.app" style="color:#9CA3AF;">orthis.app</a><br>
+              Don't want these emails? Reply "unsubscribe" and we'll remove you immediately.
             </p>
           </td>
         </tr>
@@ -626,18 +629,16 @@ Script: "Go get scored — link in bio" (or read out your score)
 
 CAPTION: AI scored my outfit [X]/10 😭 #OrThis #fitcheck #outfitcheck #ratemyoutfit #stylecheck`;
 
-  return `Hey, quick follow-up with something concrete.
-
-Here's the exact shot list for your first Or This? video:
+  return `Shot list for your first Or This? video:
 
 ${storyboard}
 
-The key moment is Shot 3 — the scanning animation. Don't cut away from it. Let it run. That's where the suspense lives and what makes people stay to see the score.
+Shot 3 is the key — the scanning animation. Don't cut away from it. That's what makes people stay to see the score.
 
 Your referral link for the bio:
 ${process.env.APP_URL || 'https://orthis.app'}
 
-Can't wait to see what you make. Reply with the link when you post?
+Reply with the link when you post.
 
 — Brandon`;
 }

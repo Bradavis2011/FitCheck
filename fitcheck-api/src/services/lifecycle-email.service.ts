@@ -20,53 +20,47 @@ const SEQUENCES: Record<string, SequenceDef> = {
     steps: [
       {
         delayMs: 0,
-        subject: 'Welcome to Or This? 👗',
+        subject: 'Your first outfit verdict',
         buildHtml: (u) => buildEmail(
-          'Welcome to Or This?',
-          u.name ? `Hey ${u.name}! 👋` : 'Hey there! 👋',
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">You've just joined the app that gives you <strong>real AI style feedback</strong> in seconds. Think of it as having a personal stylist in your pocket.</p>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">Here's how it works:</p>
-          <ol style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 16px;padding-left:20px;">
-            <li>Snap a photo of your outfit</li>
-            <li>Tell us the occasion</li>
-            <li>Get your score + personalized tips</li>
-          </ol>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 24px;">Ready to see how your outfits stack up?</p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Check My First Outfit</a>
+          'Your first outfit verdict',
+          u.name ? `${u.name},` : '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 20px;">You'll know in 30 seconds if what you're wearing works — and exactly what to change if it doesn't. No flattery. No vague compliments. Just a score and specific notes.</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Check Your Outfit</a>
           </div>`,
         ),
       },
       {
         delayMs: 2 * 24 * 60 * 60 * 1000,
-        subject: 'See what the Or This? community is wearing',
-        buildHtml: (u) => buildEmail(
-          'Community Highlights',
-          `What's trending this week${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">The Or This? community has been busy! Members are getting feedback on everything from weekend brunch looks to job interview outfits.</p>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">The most popular occasions this week? <strong>Date nights, casual Fridays, and job interviews</strong>.</p>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 24px;">What's your next big outfit moment? Let's make sure it's perfect. ✨</p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Get Outfit Feedback</a>
+        subject: 'What\'s scoring highest this week',
+        buildHtml: (u, extraData?: unknown) => {
+          const topStyles = extraData as Array<{ archetype: string; avgScore: number }> | undefined;
+          return buildEmail(
+            'What\'s scoring highest this week',
+            '',
+            `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">This week's community averages:</p>
+          <ul style="color:#2D2D2D;font-size:15px;line-height:1.9;margin:0 0 16px;padding-left:20px;">
+            ${topStyles && topStyles.length > 0
+              ? topStyles.map(s => `<li>${s.archetype.charAt(0).toUpperCase() + s.archetype.slice(1)}: averaging ${s.avgScore.toFixed(1)}</li>`).join('')
+              : '<li>Monochrome neutrals: averaging 8.2</li><li>Layered streetwear: 7.8</li><li>Smart casual: 7.5</li>'}
+          </ul>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 24px;">Where does your style land?</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Get Your Score</a>
           </div>`,
-        ),
+          );
+        },
       },
       {
         delayMs: 5 * 24 * 60 * 60 * 1000,
-        subject: 'Your style story starts here',
+        subject: 'The closet you\'re building without trying',
         buildHtml: (u) => buildEmail(
-          'Your Style Journey',
-          `Ready to start your style story${u.name ? `, ${u.name}` : ''}?`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">Every great style journey starts with one outfit. Our AI gives you a score from 1-10 plus specific, actionable tips — not vague compliments.</p>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;"><strong>What you'll get:</strong></p>
-          <ul style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:20px;">
-            <li>An outfit score with clear reasoning</li>
-            <li>What's working (and what to keep)</li>
-            <li>Specific suggestions to level up</li>
-            <li>Quick wins you can do right now</li>
-          </ul>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Start My First Check</a>
+          'The closet you\'re building without trying',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Every outfit you check builds a digital wardrobe. After 10 checks, the AI starts suggesting outfits from pieces you already own. After 20, it knows your weak spots.</p>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 24px;">The closet intelligence builds in the background every time you get scored.</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Check an Outfit</a>
           </div>`,
         ),
       },
@@ -77,43 +71,39 @@ const SEQUENCES: Record<string, SequenceDef> = {
     steps: [
       {
         delayMs: 60 * 60 * 1000, // 1 hour after first check
-        subject: 'Your outfit results + pro styling tips',
+        subject: 'Three rules the highest-scoring outfits share',
         buildHtml: (u) => buildEmail(
-          'Styling Tips',
-          `Nice work${u.name ? `, ${u.name}` : ''}! Here are some pro tips`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">You've gotten your first AI outfit score — that's a big deal! Here are some styling tips our community loves:</p>
-          <div style="background:#F5EDE7;border-radius:12px;padding:16px 20px;margin:0 0 16px;">
-            <p style="color:#E85D4C;font-weight:600;margin:0 0 8px;font-size:14px;">💡 The 3-Color Rule</p>
-            <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.5;">Stick to 3 colors max per outfit. More tends to look busy. Neutrals (black, white, beige, navy) don't count!</p>
+          'Three rules the highest-scoring outfits share',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 20px;">You just got scored. Here's what separates an 8 from a 6.</p>
+          <div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;margin:0 0 12px;">
+            <p style="color:#E85D4C;font-weight:600;margin:0 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;">The 3-Color Rule</p>
+            <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.6;">Stick to 3 colors max. Neutrals (black, white, beige, navy) don't count against you.</p>
           </div>
-          <div style="background:#F5EDE7;border-radius:12px;padding:16px 20px;margin:0 0 16px;">
-            <p style="color:#E85D4C;font-weight:600;margin:0 0 8px;font-size:14px;">💡 The Tuck Trick</p>
-            <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.5;">A half-tuck transforms any outfit instantly. Tuck just the front of your shirt to add shape and intention.</p>
+          <div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;margin:0 0 12px;">
+            <p style="color:#E85D4C;font-weight:600;margin:0 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;">The Tuck Trick</p>
+            <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.6;">A half-tuck adds shape and intention instantly. Tuck just the front.</p>
           </div>
-          <div style="background:#F5EDE7;border-radius:12px;padding:16px 20px;margin:0 0 24px;">
-            <p style="color:#E85D4C;font-weight:600;margin:0 0 8px;font-size:14px;">💡 Fit First, Always</p>
-            <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.5;">A $20 shirt that fits well looks better than a $200 shirt that doesn't. Fit is everything.</p>
+          <div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
+            <p style="color:#E85D4C;font-weight:600;margin:0 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Fit First</p>
+            <p style="color:#2D2D2D;font-size:14px;margin:0;line-height:1.6;">A $20 shirt that fits beats a $200 shirt that doesn't. Every time.</p>
           </div>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Check Another Outfit</a>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Check Another Outfit</a>
           </div>`,
         ),
       },
       {
         delayMs: 2 * 24 * 60 * 60 * 1000,
-        subject: 'Meet the Or This? community',
+        subject: 'The other side of Or This?',
         buildHtml: (u) => buildEmail(
-          'Join the Community',
-          `There's more to Or This? than AI${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">Beyond AI feedback, Or This? has a real community of style-minded people. You can:</p>
-          <ul style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:20px;">
-            <li><strong>Share your outfits publicly</strong> and get community feedback</li>
-            <li><strong>Browse the community feed</strong> for style inspiration</li>
-            <li><strong>Enter weekly style challenges</strong> to win features</li>
-            <li><strong>Post "Or This?"</strong> — side-by-side outfit comparisons for the community to vote</li>
-          </ul>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Explore the Community</a>
+          'The other side of Or This?',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Can't decide between two outfits? Two photos. One verdict. The community weighs in.</p>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">That's the "Or This?" feature — the reason for the name. Post both looks and let real people tell you which one actually works.</p>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 24px;">Your outfits can also be visible to the community, so other people can score your looks and you can score theirs.</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Try Or This?</a>
           </div>`,
         ),
       },
@@ -124,34 +114,32 @@ const SEQUENCES: Record<string, SequenceDef> = {
     steps: [
       {
         delayMs: 0,
-        subject: 'We miss your style! ✨',
+        subject: 'Your wardrobe is still here',
         buildHtml: (u) => buildEmail(
-          'We Miss You',
-          `It\'s been a while${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">Your style journey isn't over — it's just on pause. Come back and see how your current outfits score with our updated AI.</p>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 24px;">Whether you're dressing for work, a special occasion, or just want to feel great today — we're here for it.</p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Get Back in the Game</a>
+          'Your wardrobe is still here',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">The AI has gotten sharper since your last check. Your digital wardrobe hasn't changed.</p>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 24px;">See where your current rotation lands now.</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Check an Outfit</a>
           </div>`,
         ),
       },
       {
         delayMs: 3 * 24 * 60 * 60 * 1000,
-        subject: 'Top looks this week — get inspired',
+        subject: 'What\'s working right now',
         buildHtml: (u, extraData?: unknown) => {
           const topStyles = extraData as Array<{ archetype: string; avgScore: number }> | undefined;
+          const topStyle = topStyles && topStyles.length > 0
+            ? topStyles[0].archetype.charAt(0).toUpperCase() + topStyles[0].archetype.slice(1)
+            : 'Minimalist';
           return buildEmail(
-            'Style Inspiration',
-            `Fresh styles from the community${u.name ? `, ${u.name}` : ''}`,
-            `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">The Or This? community has been posting some amazing looks. The top-scoring styles this week are:</p>
-          <ul style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 16px;padding-left:20px;">
-            ${topStyles && topStyles.length > 0
-              ? topStyles.map(s => `<li>${s.archetype.charAt(0).toUpperCase() + s.archetype.slice(1)} (scoring ${s.avgScore.toFixed(1)} avg)</li>`).join('')
-              : '<li>Minimalist monochrome</li><li>Smart casual with a pop of color</li><li>Elevated streetwear layering</li>'}
-          </ul>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 24px;">Ready to see where your outfits land?</p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Check My Outfit</a>
+            'What\'s working right now',
+            '',
+            `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">The data says ${topStyle} outfits are scoring highest this week. You might already own the pieces.</p>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 24px;">One check. 30 seconds. See where you land.</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Get Your Score</a>
           </div>`,
           );
         },
@@ -163,28 +151,28 @@ const SEQUENCES: Record<string, SequenceDef> = {
     steps: [
       {
         delayMs: 0,
-        subject: 'You\'re getting the most out of Or This? — here\'s more',
+        subject: 'You\'ve hit the ceiling',
         buildHtml: (u) => buildEmail(
-          'Upgrade to Pro',
-          `You\'re a power user${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">You've been using Or This? like a pro — which means you're probably hitting the free tier limits. Here's what you unlock with Or This? Pro:</p>
+          'You\'ve hit the ceiling',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">3 checks a day. 3 follow-ups per outfit. 30-day history. Here's what changes with Plus:</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border-collapse:collapse;">
             <thead>
               <tr style="background:#F5EDE7;">
-                <th style="padding:10px 12px;text-align:left;font-size:13px;color:#2D2D2D;">Feature</th>
+                <th style="padding:10px 12px;text-align:left;font-size:13px;color:#2D2D2D;letter-spacing:0.5px;">Feature</th>
                 <th style="padding:10px 12px;text-align:center;font-size:13px;color:#2D2D2D;">Free</th>
-                <th style="padding:10px 12px;text-align:center;font-size:13px;color:#E85D4C;">Pro</th>
+                <th style="padding:10px 12px;text-align:center;font-size:13px;color:#E85D4C;">Plus</th>
               </tr>
             </thead>
             <tbody>
               <tr><td style="padding:10px 12px;font-size:14px;border-bottom:1px solid #F5EDE7;">Daily outfit checks</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;">3</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;color:#E85D4C;font-weight:600;">Unlimited</td></tr>
               <tr><td style="padding:10px 12px;font-size:14px;border-bottom:1px solid #F5EDE7;">AI follow-up questions</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;">3/outfit</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;color:#E85D4C;font-weight:600;">Unlimited</td></tr>
-              <tr><td style="padding:10px 12px;font-size:14px;border-bottom:1px solid #F5EDE7;">Detailed style analysis</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;">Basic</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;color:#E85D4C;font-weight:600;">Full report</td></tr>
-              <tr><td style="padding:10px 12px;font-size:14px;">Outfit history</td><td style="padding:10px 12px;text-align:center;font-size:14px;">Last 30</td><td style="padding:10px 12px;text-align:center;font-size:14px;color:#E85D4C;font-weight:600;">Unlimited</td></tr>
+              <tr><td style="padding:10px 12px;font-size:14px;border-bottom:1px solid #F5EDE7;">AI wardrobe suggestions</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;">—</td><td style="padding:10px 12px;text-align:center;font-size:14px;border-bottom:1px solid #F5EDE7;color:#E85D4C;font-weight:600;">Daily pick</td></tr>
+              <tr><td style="padding:10px 12px;font-size:14px;">Outfit history</td><td style="padding:10px 12px;text-align:center;font-size:14px;">30 days</td><td style="padding:10px 12px;text-align:center;font-size:14px;color:#E85D4C;font-weight:600;">Unlimited</td></tr>
             </tbody>
           </table>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Upgrade to Pro</a>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">See Plans</a>
           </div>`,
         ),
       },
@@ -195,32 +183,32 @@ const SEQUENCES: Record<string, SequenceDef> = {
     steps: [
       {
         delayMs: 0,
-        subject: 'Your Pro benefits are waiting 💎',
+        subject: 'Your Pro subscription is active',
         buildHtml: (u) => buildEmail(
-          'Your Benefits Are Active',
-          `Don\'t let your Pro subscription go to waste${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">You have an active Or This? Pro subscription — which means unlimited outfit checks, detailed analysis, and all the good stuff. It's just waiting for you.</p>
-          <p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 24px;">What outfit has been sitting in your head lately? Let's get it checked. ✨</p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Use My Pro Benefits</a>
+          'Your Pro subscription is active',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Unlimited outfit checks. AI wardrobe suggestions from your actual closet. Personalized style articles. All active.</p>
+          <p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 24px;">What's the next outfit on your mind?</p>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Check an Outfit</a>
           </div>`,
         ),
       },
       {
         delayMs: 3 * 24 * 60 * 60 * 1000,
-        subject: 'Here\'s what\'s new in Or This?',
+        subject: 'What changed while you were away',
         buildHtml: (u) => buildEmail(
-          'What\'s New',
-          `We\'ve been busy improving Or This?${u.name ? `, ${u.name}` : ''}`,
-          `<p style="color:#2D2D2D;font-size:15px;line-height:1.6;margin:0 0 16px;">Since your last visit, we've been making Or This? even better:</p>
-          <ul style="color:#2D2D2D;font-size:15px;line-height:1.8;margin:0 0 16px;padding-left:20px;">
-            <li><strong>Improved AI feedback</strong> — more specific, more actionable</li>
-            <li><strong>Weekly style challenges</strong> — compete with the community</li>
-            <li><strong>Outfit comparison</strong> — "Or This?" side-by-side voting</li>
-            <li><strong>Wardrobe tracker</strong> — catalogue your closet</li>
+          'What changed while you were away',
+          '',
+          `<p style="color:#2D2D2D;font-size:16px;line-height:1.7;margin:0 0 16px;">Since your last check, we've shipped:</p>
+          <ul style="color:#2D2D2D;font-size:15px;line-height:1.9;margin:0 0 16px;padding-left:20px;">
+            <li><strong>Noa, your AI stylist</strong> — chat directly about your wardrobe and style</li>
+            <li><strong>Daily outfit picks</strong> — Noa suggests outfits from your actual wardrobe each morning</li>
+            <li><strong>Style Journal</strong> — 5 personalized articles based on your data</li>
+            <li><strong>Smarter AI</strong> — feedback improves as your check history grows</li>
           </ul>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="https://orthis.app" style="display:inline-block;background:linear-gradient(135deg,#E85D4C,#FF7A6B);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:600;">Explore What\'s New</a>
+          <div style="margin:28px 0;">
+            <a href="https://orthis.app" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 32px;border-radius:0;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">See What's New</a>
           </div>`,
         ),
       },
@@ -241,12 +229,16 @@ function buildEmail(_title: string, headline: string, bodyHtml: string, unsubscr
         <tr>
           <td style="padding:0 40px 20px;">
             <div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;text-align:center;">
-              <p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;font-weight:600;">🎁 Invite a friend, earn bonus checks</p>
+              <p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;font-weight:600;">Invite a friend, earn bonus checks</p>
               <p style="color:#6B7280;font-size:12px;margin:0 0 10px;">Share your link and get +1 daily check when they sign up:</p>
               <a href="${referralBaseUrl}/${referralCode}" style="color:#E85D4C;font-size:13px;font-weight:600;text-decoration:none;word-break:break-all;">${referralBaseUrl}/${referralCode}</a>
             </div>
           </td>
         </tr>` : '';
+
+  const headlineHtml = headline
+    ? `<p style="color:#6B7280;font-size:13px;margin:0 0 20px;">${headline}</p>`
+    : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -254,25 +246,23 @@ function buildEmail(_title: string, headline: string, bodyHtml: string, unsubscr
 <body style="margin:0;padding:0;background:#FBF7F4;font-family:'DM Sans',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#FBF7F4;padding:40px 0;">
     <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
         <tr>
-          <td style="background:linear-gradient(135deg,#E85D4C,#FF7A6B);padding:28px 40px;text-align:center;">
-            <div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.5px;">Or This?</div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:4px;">Confidence in every choice</div>
+          <td style="background:#E85D4C;padding:24px 40px;">
+            <div style="font-size:20px;font-weight:500;color:#fff;letter-spacing:-0.3px;font-family:'DM Sans',Arial,sans-serif;">Or <span style="font-style:italic;font-family:Georgia,serif;">This?</span></div>
           </td>
         </tr>
         <tr>
-          <td style="padding:32px 40px;">
-            <h2 style="color:#1A1A1A;font-size:20px;font-weight:700;margin:0 0 20px;line-height:1.3;">${headline}</h2>
+          <td style="padding:32px 40px 24px;">
+            ${headlineHtml}
             ${bodyHtml}
           </td>
         </tr>
         ${referralSection}
         <tr>
           <td style="padding:20px 40px 28px;border-top:1px solid #F5EDE7;">
-            <p style="color:#6B7280;font-size:12px;margin:0;line-height:1.5;">
-              You're receiving this because you signed up for Or This?.<br>
-              Questions? Reply to this email or visit <a href="https://orthis.app" style="color:#E85D4C;text-decoration:none;">orthis.app</a><br>
+            <p style="color:#9CA3AF;font-size:12px;margin:0;line-height:1.6;">
+              You're receiving this because you signed up for Or This?. Questions? Reply to this email or visit <a href="https://orthis.app" style="color:#E85D4C;text-decoration:none;">orthis.app</a><br>
               <a href="${unsubscribeUrl}" style="color:#9CA3AF;text-decoration:underline;font-size:11px;">Unsubscribe from marketing emails</a>
             </p>
           </td>
@@ -586,7 +576,7 @@ async function processDueSequences(): Promise<void> {
       const htmlBody = user.referralCode
         ? baseHtmlBody.replace(
             /<td style="padding:20px 40px 28px;border-top/,
-            `<td style="padding:0 40px 20px;"><div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;text-align:center;"><p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;font-weight:600;">🎁 Invite a friend, earn bonus checks</p><p style="color:#6B7280;font-size:12px;margin:0 0 10px;">Share your link and get +1 daily check when they sign up:</p><a href="${(process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite')}/${user.referralCode}" style="color:#E85D4C;font-size:13px;font-weight:600;text-decoration:none;">${(process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite')}/${user.referralCode}</a></div></td></tr><tr><td style="padding:20px 40px 28px;border-top`
+            `<td style="padding:0 40px 20px;"><div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;text-align:center;"><p style="color:#2D2D2D;font-size:13px;margin:0 0 8px;font-weight:600;letter-spacing:0.5px;">Invite a friend, earn bonus checks</p><p style="color:#6B7280;font-size:12px;margin:0 0 10px;">Share your link and get +1 daily check when they sign up:</p><a href="${(process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite')}/${user.referralCode}" style="color:#E85D4C;font-size:13px;font-weight:600;text-decoration:none;">${(process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite')}/${user.referralCode}</a></div></td></tr><tr><td style="padding:20px 40px 28px;border-top`
           )
         : baseHtmlBody;
       const payload = {

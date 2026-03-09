@@ -13,6 +13,7 @@ import {
   getWardrobeItemOutfits,
   suggestOutfit,
   analyzeOutfit,
+  getDailyLook,
 } from '../controllers/wardrobe.controller.js';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.use(authenticateToken);
 
 router.get('/', asyncHandler(listWardrobeItems));
 router.get('/progress', asyncHandler(getWardrobeProgress));
+router.get('/daily-look', asyncHandler(getDailyLook));
 router.post('/', asyncHandler(createWardrobeItem));
 // AI wardrobe routes — before /:id to avoid route collision
 router.post('/suggest-outfit', wardrobeAiLimiter, asyncHandler(suggestOutfit));

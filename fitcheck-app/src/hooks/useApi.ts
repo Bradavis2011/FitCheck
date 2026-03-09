@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, styleJournalService, eventService, referralService, supportService, feedbackService, legalService, FeedbackType, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse, StyleArticleType } from '../services/api.service';
+import { api, outfitService, userService, socialService, notificationService, subscriptionService, comparisonService, expertReviewService, challengeService, wardrobeService, styleJournalService, eventService, referralService, supportService, feedbackService, legalService, stylistChatService, homeService, StylistChatMessage, HomeContextData, FeedbackType, OutfitCheckInput, WardrobeCategory, EventDressCode, EventType, WardrobeProgress, EventFollowUpResponse, StyleArticleType } from '../services/api.service';
 
 // Query keys
 export const queryKeys = {
@@ -852,4 +852,53 @@ export function useInlineProducts(outfitId: string | undefined) {
     staleTime: 10 * 60 * 1000, // 10 min — inline products don't change per session
   });
 }
+
+// ─── Stylist Chat (Noa) ───────────────────────────────────────────────────────
+
+export function useStylistChatHistory() {
+  return useQuery({
+    queryKey: ['stylistChat', 'history'],
+    queryFn: () => stylistChatService.getHistory(1, 40),
+    staleTime: 30_000,
+  });
+}
+
+export function useStylistChatStatus() {
+  return useQuery({
+    queryKey: ['stylistChat', 'status'],
+    queryFn: () => stylistChatService.getStatus(),
+    staleTime: 60_000,
+  });
+}
+
+export function useSendStylistMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (message: string) => stylistChatService.send(message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stylistChat'] });
+    },
+  });
+}
+
+// ─── Home Context ─────────────────────────────────────────────────────────────
+
+export function useDailyLook(enabled: boolean) {
+  return useQuery({
+    queryKey: ['dailyLook'],
+    queryFn: () => homeService.getDailyLook(),
+    enabled,
+    staleTime: 15 * 60 * 1000, // 15 min
+  });
+}
+
+export function useHomeContext() {
+  return useQuery({
+    queryKey: ['homeContext'],
+    queryFn: () => homeService.getHomeContext(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export { StylistChatMessage, HomeContextData };
 

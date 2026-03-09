@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, BorderRadius, Spacing, getScoreColor, Fonts } from '../constants/theme';
+import { Colors, FontSize, BorderRadius, Spacing, Fonts } from '../constants/theme';
 
 type PublicOutfit = {
   id: string;
@@ -24,7 +24,6 @@ type Props = {
 export default function OutfitFeedCard({ outfit, onPress }: Props) {
   const [imageError, setImageError] = useState(false);
   const hasScore = outfit.score != null && outfit.score > 0;
-  const scoreColor = hasScore ? getScoreColor(outfit.score!) : Colors.textMuted;
   const rawThumb = outfit.thumbnailData;
   const thumbUri = rawThumb
     ? (rawThumb.startsWith('data:') ? rawThumb : `data:image/jpeg;base64,${rawThumb}`)
@@ -56,7 +55,7 @@ export default function OutfitFeedCard({ outfit, onPress }: Props) {
           )}
           {/* Score badge */}
           {hasScore && (
-            <View style={[styles.scoreBadge, { backgroundColor: scoreColor }]}>
+            <View style={styles.scoreBadge}>
               <Text style={styles.scoreText}>{outfit.score!.toFixed(1)}</Text>
             </View>
           )}
@@ -124,17 +123,15 @@ const styles = StyleSheet.create({
   },
   scoreBadge: {
     position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
+    top: 0,
+    right: 0,
+    backgroundColor: 'rgba(26,26,26,0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   scoreText: {
-    fontFamily: Fonts.sansBold,
-    color: Colors.white,
+    fontFamily: Fonts.serif,
+    color: '#fff',
     fontSize: 11,
   },
   info: {

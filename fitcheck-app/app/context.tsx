@@ -56,7 +56,7 @@ export default function ContextScreen() {
     setRevisionSource,
   } = useAppStore();
 
-  const [shareWith, setShareWith] = useState<ShareWith>('private');
+  const [shareWith, setShareWith] = useState<ShareWith>('public');
   const [showDateModal, setShowDateModal] = useState(false);
   const [customDateText, setCustomDateText] = useState('');
   const [showConsentModal, setShowConsentModal] = useState(false);

@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: 9999,
+    borderRadius: 0,
   },
   headerTitle: {
     fontFamily: Fonts.sansBold,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   feedbackCancelButton: {
     flex: 1,
     padding: Spacing.md,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   feedbackSubmitButton: {
     flex: 1,
     padding: Spacing.md,
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
     backgroundColor: Colors.primary,
     alignItems: 'center',
   },

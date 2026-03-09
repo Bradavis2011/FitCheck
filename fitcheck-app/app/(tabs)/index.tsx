@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Share, Image, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Image, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { TabActions } from '@react-navigation/core';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Fonts } from '../../src/constants/theme';
+import { Colors, Spacing, Fonts, FontSize } from '../../src/constants/theme';
 import { getHeroCopy } from '../../src/constants/archetypeHero';
 import OutfitCard from '../../src/components/OutfitCard';
-import OutfitFeedCard from '../../src/components/OutfitFeedCard';
 import OrThisLogo from '../../src/components/OrThisLogo';
-import WardrobeProgressCard from '../../src/components/WardrobeProgressCard';
-import AffiliateCard from '../../src/components/AffiliateCard';
+import DailyLookCard from '../../src/components/DailyLookCard';
+import StylistCard from '../../src/components/StylistCard';
+import EventCountdownCard from '../../src/components/EventCountdownCard';
+import StyleJournalPreviewCard from '../../src/components/StyleJournalPreviewCard';
 
 const EDITORIAL_IMAGES = [
   require('../../assets/images/fabian-kunzel-zeller-LLXs757C7DA-unsplash.jpg'),
@@ -21,34 +22,9 @@ const EDITORIAL_IMAGES = [
 ];
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useReferralStats, useUser, useNotifications, useYourWeek, useInsights } from '../../src/hooks/useApi';
-import InsightCard from '../../src/components/InsightCard';
-import AgentActivityBanner from '../../src/components/AgentActivityBanner';
+import { useOutfits, useUserStats, useToggleFavorite, useCommunityFeed, useUser, useNotifications, useInsights, useHomeContext } from '../../src/hooks/useApi';
 import ErrorState from '../../src/components/ErrorState';
 import UserAvatar from '../../src/components/UserAvatar';
-
-// ── Your Week helpers ─────────────────────────────────────────────────────────
-
-function weatherIcon(condition: string): 'sunny-outline' | 'partly-sunny-outline' | 'cloud-outline' | 'rainy-outline' | 'snow-outline' | 'thunderstorm-outline' {
-  switch (condition) {
-    case 'sunny':        return 'sunny-outline';
-    case 'partly_cloudy': return 'partly-sunny-outline';
-    case 'cloudy':       return 'cloud-outline';
-    case 'rainy':        return 'rainy-outline';
-    case 'snowy':        return 'snow-outline';
-    case 'stormy':       return 'thunderstorm-outline';
-    default:             return 'partly-sunny-outline';
-  }
-}
-
-function formatEventDate(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const diff = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tomorrow';
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -59,29 +35,16 @@ export default function HomeScreen() {
   const { data: stats, refetch: refetchStats } = useUserStats();
   const { data: communityData, refetch: refetchCommunity } = useCommunityFeed({ filter: 'recent', limit: 3 });
   const toggleFavoriteMutation = useToggleFavorite();
-  const { data: referralStats } = useReferralStats();
   const { data: userProfile } = useUser();
   const { data: notificationsData } = useNotifications(true);
   const unreadCount = notificationsData?.unreadCount ?? 0;
   const [refreshing, setRefreshing] = useState(false);
-  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
 
-  const isPlus = tier === 'plus' || tier === 'pro';
-  const { data: weekData, refetch: refetchWeek } = useYourWeek(isPlus);
-  const { data: insightsData, refetch: refetchInsights } = useInsights(isPlus ? 3 : 2);
+  const { refetch: refetchInsights } = useInsights(1);
+  const { refetch: refetchHomeContext } = useHomeContext();
 
   // A7: archetype-personalized hero copy
   const heroContent = getHeroCopy((userProfile as any)?.topArchetype);
-
-  // Feature discovery hint — contextual based on total outfit count
-  const totalOutfits = stats?.totalOutfits ?? 0;
-  const featureHint = totalOutfits >= 10
-    ? { label: 'Insights', title: 'Explore your Style DNA', sub: 'Color analysis and AI recommendations tailored to you.', route: '/style-profile' }
-    : totalOutfits >= 3
-    ? { label: 'Discover', title: 'Compare two outfits', sub: "Can't decide? Get an honest AI verdict.", route: '/compare' }
-    : totalOutfits >= 1
-    ? { label: 'Personalize', title: 'Set your style preferences', sub: 'Help the AI learn your taste faster.', route: '/style-preferences' }
-    : null;
 
   const outfits = outfitsData?.outfits || [];
   const communityOutfits = (communityData?.outfits || []).map((outfit) => ({
@@ -99,7 +62,13 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchOutfits(), refetchStats(), refetchCommunity(), refetchInsights(), ...(isPlus ? [refetchWeek()] : [])]);
+      await Promise.all([
+        refetchOutfits(),
+        refetchStats(),
+        refetchCommunity(),
+        refetchInsights(),
+        refetchHomeContext(),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -126,18 +95,6 @@ export default function HomeScreen() {
       { text: 'View Feedback', onPress: () => router.push(`/feedback?outfitId=${outfitId}` as any) },
       { text: 'Cancel', style: 'cancel' },
     ]);
-  };
-
-  const handleInvite = async () => {
-    const inviteLink = referralStats?.link ?? 'https://orthis.app';
-    try {
-      await Share.share({
-        message: `Check out Or This? — AI outfit feedback that tells you exactly what works and what doesn't. Try it free: ${inviteLink}`,
-        url: inviteLink,
-      });
-    } catch {
-      // user dismissed — no action needed
-    }
   };
 
   return (
@@ -203,157 +160,32 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Your Week — Plus/Pro only */}
-        {isPlus && weekData && (weekData.upcomingEvents.length > 0 || weekData.weather) && (
-          <View style={styles.yourWeekSection}>
-            <View style={styles.sectionDivider} />
-            <View style={styles.yourWeekHeader}>
-              <Text style={styles.sectionLabel}>Your Week</Text>
-              <View style={styles.rule} />
-            </View>
+        {/* Today's Look — AI outfit from wardrobe + weather (Plus/Pro) or lookbook (free) */}
+        <DailyLookCard />
 
-            {/* Weather row */}
-            {weekData.weather && (
-              <View style={styles.weatherRow}>
-                <Ionicons
-                  name={weatherIcon(weekData.weather.condition)}
-                  size={20}
-                  color={Colors.textMuted}
-                />
-                <Text style={styles.weatherText}>
-                  {weekData.weather.tempFahrenheit}°F · {weekData.weather.description}
-                </Text>
-              </View>
-            )}
-
-            {/* Upcoming events */}
-            {weekData.upcomingEvents.map((ev) => (
-              <View key={ev.id} style={styles.weekEventRow}>
-                <View style={styles.weekEventDot} />
-                <View style={styles.weekEventContent}>
-                  <Text style={styles.weekEventOccasion}>{ev.occasion}</Text>
-                  {ev.eventDate && (
-                    <Text style={styles.weekEventDate}>
-                      {formatEventDate(ev.eventDate)}
-                    </Text>
-                  )}
-                </View>
-                {ev.outfitScore != null && (
-                  <Text style={styles.weekEventScore}>{ev.outfitScore.toFixed(1)}</Text>
-                )}
-              </View>
-            ))}
-
-            {/* Suggestions */}
-            {weekData.suggestions.length > 0 && (
-              <Text style={styles.weekSuggestion}>{weekData.suggestions[weekData.suggestions.length - 1]}</Text>
-            )}
-
-            {/* Affiliate picks — contextual for the week ahead */}
-            <AffiliateCard placement="your_week" />
+        {/* Lookbook strip — shown for free tier as fallback (DailyLookCard returns null for paid) */}
+        {tier === 'free' && (
+          <View style={styles.lookbookSection}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.lookbookScroll}
+            >
+              {EDITORIAL_IMAGES.map((src, i) => (
+                <Image key={i} source={src} style={styles.lookbookImage} resizeMode="cover" />
+              ))}
+            </ScrollView>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/kuenzelzeller')}>
+              <Text style={styles.photoCredit}>Photos by Fabian Künzel-Zeller · @kuenzelzeller</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Agent Activity Banner — Plus/Pro only */}
-        {isPlus && insightsData?.agentActivity && (
-          <AgentActivityBanner activity={insightsData.agentActivity} />
-        )}
+        {/* Stylist Card — agent activity + narrative + Ask Noa link */}
+        <StylistCard />
 
-        {/* Your Stylist section */}
-        {isPlus ? (
-          // Plus/Pro: real agentic feed
-          insightsData && insightsData.insights.filter(i => !dismissedInsights.has(i.id)).length > 0 && (
-            <View style={styles.stylistSection}>
-              <View style={styles.sectionDivider} />
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionLabel}>Your Stylist</Text>
-                <TouchableOpacity onPress={() => router.push('/insights' as any)}>
-                  <Text style={styles.seeAll}>See all →</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.rule} />
-              <View style={styles.insightsList}>
-                {insightsData.insights
-                  .filter(i => !dismissedInsights.has(i.id))
-                  .slice(0, 3)
-                  .map(insight => (
-                    <InsightCard
-                      key={insight.id}
-                      insight={insight}
-                      onDismiss={(id) => setDismissedInsights(prev => new Set([...prev, id]))}
-                    />
-                  ))}
-              </View>
-            </View>
-          )
-        ) : (
-          // Free: show real milestone/AI improvement insights (max 2) + upgrade CTA
-          <View style={styles.stylistSection}>
-            <View style={styles.sectionDivider} />
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>Your Stylist</Text>
-              <TouchableOpacity onPress={() => router.push('/upgrade' as any)}>
-                <Text style={styles.upgradeChip}>Upgrade</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rule} />
-            {insightsData && insightsData.insights.filter(i => !dismissedInsights.has(i.id)).length > 0 ? (
-              <>
-                <View style={styles.insightsList}>
-                  {insightsData.insights
-                    .filter(i => !dismissedInsights.has(i.id))
-                    .map(insight => (
-                      <InsightCard
-                        key={insight.id}
-                        insight={insight}
-                        onDismiss={(id) => setDismissedInsights(prev => new Set([...prev, id]))}
-                      />
-                    ))}
-                </View>
-                <TouchableOpacity
-                  style={styles.stylistFreeCta}
-                  onPress={() => router.push('/upgrade' as any)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.stylistFreeCtaText}>Unlock your full AI stylist →</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity
-                style={styles.stylistTeaser}
-                onPress={() => router.push('/upgrade' as any)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.stylistTeaserTitle}>Meet your AI stylist</Text>
-                <Text style={styles.stylistTeaserBody}>
-                  Your stylist analyzes every outfit overnight, improves itself, and surfaces personalized observations — style patterns, event follow-ups, and wardrobe picks.
-                </Text>
-                <View style={styles.stylistTeaserCta}>
-                  <Text style={styles.stylistTeaserCtaText}>Unlock with Plus →</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {/* Editorial image strip — horizontal lookbook */}
-        <View style={styles.lookbookSection}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.lookbookScroll}
-          >
-            {EDITORIAL_IMAGES.map((src, i) => (
-              <Image key={i} source={src} style={styles.lookbookImage} resizeMode="cover" />
-            ))}
-          </ScrollView>
-          <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/kuenzelzeller')}>
-            <Text style={styles.photoCredit}>Photos by Fabian Künzel-Zeller · @kuenzelzeller</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Editorial rule divider */}
-        <View style={styles.sectionDivider} />
+        {/* Event Countdown — upcoming events with Plan with Noa */}
+        <EventCountdownCard />
 
         {/* Recent section */}
         {isOutfitsError ? (
@@ -420,51 +252,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Or This? — compare promo (moved up for visibility) */}
-        <View style={styles.orThisSection}>
-          <View style={styles.sectionDivider} />
-          <View style={styles.orThisBlock}>
-            <Text style={styles.sectionLabel}>Or This?</Text>
-            <View style={styles.rule} />
-            <Text style={styles.orThisTitle}>
-              <Text style={{ fontFamily: Fonts.sansMedium }}>Or </Text>
-              <Text style={{ fontFamily: Fonts.serifItalic, color: Colors.primary }}>This?</Text>
-            </Text>
-            <Text style={styles.orThisSubtitle}>Can't decide between two looks? Get an honest verdict.</Text>
-            <TouchableOpacity
-              style={styles.orThisButton}
-              onPress={() => router.push('/compare' as any)}
-            >
-              <Ionicons name="git-compare-outline" size={16} color={Colors.primary} />
-              <Text style={styles.orThisButtonText}>Compare Two Outfits</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Feature discovery hint — contextual, based on outfit count */}
-        {featureHint && (
-          <View style={styles.hintSection}>
-            <View style={styles.sectionDivider} />
-            <TouchableOpacity
-              style={styles.hintBlock}
-              onPress={() => router.push(featureHint.route as any)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.hintContent}>
-                <Text style={styles.sectionLabel}>{featureHint.label}</Text>
-                <Text style={styles.hintTitle}>{featureHint.title}</Text>
-                <Text style={styles.hintSub}>{featureHint.sub}</Text>
-              </View>
-              <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Wardrobe Progress */}
-        <View style={styles.wardrobeSection}>
-          <WardrobeProgressCard />
-        </View>
-
         {/* Community — shared outfits preview */}
         <View style={styles.communitySection}>
           <View style={styles.sectionDivider} />
@@ -476,14 +263,50 @@ export default function HomeScreen() {
           </View>
           {communityOutfits.length > 0 ? (
             <>
-              {communityOutfits.map((outfit) => (
-                <View key={outfit.id} style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
-                  <OutfitFeedCard
-                    outfit={outfit}
-                    onPress={() => router.push(`/outfit/${outfit.id}` as any)}
-                  />
-                </View>
-              ))}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.communityCarouselScroll}
+              >
+                {communityOutfits.map((outfit) => {
+                  const rawThumb = outfit.thumbnailData;
+                  const imageUri = rawThumb
+                    ? (rawThumb.startsWith('data:') ? rawThumb : `data:image/jpeg;base64,${rawThumb}`)
+                    : outfit.imageUrl || null;
+                  return (
+                    <TouchableOpacity
+                      key={outfit.id}
+                      style={styles.communityCarouselCard}
+                      onPress={() => router.push(`/outfit/${outfit.id}` as any)}
+                      activeOpacity={0.9}
+                    >
+                      {imageUri ? (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={styles.communityCarouselImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={[styles.communityCarouselImage, styles.communityCarouselPlaceholder]}>
+                          <Ionicons name="shirt-outline" size={28} color={Colors.textMuted} />
+                        </View>
+                      )}
+                      {outfit.score > 0 && (
+                        <View style={styles.communityCarouselBadge}>
+                          <Text style={styles.communityCarouselBadgeText}>{outfit.score.toFixed(1)}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.communityCarouselUser} numberOfLines={1}>@{outfit.username}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <TouchableOpacity
+                style={styles.seeMoreLink}
+                onPress={() => router.push('/(tabs)/community')}
+              >
+                <Text style={styles.seeAll}>See the feed →</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <View style={styles.communityEmpty}>
@@ -492,38 +315,10 @@ export default function HomeScreen() {
               </Text>
             </View>
           )}
-          <TouchableOpacity
-            style={styles.seeMoreLink}
-            onPress={() => router.push('/(tabs)/community')}
-          >
-            <Text style={styles.seeAll}>See the feed →</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Upgrade — editorial style (free tier only) */}
-        {tier === 'free' && (
-          <View style={styles.upgradeSection}>
-            <View style={styles.sectionDivider} />
-            <View style={styles.upgradeBlock}>
-              <Text style={styles.upgradeSectionLabel}>Plus</Text>
-              <View style={styles.rule} />
-              <Text style={styles.upgradeTitle}>Unlimited verdicts.</Text>
-              <Text style={styles.upgradeSubtitle}>No daily limit. Full style intelligence.</Text>
-              <TouchableOpacity
-                style={styles.upgradeButton}
-                onPress={() => router.push('/upgrade' as any)}
-              >
-                <Text style={styles.upgradeButtonText}>See Plans</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Invite — text link */}
-        <TouchableOpacity style={styles.inviteRow} onPress={handleInvite}>
-          <Ionicons name="share-outline" size={16} color={Colors.primary} />
-          <Text style={styles.inviteText}>Invite a friend — earn bonus checks</Text>
-        </TouchableOpacity>
+        {/* Style Journal preview */}
+        <StyleJournalPreviewCard />
       </ScrollView>
     </SafeAreaView>
   );
@@ -645,64 +440,25 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
   },
-  // Your Stylist section
-  stylistSection: {
-    marginBottom: Spacing.xl,
-  },
-  insightsList: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  upgradeChip: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 11,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 1.65,
-    color: Colors.primary,
-  },
-  stylistTeaser: {
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.primaryAlpha30,
-    gap: Spacing.sm,
-  },
-  stylistTeaserTitle: {
-    fontFamily: Fonts.serif,
-    fontSize: 18,
-    color: Colors.text,
-  },
-  stylistTeaserBody: {
-    fontFamily: Fonts.sans,
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
-  stylistTeaserCta: {
-    marginTop: Spacing.xs,
-  },
-  stylistTeaserCtaText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 13,
-    color: Colors.primary,
-    letterSpacing: 0.3,
-  },
-  stylistFreeCta: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 0,
+  // AI one-liner
+  aiSubtleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
-  stylistFreeCtaText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1.65,
-    color: Colors.primary,
+  aiSubtleDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+  },
+  aiSubtleText: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
   },
   // Recent section
   section: {
@@ -759,6 +515,45 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
+  communityCarouselScroll: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  communityCarouselCard: {
+    width: 120,
+    position: 'relative',
+  },
+  communityCarouselImage: {
+    width: 120,
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: Colors.surfaceLight,
+  },
+  communityCarouselPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  communityCarouselBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: 'rgba(26,26,26,0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  communityCarouselBadgeText: {
+    fontFamily: Fonts.serif,
+    color: '#fff',
+    fontSize: 11,
+  },
+  communityCarouselUser: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
   communityEmpty: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -768,123 +563,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     fontStyle: 'italic',
-  },
-  // Wardrobe
-  wardrobeSection: {
-    marginBottom: Spacing.xxl,
-  },
-  // Feature hint
-  hintSection: {
-    marginBottom: Spacing.xxl,
-  },
-  hintBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  hintContent: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  hintTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 15,
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  hintSub: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  // Or This? promo
-  orThisSection: {
-    marginBottom: Spacing.xxl,
-  },
-  orThisBlock: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-  },
-  orThisTitle: {
-    fontFamily: Fonts.serif,
-    fontSize: 24,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  orThisSubtitle: {
-    fontFamily: Fonts.sans,
-    fontSize: 14,
-    color: Colors.textMuted,
-    marginBottom: Spacing.lg,
-  },
-  orThisButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.lg,
-    alignSelf: 'flex-start',
-  },
-  orThisButtonText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1.65,
-    color: Colors.primary,
-  },
-  // Upgrade block
-  upgradeSection: {
-    marginBottom: Spacing.xxl,
-  },
-  upgradeBlock: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-  },
-  upgradeSectionLabel: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 2.2,
-    color: Colors.textMuted,
-    marginBottom: 8,
-  },
-  rule: {
-    width: 60,
-    height: 1,
-    backgroundColor: '#E85D4C',
-    marginBottom: Spacing.md,
-  },
-  upgradeTitle: {
-    fontFamily: Fonts.serif,
-    fontSize: 24,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  upgradeSubtitle: {
-    fontFamily: Fonts.sans,
-    fontSize: 14,
-    color: Colors.textMuted,
-    marginBottom: Spacing.lg,
-  },
-  upgradeButton: {
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.lg,
-    alignSelf: 'flex-start',
-  },
-  upgradeButtonText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1.65,
-    color: Colors.primary,
   },
   // Empty state (Recent)
   emptySection: {
@@ -921,81 +599,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.65,
     color: Colors.white,
   },
-  // Your Week
-  yourWeekSection: {
-    marginBottom: Spacing.xxl,
-  },
-  yourWeekHeader: {
-    paddingHorizontal: Spacing.lg,
+  rule: {
+    width: 60,
+    height: 1,
+    backgroundColor: '#E85D4C',
     marginBottom: Spacing.md,
-  },
-  weatherRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  weatherText: {
-    fontFamily: Fonts.sans,
-    fontSize: 14,
-    color: Colors.textMuted,
-  },
-  weekEventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-  },
-  weekEventDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-    marginRight: Spacing.md,
-  },
-  weekEventContent: {
-    flex: 1,
-  },
-  weekEventOccasion: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 14,
-    color: Colors.text,
-  },
-  weekEventDate: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 1,
-  },
-  weekEventScore: {
-    fontFamily: Fonts.serif,
-    fontSize: 16,
-    color: Colors.primary,
-  },
-  weekSuggestion: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    fontStyle: 'italic',
-  },
-  // Invite
-  inviteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  inviteText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 14,
-    color: Colors.text,
   },
 });

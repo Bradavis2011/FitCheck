@@ -108,8 +108,6 @@ export default function FeedbackScreen() {
   const dot2Anim = useRef(new Animated.Value(0.15)).current;
   const dot3Anim = useRef(new Animated.Value(0.15)).current;
 
-  // Cinematic loading: scan line + cycling phrases
-  const loadingScanAnim = useRef(new Animated.Value(0)).current;
   const loadingPhraseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -138,18 +136,10 @@ export default function FeedbackScreen() {
   ];
 
   useEffect(() => {
-    const scanAnim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(loadingScanAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
-        Animated.timing(loadingScanAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ]),
-    );
-    scanAnim.start();
     loadingPhraseTimerRef.current = setInterval(() => {
       setLoadingPhraseIdx(i => (i + 1) % LOADING_PHRASES.length);
     }, 1800);
     return () => {
-      scanAnim.stop();
       if (loadingPhraseTimerRef.current) {
         clearInterval(loadingPhraseTimerRef.current);
         loadingPhraseTimerRef.current = null;
@@ -450,24 +440,10 @@ export default function FeedbackScreen() {
             <Image
               source={{ uri: loadingImageUri! }}
               style={styles.loadingImage}
-              resizeMode="cover"
+              resizeMode="contain"
             />
-            {/* Dark overlay */}
+            {/* Bottom vignette for phrase legibility */}
             <View style={styles.loadingImageOverlay} />
-            {/* Animated scan line */}
-            <Animated.View
-              style={[
-                styles.loadingScanLine,
-                {
-                  transform: [{
-                    translateY: loadingScanAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 280],
-                    }),
-                  }],
-                },
-              ]}
-            />
             {/* Cycling phrase */}
             <View style={styles.loadingPhraseContainer}>
               <Text style={styles.loadingPhrase}>{LOADING_PHRASES[loadingPhraseIdx]}</Text>
@@ -567,7 +543,6 @@ export default function FeedbackScreen() {
               {showReveal && (
                 <ScoreReveal
                   score={score}
-                  containerHeight={HERO_HEIGHT}
                   onComplete={handleRevealComplete}
                 />
               )}
@@ -927,10 +902,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: Colors.background,
-    gap: Spacing.sm,
   },
   loadingBackButton: {
     position: 'absolute',
@@ -947,53 +919,38 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   loadingDot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.8)',
   },
   loadingImageContainer: {
-    width: SCREEN_WIDTH,
-    height: 280,
+    flex: 1,
     position: 'relative',
-    overflow: 'hidden',
   },
   loadingImage: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
   },
   loadingImageOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.42)',
-  },
-  loadingScanLine: {
-    position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.65)',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 5,
+    height: 160,
+    backgroundColor: 'rgba(26,26,26,0.55)',
   },
   loadingPhraseContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 32,
     left: 0,
     right: 0,
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   loadingPhrase: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    fontFamily: Fonts.serifItalic,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     letterSpacing: 0.3,
   },

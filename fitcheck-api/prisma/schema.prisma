@@ -115,6 +115,7 @@ model User {
   affiliateImpressions   AffiliateImpression[]
   feedbackPatterns       UserFeedbackPattern[]
   wardrobePrescriptions  WardrobePrescription[]
+  stylistChats           StylistChat[]
 
   @@index([tier])
   @@index([emailOptOut])
@@ -1503,6 +1504,21 @@ model UserFeedbackPattern {
 // ─── Fashion Events ───────────────────────────────────────────────────────────
 // Stores city-specific fashion events discovered by the fashion-events agent.
 // Surfaced in "Your Week" for Plus/Pro users.
+
+// ─── Stylist Chat (Noa — AI Personal Stylist) ────────────────────────────────
+
+model StylistChat {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // "user" | "model"
+  content   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("stylist_chats")
+}
 
 model FashionEvent {
   id             String    @id @default(cuid())

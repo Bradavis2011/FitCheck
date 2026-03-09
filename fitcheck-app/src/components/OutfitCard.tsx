@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, FontSize, BorderRadius, Spacing, Fonts, getScoreColor } from '../constants/theme';
+import { Colors, FontSize, BorderRadius, Spacing, Fonts } from '../constants/theme';
 
 type Props = {
   imageUrl: string;
@@ -14,7 +13,6 @@ type Props = {
 };
 
 export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onPress, onLongPress, onFavoritePress }: Props) {
-  const scoreColor = getScoreColor(score);
   // Ensure imageUrl is valid (not empty string or just whitespace)
   const hasValidImage = imageUrl && imageUrl.trim().length > 0;
 
@@ -27,13 +25,9 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
           imageStyle={styles.imageInner}
           onError={(error) => console.warn('[OutfitCard] Image failed to load:', imageUrl)}
         >
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)']}
-            style={styles.gradient}
-          />
+          <View style={styles.bottomBar} />
           <CardOverlay
             score={score}
-            scoreColor={scoreColor}
             occasions={occasions}
             isFavorite={isFavorite}
             onFavoritePress={onFavoritePress}
@@ -44,7 +38,6 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
           <Ionicons name="shirt-outline" size={32} color={Colors.textMuted} />
           <CardOverlay
             score={score}
-            scoreColor={scoreColor}
             occasions={occasions}
             isFavorite={isFavorite}
             onFavoritePress={onFavoritePress}
@@ -71,13 +64,11 @@ export default function OutfitCard({ imageUrl, score, occasions, isFavorite, onP
 
 function CardOverlay({
   score,
-  scoreColor,
   occasions,
   isFavorite,
   onFavoritePress,
 }: {
   score: number;
-  scoreColor: string;
   occasions: string[];
   isFavorite: boolean;
   onFavoritePress?: () => void;
@@ -93,7 +84,9 @@ function CardOverlay({
           <Ionicons name="heart" size={18} color={Colors.secondary} />
         </TouchableOpacity>
       )}
-      <Text style={[styles.scoreText, { color: scoreColor }]}>{score.toFixed(1)}</Text>
+      <View style={styles.scoreBadge}>
+        <Text style={styles.scoreText}>{score.toFixed(1)}</Text>
+      </View>
       <View style={styles.occasionTag}>
         <Text style={styles.occasionText}>{displayText}</Text>
       </View>
@@ -110,12 +103,13 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
   },
-  gradient: {
+  bottomBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '40%',
+    height: '35%',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   imageInner: {
     borderRadius: BorderRadius.lg,
@@ -131,24 +125,26 @@ const styles = StyleSheet.create({
     top: Spacing.sm,
     left: Spacing.sm,
   },
-  scoreText: {
+  scoreBadge: {
     position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
+    top: 0,
+    right: 0,
+    backgroundColor: 'rgba(26,26,26,0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  scoreText: {
     fontFamily: Fonts.serif,
-    fontSize: 18,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 13,
+    color: '#fff',
   },
   occasionTag: {
     position: 'absolute',
     bottom: Spacing.sm,
     left: Spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   occasionText: {
     fontSize: FontSize.xs,

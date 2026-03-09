@@ -35,11 +35,10 @@ const PHRASES = [
 
 type Props = {
   score: number;
-  containerHeight: number;
   onComplete: () => void;
 };
 
-export default function ScoreReveal({ score, containerHeight, onComplete }: Props) {
+export default function ScoreReveal({ score, onComplete }: Props) {
   const [phraseIdx, setPhraseIdx] = useState(0);
   const [displayScore, setDisplayScore] = useState('?.?');
   const [isLocked, setIsLocked] = useState(false);
@@ -49,7 +48,6 @@ export default function ScoreReveal({ score, containerHeight, onComplete }: Prop
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Animated values
-  const scanY = useSharedValue(0);
   const overlayOpacity = useSharedValue(0.35);
   const analyzingOpacity = useSharedValue(1);
   const yourScoreOpacity = useSharedValue(0);
@@ -66,12 +64,7 @@ export default function ScoreReveal({ score, containerHeight, onComplete }: Prop
   };
 
   useEffect(() => {
-    // ── Phase 0: Scanning (0–2000ms) ──────────────────────────────────────
-    scanY.value = withTiming(containerHeight, {
-      duration: 2000,
-      easing: Easing.linear,
-    });
-
+    // ── Phase 0: Reveal pending (0–2000ms) ────────────────────────────────
     phraseTimerRef.current = setInterval(() => {
       setPhraseIdx(i => (i + 1) % PHRASES.length);
     }, 400);
@@ -186,10 +179,6 @@ export default function ScoreReveal({ score, containerHeight, onComplete }: Prop
     opacity: overlayOpacity.value,
   }));
 
-  const scanLineStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: scanY.value }],
-  }));
-
   const analyzingStyle = useAnimatedStyle(() => ({
     opacity: analyzingOpacity.value,
   }));
@@ -214,9 +203,6 @@ export default function ScoreReveal({ score, containerHeight, onComplete }: Prop
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, containerStyle]}>
       {/* Darkening overlay */}
       <Animated.View style={[StyleSheet.absoluteFill, styles.overlay, overlayStyle]} />
-
-      {/* Scan line (horizontal light beam sweeping down) */}
-      <Animated.View style={[styles.scanLine, scanLineStyle]} />
 
       {/* Text labels — centered vertically in lower third */}
       <View style={styles.textArea}>
@@ -252,19 +238,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     backgroundColor: '#000000',
-  },
-  scanLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 5,
   },
   textArea: {
     position: 'absolute',

@@ -234,6 +234,44 @@ export async function deleteWardrobeItem(req: AuthenticatedRequest, res: Respons
   res.json({ success: true });
 }
 
+// GET /api/wardrobe/daily-look — Plus/Pro: AI outfit suggestion from wardrobe + weather
+export async function getDailyLook(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user!.id;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { tier: true, city: true },
+  });
+
+  if (!user || user.tier === 'free') {
+    res.json({ available: false, reason: 'upgrade' });
+    return;
+  }
+
+  const itemCount = await prisma.wardrobeItem.count({ where: { userId } });
+  if (itemCount < 5) {
+    res.json({ available: false, reason: 'insufficient_wardrobe', itemCount });
+    return;
+  }
+
+  let weather = null;
+  if (user.city) {
+    try {
+      const { getWeatherForCity } = await import('../services/weather.service.js');
+      weather = await getWeatherForCity(user.city);
+    } catch {
+      // non-fatal
+    }
+  }
+
+  const context = weather
+    ? { weather: weather.promptText || `${weather.condition}, ${weather.tempFahrenheit}°F` }
+    : undefined;
+
+  const suggestion = await suggestOutfitFromWardrobe(userId, context);
+  res.json({ available: true, suggestion, weather });
+}
+
 // POST /api/wardrobe/:id/wear — log a wear, increment timesWorn, set lastWorn
 export async function logWear(req: AuthenticatedRequest, res: Response) {
   const userId = req.user!.id;

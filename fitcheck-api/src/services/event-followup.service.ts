@@ -114,7 +114,7 @@ export async function runEventFollowUp(): Promise<void> {
         userId: followUp.userId,
         type: 'event_followup',
         title: `How did your ${followUp.occasion} go?`,
-        body: 'Tap to let us know how it went!',
+        body: 'How did the outfit land?',
         linkType: 'outfit',
         linkId: followUp.outfitCheckId,
       });
@@ -170,7 +170,7 @@ export async function runFollowUpEmailFallback(): Promise<void> {
       await resend.emails.send({
         from,
         to: followUp.user.email,
-        subject: `How did your ${followUp.occasion} go? 👗`,
+        subject: `How did your ${followUp.occasion} go?`,
         html,
       });
 
@@ -280,26 +280,30 @@ function buildFollowUpEmail(
       const token = generateFollowUpToken(followUpId, r.key);
       const tokenParam = token ? `?token=${token}` : '';
       return `<a href="${baseUrl}/api/follow-up/${followUpId}/respond/${r.key}${tokenParam}" ` +
-        `style="display:inline-block;margin:8px;padding:12px 24px;background:#FBF7F4;` +
-        `border:2px solid #E85D4C;border-radius:50px;text-decoration:none;` +
-        `color:#E85D4C;font-weight:600;font-size:15px;">${r.emoji} ${r.label}</a>`;
+        `style="display:inline-block;margin:6px;padding:10px 20px;background:#FBF7F4;` +
+        `border:2px solid #E85D4C;border-radius:0;text-decoration:none;` +
+        `color:#E85D4C;font-weight:600;font-size:14px;">${r.emoji} ${r.label}</a>`;
     })
     .join('');
 
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:Arial,sans-serif;background:#FBF7F4;padding:40px;margin:0;">
-  <div style="max-width:500px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;text-align:center;">
-    <div style="font-size:48px;margin-bottom:16px;">👗</div>
-    <h2 style="color:#E85D4C;margin-top:0;font-size:22px;">How did your ${occasion} go?</h2>
-    <p style="color:#2D2D2D;font-size:15px;line-height:1.6;">
-      Hey ${name}! We noticed you had a <strong>${occasion}</strong>. How did the outfit land?
-    </p>
-    <div style="margin:24px 0;">${buttons}</div>
-    <p style="color:#6B7280;font-size:12px;margin-top:24px;">
-      Or This? · <a href="https://orthis.app" style="color:#E85D4C;">Open App</a>
-    </p>
+<body style="font-family:'DM Sans',Arial,sans-serif;background:#FBF7F4;padding:40px;margin:0;">
+  <div style="max-width:500px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
+    <div style="background:#E85D4C;padding:20px 32px;">
+      <span style="font-size:18px;font-weight:500;color:#fff;font-family:'DM Sans',Arial,sans-serif;">Or <em style="font-family:Georgia,serif;">This?</em></span>
+    </div>
+    <div style="padding:32px;text-align:center;">
+      <h2 style="color:#1A1A1A;margin:0 0 12px;font-size:20px;font-weight:600;">How did your ${occasion} go?</h2>
+      <p style="color:#6B7280;font-size:15px;line-height:1.6;margin:0 0 24px;">
+        ${name ? `${name}, how` : 'How'} did the outfit land?
+      </p>
+      <div style="margin:24px 0;">${buttons}</div>
+      <p style="color:#9CA3AF;font-size:12px;margin-top:24px;">
+        Or This? · <a href="https://orthis.app" style="color:#E85D4C;text-decoration:none;">Open App</a>
+      </p>
+    </div>
   </div>
 </body>
 </html>`;

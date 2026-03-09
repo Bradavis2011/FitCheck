@@ -499,10 +499,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: BorderRadius.full,
+    borderRadius: 0,
   },
   userBadgeText: {
     fontSize: FontSize.sm,

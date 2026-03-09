@@ -1223,6 +1223,75 @@ export const legalService = {
   },
 };
 
+// ─── Stylist Chat (Noa) ───────────────────────────────────────────────────────
+
+export interface StylistChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  content: string;
+  metadata?: any;
+  createdAt: string;
+}
+
+export const stylistChatService = {
+  async send(message: string): Promise<{ message: string; remainingMessages?: number }> {
+    const response = await api.post<{ message: string; remainingMessages?: number }>(
+      '/api/stylist-chat',
+      { message },
+      { timeout: 30000 }
+    );
+    return response.data;
+  },
+
+  async getHistory(
+    page = 1,
+    limit = 20
+  ): Promise<{ messages: StylistChatMessage[]; hasMore: boolean; total: number }> {
+    const response = await api.get<{
+      messages: StylistChatMessage[];
+      hasMore: boolean;
+      total: number;
+    }>('/api/stylist-chat', { params: { page, limit } });
+    return response.data;
+  },
+
+  async getStatus(): Promise<{ used: number; limit: number | null; remaining: number | null }> {
+    const response = await api.get<{
+      used: number;
+      limit: number | null;
+      remaining: number | null;
+    }>('/api/stylist-chat/status');
+    return response.data;
+  },
+};
+
+// ─── Home Context ─────────────────────────────────────────────────────────────
+
+export interface HomeContextData {
+  agentActivity: { improvementsMade: number };
+  latestNarrative: { text: string; createdAt: string } | null;
+  upcomingEvents: Array<{ occasion: string; eventDate: string; setting?: string | null }>;
+  hasWardrobeData: boolean;
+}
+
+export const homeService = {
+  async getDailyLook(): Promise<{
+    available: boolean;
+    reason?: string;
+    itemCount?: number;
+    suggestion?: OutfitSuggestion;
+    weather?: any;
+  }> {
+    const response = await api.get('/api/wardrobe/daily-look');
+    return response.data;
+  },
+
+  async getHomeContext(): Promise<HomeContextData> {
+    const response = await api.get<HomeContextData>('/api/home/context');
+    return response.data;
+  },
+};
+
 // ─── Referral ─────────────────────────────────────────────────────────────────
 
 export const referralService = {

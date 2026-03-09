@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, FontSize, BorderRadius, getScoreColor, Fonts } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, Fonts } from '../constants/theme';
 
 type CommunityFeedback = {
   id: string;
@@ -19,7 +19,6 @@ type Props = {
 };
 
 export default function CommunityFeedbackCard({ feedback }: Props) {
-  const scoreColor = getScoreColor(feedback.score);
   const displayName = feedback.user.username || feedback.user.name || 'Anonymous';
 
   // Format timestamp
@@ -50,7 +49,7 @@ export default function CommunityFeedbackCard({ feedback }: Props) {
             <Text style={styles.timestamp}>{formatTimestamp(feedback.createdAt)}</Text>
           </View>
         </View>
-        <View style={[styles.scoreBadge, { backgroundColor: scoreColor }]}>
+        <View style={styles.scoreBadge}>
           <Text style={styles.scoreText}>{feedback.score}/10</Text>
         </View>
       </View>
@@ -104,14 +103,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scoreBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(26,26,26,0.75)',
   },
   scoreText: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.serif,
     fontSize: FontSize.sm,
-    color: Colors.white,
+    color: '#fff',
   },
   comment: {
     fontSize: FontSize.sm,

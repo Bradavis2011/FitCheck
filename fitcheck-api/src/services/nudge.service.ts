@@ -284,8 +284,8 @@ export async function runPersonalizedNudge(currentUTCHour: number): Promise<void
 
     const msg = await getNudgeMessage(
       'new_no_outfit',
-      'Ready for your first outfit check? 👗',
-      "Get personalized style feedback from our AI stylist. It only takes 30 seconds!"
+      'Your first outfit verdict is waiting',
+      'Photo. Context. Score. 30 seconds.'
     );
 
     for (const { id } of newUsersWithoutOutfit) {
@@ -327,8 +327,8 @@ export async function runPersonalizedNudge(currentUTCHour: number): Promise<void
 
     const msg = await getNudgeMessage(
       'inactive_3d',
-      'Your style is evolving! ✨',
-      "It's been a few days. Share your current look and get AI feedback."
+      'Three days since your last check',
+      'Your style data gets sharper with every outfit.'
     );
 
     for (const userId of inactiveIds) {
@@ -368,8 +368,8 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       const msg = await getNudgeMessage(
         'new_no_outfit',
-        'Ready for your first outfit check? 👗',
-        "Get personalized style feedback from our AI stylist. It only takes 30 seconds!"
+        'Your first outfit verdict is waiting',
+        'Photo. Context. Score. 30 seconds.'
       );
 
       for (const { id } of newUsersWithoutOutfit) {
@@ -414,8 +414,8 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       const msg = await getNudgeMessage(
         'inactive_3d',
-        'Your style is evolving! ✨',
-        "It's been a few days. Share your current look and get AI feedback."
+        'Three days since your last check',
+        'Your style data gets sharper with every outfit.'
       );
 
       let seg2Count = 0;
@@ -442,8 +442,8 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
 
       const msg = await getNudgeMessage(
         'churning_paid',
-        "We miss you! Your subscription benefits are waiting 💎",
-        "You haven't checked in for 5 days. Your subscription perks are ready to use!"
+        'Your Pro access is going unused',
+        'Unlimited checks. Full analysis. All active.'
       );
 
       let seg4Count = 0;
@@ -484,8 +484,8 @@ export async function runEngagementNudger(isEveningRun: boolean): Promise<void> 
       for (const { userId, currentStreak } of atRisk) {
         const msg = await getNudgeMessage(
           'streak_risk',
-          `⚠️ Your ${currentStreak}-day streak is at risk!`,
-          "Check in with an outfit before midnight to keep your streak alive."
+          `Your ${currentStreak}-day streak ends tonight`,
+          'One outfit check keeps it alive.'
         );
         await sendNudge(userId, msg.title, msg.body, { type: 'nudge', segment: 'streak_risk', streak: currentStreak }, msg.variantId);
         seg3Count++;
