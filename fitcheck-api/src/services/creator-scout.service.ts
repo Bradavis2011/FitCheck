@@ -210,19 +210,25 @@ async function generateDMs(
     .map((p, i) => `${i + 1}. @${p.handle} on ${p.platform} | Niche: ${p.niche || 'fashion'} | Style: ${p.contentStyle || 'outfit content'}`)
     .join('\n');
 
-  const prompt = `Generate a casual DM for each of these fashion creators about an AI outfit scoring app called "Or This?".
+  const prompt = `Generate a short personalized DM for each of these fashion creators about an AI outfit scoring app called "Or This?".
 
 Creators:
 ${listText}
 
+Brand voice (Or This?):
+- Casual, confident, fashion-forward — like a friend who genuinely knows style
+- Direct and human, never hype or performative
+- NEVER use: "hey girly", "bestie", "omg", "slay", "girlie", "queen", "iconic", "obsessed", "this is giving"
+- NEVER use: "excited to announce", "game-changer", "revolutionary", "partnership opportunity"
+- Tone: confident and specific, not breathless. Say what you mean, then stop.
+
 Rules:
 - Under 70 words each
 - Reference their specific content style/niche
-- Pitch "rate my outfit with AI" as a CONTENT HOOK — filming their reaction to the AI score is inherently viral
+- Pitch "rate my outfit with AI" as a CONTENT HOOK — filming their reaction to the AI score is inherently shareable
 - Offer free premium access
-- End with a simple ask ("want me to send you the link?")
-- Sound like a real enthusiastic founder, NOT a brand or PR person
-- Use their platform's casual tone (TikTok = very casual, Instagram = slightly more polished)
+- End with a simple ask ("want the link?")
+- Write as the founder of Or This? — direct, not corporate, not fan-girling
 
 Return ONLY a JSON object mapping handle to DM text:
 {"handle1": "dm text here", "handle2": "dm text here"}`;
@@ -258,13 +264,20 @@ async function generateEmails(
 Creators:
 ${listText}
 
+Brand voice (Or This?):
+- Casual, confident, fashion-forward — like a friend who genuinely knows style
+- Direct and human, never hype or performative
+- NEVER use: "hey girly", "bestie", "omg", "slay", "girlie", "queen", "iconic", "obsessed"
+- NEVER use: "excited to announce", "game-changer", "revolutionary", "partnership opportunity", "collaboration"
+- Tone: confident and specific, not breathless. Say what you mean, then stop.
+
 Rules:
-Subject: catchy, personal, under 50 chars. NOT "Partnership Opportunity". Examples: "Your content + AI outfit scores = viral", "Quick idea for your @handle content"
-Body: under 100 words, enthusiastic founder tone (NOT corporate BD)
+Subject: specific and direct, under 50 chars. NOT "Partnership Opportunity". Example: "idea for your outfit content", "quick idea for @handle"
+Body: under 100 words, written as the founder — direct, not corporate, not fan-girling
 - Reference their specific content niche
 - Pitch "rate my outfit with AI" as a video content format (filming your reaction to the score)
 - Mention free premium access offer
-- Simple CTA: "Just reply to this email and I'll set you up"
+- Simple CTA: "Just reply and I'll set you up"
 - Include the App Store link: https://apps.apple.com/app/id6759472490
 
 Return ONLY a JSON object:
