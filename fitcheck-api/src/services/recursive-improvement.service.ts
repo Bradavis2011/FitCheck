@@ -18,7 +18,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AiFeedback } from '../types/index.js';
 import { prisma } from '../utils/prisma.js';
 import { SYSTEM_PROMPT, PROMPT_VERSION } from './ai-feedback.service.js';
-import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { publishToIntelligenceBus, readFromIntelligenceBus } from './intelligence-bus.service.js';
 import { trackedGenerateContent } from './token-budget.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -48,6 +48,32 @@ interface WeaknessReport {
   lowPerformingOccasions: string[];
   calibrationIssues: string[];
   userComplaints: string[];
+}
+
+interface FalsificationCase {
+  occasion: string;
+  aiScore: number;
+  userRating: number;
+  communityScore: number;
+}
+
+// ─── Feedback Quality Index (FQI) ───────────────────────────────────────────
+// Single scalar "north star" metric — analogous to val_bpb in karpathy/autoresearch.
+// All keep/revert decisions use this number. No Gemini judgment needed.
+// Range: 0.0–1.0, higher is better.
+const FQI_KEEP_THRESHOLD   = 0.03; // candidate must beat control by this to be promoted
+const FQI_REVERT_THRESHOLD = 0.05; // candidate must underperform by this to be killed early
+
+function computeFQI(pv: {
+  avgUserRating: number | null;
+  helpfulPct: number | null;
+  avgCommunityDelta: number | null;
+}): number {
+  // Neutral fallbacks when data is absent (new candidate, no community votes yet)
+  const rating    = pv.avgUserRating     !== null ? pv.avgUserRating / 5                          : 0.60;
+  const helpful   = pv.helpfulPct        !== null ? pv.helpfulPct                                 : 0.50;
+  const alignment = pv.avgCommunityDelta !== null ? Math.max(0, 1 - pv.avgCommunityDelta / 3)    : 0.80;
+  return rating * 0.45 + helpful * 0.35 + alignment * 0.20;
 }
 
 // ─── Step 1: MEASURE — Aggregate performance from real user data ────────────
@@ -132,6 +158,40 @@ async function measurePromptPerformance(version?: string): Promise<PerformanceMe
     helpfulPct,
     fallbackRate,
   };
+}
+
+// ─── Falsification Sampling ──────────────────────────────────────────────────
+// Find outfit checks where AI was confidently HIGH but user + community disagreed.
+// These are the prompt's hardest failure cases (AutoRA FalsificationExperimentalist).
+// Weight them 3× in calibration — optimize failure modes, not averages.
+
+async function getFalsificationSamples(): Promise<FalsificationCase[]> {
+  const cases = await prisma.outfitCheck.findMany({
+    where: {
+      aiScore:             { gte: 7 },  // AI was confident
+      feedbackRating:      { lte: 2 },  // user strongly disagreed
+      communityAvgScore:   { lte: 4 },  // community also disagreed
+      communityScoreCount: { gte: 3 },  // enough community votes to trust
+      isDeleted: false,
+    },
+    select: {
+      occasions:        true,
+      aiScore:          true,
+      feedbackRating:   true,
+      communityAvgScore:true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  return cases
+    .filter(c => c.aiScore !== null && c.feedbackRating !== null && c.communityAvgScore !== null)
+    .map(c => ({
+      occasion:      c.occasions[0] ?? 'unknown',
+      aiScore:       c.aiScore!,
+      userRating:    c.feedbackRating!,
+      communityScore:c.communityAvgScore!,
+    }));
 }
 
 // ─── B1: Mine follow-up questions for prompt gaps ────────────────────────────
@@ -521,6 +581,8 @@ async function generateImprovedPrompt(
   weaknesses: WeaknessReport,
   _discoveredRules: DiscoveredFashionRule[],
   metrics: PerformanceMetrics,
+  falsificationCases: FalsificationCase[],
+  agentContext: string,
 ): Promise<string | null> {
   const unincorporatedRules = await prisma.discoveredRule.findMany({
     where: { incorporated: false, confidence: { gte: 0.5 } },
@@ -546,16 +608,37 @@ Current performance:
 - % marked helpful: ${metrics.helpfulPct !== null ? (metrics.helpfulPct * 100).toFixed(1) + '%' : 'N/A'}
 - Fallback rate: ${(metrics.fallbackRate ?? 0) * 100}%`;
 
+  // Falsification section: AI's hardest failure cases (AutoRA pattern — train on failure modes)
+  const falsificationSection = falsificationCases.length > 0
+    ? `\n\nHARDEST FAILURE CASES — AI was confidently WRONG on these (falsification set):
+These are real outfit checks where AI scored ≥7 but users rated ≤2 AND community scored ≤4.
+Fix the prompt so it is more conservative and accurate in these contexts:
+${falsificationCases.slice(0, 10).map((c, i) =>
+  `${i + 1}. Occasion: "${c.occasion}" | AI gave: ${c.aiScore}/10 | User rated: ${c.userRating}/5 | Community: ${c.communityScore}/10`
+).join('\n')}
+Pattern: AI is overconfident in these scenarios. Tighten guidance to prevent inflated scores.`
+    : '';
+
+  // Cross-agent context: findings from related learning agents (agenthub pattern)
+  const agentContextSection = agentContext
+    ? `\n\nCROSS-AGENT INTELLIGENCE (findings from related agents this week):\n${agentContext}`
+    : '';
+
+  const maxLen = Math.round(currentPrompt.length * 1.2);
+
   const metaPrompt = `You are an expert AI prompt engineer specializing in fashion and personal styling applications.
 
 Your task: Improve the system prompt for an AI outfit feedback engine. The improvement must be TARGETED — fix specific weaknesses while preserving what works.
 
 CURRENT PERFORMANCE METRICS:
 ${metricsSection}
+Current FQI (Feedback Quality Index): ${computeFQI(metrics).toFixed(4)} — improve this number.
 
 IDENTIFIED WEAKNESSES (fix these):
 ${weaknessSection || 'No major weaknesses identified — focus on incremental refinement.'}
 ${rulesSection}
+${falsificationSection}
+${agentContextSection}
 
 LOW-PERFORMING OCCASIONS: ${weaknesses.lowPerformingOccasions.join(', ') || 'None identified'}
 
@@ -569,7 +652,7 @@ RULES FOR IMPROVEMENT:
 5. STRENGTHEN guidance for low-performing occasions with more specific examples
 6. ADJUST scoring calibration guidance if there are calibration issues
 7. Keep the same section structure (PERSONALITY, FASHION KNOWLEDGE BASE, EXAMPLE ANALYSES, etc.)
-8. Do NOT remove any sections — only improve, expand, or add
+8. SIMPLICITY BIAS: Prefer concise over verbose. If changes can be expressed more concisely, do so. A shorter prompt achieving equal quality is preferred over a longer one. Do NOT exceed ${maxLen.toLocaleString()} characters (current: ${currentPrompt.length.toLocaleString()}). If there is nothing meaningful to add, return the prompt unchanged.
 
 OUTPUT: Return ONLY the complete improved system prompt text. No preamble, no markdown fences, no explanation — just the prompt ready to use as-is.`;
 
@@ -600,9 +683,14 @@ OUTPUT: Return ONLY the complete improved system prompt text. No preamble, no ma
       return null;
     }
 
-    // Must be at least 80% the length of the original (shouldn't shrink dramatically)
-    if (improved.length < currentPrompt.length * 0.8) {
-      console.error('[RecursiveImprovement] Generated prompt suspiciously short');
+    // Simplicity bias: warn on bloat, allow shorter prompts (karpathy/autoresearch pattern)
+    if (improved.length > currentPrompt.length * 1.25) {
+      const pct = ((improved.length / currentPrompt.length - 1) * 100).toFixed(0);
+      console.warn(`[RecursiveImprovement] Prompt grew ${pct}% — possible bloat (${improved.length} vs ${currentPrompt.length} chars)`);
+    }
+    // Reject only if suspiciously short (< 50% of original = something went wrong)
+    if (improved.length < currentPrompt.length * 0.5) {
+      console.error('[RecursiveImprovement] Generated prompt is suspiciously short (< 50% of original)');
       return null;
     }
 
@@ -671,37 +759,33 @@ export async function evaluateABTests(): Promise<void> {
       continue;
     }
 
-    // Compare metrics — candidate must beat control on user rating
-    const candidateRating = candidate.avgUserRating ?? 0;
-    const controlRating = control.avgUserRating ?? 0;
-    const candidateDelta = candidate.avgCommunityDelta ?? 10;
-    const controlDelta = control.avgCommunityDelta ?? 10;
-
-    const ratingImprovement = candidateRating - controlRating;
-    const deltaImprovement = controlDelta - candidateDelta; // Lower delta is better
+    // FQI-based keep/revert gate (karpathy/autoresearch pattern: single scalar, hard binary)
+    const candidateFQI = computeFQI(candidate);
+    const controlFQI   = computeFQI(control);
+    const fqiDelta     = candidateFQI - controlFQI;
 
     console.log(`[RecursiveImprovement] A/B results for ${candidate.version}:`);
-    console.log(`  Rating: ${candidateRating.toFixed(2)} vs ${controlRating.toFixed(2)} (${ratingImprovement > 0 ? '+' : ''}${ratingImprovement.toFixed(2)})`);
-    console.log(`  Delta:  ${candidateDelta.toFixed(2)} vs ${controlDelta.toFixed(2)} (${deltaImprovement > 0 ? '+' : ''}${deltaImprovement.toFixed(2)})`);
+    console.log(`  FQI: candidate=${candidateFQI.toFixed(4)}  control=${controlFQI.toFixed(4)}  delta=${fqiDelta >= 0 ? '+' : ''}${fqiDelta.toFixed(4)}  (threshold ±${FQI_KEEP_THRESHOLD})`);
+    console.log(`  Rating: ${(candidate.avgUserRating ?? 0).toFixed(2)}  Helpful: ${((candidate.helpfulPct ?? 0) * 100).toFixed(1)}%  CommDelta: ${(candidate.avgCommunityDelta ?? 0).toFixed(2)}`);
 
-    if (ratingImprovement > 0.1 || (ratingImprovement >= 0 && deltaImprovement > 0.2)) {
-      // Candidate wins — promote it
+    if (fqiDelta >= FQI_KEEP_THRESHOLD) {
+      // Candidate wins — KEEP (promote to 100% traffic)
       await promoteCandidate(candidate.version, control.version);
-    } else if (ratingImprovement < -0.2) {
-      // Candidate clearly worse — kill it
+    } else if (fqiDelta <= -FQI_REVERT_THRESHOLD) {
+      // Candidate is worse — REVERT (autoresearch: git revert bad experiments immediately)
       await prisma.promptVersion.update({
         where: { id: candidate.id },
         data: { isActive: false, isCandidate: false, trafficPct: 0 },
       });
-      console.log(`[RecursiveImprovement] Killed candidate ${candidate.version} — underperforming`);
+      console.log(`[RecursiveImprovement] REVERTED ${candidate.version} — FQI below control by ${Math.abs(fqiDelta).toFixed(4)}`);
     } else {
-      // Inconclusive — increase traffic to get more signal
+      // Inconclusive — widen traffic to collect more signal
       const newTraffic = Math.min(candidate.trafficPct + 10, 40);
       await prisma.promptVersion.update({
         where: { id: candidate.id },
         data: { trafficPct: newTraffic },
       });
-      console.log(`[RecursiveImprovement] Increased ${candidate.version} traffic to ${newTraffic}%`);
+      console.log(`[RecursiveImprovement] Widened ${candidate.version} to ${newTraffic}% — FQI delta inconclusive (${fqiDelta >= 0 ? '+' : ''}${fqiDelta.toFixed(4)})`);
     }
   }
 }
@@ -890,9 +974,37 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
   const log: string[] = [];
 
   try {
+    // Read cross-agent bus context before improving (agenthub pattern: check the board first)
+    const [nudgeEntries, followUpEntries, opsEntries] = await Promise.all([
+      readFromIntelligenceBus('recursive-improvement', 'nudge_metrics',  { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'followup_gaps',  { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'ops_critique',   { limit: 1 }).catch(() => []),
+    ]);
+
+    const agentContextParts: string[] = [];
+    const nudgePayload = nudgeEntries[0]?.payload;
+    if (nudgePayload?.worstSegment) {
+      agentContextParts.push(`Nudge agent: worst performing segment is "${nudgePayload.worstSegment}" — these users may have unresolved style questions the prompt should better address`);
+    }
+    const followUpPayload = followUpEntries[0]?.payload;
+    if (Array.isArray(followUpPayload?.gaps) && followUpPayload.gaps.length > 0) {
+      agentContextParts.push(`Follow-up mining: recurring gaps in feedback — ${(followUpPayload.gaps as string[]).slice(0, 3).join('; ')}`);
+    }
+    const opsPayload = opsEntries[0]?.payload;
+    if (opsPayload?.critique) {
+      try {
+        const c = JSON.parse(opsPayload.critique as string) as { criticalIssue?: string };
+        if (c.criticalIssue) agentContextParts.push(`Ops critique this week: ${c.criticalIssue}`);
+      } catch { /* ignore */ }
+    }
+    const agentContext = agentContextParts.join('\n');
+    if (agentContext) log.push(`Cross-agent context: ${agentContextParts.length} signal(s) loaded from intelligence bus`);
+
     // Step 1: Measure current performance
     log.push('--- STEP 1: MEASURE ---');
     const metrics = await measurePromptPerformance();
+    const currentFQI = computeFQI(metrics);
+    log.push(`FQI: ${currentFQI.toFixed(4)}`);
     log.push(`Sample size: ${metrics.sampleSize}`);
     log.push(`Avg user rating: ${metrics.avgUserRating?.toFixed(2) ?? 'N/A'}`);
     log.push(`Avg community delta: ${metrics.avgCommunityDelta?.toFixed(2) ?? 'N/A'}`);
@@ -907,10 +1019,16 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
       return;
     }
 
-    // Step 2: Discover new fashion rules
+    // Step 2: Discover new fashion rules + collect falsification cases in parallel
     log.push('\n--- STEP 2: DISCOVER ---');
-    const discoveredRules = await discoverFashionRules();
+    const [discoveredRules, falsificationCases] = await Promise.all([
+      discoverFashionRules(),
+      getFalsificationSamples().catch(() => [] as FalsificationCase[]),
+    ]);
     log.push(`Discovered ${discoveredRules.length} new fashion rules`);
+    if (falsificationCases.length > 0) {
+      log.push(`Falsification set: ${falsificationCases.length} cases where AI scored high but users+community disagreed (will weight 3× in calibration)`);
+    }
     for (const rule of discoveredRules.slice(0, 5)) {
       log.push(`  [${rule.category}] ${rule.rule} (confidence: ${(rule.confidence * 100).toFixed(0)}%)`);
     }
@@ -981,6 +1099,8 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
       weaknesses,
       discoveredRules,
       metrics,
+      falsificationCases,
+      agentContext,
     );
 
     if (!improvedPrompt) {
