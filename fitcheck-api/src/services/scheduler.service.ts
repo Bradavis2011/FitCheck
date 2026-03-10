@@ -61,6 +61,7 @@ import {
   runFollowUpSurgeon,
   runExampleRotation,
 } from './surgeon-agent.service.js';
+import { runOvernightPipeline, isOrchestratorEnabled } from './overnight-orchestrator.service.js';
 
 function isEnabled(): boolean {
   return process.env.ENABLE_CRON === 'true';
@@ -587,82 +588,139 @@ export function initializeScheduler(): void {
   // ── Self-Improving StyleDNA Engine ───────────────────────────────────────────
 
   if (process.env.ENABLE_LEARNING_SYSTEM !== 'false') {
-    // Midnight UTC: reset daily budget counter
-    cron.schedule('0 0 * * *', async () => {
-      try { await resetDailyBudget(); }
-      catch (err) { console.error('[Scheduler] Budget reset failed:', err); }
-    }, { timezone: 'UTC' });
+    if (isOrchestratorEnabled()) {
+      // ── Orchestrator mode: one midnight cron replaces 6 individual overnight crons ──
+      // Budget Reset, Bus Purge, Piggyback, Learning Memory, Critic, Surgeon
+      // are all managed internally by the orchestrator DAG with retry + multi-loop.
+      cron.schedule('0 0 * * *', async () => {
+        console.log('[Scheduler] Starting Overnight Orchestrator...');
+        try { await runOvernightPipeline(); }
+        catch (err) { console.error('[Scheduler] Overnight Orchestrator failed:', err); }
+      }, { timezone: 'UTC' });
 
-    // 1am UTC: Piggyback Judge — batch-evaluate yesterday's real analyses (P1, ~7K tokens)
-    cron.schedule('0 1 * * *', () =>
-      guardedRun('piggyback-judge', '🔍 [Scheduler] Running Piggyback Judge...', runPiggybackJudge),
-    { timezone: 'UTC' });
+      // Daytime learning agents remain as independent crons (not part of the overnight DAG)
+      // 3pm UTC: Follow-Up Critic (P2 budget-gated)
+      cron.schedule('0 15 * * *', () =>
+        guardedRun('followup-critic', '🔬 [Scheduler] Running Follow-Up Critic...', async () => {
+          if (!(await hasLearningBudget(2))) return;
+          await runFollowUpCritic();
+        }),
+      { timezone: 'UTC' });
 
-    // 2am UTC: Learning Memory distillation ($0 — pure DB reads)
-    cron.schedule('0 2 * * *', () =>
-      guardedRun('learning-memory', '🧠 [Scheduler] Distilling Learning Memory...', distillLearningMemory),
-    { timezone: 'UTC' });
+      // 5pm UTC: Follow-Up Surgeon (P3 budget-gated)
+      cron.schedule('0 17 * * *', () =>
+        guardedRun('followup-surgeon', '⚕️  [Scheduler] Running Follow-Up Surgeon...', async () => {
+          if (!(await hasLearningBudget(3))) return;
+          await runFollowUpSurgeon();
+        }),
+      { timezone: 'UTC' });
 
-    // 3am UTC: Critic Agent — find weakness patterns (P1, ~10K tokens)
-    cron.schedule('0 3 * * *', () =>
-      guardedRun('critic-agent', '🔬 [Scheduler] Running Critic Agent...', runCriticAgent),
-    { timezone: 'UTC' });
+      // 7pm UTC: 2nd-pass Surgeon (P3 budget-gated)
+      cron.schedule('0 19 * * *', () =>
+        guardedRun('surgeon', '⚕️  [Scheduler] Running 2nd-pass Surgeon...', async () => {
+          if (!(await hasLearningBudget(3))) return;
+          await runSurgeonAgentEvening();
+        }),
+      { timezone: 'UTC' });
 
-    // 5am UTC: Surgeon Agent — reactive fix + proactive mutation (P1+P2, ~35-42K tokens)
-    cron.schedule('0 5 * * *', () =>
-      guardedRun('surgeon', '⚕️  [Scheduler] Running Surgeon Agent...', runSurgeonAgent),
-    { timezone: 'UTC' });
+      // 9pm UTC: Additional proactive mutations (P4 budget-gated)
+      cron.schedule('0 21 * * *', () =>
+        guardedRun('surgeon', '⚕️  [Scheduler] Running additional mutations (P4)...', async () => {
+          if (!(await hasLearningBudget(4))) return;
+          await runAdditionalMutations();
+        }),
+      { timezone: 'UTC' });
 
-    // 3pm UTC: Follow-Up Critic — evaluate follow-up Q&A quality (P2 budget-gated)
-    cron.schedule('0 15 * * *', () =>
-      guardedRun('followup-critic', '🔬 [Scheduler] Running Follow-Up Critic...', async () => {
-        if (!(await hasLearningBudget(2))) return;
-        await runFollowUpCritic();
-      }),
-    { timezone: 'UTC' });
+      // Sunday 6pm UTC: Weekly example rotation
+      cron.schedule('0 18 * * 0', () =>
+        guardedRun('surgeon', '🔄 [Scheduler] Running Example Rotation...', runExampleRotation),
+      { timezone: 'UTC' });
 
-    // 5pm UTC: Follow-Up Surgeon — improve follow-up prompt sections (P3 budget-gated)
-    cron.schedule('0 17 * * *', () =>
-      guardedRun('followup-surgeon', '⚕️  [Scheduler] Running Follow-Up Surgeon...', async () => {
-        if (!(await hasLearningBudget(3))) return;
-        await runFollowUpSurgeon();
-      }),
-    { timezone: 'UTC' });
+      // Sunday midnight UTC: Calibrate regression baselines
+      cron.schedule('0 0 * * 0', () =>
+        guardedRun('surgeon', '📏 [Scheduler] Calibrating regression baselines...', calibrateRegressionBaselines),
+      { timezone: 'UTC' });
 
-    // 7pm UTC: 2nd-pass Surgeon — reactive fix or mutation (P3 budget-gated)
-    cron.schedule('0 19 * * *', () =>
-      guardedRun('surgeon', '⚕️  [Scheduler] Running 2nd-pass Surgeon...', async () => {
-        if (!(await hasLearningBudget(3))) return;
-        await runSurgeonAgentEvening();
-      }),
-    { timezone: 'UTC' });
+      console.log('[Scheduler] Orchestrator mode active — overnight pipeline at midnight UTC');
+    } else {
+      // ── Legacy mode: individual crons (unchanged behaviour) ──
+      // Midnight UTC: reset daily budget counter
+      cron.schedule('0 0 * * *', async () => {
+        try { await resetDailyBudget(); }
+        catch (err) { console.error('[Scheduler] Budget reset failed:', err); }
+      }, { timezone: 'UTC' });
 
-    // 9pm UTC: Additional proactive mutations (P4 budget-gated, 2x mutations)
-    cron.schedule('0 21 * * *', () =>
-      guardedRun('surgeon', '⚕️  [Scheduler] Running additional mutations (P4)...', async () => {
-        if (!(await hasLearningBudget(4))) return;
-        await runAdditionalMutations();
-      }),
-    { timezone: 'UTC' });
+      // 1am UTC: Piggyback Judge
+      cron.schedule('0 1 * * *', () =>
+        guardedRun('piggyback-judge', '🔍 [Scheduler] Running Piggyback Judge...', runPiggybackJudge),
+      { timezone: 'UTC' });
 
-    // Sunday 6pm UTC: Weekly example rotation (~14K tokens)
-    cron.schedule('0 18 * * 0', () =>
-      guardedRun('surgeon', '🔄 [Scheduler] Running Example Rotation...', runExampleRotation),
-    { timezone: 'UTC' });
+      // 2am UTC: Learning Memory distillation
+      cron.schedule('0 2 * * *', () =>
+        guardedRun('learning-memory', '🧠 [Scheduler] Distilling Learning Memory...', distillLearningMemory),
+      { timezone: 'UTC' });
 
-    // Sunday midnight UTC: Calibrate regression baselines with current prompt performance
-    cron.schedule('0 0 * * 0', () =>
-      guardedRun('surgeon', '📏 [Scheduler] Calibrating regression baselines...', calibrateRegressionBaselines),
-    { timezone: 'UTC' });
+      // 3am UTC: Critic Agent
+      cron.schedule('0 3 * * *', () =>
+        guardedRun('critic-agent', '🔬 [Scheduler] Running Critic Agent...', runCriticAgent),
+      { timezone: 'UTC' });
 
-    // Daily midnight: purge expired Intelligence Bus entries
-    cron.schedule('30 0 * * *', async () => {
-      try {
-        const count = await purgeExpiredBusEntries();
-        if (count > 0) console.log(`[Scheduler] Purged ${count} expired bus entries`);
-      }
-      catch (err) { console.error('[Scheduler] Bus cleanup failed:', err); }
-    }, { timezone: 'UTC' });
+      // 5am UTC: Surgeon Agent
+      cron.schedule('0 5 * * *', () =>
+        guardedRun('surgeon', '⚕️  [Scheduler] Running Surgeon Agent...', runSurgeonAgent),
+      { timezone: 'UTC' });
+
+      // 3pm UTC: Follow-Up Critic (P2 budget-gated)
+      cron.schedule('0 15 * * *', () =>
+        guardedRun('followup-critic', '🔬 [Scheduler] Running Follow-Up Critic...', async () => {
+          if (!(await hasLearningBudget(2))) return;
+          await runFollowUpCritic();
+        }),
+      { timezone: 'UTC' });
+
+      // 5pm UTC: Follow-Up Surgeon (P3 budget-gated)
+      cron.schedule('0 17 * * *', () =>
+        guardedRun('followup-surgeon', '⚕️  [Scheduler] Running Follow-Up Surgeon...', async () => {
+          if (!(await hasLearningBudget(3))) return;
+          await runFollowUpSurgeon();
+        }),
+      { timezone: 'UTC' });
+
+      // 7pm UTC: 2nd-pass Surgeon (P3 budget-gated)
+      cron.schedule('0 19 * * *', () =>
+        guardedRun('surgeon', '⚕️  [Scheduler] Running 2nd-pass Surgeon...', async () => {
+          if (!(await hasLearningBudget(3))) return;
+          await runSurgeonAgentEvening();
+        }),
+      { timezone: 'UTC' });
+
+      // 9pm UTC: Additional proactive mutations (P4 budget-gated)
+      cron.schedule('0 21 * * *', () =>
+        guardedRun('surgeon', '⚕️  [Scheduler] Running additional mutations (P4)...', async () => {
+          if (!(await hasLearningBudget(4))) return;
+          await runAdditionalMutations();
+        }),
+      { timezone: 'UTC' });
+
+      // Sunday 6pm UTC: Weekly example rotation
+      cron.schedule('0 18 * * 0', () =>
+        guardedRun('surgeon', '🔄 [Scheduler] Running Example Rotation...', runExampleRotation),
+      { timezone: 'UTC' });
+
+      // Sunday midnight UTC: Calibrate regression baselines
+      cron.schedule('0 0 * * 0', () =>
+        guardedRun('surgeon', '📏 [Scheduler] Calibrating regression baselines...', calibrateRegressionBaselines),
+      { timezone: 'UTC' });
+
+      // Daily 12:30am: purge expired Intelligence Bus entries
+      cron.schedule('30 0 * * *', async () => {
+        try {
+          const count = await purgeExpiredBusEntries();
+          if (count > 0) console.log(`[Scheduler] Purged ${count} expired bus entries`);
+        }
+        catch (err) { console.error('[Scheduler] Bus cleanup failed:', err); }
+      }, { timezone: 'UTC' });
+    }
   } else {
     console.log('⏭️  [Scheduler] ENABLE_LEARNING_SYSTEM=false — skipping learning system crons');
   }

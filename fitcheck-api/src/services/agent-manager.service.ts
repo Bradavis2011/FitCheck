@@ -452,6 +452,8 @@ const ALL_AGENT_NAMES = [
   'weather-nudge',
   'wardrobe-nudge',
   'trend-nudge',
+  // Overnight Orchestrator
+  'orchestrator',
 ];
 
 export async function getAgentHealth() {

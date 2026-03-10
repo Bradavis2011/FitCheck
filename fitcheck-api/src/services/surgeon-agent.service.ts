@@ -586,3 +586,8 @@ Return JSON:
     console.log(`[ExampleRotation] Deployed: examples v${version} — ${data.changelog}`);
   }
 }
+
+/** Exported wrapper for overnight orchestrator multi-loop use. */
+export async function runProactiveMutationExported(): Promise<void> {
+  await runProactiveMutation();
+}

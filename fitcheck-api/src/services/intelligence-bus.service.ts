@@ -60,7 +60,9 @@ export type BusEntryType =
   | 'creator_scout_metrics'
   | 'creator_outreach_metrics'
   | 'reddit_scout_metrics'
-  | 'growth_intern_metrics';
+  | 'growth_intern_metrics'
+  // Overnight Orchestrator
+  | 'orchestrator_run';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(

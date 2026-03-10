@@ -64,7 +64,7 @@ interface FalsificationCase {
 const FQI_KEEP_THRESHOLD   = 0.03; // candidate must beat control by this to be promoted
 const FQI_REVERT_THRESHOLD = 0.05; // candidate must underperform by this to be killed early
 
-function computeFQI(pv: {
+export function computeFQI(pv: {
   avgUserRating: number | null;
   helpfulPct: number | null;
   avgCommunityDelta: number | null;
@@ -78,7 +78,7 @@ function computeFQI(pv: {
 
 // ─── Step 1: MEASURE — Aggregate performance from real user data ────────────
 
-async function measurePromptPerformance(version?: string): Promise<PerformanceMetrics> {
+export async function measurePromptPerformance(version?: string): Promise<PerformanceMetrics> {
   const where: any = {
     aiProcessedAt: { not: null },
     isDeleted: false,
