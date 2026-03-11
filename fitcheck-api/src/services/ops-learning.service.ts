@@ -644,6 +644,261 @@ async function promoteEmailWinners(): Promise<void> {
   }
 }
 
+// ─── B2: Creator Outreach Template Improvement ───────────────────────────────
+
+/**
+ * B2: Measure creator outreach response rates and generate improved DM/email templates.
+ * Looks at CreatorProspect statuses to find what worked, generates improved templates,
+ * stores in SocialPromptVariant so creator-scout picks them up next run.
+ */
+async function improveCreatorOutreachTemplates(): Promise<void> {
+  if (!process.env.GEMINI_API_KEY) return;
+
+  const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  // Measure response rates
+  const [responded, total] = await Promise.all([
+    prisma.creatorProspect.count({
+      where: { status: { in: ['responded', 'onboarded', 'posted'] }, createdAt: { gte: twoWeeksAgo } },
+    }),
+    prisma.creatorProspect.count({ where: { createdAt: { gte: twoWeeksAgo } } }),
+  ]);
+
+  if (total < 10) return; // Not enough data
+
+  const responseRate = responded / total;
+  console.log(`[OpsLearning] Creator outreach response rate: ${(responseRate * 100).toFixed(1)}% (${responded}/${total})`);
+
+  // Only improve if response rate is below 10% (poor performance)
+  if (responseRate >= 0.10) return;
+
+  // Get examples of what worked (responded)
+  const successProspects = await prisma.creatorProspect.findMany({
+    where: {
+      status: { in: ['responded', 'onboarded', 'posted'] },
+      createdAt: { gte: twoWeeksAgo },
+      personalizedDM: { not: null },
+    },
+    select: { niche: true, platform: true, personalizedDM: true, emailBody: true },
+    take: 5,
+  });
+
+  if (successProspects.length === 0) return;
+
+  const exampleDMs = successProspects
+    .filter(p => p.personalizedDM)
+    .map(p => `Platform: ${p.platform}, Niche: ${p.niche || 'fashion'}\nDM: ${p.personalizedDM}`)
+    .join('\n\n');
+
+  const exampleEmails = successProspects
+    .filter(p => p.emailBody)
+    .map(p => `Platform: ${p.platform}, Niche: ${p.niche || 'fashion'}\nEmail: ${p.emailBody}`)
+    .join('\n\n');
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash-lite',
+    generationConfig: { temperature: 0.5, maxOutputTokens: 512 },
+  });
+
+  // Improve DM template
+  if (exampleDMs) {
+    try {
+      const dmPrompt = `You are analyzing creator DMs for "Or This?", an AI outfit scoring app. These DMs got a positive response (creator replied or signed up):
+
+${exampleDMs}
+
+Identify 2-3 specific patterns that made these DMs effective. Output as a brief instruction block (under 200 chars) that will be appended to the DM generation prompt to guide future DMs.
+
+Example output: "Lead with a specific observation about their content style. Keep to 2 sentences max. Use their niche-specific vocabulary."
+
+Return ONLY the instruction text. No explanation.`;
+
+      const dmResult = await model.generateContent(dmPrompt);
+      const dmImprovement = dmResult.response.text().trim();
+
+      if (dmImprovement && dmImprovement.length > 20) {
+        await prisma.socialPromptVariant.upsert({
+          where: { contentType: 'creator_dm' },
+          update: { promptText: dmImprovement, isActive: true },
+          create: { contentType: 'creator_dm', promptText: dmImprovement, isActive: true },
+        });
+        console.log('[OpsLearning] Creator DM template improved');
+      }
+    } catch (err) {
+      console.error('[OpsLearning] Creator DM improvement failed:', err);
+    }
+  }
+
+  // Improve email template
+  if (exampleEmails) {
+    try {
+      const emailPrompt = `You are analyzing creator outreach emails for "Or This?", an AI outfit scoring app. These emails got a positive response:
+
+${exampleEmails}
+
+Identify 2-3 specific patterns that made these emails effective. Output as a brief instruction block (under 200 chars) to append to the email generation prompt.
+
+Return ONLY the instruction text. No explanation.`;
+
+      const emailResult = await model.generateContent(emailPrompt);
+      const emailImprovement = emailResult.response.text().trim();
+
+      if (emailImprovement && emailImprovement.length > 20) {
+        await prisma.socialPromptVariant.upsert({
+          where: { contentType: 'creator_email' },
+          update: { promptText: emailImprovement, isActive: true },
+          create: { contentType: 'creator_email', promptText: emailImprovement, isActive: true },
+        });
+        console.log('[OpsLearning] Creator email template improved');
+      }
+    } catch (err) {
+      console.error('[OpsLearning] Creator email improvement failed:', err);
+    }
+  }
+}
+
+// ─── Phase 4: Growth Channel Metrics ──────────────────────────────────────────
+
+export async function measureRedditGrowthMetrics(): Promise<void> {
+  try {
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    const postedThreads = await prisma.redditThread.findMany({
+      where: { status: 'posted', postedAt: { gte: fourteenDaysAgo } },
+      select: {
+        id: true,
+        subreddit: true,
+        analysisUsed: true,
+        commentKarma: true,
+        authorReplied: true,
+        category: true,
+      },
+    });
+
+    if (postedThreads.length === 0) {
+      console.log('[OpsLearning] Reddit growth metrics: no data yet');
+      return;
+    }
+
+    const withKarma = postedThreads.filter(t => t.commentKarma !== null);
+
+    const byAnalysisType = {
+      imageAnalysis: withKarma.filter(t => t.analysisUsed),
+      generic: withKarma.filter(t => !t.analysisUsed),
+    };
+
+    const avgKarma = (threads: typeof withKarma) =>
+      threads.length > 0
+        ? threads.reduce((s, t) => s + (t.commentKarma ?? 0), 0) / threads.length
+        : null;
+
+    const authorRepliedRate = (threads: typeof postedThreads) =>
+      threads.length > 0 ? threads.filter(t => t.authorReplied).length / threads.length : null;
+
+    const bySubreddit: Record<string, { count: number; avgKarma: number | null; authorRepliedRate: number | null }> = {};
+    for (const t of withKarma) {
+      if (!bySubreddit[t.subreddit]) bySubreddit[t.subreddit] = { count: 0, avgKarma: null, authorRepliedRate: null };
+      bySubreddit[t.subreddit].count++;
+    }
+    for (const sub of Object.keys(bySubreddit)) {
+      const threads = withKarma.filter(t => t.subreddit === sub);
+      bySubreddit[sub].avgKarma = avgKarma(threads);
+      bySubreddit[sub].authorRepliedRate = authorRepliedRate(threads);
+    }
+
+    await publishToIntelligenceBus('ops-learning', 'reddit_growth_metrics', {
+      measuredAt: new Date().toISOString(),
+      totalPosted: postedThreads.length,
+      withKarmaData: withKarma.length,
+      imageAnalysis: {
+        count: byAnalysisType.imageAnalysis.length,
+        avgKarma: avgKarma(byAnalysisType.imageAnalysis),
+        authorRepliedRate: authorRepliedRate(byAnalysisType.imageAnalysis),
+      },
+      generic: {
+        count: byAnalysisType.generic.length,
+        avgKarma: avgKarma(byAnalysisType.generic),
+        authorRepliedRate: authorRepliedRate(byAnalysisType.generic),
+      },
+      overallAvgKarma: avgKarma(withKarma),
+      overallAuthorRepliedRate: authorRepliedRate(postedThreads),
+      bySubreddit,
+    });
+
+    console.log(`[OpsLearning] Reddit growth metrics: ${postedThreads.length} posts measured`);
+  } catch (err) {
+    console.error('[OpsLearning] Reddit growth metrics failed:', err);
+  }
+}
+
+export async function measureCreatorFunnelMetrics(): Promise<void> {
+  try {
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    const prospects = await prisma.creatorProspect.findMany({
+      where: { createdAt: { gte: fourteenDaysAgo } },
+      select: {
+        status: true,
+        platform: true,
+        niche: true,
+        outreachMethod: true,
+        commentsPosted: true,
+        warmingStartedAt: true,
+        contactedAt: true,
+        respondedAt: true,
+      },
+    });
+
+    if (prospects.length === 0) {
+      console.log('[OpsLearning] Creator funnel metrics: no data yet');
+      return;
+    }
+
+    const total = prospects.length;
+    const warmed = prospects.filter(p => (p.commentsPosted ?? 0) >= 2).length;
+    const dmReady = prospects.filter(p => p.status === 'dm_ready').length;
+    const contacted = prospects.filter(p => ['contacted', 'followed_up', 'responded', 'onboarded', 'posted'].includes(p.status)).length;
+    const responded = prospects.filter(p => ['responded', 'onboarded', 'posted'].includes(p.status)).length;
+    const onboarded = prospects.filter(p => ['onboarded', 'posted'].includes(p.status)).length;
+
+    const byPlatform: Record<string, number> = {};
+    for (const p of prospects) {
+      byPlatform[p.platform] = (byPlatform[p.platform] || 0) + 1;
+    }
+
+    const warmedContacted = prospects.filter(p => (p.commentsPosted ?? 0) >= 2 && p.contactedAt !== null).length;
+    const coldContacted = prospects.filter(p => (p.commentsPosted ?? 0) < 2 && p.contactedAt !== null).length;
+    const warmedResponded = prospects.filter(p => (p.commentsPosted ?? 0) >= 2 && p.respondedAt !== null).length;
+    const coldResponded = prospects.filter(p => (p.commentsPosted ?? 0) < 2 && p.respondedAt !== null).length;
+
+    await publishToIntelligenceBus('ops-learning', 'creator_funnel_metrics', {
+      measuredAt: new Date().toISOString(),
+      total,
+      funnel: {
+        discovered: total,
+        warmed,
+        dmReady,
+        contacted,
+        responded,
+        onboarded,
+        warmingToContactRate: warmed > 0 ? warmedContacted / warmed : null,
+        contactToResponseRate: contacted > 0 ? responded / contacted : null,
+      },
+      warming: {
+        warmedContactedCount: warmedContacted,
+        coldContactedCount: coldContacted,
+        warmedResponseRate: warmedContacted > 0 ? warmedResponded / warmedContacted : null,
+        coldResponseRate: coldContacted > 0 ? coldResponded / coldContacted : null,
+      },
+      byPlatform,
+    });
+
+    console.log(`[OpsLearning] Creator funnel metrics: ${total} prospects measured`);
+  } catch (err) {
+    console.error('[OpsLearning] Creator funnel metrics failed:', err);
+  }
+}
+
 // ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 export async function runOpsLearning(): Promise<void> {
@@ -722,6 +977,29 @@ export async function runOpsLearning(): Promise<void> {
       if (worstEmailStep) await generateEmailVariant(worstEmailStep);
   }
 
+  // B2: Creator outreach template improvement (cheap, data-driven)
+  await improveCreatorOutreachTemplates().catch(err => console.error('[OpsLearning] Creator outreach improvement failed:', err));
+
+  // Phase 4: Growth channel metrics
+  await measureRedditGrowthMetrics().catch(err => console.error('[OpsLearning] Reddit growth metrics failed:', err));
+  await measureCreatorFunnelMetrics().catch(err => console.error('[OpsLearning] Creator funnel metrics failed:', err));
+
+  // Growth critique: compare image-analysis vs generic Reddit comments, warming vs cold DM rates
+  const redditGrowthEntry = await readFromIntelligenceBus('ops-learning', 'reddit_growth_metrics', { limit: 1 });
+  const redditGrowthPayload = redditGrowthEntry[0]?.payload as Record<string, unknown> | undefined;
+  const creatorFunnelEntry = await readFromIntelligenceBus('ops-learning', 'creator_funnel_metrics', { limit: 1 });
+  const creatorFunnelPayload = creatorFunnelEntry[0]?.payload as Record<string, unknown> | undefined;
+
+  // If Reddit image-analysis comments underperform generic → generate improved style variant
+  if (redditGrowthPayload && process.env.GEMINI_API_KEY) {
+    const imgKarma = (redditGrowthPayload.imageAnalysis as any)?.avgKarma as number | null;
+    const genKarma = (redditGrowthPayload.generic as any)?.avgKarma as number | null;
+    if (imgKarma !== null && genKarma !== null && imgKarma < genKarma && genKarma > 2) {
+      await improveSocialPrompt('reddit_outfit_comment').catch(() => {});
+      console.log('[OpsLearning] Reddit image-analysis underperforms generic — improving comment style');
+    }
+  }
+
   // Phase 4: Auto-promote winners (A/B test graduation)
   await promoteEmailWinners().catch(err => console.error('[OpsLearning] Email winner promotion failed:', err));
   await promoteNudgeWinners().catch(err => console.error('[OpsLearning] Nudge winner promotion failed:', err));
@@ -733,6 +1011,8 @@ export async function runOpsLearning(): Promise<void> {
     emailMetricsSample: emailMetrics.length,
     socialMetricsSample: socialMetrics.length,
     conversionMetricsSample: conversionMetrics.length,
+    redditGrowthMeasured: !!redditGrowthPayload,
+    creatorFunnelMeasured: !!creatorFunnelPayload,
   });
 
   console.log('[OpsLearning] Weekly ops learning cycle complete');

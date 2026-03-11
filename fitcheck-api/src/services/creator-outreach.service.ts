@@ -373,8 +373,12 @@ export async function handleCreatorResponse(prospectId: string): Promise<void> {
     // Auto-bridge: create a Creator record so onboarded prospects immediately enter
     // the active creator program without a manual step.
     try {
-      await prisma.creator.upsert({
-        where: { referralCode: `prospect_${prospectId}` },
+      // Use handle as referralCode for cleaner affiliate links (e.g. orthis.app/invite/fashionbyjane)
+      const creatorReferralCode = prospect.handle.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30)
+        || `prospect_${prospectId}`;
+
+      const creator = await prisma.creator.upsert({
+        where: { referralCode: creatorReferralCode },
         update: { status: 'accepted', email: prospect.email ?? undefined },
         create: {
           name: prospect.displayName || prospect.handle,
@@ -382,17 +386,45 @@ export async function handleCreatorResponse(prospectId: string): Promise<void> {
           platform: prospect.platform,
           status: 'accepted',
           email: prospect.email ?? undefined,
-          referralCode: `prospect_${prospectId}`,
+          referralCode: creatorReferralCode,
           acceptedAt: new Date(),
           notes: `Auto-created from CreatorProspect ${prospectId} (niche: ${prospect.niche || 'fashion'})`,
         },
       });
-      console.log(`[CreatorOutreach] Auto-created Creator record for @${prospect.handle}`);
+
+      // If a User with matching email exists, link Creator.userId for commission tracking
+      if (prospect.email) {
+        const matchedUser = await prisma.user.findUnique({
+          where: { email: prospect.email },
+          select: { id: true, referralCode: true },
+        }).catch(() => null);
+
+        if (matchedUser) {
+          await prisma.creator.update({
+            where: { id: creator.id },
+            data: { userId: matchedUser.id },
+          }).catch(() => {});
+
+          // Sync User.referralCode → creator.referralCode so claimReferral()
+          // can find this user when someone clicks orthis.app/invite/{code}.
+          // Only set if User has no referralCode yet (don't overwrite existing).
+          if (!matchedUser.referralCode) {
+            await prisma.user.update({
+              where: { id: matchedUser.id },
+              data: { referralCode: creatorReferralCode },
+            }).catch(() => {});
+          }
+
+          console.log(`[CreatorOutreach] Linked Creator ${creator.id} → User ${matchedUser.id} (referralCode: ${creatorReferralCode})`);
+        }
+      }
+
+      console.log(`[CreatorOutreach] Auto-created Creator record for @${prospect.handle} (referralCode: ${creatorReferralCode})`);
     } catch (creatorErr) {
       console.warn(`[CreatorOutreach] Could not auto-create Creator for @${prospect.handle}:`, creatorErr);
     }
 
-    // Emails 2 and 3 are sent by runCreatorOnboardingFollowUps() at +24h and +72h.
+    // Emails 2, 3, and 4 are sent by runCreatorOnboardingFollowUps() at +24h, +72h, +7d.
     console.log(`[CreatorOutreach] Sent creator kit to @${prospect.handle}`);
   } catch (err) {
     console.error(`[CreatorOutreach] Failed to send creator kit to @${prospect.handle}:`, err);
@@ -518,6 +550,9 @@ export async function runCreatorOnboardingFollowUps(): Promise<void> {
   // 72h window: 71-95h since respondedAt → Email 3
   const h71 = new Date(now.getTime() - 71 * 60 * 60 * 1000);
   const h95 = new Date(now.getTime() - 95 * 60 * 60 * 1000);
+  // 7d window: 167-191h since respondedAt → Email 4 (earnings report)
+  const h167 = new Date(now.getTime() - 167 * 60 * 60 * 1000);
+  const h191 = new Date(now.getTime() - 191 * 60 * 60 * 1000);
 
   // Fetch best-performing hook for social proof in Email 3
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -527,7 +562,7 @@ export async function runCreatorOnboardingFollowUps(): Promise<void> {
     select: { hookUsed: true, views: true, creator: { select: { handle: true } } },
   }).catch(() => null);
 
-  const [email2Prospects, email3Prospects] = await Promise.all([
+  const [email2Prospects, email3Prospects, email4Prospects] = await Promise.all([
     prisma.creatorProspect.findMany({
       where: {
         status: 'onboarded',
@@ -547,6 +582,17 @@ export async function runCreatorOnboardingFollowUps(): Promise<void> {
         followedUpAt: { not: null },
         // Check notes doesn't contain our sentinel
         NOT: { notes: { contains: 'onboarding_email_3_sent' } },
+      },
+      take: 30,
+    }),
+
+    // Email 4: First week earnings report (+7d)
+    prisma.creatorProspect.findMany({
+      where: {
+        status: 'onboarded',
+        email: { not: null },
+        respondedAt: { lte: h167, gte: h191 },
+        NOT: { notes: { contains: 'onboarding_email_4_sent' } },
       },
       take: 30,
     }),
@@ -601,7 +647,30 @@ export async function runCreatorOnboardingFollowUps(): Promise<void> {
     }
   }
 
-  console.log(`[CreatorOutreach] Onboarding follow-ups: sent ${sent} (${email2Prospects.length} email-2, ${email3Prospects.length} email-3)`);
+  // ── Email 4: First Week Earnings Report ──────────────────────────────────
+  for (const p of email4Prospects) {
+    if (!p.email) continue;
+    try {
+      const body = await buildEarningsReportEmail(p.handle);
+      await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: p.email,
+        subject: `Your first week with Or This? — here's what happened`,
+        html: buildOutreachEmailHtml(body, p.handle),
+        replyTo: FROM_EMAIL,
+      });
+      await prisma.creatorProspect.update({
+        where: { id: p.id },
+        data: { notes: `${p.notes ? p.notes + '\n' : ''}onboarding_email_4_sent` },
+      });
+      sent++;
+      await new Promise(r => setTimeout(r, 1500));
+    } catch (err) {
+      console.error(`[CreatorOutreach] Email 4 failed for @${p.handle}:`, err);
+    }
+  }
+
+  console.log(`[CreatorOutreach] Onboarding follow-ups: sent ${sent} (${email2Prospects.length} email-2, ${email3Prospects.length} email-3, ${email4Prospects.length} email-4)`);
 }
 
 function buildFirstVideoGuideEmail(_handle: string, _platform: string, _niche: string | null): string {
@@ -641,6 +710,40 @@ ${process.env.APP_URL || 'https://orthis.app'}
 Reply with the link when you post.
 
 — Brandon`;
+}
+
+async function buildEarningsReportEmail(handle: string): Promise<string> {
+  // Try to find the Creator record linked to this handle to pull real earnings
+  const creator = await prisma.creator.findFirst({
+    where: { handle },
+    select: { id: true, totalEarned: true, pendingPayout: true, totalInstalls: true, referralCode: true },
+  }).catch(() => null);
+
+  const baseUrl = process.env.REFERRAL_BASE_URL || 'https://orthis.app/invite';
+  const referralLink = creator?.referralCode ? `${baseUrl}/${creator.referralCode}` : baseUrl;
+  const installs = creator?.totalInstalls ?? 0;
+  const earned = creator?.pendingPayout ?? 0;
+
+  return `Week 1 report for @${handle}:
+
+Installs from your link: ${installs}
+Commission earned: $${earned.toFixed(2)}
+Your referral link: ${referralLink}
+
+How the money works:
+→ Every user who installs through your link and subscribes earns you 30% of net revenue
+→ Plus ($4.99/mo) = ~$1.05/subscriber/month for you
+→ Pro ($9.99/mo) = ~$2.10/subscriber/month for you
+→ This compounds — one video can generate passive income for months
+
+At current trajectory (${installs} installs):
+If 10% of installs convert to paid, that's ${Math.max(0, Math.round(installs * 0.1))} subscribers × ~$1.50 avg = $${(Math.max(0, installs * 0.1) * 1.5).toFixed(0)}/month recurring.
+
+The path to meaningful income: post consistently, track what drives your install link, double down on what works.
+
+I'm watching your metrics — reply if you want a strategy call.
+
+— Brandon from Or This?`;
 }
 
 function buildWhatsWorkingEmail(

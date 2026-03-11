@@ -20,6 +20,7 @@ import { prisma } from '../utils/prisma.js';
 import { SYSTEM_PROMPT, PROMPT_VERSION } from './ai-feedback.service.js';
 import { publishToIntelligenceBus, readFromIntelligenceBus } from './intelligence-bus.service.js';
 import { trackedGenerateContent } from './token-budget.service.js';
+import { STYLIST_VOICE } from './stylist-chat.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -975,10 +976,14 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
 
   try {
     // Read cross-agent bus context before improving (agenthub pattern: check the board first)
-    const [nudgeEntries, followUpEntries, opsEntries] = await Promise.all([
-      readFromIntelligenceBus('recursive-improvement', 'nudge_metrics',  { limit: 1 }).catch(() => []),
-      readFromIntelligenceBus('recursive-improvement', 'followup_gaps',  { limit: 1 }).catch(() => []),
-      readFromIntelligenceBus('recursive-improvement', 'ops_critique',   { limit: 1 }).catch(() => []),
+    const [nudgeEntries, followUpEntries, opsEntries, qualityAlertEntries, calibrationEntries, productFeedbackEntries, trendEntries] = await Promise.all([
+      readFromIntelligenceBus('recursive-improvement', 'nudge_metrics',     { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'followup_gaps',     { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'ops_critique',      { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'quality_alert',     { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'calibration_drift', { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'product_feedback',  { limit: 1 }).catch(() => []),
+      readFromIntelligenceBus('recursive-improvement', 'trend_signal',      { limit: 1 }).catch(() => []),
     ]);
 
     const agentContextParts: string[] = [];
@@ -997,6 +1002,39 @@ export async function runImprovementCycle(trigger: string = 'scheduled'): Promis
         if (c.criticalIssue) agentContextParts.push(`Ops critique this week: ${c.criticalIssue}`);
       } catch { /* ignore */ }
     }
+
+    // A2: quality_alert — trigger emergency improvement context if fallback rate spiked
+    const qaPayload = qualityAlertEntries[0]?.payload;
+    if (qaPayload?.alerts && Array.isArray(qaPayload.alerts) && (qaPayload.alerts as string[]).length > 0) {
+      agentContextParts.push(`Quality alert: ${(qaPayload.alerts as string[]).slice(0, 2).join('; ')} — prioritize reliability improvements`);
+    }
+
+    // A2: calibration_drift — inject scoring drift direction
+    const calPayload = calibrationEntries[0]?.payload;
+    if (calPayload?.delta !== undefined && calPayload.delta !== null) {
+      const delta = calPayload.delta as number;
+      if (Math.abs(delta) >= 0.3) {
+        const direction = delta > 0 ? 'higher' : 'lower';
+        agentContextParts.push(`Calibration drift: AI scores trending ${Math.abs(delta).toFixed(2)} points ${direction} than community consensus — adjust scoring calibration`);
+      }
+    }
+
+    // A2: product_feedback — extract prompt-relevant user themes
+    const pfPayload = productFeedbackEntries[0]?.payload;
+    if (pfPayload?.themes && Array.isArray(pfPayload.themes) && (pfPayload.themes as string[]).length > 0) {
+      agentContextParts.push(`User product feedback themes: ${(pfPayload.themes as string[]).slice(0, 3).join(', ')} — consider addressing in prompt`);
+    }
+
+    // A2: trend_signal — inject current trends so improvement generates trend-aware prompts
+    const trendPayload = trendEntries[0]?.payload;
+    if (trendPayload) {
+      const styles = Array.isArray(trendPayload.trendingStyles) ? (trendPayload.trendingStyles as string[]).slice(0, 3).join(', ') : '';
+      const colors = Array.isArray(trendPayload.seasonalColors) ? (trendPayload.seasonalColors as string[]).slice(0, 3).join(', ') : '';
+      if (styles || colors) {
+        agentContextParts.push(`Current trend signals — trending styles: ${styles || 'n/a'}; seasonal colors: ${colors || 'n/a'}`);
+      }
+    }
+
     const agentContext = agentContextParts.join('\n');
     if (agentContext) log.push(`Cross-agent context: ${agentContextParts.length} signal(s) loaded from intelligence bus`);
 
@@ -1379,4 +1417,190 @@ export async function checkAndTriggerImprovement(): Promise<void> {
       await runImprovementCycle('scheduled');
     }
   }
+}
+
+// ─── B1: Stylist Chat (Noa) Improvement Cycle ────────────────────────────────
+
+/**
+ * Compute Stylist FQI — analogous to outfit FQI but for Noa chat responses.
+ * helpfulnessPct: ratio of rated model messages that were marked helpful.
+ * returnRate: fraction of users who messaged Noa more than once in last 30 days.
+ * avgLength: normalized response length (longer = more detail, capped at 1.0).
+ */
+export function computeStylistFQI(pv: {
+  helpfulnessPct: number | null;
+  returnRate: number | null;
+  avgLength: number | null;
+}): number {
+  const helpfulness = pv.helpfulnessPct !== null ? pv.helpfulnessPct : 0.60;
+  const returnRate  = pv.returnRate     !== null ? pv.returnRate     : 0.40;
+  // Normalize avg response length: 300 chars = 1.0, penalize below 100 or above 600
+  const rawLen = pv.avgLength !== null ? pv.avgLength : 300;
+  const lenScore = Math.min(1.0, Math.max(0.0, (rawLen - 80) / (600 - 80)));
+  return helpfulness * 0.50 + returnRate * 0.30 + lenScore * 0.20;
+}
+
+/** Measure Noa stylist performance metrics over the last 30 days. */
+async function measureStylistPerformance(): Promise<{
+  sampleSize: number;
+  helpfulnessPct: number | null;
+  returnRate: number | null;
+  avgLength: number | null;
+}> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [modelMessages, userCounts] = await Promise.all([
+    prisma.stylistChat.findMany({
+      where: { role: 'model', createdAt: { gte: thirtyDaysAgo } },
+      select: { helpful: true, content: true },
+    }),
+    prisma.stylistChat.groupBy({
+      by: ['userId'],
+      where: { role: 'user', createdAt: { gte: thirtyDaysAgo } },
+      _count: { id: true },
+    }),
+  ]);
+
+  if (modelMessages.length === 0) {
+    return { sampleSize: 0, helpfulnessPct: null, returnRate: null, avgLength: null };
+  }
+
+  // Helpfulness: only from rated messages
+  const rated = modelMessages.filter(m => m.helpful !== null);
+  const helpfulnessPct = rated.length >= 5
+    ? rated.filter(m => m.helpful === true).length / rated.length
+    : null;
+
+  // Return rate: users with 2+ sessions
+  const returning = userCounts.filter(u => u._count.id >= 2).length;
+  const returnRate = userCounts.length > 0 ? returning / userCounts.length : null;
+
+  // Average response length
+  const avgLength = modelMessages.reduce((sum, m) => sum + m.content.length, 0) / modelMessages.length;
+
+  return { sampleSize: modelMessages.length, helpfulnessPct, returnRate, avgLength };
+}
+
+/**
+ * B1: Run a self-improvement cycle specifically for the Noa stylist prompt.
+ * Uses the same Gemini meta-analysis pattern as the outfit improvement cycle,
+ * but targets PromptVersion rows with promptType='stylist_chat'.
+ * Called weekly from the overnight orchestrator if budget allows.
+ */
+export async function runStylistImprovementCycle(): Promise<void> {
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('[StylistImprovement] Gemini not configured — skipping');
+    return;
+  }
+
+  console.log('[StylistImprovement] Starting stylist prompt improvement cycle...');
+
+  const metrics = await measureStylistPerformance();
+  const currentFQI = computeStylistFQI(metrics);
+
+  if (metrics.sampleSize < 20) {
+    console.log(`[StylistImprovement] Not enough data (${metrics.sampleSize} messages) — skipping`);
+    return;
+  }
+
+  console.log(`[StylistImprovement] FQI: ${currentFQI.toFixed(4)}, sampleSize: ${metrics.sampleSize}`);
+
+  // Only improve if FQI is poor or helpfulness is low
+  const needsImprovement = currentFQI < 0.65 ||
+    (metrics.helpfulnessPct !== null && metrics.helpfulnessPct < 0.60);
+
+  if (!needsImprovement) {
+    console.log('[StylistImprovement] Stylist FQI healthy — skipping improvement');
+    return;
+  }
+
+  // Get current active stylist prompt
+  const currentVersion = await prisma.promptVersion.findFirst({
+    where: { promptType: 'stylist_chat', isActive: true, isCandidate: false },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const currentPromptText = currentVersion?.promptText ?? STYLIST_VOICE;
+
+  if (!currentPromptText) {
+    console.log('[StylistImprovement] Could not retrieve current stylist prompt — skipping');
+    return;
+  }
+
+  // C2: Falsification — find conversations where user sent a follow-up correction
+  const recentChats = await prisma.stylistChat.findMany({
+    where: { role: 'user', createdAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) } },
+    select: { content: true, userId: true },
+    orderBy: { createdAt: 'desc' },
+    take: 200,
+  });
+
+  const correctionPatterns = ["that's not what i meant", "i don't own", "i don't have", "that doesn't", "no i meant", "wrong", "not helpful", "useless"];
+  const corrections = recentChats
+    .filter(m => correctionPatterns.some(p => m.content.toLowerCase().includes(p)))
+    .map(m => m.content.slice(0, 100));
+
+  const correctionBlock = corrections.length > 0
+    ? `\n\nFalsification cases (user corrections — Noa failed here):\n${corrections.slice(0, 5).map(c => `- "${c}"`).join('\n')}`
+    : '';
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    generationConfig: { temperature: 0.7, maxOutputTokens: 1500 },
+  });
+
+  const metaPrompt = `You are improving the system prompt for "Noa", an AI personal stylist.
+
+Current performance:
+- Helpfulness rating: ${metrics.helpfulnessPct !== null ? (metrics.helpfulnessPct * 100).toFixed(0) + '%' : 'unknown'}
+- User return rate: ${metrics.returnRate !== null ? (metrics.returnRate * 100).toFixed(0) + '%' : 'unknown'}
+- Avg response length: ${metrics.avgLength !== null ? Math.round(metrics.avgLength) + ' chars' : 'unknown'}
+- FQI: ${currentFQI.toFixed(4)} (target: ≥0.65)
+${correctionBlock}
+
+Current system prompt:
+---
+${currentPromptText.slice(0, 1000)}
+---
+
+Generate an improved system prompt for Noa. Keep the same voice rules and brand identity.
+Focus on: making responses more actionable, reducing cases where users need to correct Noa, improving specificity.
+
+C3 Simplicity bias: the new prompt must be ≤ ${Math.round(currentPromptText.length * 1.2)} characters.
+
+Return ONLY the improved prompt text. No explanation, no markdown.`;
+
+  const tracked = await trackedGenerateContent(model, metaPrompt, 8_000, 'stylist_improvement').catch(() => null);
+  if (!tracked?.text || tracked.text.length < 100) {
+    console.log('[StylistImprovement] Gemini returned empty/short response — skipping');
+    return;
+  }
+
+  const improvedPrompt = tracked.text.trim();
+
+  // Create new PromptVersion candidate for stylist_chat
+  const newVersion = `stylist_chat-v${Date.now()}`;
+  await prisma.promptVersion.create({
+    data: {
+      version: newVersion,
+      parentVersion: currentVersion?.version ?? null,
+      promptType: 'stylist_chat',
+      promptText: improvedPrompt,
+      source: 'auto-optimize',
+      trafficPct: 0,
+      isActive: false, // Start inactive — promote manually after validation
+      isCandidate: true,
+    } as any,
+  });
+
+  // Publish to bus for tracking
+  publishToIntelligenceBus('stylist-improvement', 'discovered_knowledge', {
+    category: 'stylist_prompt',
+    rule: `Stylist prompt improved — FQI was ${currentFQI.toFixed(4)}, helpfulness ${metrics.helpfulnessPct !== null ? (metrics.helpfulnessPct * 100).toFixed(0) + '%' : 'unknown'}`,
+    confidence: 0.7,
+    sampleSize: metrics.sampleSize,
+    candidateVersion: newVersion,
+  }).catch(() => {});
+
+  console.log(`[StylistImprovement] Created candidate ${newVersion} — review and activate via admin API`);
 }

@@ -20,13 +20,14 @@
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { resetDailyBudget, getTodayUsage, hasLearningBudget } from './token-budget.service.js';
-import { purgeExpiredBusEntries, publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { purgeExpiredBusEntries, publishToIntelligenceBus, readFromIntelligenceBus } from './intelligence-bus.service.js';
 import { runPiggybackJudge } from './arena.service.js';
 import { distillLearningMemory } from './prompt-assembly.service.js';
 import { runCriticAgent } from './critic-agent.service.js';
 import { runSurgeonAgent, runProactiveMutationExported } from './surgeon-agent.service.js';
-import { evaluateABTests, computeFQI, measurePromptPerformance } from './recursive-improvement.service.js';
+import { evaluateABTests, computeFQI, measurePromptPerformance, runStylistImprovementCycle } from './recursive-improvement.service.js';
 import { getAgentHealth, isAgentEnabled, recordAgentRun } from './agent-manager.service.js';
+import { measureRedditGrowthMetrics, measureCreatorFunnelMetrics } from './ops-learning.service.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -261,9 +262,12 @@ export async function runOvernightPipeline(): Promise<PipelineRun> {
 
   // ── Step 8: Multi-Loop Mutations ──────────────────────────────────────────
   // Keep running proactive mutations until budget depletes or 7am UTC deadline.
-  // This is the autoresearch pattern: loop until time/budget runs out.
+  // C4: Interleave outfit mutations with stylist improvements — every 3rd loop
+  // Phase 4: Growth interleave — every 4th loop runs Reddit+creator funnel metrics
   if (!pipeline.emergencyRevert) {
     let loopCount = 0;
+    let stylistRun = false;
+    let growthMeasured = false;
     while (true) {
       if (new Date().getUTCHours() >= OVERNIGHT_DEADLINE_HOUR) {
         pipeline.loopStopReason = 'deadline';
@@ -276,7 +280,23 @@ export async function runOvernightPipeline(): Promise<PipelineRun> {
       loopCount++;
       console.log(`[Orchestrator] Multi-loop mutation #${loopCount}`);
       try {
-        await runProactiveMutationExported();
+        // Phase 4: Every 4th iteration — run growth channel metrics instead of outfit mutation
+        if (loopCount % 4 === 0 && !growthMeasured) {
+          console.log('[Orchestrator] Multi-loop: measuring growth channels');
+          await Promise.allSettled([
+            measureRedditGrowthMetrics(),
+            measureCreatorFunnelMetrics(),
+          ]);
+          growthMeasured = true; // Run growth metrics once per night
+        }
+        // C4: On 3rd loop (and every 3rd thereafter), run stylist improvement instead of outfit mutation
+        else if (loopCount % 3 === 0 && !stylistRun) {
+          console.log('[Orchestrator] Multi-loop: running stylist improvement cycle');
+          await runStylistImprovementCycle();
+          stylistRun = true; // Only run once per night to avoid over-spending
+        } else {
+          await runProactiveMutationExported();
+        }
       } catch (err) {
         console.error(`[Orchestrator] Multi-loop #${loopCount} failed:`, err);
         pipeline.loopStopReason = 'error';
@@ -288,7 +308,7 @@ export async function runOvernightPipeline(): Promise<PipelineRun> {
       stepId: 'multi_loop', status: loopCount > 0 ? 'success' : 'skipped',
       startedAt: new Date(), completedAt: new Date(), durationMs: 0,
       error: null, retried: false,
-      output: { loopCount, stopReason: pipeline.loopStopReason ?? 'none' },
+      output: { loopCount, stylistRun, growthMeasured, stopReason: pipeline.loopStopReason ?? 'none' },
     });
   }
 
@@ -346,13 +366,18 @@ async function sendMorningBrief(pipeline: PipelineRun): Promise<void> {
   const resend = new Resend(apiKey);
 
   // Gather supporting data
-  const [agentHealth, activeABTests, tokenUsage] = await Promise.all([
+  const [agentHealth, activeABTests, tokenUsage, recentOrchRuns, redditGrowthEntry, creatorFunnelEntry] = await Promise.all([
     getAgentHealth().catch(() => []),
     prisma.promptVersion.findMany({
       where: { isCandidate: true, isActive: true },
       select: { version: true, trafficPct: true, sampleSize: true, avgUserRating: true },
     }).catch(() => []),
     getTodayUsage().catch(() => null),
+    // A6: Read last 3 orchestrator_run entries for FQI trend comparison
+    readFromIntelligenceBus('morning-brief', 'orchestrator_run', { limit: 3 }).catch(() => []),
+    // Phase 4: Growth channel performance
+    readFromIntelligenceBus('morning-brief', 'reddit_growth_metrics', { limit: 1 }).catch(() => []),
+    readFromIntelligenceBus('morning-brief', 'creator_funnel_metrics', { limit: 1 }).catch(() => []),
   ]);
 
   const redAgents   = agentHealth.filter(a => a.status === 'red');
@@ -412,6 +437,25 @@ async function sendMorningBrief(pipeline: PipelineRun): Promise<void> {
     <div style="font-size:11px;font-weight:700;color:#10B981;text-transform:uppercase;letter-spacing:1px;">Agent Health — All ${agentHealth.length} agents healthy 🟢</div>
   </div>`;
 
+  // Phase 4: Growth Channels block
+  const redditGrowthPayload = redditGrowthEntry[0]?.payload as Record<string, unknown> | undefined;
+  const creatorFunnelPayload = creatorFunnelEntry[0]?.payload as Record<string, unknown> | undefined;
+  const growthChannelsBlock = (redditGrowthPayload || creatorFunnelPayload) ? `
+  <div style="margin-top:20px;">
+    <div style="font-size:11px;font-weight:700;color:#FF6314;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Growth Channels</div>
+    ${redditGrowthPayload ? `<div style="font-size:13px;color:#2D2D2D;margin-bottom:4px;">
+      Reddit: ${(redditGrowthPayload.totalPosted as number) ?? 0} posts · avg karma ${((redditGrowthPayload.overallAvgKarma as number) ?? 0).toFixed(1)} ·
+      OP replied ${(((redditGrowthPayload.overallAuthorRepliedRate as number) ?? 0) * 100).toFixed(0)}% ·
+      image analysis avg karma ${((redditGrowthPayload.imageAnalysis as any)?.avgKarma ?? 0).toFixed(1)} vs generic ${((redditGrowthPayload.generic as any)?.avgKarma ?? 0).toFixed(1)}
+    </div>` : ''}
+    ${creatorFunnelPayload ? `<div style="font-size:13px;color:#2D2D2D;">
+      Creator funnel: ${(creatorFunnelPayload.total as number) ?? 0} prospects ·
+      warming→contact ${((((creatorFunnelPayload.funnel as any)?.warmingToContactRate ?? 0) * 100).toFixed(0))}% ·
+      contact→response ${((((creatorFunnelPayload.funnel as any)?.contactToResponseRate ?? 0) * 100).toFixed(0))}% ·
+      warmed response rate ${((((creatorFunnelPayload.warming as any)?.warmedResponseRate ?? 0) * 100).toFixed(0))}% vs cold ${((((creatorFunnelPayload.warming as any)?.coldResponseRate ?? 0) * 100).toFixed(0))}%
+    </div>` : ''}
+  </div>` : '';
+
   // Active A/B tests block
   const abBlock = activeABTests.length > 0 ? `
   <div style="margin-top:20px;">
@@ -428,6 +472,23 @@ async function sendMorningBrief(pipeline: PipelineRun): Promise<void> {
     <strong>Pipeline tokens:</strong> ${pipeline.tokensConsumed.toLocaleString()} consumed this run &nbsp;|&nbsp;
     <strong>Day total:</strong> ${tokenUsage.learningTokens.toLocaleString()} / ${tokenUsage.learningBudget.toLocaleString()} (${Math.round(tokenUsage.learningTokens / Math.max(tokenUsage.learningBudget, 1) * 100)}%)
   </div>` : '';
+
+  // A6: FQI trend from previous runs
+  const fqiTrendBlock = recentOrchRuns.length > 1 ? (() => {
+    const prevRuns = recentOrchRuns
+      .filter(r => r.payload.runId !== pipeline.runId)
+      .slice(0, 2)
+      .map(r => ({ fqi: r.payload.fqiAfter as number | null, date: r.createdAt }));
+    if (prevRuns.length === 0) return '';
+    const rows = prevRuns.map(r =>
+      `<div style="font-size:12px;color:#6B7280;">${r.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: FQI ${r.fqi != null ? r.fqi.toFixed(4) : '—'}</div>`
+    ).join('');
+    return `
+  <div style="margin-top:16px;">
+    <div style="font-size:11px;font-weight:700;color:#E85D4C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">FQI History (Previous Runs)</div>
+    ${rows}
+  </div>`;
+  })() : '';
 
   const failCount = pipeline.steps.filter(s => s.status === 'failed').length;
   const subjectEmoji = pipeline.emergencyRevert ? '🚨' : failCount > 0 ? '⚠️' : '✅';
@@ -475,6 +536,8 @@ async function sendMorningBrief(pipeline: PipelineRun): Promise<void> {
     </div>
 
     ${budgetBlock}
+    ${fqiTrendBlock}
+    ${growthChannelsBlock}
     ${abBlock}
     ${agentHealthBlock}
   </div>

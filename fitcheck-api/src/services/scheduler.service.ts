@@ -71,6 +71,11 @@ function isNudgeEnabled(): boolean {
   return process.env.ENABLE_NUDGE !== 'false';
 }
 
+// Phase 3: Gate cold email outreach — default off until deliverability is proven
+function isEmailOutreachEnabled(): boolean {
+  return process.env.ENABLE_EMAIL_OUTREACH === 'true';
+}
+
 /** Run a cron handler with kill-switch check + observability recording. */
 async function guardedRun(agentName: string, label: string, fn: () => Promise<unknown>): Promise<void> {
   if (!(await isAgentEnabled(agentName))) return;
@@ -376,10 +381,14 @@ export function initializeScheduler(): void {
     guardedRun('creator-scout', '🔍 [Scheduler] Running creator scout...', runCreatorScout),
   { timezone: 'UTC' });
 
-  // ── Growth Intern: Email Outreach — Daily 1pm UTC ────────────────────
-  cron.schedule('5 13 * * *', () =>
-    guardedRun('creator-outreach', '', runEmailOutreach),
-  { timezone: 'UTC' });
+  // ── Growth Intern: Email Outreach — Daily 1pm UTC (gated by ENABLE_EMAIL_OUTREACH) ───
+  cron.schedule('5 13 * * *', () => {
+    if (!isEmailOutreachEnabled()) {
+      console.log('[Scheduler] Email outreach skipped — ENABLE_EMAIL_OUTREACH not set');
+      return;
+    }
+    return guardedRun('creator-outreach', '', runEmailOutreach);
+  }, { timezone: 'UTC' });
 
   // ── Growth Intern: Email Follow-up — Daily 2pm UTC ───────────────────
   cron.schedule('5 14 * * *', () =>

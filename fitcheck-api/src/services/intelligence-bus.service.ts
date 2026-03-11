@@ -61,6 +61,9 @@ export type BusEntryType =
   | 'creator_outreach_metrics'
   | 'reddit_scout_metrics'
   | 'growth_intern_metrics'
+  // Phase 4: Growth Learning
+  | 'reddit_growth_metrics'
+  | 'creator_funnel_metrics'
   // Overnight Orchestrator
   | 'orchestrator_run';
 

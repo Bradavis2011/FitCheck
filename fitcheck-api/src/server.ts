@@ -270,6 +270,25 @@ app.get('/g/prospect/:id/responded', asyncHandler(async (req, res) => {
   </body></html>`);
 }));
 
+// Phase 3: Comment tracking — marks a warming comment posted on a prospect
+app.get('/g/prospect/:id/commented', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { t } = req.query as { t?: string };
+  const { verifyGrowthToken, markProspectCommented } = await import('./services/growth-intern.service.js');
+  if (!t || !verifyGrowthToken(id, 'commented', t)) {
+    res.status(403).send('Invalid token.');
+    return;
+  }
+  const ok = await markProspectCommented(id);
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;">
+      <div style="font-size:48px;">${ok ? '💬' : '⚠️'}</div>
+      <h2 style="color:#A8B5A0;">${ok ? 'Comment Recorded!' : 'Already Updated'}</h2>
+      <p style="color:#2D2D2D;">After 2 comments this creator moves to the DM queue.</p>
+    </div>
+  </body></html>`);
+}));
+
 app.get('/g/thread/:id/posted', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { t } = req.query as { t?: string };

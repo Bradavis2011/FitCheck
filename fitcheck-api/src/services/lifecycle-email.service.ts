@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
 import { executeOrQueue } from './agent-manager.service.js';
-import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { publishToIntelligenceBus, getLatestBusEntry } from './intelligence-bus.service.js';
 
 // ─── Sequence Definitions ─────────────────────────────────────────────────────
 
@@ -643,11 +643,53 @@ async function processDueSequences(): Promise<void> {
 
 export async function runLifecycleEmail(): Promise<void> {
   console.log('[LifecycleEmail] Starting run...');
+
+  // A4: Read churn_metrics from bus — prioritize churn_prevention for high-risk users
+  try {
+    const churnEntry = await getLatestBusEntry('churn_metrics');
+    const churnPayload = churnEntry?.payload as Record<string, unknown> | null;
+    if (churnPayload && (churnPayload.highRiskCount as number) > 0) {
+      console.log(`[LifecycleEmail] churn_metrics: ${churnPayload.highRiskCount} high-risk users — triggering churn_prevention for scored users without active sequence`);
+      await triggerChurnPreventionForRiskyUsers();
+    }
+  } catch (err) {
+    console.error('[LifecycleEmail] churn_metrics read failed:', err);
+  }
+
   await triggerNewSequences();
   await processDueSequences();
   // Publish email metrics to bus every run (cheap DB aggregation)
   await publishEmailMetrics().catch(err => console.error('[LifecycleEmail] Metrics publish failed:', err));
   console.log('[LifecycleEmail] Run complete');
+}
+
+/** A4: Trigger churn_prevention for any user (any tier) with riskScore >= 0.6 and no active sequence */
+async function triggerChurnPreventionForRiskyUsers(): Promise<void> {
+  const now = new Date();
+  try {
+    const highRiskUsers = await prisma.churnRiskScore.findMany({
+      where: { riskScore: { gte: 0.6 } },
+      select: { userId: true },
+    });
+
+    let triggered = 0;
+    for (const { userId } of highRiskUsers) {
+      const existing = await prisma.emailSequence.findUnique({
+        where: { userId_sequence: { userId, sequence: 'churn_prevention' } },
+      });
+      if (!existing) {
+        await prisma.emailSequence.create({
+          data: { userId, sequence: 'churn_prevention', currentStep: 0, status: 'active', nextSendAt: now },
+        });
+        triggered++;
+      }
+    }
+    if (triggered > 0) {
+      console.log(`[LifecycleEmail] Triggered churn_prevention for ${triggered} high-risk user(s)`);
+    }
+  } catch (err) {
+    console.error('[LifecycleEmail] triggerChurnPreventionForRiskyUsers failed:', err);
+  }
 }
 
 // Allow external trigger of upgrade sequence for a specific user

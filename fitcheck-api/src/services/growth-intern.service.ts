@@ -5,12 +5,10 @@
  * Sends one email with everything the founder needs for ~25 min of growth work.
  *
  * Sections:
- *   1. DM These Creators (manual — ~8 min)
- *   2. Emails Sent Automatically (FYI — 0 min)
- *   3. Reddit — Auto-Posted (review — ~3 min)
- *   4. Follow Up These Creators (manual — ~5 min)
- *   5. Today's TikTok Idea (creative — ~5 min to think)
- *   6. Pipeline & Performance
+ *   1. Comment on These Creators (~5 min) — warming comments, pre-written, "Mark Commented"
+ *   2. DM These Creators (~5 min) — warmed only (2+ comments), commission pitch
+ *   3. Today's TikTok Idea (~5 min to think)
+ *   4. Auto-Pilot Status (0 min — FYI) — Reddit karma, creator funnel, channels
  */
 
 import { Resend } from 'resend';
@@ -154,29 +152,64 @@ async function getPipelineStats() {
 // ─── Email HTML Assembly ──────────────────────────────────────────────────────
 
 function buildMorningBriefHtml(sections: {
-  dmProspects: any[];
-  emailsSentYesterday: number;
-  emailFollowUpsSent: number;
-  openedButNoReply: any[];
+  commentProspects: any[];
+  dmProspects: any[]; // warmed (2+ comments) only
   redditPostedYesterday: any[];
   redditForManual: any[];
-  followUpProspects: any[];
   tikTokIdea: string;
   pipeline: Record<string, number>;
   redditByStatus: Record<string, number>;
   twitterPostsThisWeek: number;
+  emailsSentYesterday: number;
+  emailFollowUpsSent: number;
+  redditKarmaHealth: { avgKarma: number; authorRepliedRate: number };
 }): string {
   const {
-    dmProspects, emailsSentYesterday, emailFollowUpsSent, openedButNoReply,
-    redditPostedYesterday, redditForManual, followUpProspects,
+    commentProspects, dmProspects, redditPostedYesterday, redditForManual,
     tikTokIdea, pipeline, redditByStatus, twitterPostsThisWeek,
+    emailsSentYesterday, emailFollowUpsSent, redditKarmaHealth,
   } = sections;
 
   const date = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 
-  // Section 1: DM These Creators
+  // Section 1: Comment on These Creators (warming)
+  const commentSection = commentProspects.length > 0
+    ? commentProspects.map(p => {
+        const profileUrl = profileLink(p.platform, p.handle);
+        const commentedUrl = `${BASE_URL}/g/prospect/${p.id}/commented?t=${generateGrowthToken(p.id, 'commented')}`;
+        const comments = p.warmingComments
+          ? p.warmingComments.split('|').map((c: string) => c.trim()).filter(Boolean)
+          : [];
+        const commentsHtml = comments.length > 0
+          ? comments.map((c: string, i: number) => `
+            <div style="background:#fff;border-left:3px solid #A8B5A0;padding:10px 14px;font-size:13px;color:#2D2D2D;line-height:1.5;font-family:monospace;margin-bottom:8px;">
+              <span style="color:#A8B5A0;font-size:11px;font-weight:600;">COMMENT ${i + 1}:</span><br>${c}
+            </div>`).join('')
+          : '<p style="color:#9CA3AF;font-size:12px;margin:0;">No pre-written comments — leave a genuine, specific observation about their style</p>';
+
+        return `
+        <div style="background:#F5EDE7;border-radius:8px;padding:20px 24px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;margin-bottom:12px;">
+            <span style="font-size:20px;margin-right:8px;">${platformEmoji(p.platform)}</span>
+            <a href="${profileUrl}" style="color:#E85D4C;font-weight:700;font-size:15px;text-decoration:none;">@${p.handle}</a>
+            ${p.followerRange ? `<span style="margin-left:8px;background:#A8B5A0;color:white;font-size:11px;padding:2px 8px;border-radius:12px;">${p.followerRange}</span>` : ''}
+            ${p.niche ? `<span style="margin-left:6px;color:#6B7280;font-size:12px;">${p.niche}</span>` : ''}
+            <span style="margin-left:auto;color:#A8B5A0;font-size:11px;font-weight:600;">${p.commentsPosted || 0}/2 comments done</span>
+          </div>
+          ${commentsHtml}
+          <a href="${commentedUrl}" style="display:inline-block;background:#A8B5A0;color:white;text-decoration:none;padding:8px 18px;border-radius:4px;font-size:12px;font-weight:600;">
+            ✓ Mark Commented
+          </a>
+          <a href="${profileUrl}" style="display:inline-block;margin-left:8px;border:1px solid #A8B5A0;color:#A8B5A0;text-decoration:none;padding:8px 18px;border-radius:4px;font-size:12px;font-weight:600;">
+            Open Profile →
+          </a>
+        </div>`;
+      }).join('')
+    : '<p style="color:#6B7280;font-style:italic;">No prospects need warming today</p>';
+
+  // Section 2: DM These Creators (warmed only — 2+ comments)
   const dmSection = dmProspects.length > 0
     ? dmProspects.map(p => {
         const profileUrl = profileLink(p.platform, p.handle);
@@ -191,6 +224,7 @@ function buildMorningBriefHtml(sections: {
             </a>
             ${p.followerRange ? `<span style="margin-left:8px;background:#E85D4C;color:white;font-size:11px;padding:2px 8px;border-radius:12px;">${p.followerRange}</span>` : ''}
             ${p.niche ? `<span style="margin-left:6px;color:#6B7280;font-size:12px;">${p.niche}</span>` : ''}
+            <span style="margin-left:auto;background:#10B981;color:white;font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;">WARMED ✓</span>
           </div>
           <div style="background:#fff;border-left:3px solid #E85D4C;padding:12px 16px;font-size:13px;color:#2D2D2D;line-height:1.5;font-family:monospace;margin-bottom:12px;">
             ${(p.personalizedDM || 'DM not generated yet').replace(/\n/g, '<br>')}
@@ -203,7 +237,7 @@ function buildMorningBriefHtml(sections: {
           </a>
         </div>`;
       }).join('')
-    : '<p style="color:#6B7280;font-style:italic;">No DM-track prospects ready today</p>';
+    : '<p style="color:#6B7280;font-style:italic;">No warmed prospects ready to DM today — keep commenting in Section 1</p>';
 
   // Section 3: Reddit
   const redditSection = (() => {
@@ -233,36 +267,7 @@ function buildMorningBriefHtml(sections: {
     return '<p style="color:#6B7280;font-style:italic;">No Reddit threads ready today</p>';
   })();
 
-  // Section 4: Follow-up creators
-  const followUpSection = followUpProspects.length > 0
-    ? followUpProspects.map(p => {
-        const profileUrl = profileLink(p.platform, p.handle);
-        const respondedUrl = `${BASE_URL}/g/prospect/${p.id}/responded?t=${generateGrowthToken(p.id, 'responded')}`;
-        const daysSinceContact = p.contactedAt
-          ? Math.floor((Date.now() - new Date(p.contactedAt).getTime()) / (24 * 60 * 60 * 1000))
-          : '?';
-
-        return `
-        <div style="background:#F5EDE7;border-radius:8px;padding:20px 24px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;margin-bottom:8px;">
-            <span style="font-size:20px;margin-right:8px;">${platformEmoji(p.platform)}</span>
-            <a href="${profileUrl}" style="color:#E85D4C;font-weight:700;font-size:15px;text-decoration:none;">@${p.handle}</a>
-            <span style="margin-left:auto;color:#9CA3AF;font-size:12px;">Last contacted: ${daysSinceContact}d ago</span>
-          </div>
-          <div style="background:#fff;border-left:3px solid #F59E0B;padding:12px 16px;font-size:13px;color:#2D2D2D;line-height:1.5;font-family:monospace;margin-bottom:12px;">
-            ${(p.followUpDM || 'Hey! Just wanted to follow up on my last message about Or This? — still happy to set you up with free premium access if you\'re interested!').replace(/\n/g, '<br>')}
-          </div>
-          <a href="${respondedUrl}" style="display:inline-block;background:#10B981;color:white;text-decoration:none;padding:8px 18px;border-radius:4px;font-size:12px;font-weight:600;">
-            ✓ They Responded!
-          </a>
-          <a href="${profileUrl}" style="display:inline-block;margin-left:8px;border:1px solid #E85D4C;color:#E85D4C;text-decoration:none;padding:8px 18px;border-radius:4px;font-size:12px;font-weight:600;">
-            Open Profile →
-          </a>
-        </div>`;
-      }).join('')
-    : '<p style="color:#6B7280;font-style:italic;">No follow-up needed today</p>';
-
-  // Pipeline summary
+  // Pipeline funnel summary (for Section 4)
   const pipelineRows = [
     { label: 'Discovered', status: 'identified' },
     { label: 'Ready to Contact', status: 'dm_ready' },
@@ -299,20 +304,20 @@ function buildMorningBriefHtml(sections: {
         <td style="padding:20px 40px;background:#F5EDE7;">
           <table width="100%"><tr>
             <td style="text-align:center;padding:0 12px;">
+              <div style="font-size:24px;font-weight:700;color:#A8B5A0;">${commentProspects.length}</div>
+              <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">TO COMMENT</div>
+            </td>
+            <td style="text-align:center;padding:0 12px;">
               <div style="font-size:24px;font-weight:700;color:#E85D4C;">${dmProspects.length}</div>
-              <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">DMs TO SEND</div>
+              <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">WARMED DMs</div>
             </td>
             <td style="text-align:center;padding:0 12px;">
-              <div style="font-size:24px;font-weight:700;color:#E85D4C;">${emailsSentYesterday + emailFollowUpsSent}</div>
-              <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">EMAILS AUTO-SENT</div>
-            </td>
-            <td style="text-align:center;padding:0 12px;">
-              <div style="font-size:24px;font-weight:700;color:#E85D4C;">${redditPostedYesterday.length}</div>
+              <div style="font-size:24px;font-weight:700;color:#FF6314;">${redditPostedYesterday.length}</div>
               <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">REDDIT POSTED</div>
             </td>
             <td style="text-align:center;padding:0 12px;">
-              <div style="font-size:24px;font-weight:700;color:#E85D4C;">${twitterPostsThisWeek}</div>
-              <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">TWEETS THIS WEEK</div>
+              <div style="font-size:24px;font-weight:700;color:#6B7280;">${emailsSentYesterday + emailFollowUpsSent}</div>
+              <div style="font-size:11px;color:#6B7280;letter-spacing:0.5px;">EMAILS AUTO</div>
             </td>
           </tr></table>
         </td>
@@ -320,66 +325,40 @@ function buildMorningBriefHtml(sections: {
 
       <tr><td style="padding:32px 40px;">
 
-        <!-- ── Section 1: DM These Creators ── -->
+        <!-- ── Section 1: Comment on These Creators ── -->
+        <div style="margin-bottom:36px;">
+          <div style="display:flex;align-items:center;margin-bottom:20px;">
+            <div style="width:3px;height:20px;background:#A8B5A0;margin-right:12px;border-radius:2px;"></div>
+            <div>
+              <div style="font-size:11px;letter-spacing:1.5px;color:#A8B5A0;font-weight:600;margin-bottom:2px;">SECTION 1 · ~5 MIN</div>
+              <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Comment on These Creators</div>
+            </div>
+            ${commentProspects.length > 0 ? `<div style="margin-left:auto;background:#A8B5A0;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;">${commentProspects.length} to comment</div>` : ''}
+          </div>
+          <p style="font-size:12px;color:#6B7280;margin:0 0 16px;">After 2 comments on a prospect they move to the DM queue. No mention of Or This? — pure engagement.</p>
+          ${commentSection}
+        </div>
+
+        <!-- ── Section 2: DM These Creators (warmed) ── -->
         <div style="margin-bottom:36px;">
           <div style="display:flex;align-items:center;margin-bottom:20px;">
             <div style="width:3px;height:20px;background:#E85D4C;margin-right:12px;border-radius:2px;"></div>
             <div>
-              <div style="font-size:11px;letter-spacing:1.5px;color:#E85D4C;font-weight:600;margin-bottom:2px;">SECTION 1 · ~8 MIN</div>
+              <div style="font-size:11px;letter-spacing:1.5px;color:#E85D4C;font-weight:600;margin-bottom:2px;">SECTION 2 · ~5 MIN</div>
               <div style="font-size:18px;font-weight:700;color:#1A1A1A;">DM These Creators</div>
             </div>
-            <div style="margin-left:auto;background:#E85D4C;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;">${dmProspects.length} to DM</div>
+            ${dmProspects.length > 0 ? `<div style="margin-left:auto;background:#E85D4C;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;">${dmProspects.length} to DM</div>` : ''}
           </div>
+          <p style="font-size:12px;color:#6B7280;margin:0 0 16px;">These creators have been warmed (2+ comments). DM includes the 30% affiliate commission pitch.</p>
           ${dmSection}
         </div>
 
-        <!-- ── Section 2: Emails Auto-Sent ── -->
-        <div style="margin-bottom:36px;">
-          <div style="display:flex;align-items:center;margin-bottom:16px;">
-            <div style="width:3px;height:20px;background:#A8B5A0;margin-right:12px;border-radius:2px;"></div>
-            <div>
-              <div style="font-size:11px;letter-spacing:1.5px;color:#A8B5A0;font-weight:600;margin-bottom:2px;">SECTION 2 · 0 MIN</div>
-              <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Emails Sent Automatically</div>
-            </div>
-          </div>
-          <p style="font-size:14px;color:#2D2D2D;margin:0 0 8px;">✅ Sent <strong>${emailsSentYesterday}</strong> outreach emails + <strong>${emailFollowUpsSent}</strong> follow-ups automatically.</p>
-          ${openedButNoReply.length > 0 ? `
-          <p style="font-size:13px;color:#F59E0B;margin:8px 0;">⚡ <strong>${openedButNoReply.length}</strong> creators opened your email but haven't replied yet — consider a manual DM:</p>
-          ${openedButNoReply.map(p => `<span style="font-size:13px;color:#E85D4C;">@${p.handle}</span> (${p.platform}) &nbsp;`).join('')}
-          ` : ''}
-        </div>
-
-        <!-- ── Section 3: Reddit ── -->
-        <div style="margin-bottom:36px;">
-          <div style="display:flex;align-items:center;margin-bottom:16px;">
-            <div style="width:3px;height:20px;background:#FF6314;margin-right:12px;border-radius:2px;"></div>
-            <div>
-              <div style="font-size:11px;letter-spacing:1.5px;color:#FF6314;font-weight:600;margin-bottom:2px;">SECTION 3 · ~3 MIN</div>
-              <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Reddit — Auto-Posted</div>
-            </div>
-          </div>
-          ${redditSection}
-        </div>
-
-        <!-- ── Section 4: Follow Up ── -->
-        <div style="margin-bottom:36px;">
-          <div style="display:flex;align-items:center;margin-bottom:16px;">
-            <div style="width:3px;height:20px;background:#F59E0B;margin-right:12px;border-radius:2px;"></div>
-            <div>
-              <div style="font-size:11px;letter-spacing:1.5px;color:#F59E0B;font-weight:600;margin-bottom:2px;">SECTION 4 · ~5 MIN</div>
-              <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Follow Up These Creators</div>
-            </div>
-            ${followUpProspects.length > 0 ? `<div style="margin-left:auto;background:#F59E0B;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;">${followUpProspects.length} to follow up</div>` : ''}
-          </div>
-          ${followUpSection}
-        </div>
-
-        <!-- ── Section 5: TikTok Idea ── -->
+        <!-- ── Section 3: Today's TikTok Idea ── -->
         <div style="margin-bottom:36px;">
           <div style="display:flex;align-items:center;margin-bottom:16px;">
             <div style="width:3px;height:20px;background:#7C3AED;margin-right:12px;border-radius:2px;"></div>
             <div>
-              <div style="font-size:11px;letter-spacing:1.5px;color:#7C3AED;font-weight:600;margin-bottom:2px;">SECTION 5 · ~5 MIN TO THINK</div>
+              <div style="font-size:11px;letter-spacing:1.5px;color:#7C3AED;font-weight:600;margin-bottom:2px;">SECTION 3 · ~5 MIN TO THINK</div>
               <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Today's TikTok Idea</div>
             </div>
           </div>
@@ -388,33 +367,49 @@ ${tikTokIdea}
           </div>
         </div>
 
-        <!-- ── Section 6: Pipeline ── -->
+        <!-- ── Section 4: Auto-Pilot Status ── -->
         <div style="margin-bottom:16px;">
           <div style="display:flex;align-items:center;margin-bottom:16px;">
             <div style="width:3px;height:20px;background:#1A1A1A;margin-right:12px;border-radius:2px;"></div>
             <div>
-              <div style="font-size:11px;letter-spacing:1.5px;color:#6B7280;font-weight:600;margin-bottom:2px;">SECTION 6</div>
-              <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Pipeline & Performance</div>
+              <div style="font-size:11px;letter-spacing:1.5px;color:#6B7280;font-weight:600;margin-bottom:2px;">SECTION 4 · 0 MIN — FYI</div>
+              <div style="font-size:18px;font-weight:700;color:#1A1A1A;">Auto-Pilot Status</div>
             </div>
           </div>
-          <table width="100%" style="border-collapse:collapse;border:1px solid #F5EDE7;border-radius:8px;overflow:hidden;">
-            <thead>
-              <tr style="background:#F5EDE7;">
-                <th style="padding:10px 16px;font-size:11px;letter-spacing:1px;color:#6B7280;text-align:left;font-weight:600;">STAGE</th>
-                <th style="padding:10px 16px;font-size:11px;letter-spacing:1px;color:#6B7280;text-align:right;font-weight:600;">COUNT</th>
-              </tr>
-            </thead>
-            <tbody>
+
+          <!-- Reddit auto-pilot -->
+          <div style="background:#FFF9F0;border:1px solid #FED7AA;border-radius:8px;padding:16px 20px;margin-bottom:12px;">
+            <div style="font-size:11px;letter-spacing:1px;color:#F59E0B;font-weight:600;margin-bottom:8px;">REDDIT AUTO-PILOT</div>
+            ${redditSection}
+            ${redditKarmaHealth.avgKarma > 0 || redditKarmaHealth.authorRepliedRate > 0 ? `
+            <p style="font-size:12px;color:#6B7280;margin:8px 0 0;">
+              Avg comment karma: <strong>${redditKarmaHealth.avgKarma.toFixed(1)}</strong> &nbsp;·&nbsp;
+              OP replied rate: <strong>${(redditKarmaHealth.authorRepliedRate * 100).toFixed(0)}%</strong>
+            </p>` : ''}
+          </div>
+
+          <!-- Creator pipeline funnel -->
+          <div style="background:#F5EDE7;border-radius:8px;padding:16px 20px;margin-bottom:12px;">
+            <div style="font-size:11px;letter-spacing:1px;color:#E85D4C;font-weight:600;margin-bottom:8px;">CREATOR PIPELINE FUNNEL</div>
+            <table width="100%" style="border-collapse:collapse;">
               ${pipelineRows}
-              <tr style="background:#F5EDE7;">
-                <td style="padding:10px 16px;font-size:12px;color:#6B7280;">Reddit threads posted (all time)</td>
-                <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#FF6314;text-align:right;">${redditByStatus.posted || 0}</td>
-              </tr>
-              <tr>
-                <td style="padding:10px 16px;font-size:12px;color:#6B7280;">Tweets this week</td>
-                <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#1DA1F2;text-align:right;">${twitterPostsThisWeek}</td>
-              </tr>
-            </tbody>
+            </table>
+          </div>
+
+          <!-- Channels overview -->
+          <table width="100%" style="border-collapse:collapse;border:1px solid #F5EDE7;border-radius:8px;overflow:hidden;">
+            <tr style="background:#F5EDE7;">
+              <td style="padding:10px 16px;font-size:12px;color:#6B7280;">Reddit threads posted (all time)</td>
+              <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#FF6314;text-align:right;">${redditByStatus.posted || 0}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 16px;font-size:12px;color:#6B7280;">Tweets this week</td>
+              <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#1DA1F2;text-align:right;">${twitterPostsThisWeek}</td>
+            </tr>
+            <tr style="background:#F5EDE7;">
+              <td style="padding:10px 16px;font-size:12px;color:#6B7280;">Emails auto-sent yesterday</td>
+              <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#A8B5A0;text-align:right;">${emailsSentYesterday + emailFollowUpsSent}</td>
+            </tr>
           </table>
         </div>
 
@@ -450,50 +445,47 @@ export async function runMorningBrief(): Promise<void> {
 
   const now = new Date();
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
   const [
+    commentProspects,
     dmProspects,
     emailSentYesterdayCount,
     emailFollowUpYesterdayCount,
-    openedButNoReply,
     redditPostedYesterday,
     redditForManual,
-    followUpProspects,
+    redditKarmaData,
     { pipelineByStatus, redditByStatus, twitterStats },
   ] = await Promise.all([
-    // DM-track prospects ready to contact
+    // Section 1: DM-track prospects needing warming (0-1 comments, not yet DM-ready via warming)
     prisma.creatorProspect.findMany({
-      where: { outreachMethod: 'dm', status: 'dm_ready' },
+      where: {
+        outreachMethod: 'dm',
+        status: 'dm_ready',
+        commentsPosted: { lt: 2 },
+      },
       orderBy: { createdAt: 'asc' },
-      take: 15,
+      take: 8,
+    }),
+
+    // Section 2: Warmed DM-track prospects (2+ comments)
+    prisma.creatorProspect.findMany({
+      where: {
+        outreachMethod: 'dm',
+        status: 'dm_ready',
+        commentsPosted: { gte: 2 },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 8,
     }),
 
     // Emails sent yesterday
     prisma.creatorProspect.count({
-      where: {
-        outreachMethod: 'email',
-        contactedAt: { gte: yesterday },
-      },
+      where: { outreachMethod: 'email', contactedAt: { gte: yesterday } },
     }),
 
     // Follow-up emails sent yesterday
     prisma.creatorProspect.count({
-      where: {
-        outreachMethod: 'email',
-        followedUpAt: { gte: yesterday },
-      },
-    }),
-
-    // Opened but no reply
-    prisma.creatorProspect.findMany({
-      where: {
-        outreachMethod: 'email',
-        status: { in: ['contacted', 'followed_up'] },
-        emailOpenedAt: { not: null },
-        respondedAt: null,
-      },
-      take: 5,
+      where: { outreachMethod: 'email', followedUpAt: { gte: yesterday } },
     }),
 
     // Reddit posted yesterday
@@ -502,51 +494,62 @@ export async function runMorningBrief(): Promise<void> {
       orderBy: { postedAt: 'desc' },
     }),
 
-    // Reddit threads for manual posting (approved status — Reddit not configured)
+    // Reddit threads for manual posting (approved status)
     prisma.redditThread.findMany({
       where: { status: 'approved', suggestedResponse: { not: null } },
       orderBy: { relevanceScore: 'desc' },
       take: 3,
     }),
 
-    // DM-track prospects needing follow-up (contacted 3+ days ago)
-    prisma.creatorProspect.findMany({
+    // Reddit karma health (posted threads in last 14 days with karma data)
+    prisma.redditThread.findMany({
       where: {
-        outreachMethod: 'dm',
-        status: 'contacted',
-        contactedAt: { lte: threeDaysAgo },
+        status: 'posted',
+        commentKarma: { not: null },
+        postedAt: { gte: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000) },
       },
-      orderBy: { contactedAt: 'asc' },
-      take: 10,
+      select: { commentKarma: true, authorReplied: true },
+      take: 50,
     }),
 
     // Pipeline stats
     getPipelineStats(),
   ]);
 
+  // Compute Reddit karma health
+  const karmaReadings = redditKarmaData.filter(t => t.commentKarma !== null);
+  const redditKarmaHealth = {
+    avgKarma: karmaReadings.length > 0
+      ? karmaReadings.reduce((s, t) => s + (t.commentKarma ?? 0), 0) / karmaReadings.length
+      : 0,
+    authorRepliedRate: karmaReadings.length > 0
+      ? karmaReadings.filter(t => t.authorReplied).length / karmaReadings.length
+      : 0,
+  };
+
   // Generate TikTok idea
   const tikTokIdea = await generateTikTokIdea();
 
   // Build email
   const html = buildMorningBriefHtml({
+    commentProspects,
     dmProspects,
-    emailsSentYesterday: emailSentYesterdayCount,
-    emailFollowUpsSent: emailFollowUpYesterdayCount,
-    openedButNoReply,
     redditPostedYesterday,
     redditForManual,
-    followUpProspects,
     tikTokIdea,
     pipeline: pipelineByStatus,
     redditByStatus,
     twitterPostsThisWeek: twitterStats,
+    emailsSentYesterday: emailSentYesterdayCount,
+    emailFollowUpsSent: emailFollowUpYesterdayCount,
+    redditKarmaHealth,
   });
 
   try {
     await resend.emails.send({
       from: `Or This? Growth Intern <${fromEmail}>`,
       to: recipient,
-      subject: `Growth Brief — ${dmProspects.length} DMs to send, ${emailSentYesterdayCount + emailFollowUpYesterdayCount} emails auto-sent`,
+      subject: `Growth Brief — ${commentProspects.length} to comment, ${dmProspects.length} warmed DMs ready`,
       html,
     });
 
@@ -558,15 +561,48 @@ export async function runMorningBrief(): Promise<void> {
   // Publish metrics
   await publishToIntelligenceBus('growth-intern', 'growth_intern_metrics', {
     runAt: now.toISOString(),
-    dmProspectsReady: dmProspects.length,
+    commentProspectsReady: commentProspects.length,
+    warmedDmProspectsReady: dmProspects.length,
     emailsSentYesterday: emailSentYesterdayCount,
     followUpsSentYesterday: emailFollowUpYesterdayCount,
     redditPostedYesterday: redditPostedYesterday.length,
-    followUpProspectsCount: followUpProspects.length,
+    redditAvgKarma: redditKarmaHealth.avgKarma,
     pipeline: pipelineByStatus,
+    summary: `${commentProspects.length} to comment, ${dmProspects.length} warmed DMs, ${redditPostedYesterday.length} Reddit posts`,
   }).catch(() => {});
 
   console.log('[GrowthIntern] Run complete');
+}
+
+// ─── Comment Tracking ─────────────────────────────────────────────────────────
+
+/**
+ * Phase 3: Called from /g/prospect/:id/commented endpoint.
+ * Increments commentsPosted + sets warmingStartedAt.
+ * When commentsPosted >= 2, the prospect is considered "warmed" and appears in DM section.
+ */
+export async function markProspectCommented(prospectId: string): Promise<boolean> {
+  try {
+    const prospect = await prisma.creatorProspect.findUnique({
+      where: { id: prospectId },
+      select: { commentsPosted: true, warmingStartedAt: true, status: true },
+    });
+
+    if (!prospect || !['dm_ready', 'identified'].includes(prospect.status)) return false;
+
+    const newCount = (prospect.commentsPosted || 0) + 1;
+
+    await prisma.creatorProspect.update({
+      where: { id: prospectId },
+      data: {
+        commentsPosted: newCount,
+        warmingStartedAt: prospect.warmingStartedAt ?? new Date(),
+      },
+    });
+
+    console.log(`[GrowthIntern] Marked comment for prospect ${prospectId} (${newCount} total)`);
+    return true;
+  } catch { return false; }
 }
 
 // ─── Stale Prospect Cleanup ───────────────────────────────────────────────────

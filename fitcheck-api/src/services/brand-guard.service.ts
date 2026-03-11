@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '../utils/prisma.js';
-import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { publishToIntelligenceBus, getLatestBusEntry } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -25,6 +25,62 @@ setInterval(() => {
 function cacheKey(text: string): string {
   // Cheap fingerprint: first 120 chars + length (good enough for dedup)
   return `${text.slice(0, 120)}|${text.length}`;
+}
+
+// B3: In-memory calibration note — appended to the brand guard prompt when drift is detected
+let calibrationNote = '';
+
+/**
+ * B3: Read brand_guard_metrics from bus to detect over/under-flagging drift.
+ * When approval rate > 95% for most agents = too lenient → tighten note.
+ * When rejection rate > 50% for most agents = too strict → loosen note.
+ * Updates the module-level calibrationNote injected into checkContent().
+ * Called from publishBrandGuardMetrics() after each monthly measurement.
+ */
+export async function calibrateBrandGuard(): Promise<void> {
+  if (!process.env.GEMINI_API_KEY) return;
+
+  try {
+    const entry = await getLatestBusEntry('brand_guard_metrics');
+    if (!entry) return;
+
+    const payload = entry.payload as Record<string, unknown>;
+    const overFlagging = Array.isArray(payload.overFlagging) ? payload.overFlagging as string[] : [];
+    const underFlagging = Array.isArray(payload.underFlagging) ? payload.underFlagging as string[] : [];
+
+    if (overFlagging.length === 0 && underFlagging.length === 0) {
+      calibrationNote = '';
+      return;
+    }
+
+    const driftDesc = [
+      overFlagging.length > 0 ? `These agents have approval rates >95% (may be too lenient): ${overFlagging.slice(0, 3).join(', ')}` : '',
+      underFlagging.length > 0 ? `These agents have rejection rates >50% (may be over-flagging): ${underFlagging.slice(0, 3).join(', ')}` : '',
+    ].filter(Boolean).join('. ');
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash-lite',
+      generationConfig: { temperature: 0.3, maxOutputTokens: 150 },
+    });
+
+    const prompt = `You are calibrating an AI brand safety reviewer for "Or This?".
+
+Drift detected: ${driftDesc}
+
+Write a single calibration instruction (under 120 chars) to append to the brand safety review prompt.
+If agents are too lenient → instruction should remind reviewer to flag more edge cases.
+If agents are over-flagging → instruction should remind reviewer that minor enthusiasm is OK if not excessive.
+Write ONLY the instruction text. No preamble.`;
+
+    const result = await model.generateContent(prompt);
+    const note = result.response.text().trim();
+    if (note && note.length > 10 && note.length < 200) {
+      calibrationNote = `\nCalibration note: ${note}`;
+      console.log(`[BrandGuard] Calibration updated: ${note}`);
+    }
+  } catch (err) {
+    console.error('[BrandGuard] Calibration failed:', err);
+  }
 }
 
 /**
@@ -63,7 +119,7 @@ Review the following content and flag if it:
 - Uses prohibited phrases from brand voice v3.0: "you've got this", "chef's kiss", "nailed it", "gorgeous", "stunning", "trust your instincts", "almost there"
 - Makes false or unsubstantiated claims or guarantees
 - Contains personally identifiable information (names, emails, etc.)
-
+${calibrationNote}
 Context: ${context}
 
 Content to review (max 2000 chars shown):
@@ -148,6 +204,9 @@ export async function publishBrandGuardMetrics(): Promise<void> {
     });
 
     console.log(`[BrandGuard] Published metrics for ${metrics.length} agents`);
+
+    // B3: Auto-calibrate based on the drift data just published
+    await calibrateBrandGuard().catch(() => {});
   } catch (err) {
     console.error('[BrandGuard] Failed to publish metrics:', err);
   }

@@ -8,7 +8,7 @@
  */
 
 import { prisma } from '../utils/prisma.js';
-import { publishToIntelligenceBus } from './intelligence-bus.service.js';
+import { publishToIntelligenceBus, getLatestBusEntry } from './intelligence-bus.service.js';
 
 // ─── Google AI SDK ────────────────────────────────────────────────────────────
 
@@ -210,6 +210,15 @@ async function generateDMs(
     .map((p, i) => `${i + 1}. @${p.handle} on ${p.platform} | Niche: ${p.niche || 'fashion'} | Style: ${p.contentStyle || 'outfit content'}`)
     .join('\n');
 
+  // B2: Check for ops-learning-generated improved DM template
+  let improvedTemplateBlock = '';
+  try {
+    const variant = await prisma.socialPromptVariant.findUnique({ where: { contentType: 'creator_dm' } });
+    if (variant?.isActive && variant.promptText) {
+      improvedTemplateBlock = `\n\nLearned improvements from high-performing DMs:\n${variant.promptText}`;
+    }
+  } catch { /* non-fatal */ }
+
   const prompt = `Generate a short personalized DM for each of these fashion creators about an AI outfit scoring app called "Or This?".
 
 Creators:
@@ -223,12 +232,14 @@ Brand voice (Or This?):
 - Tone: confident and specific, not breathless. Say what you mean, then stop.
 
 Rules:
-- Under 70 words each
+- Under 80 words each
 - Reference their specific content style/niche
 - Pitch "rate my outfit with AI" as a CONTENT HOOK — filming their reaction to the AI score is inherently shareable
-- Offer free premium access
-- End with a simple ask ("want the link?")
-- Write as the founder of Or This? — direct, not corporate, not fan-girling
+- The core pitch is the AFFILIATE PROGRAM: they earn 30% of every subscription from users they bring in. That's ~$1-2/subscriber/month, recurring. Every video they post grows their passive income.
+- Give a concrete example: "If 50 people sign up through your link and 10% go paid, that's ~$20/month growing with each video"
+- Do NOT offer "free premium access" as the main pitch — it's irrelevant to a creator building income
+- End with a simple ask ("want your affiliate link?")
+- Write as the founder of Or This? — direct, not corporate, not fan-girling${improvedTemplateBlock}
 
 Return ONLY a JSON object mapping handle to DM text:
 {"handle1": "dm text here", "handle2": "dm text here"}`;
@@ -259,6 +270,15 @@ async function generateEmails(
     .map((p, i) => `${i + 1}. @${p.handle} on ${p.platform} | Niche: ${p.niche || 'fashion'} | Style: ${p.contentStyle || 'outfit content'}`)
     .join('\n');
 
+  // B2: Check for ops-learning-generated improved email template
+  let improvedTemplateBlock = '';
+  try {
+    const variant = await prisma.socialPromptVariant.findUnique({ where: { contentType: 'creator_email' } });
+    if (variant?.isActive && variant.promptText) {
+      improvedTemplateBlock = `\n\nLearned improvements from high-performing emails:\n${variant.promptText}`;
+    }
+  } catch { /* non-fatal */ }
+
   const prompt = `Generate a short personalized outreach email for each creator about an AI outfit scoring app called "Or This?".
 
 Creators:
@@ -272,13 +292,15 @@ Brand voice (Or This?):
 - Tone: confident and specific, not breathless. Say what you mean, then stop.
 
 Rules:
-Subject: specific and direct, under 50 chars. NOT "Partnership Opportunity". Example: "idea for your outfit content", "quick idea for @handle"
-Body: under 100 words, written as the founder — direct, not corporate, not fan-girling
+Subject: specific and direct, under 50 chars. NOT "Partnership Opportunity". Example: "earn 30% on your Or This? referrals", "quick idea for @handle"
+Body: under 110 words, written as the founder — direct, not corporate, not fan-girling
 - Reference their specific content niche
 - Pitch "rate my outfit with AI" as a video content format (filming your reaction to the score)
-- Mention free premium access offer
-- Simple CTA: "Just reply and I'll set you up"
-- Include the App Store link: https://apps.apple.com/app/id6759472490
+- The core value prop is the AFFILIATE PROGRAM: 30% of every subscription ($1-2/subscriber/month, recurring)
+- Include a concrete earnings example: "50 users from your link, 10% go paid = ~$20/mo passive income growing with every video"
+- Their referral link tracks every install they drive — they get credit for every paid subscriber
+- Simple CTA: "Reply and I'll set up your affiliate link"
+- Include the App Store link: https://apps.apple.com/app/id6759472490${improvedTemplateBlock}
 
 Return ONLY a JSON object:
 {"handle1": {"subject": "...", "body": "..."}, "handle2": {"subject": "...", "body": "..."}}`;
@@ -291,6 +313,51 @@ Return ONLY a JSON object:
     return JSON.parse(jsonMatch[0]);
   } catch (err) {
     console.warn('[CreatorScout] Email generation failed:', err);
+    return {};
+  }
+}
+
+// ─── Phase 3: Warming Comments Generation ─────────────────────────────────────
+
+async function generateWarmingComments(
+  genAI: any,
+  prospects: Array<{ handle: string; platform: string; niche?: string; contentStyle?: string }>,
+): Promise<Record<string, string>> {
+  if (prospects.length === 0) return {};
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+
+  const listText = prospects
+    .map((p, i) => `${i + 1}. @${p.handle} on ${p.platform} | Niche: ${p.niche || 'fashion'} | Style: ${p.contentStyle || 'outfit content'}`)
+    .join('\n');
+
+  const prompt = `Generate 2-3 short, genuine engagement comments for each of these fashion creators. These are warming comments — pure content engagement, NO mention of Or This? or any app.
+
+Creators:
+${listText}
+
+Rules:
+- Each comment: 1-2 sentences, 15-30 words
+- Specific to their niche and content style — not generic ("great post!")
+- Sounds like a knowledgeable fashion enthusiast, not a brand
+- Comment on craft: color blocking, layering, silhouette, proportions, texture contrast, styling choices
+- Examples of good comments:
+  "The color blocking here is strong — that rust tone works"
+  "This layering is underrated, the texture contrast carries it"
+  "The proportion play here — cropped top with wide-leg — is exactly right for this silhouette"
+- Examples of bad comments (do NOT write): "Love this!", "So cute!", "Great outfit!", "Amazing content!"
+
+Return ONLY a JSON object mapping handle to a single string with 2-3 comments separated by "|":
+{"handle1": "comment 1|comment 2|comment 3", "handle2": "comment 1|comment 2"}`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return {};
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.warn('[CreatorScout] Warming comment generation failed:', err);
     return {};
   }
 }
@@ -333,14 +400,34 @@ export async function runCreatorScout(): Promise<void> {
   const genAI = await getGemini();
   const batchDate = new Date().toISOString().split('T')[0];
 
+  // A5: Read creator_outreach_metrics to bias toward high-performing platforms
+  let outreachBiasFilter: string | null = null;
+  try {
+    const outreachEntry = await getLatestBusEntry('creator_outreach_metrics');
+    const outreachPayload = outreachEntry?.payload as Record<string, unknown> | null;
+    if (outreachPayload?.type === 'outreach' && typeof outreachPayload.sent === 'number') {
+      // If email outreach is active and sending, bias toward email-track creators
+      if (outreachPayload.sent > 0) {
+        outreachBiasFilter = 'email';
+        console.log(`[CreatorScout] Outreach bias: email-track (${outreachPayload.sent} emails sent last run)`);
+      }
+    }
+  } catch { /* non-fatal */ }
+
   // Analyze past query performance for self-optimization
   const queryPerformance = await analyzeQueryPerformance();
   const hasPerformanceData = Object.keys(queryPerformance).length > 0;
 
   // Daily run: 25 queries — top performers weighted + random rotation to cover all 100+
   let queriesToRun: string[];
+  // If email bias active, prefer queries that are more likely to surface creators with email contact info
+  const queryPool = outreachBiasFilter === 'email'
+    ? SEARCH_QUERIES.filter(q => q.includes('site:') || q.includes('blogger') || q.includes('instagram') || q.includes('youtube'))
+        .concat(SEARCH_QUERIES.filter(q => !q.includes('site:') && !q.includes('blogger') && !q.includes('instagram') && !q.includes('youtube')))
+    : SEARCH_QUERIES;
+
   if (hasPerformanceData) {
-    const sortedByPerformance = [...SEARCH_QUERIES].sort((a, b) => {
+    const sortedByPerformance = [...queryPool].sort((a, b) => {
       return (queryPerformance[b] || 0) - (queryPerformance[a] || 0);
     });
     // Top 10 high-performing + 15 random from the rest
@@ -350,7 +437,7 @@ export async function runCreatorScout(): Promise<void> {
     ];
   } else {
     // First run: random 25 queries
-    queriesToRun = [...SEARCH_QUERIES].sort(() => Math.random() - 0.5).slice(0, 25);
+    queriesToRun = [...queryPool].sort(() => Math.random() - 0.5).slice(0, 25);
   }
 
   let totalFound = 0;
@@ -413,11 +500,24 @@ export async function runCreatorScout(): Promise<void> {
     await new Promise(r => setTimeout(r, 1000));
   }
 
+  // Phase 3: Generate warming comments for DM-track prospects
+  const allWarmingComments: Record<string, string> = {};
+  const warmingBatches: typeof dmTrack[] = [];
+  for (let i = 0; i < dmTrack.length; i += 5) {
+    warmingBatches.push(dmTrack.slice(i, i + 5));
+  }
+  for (const batch of warmingBatches) {
+    const comments = await generateWarmingComments(genAI, batch);
+    Object.assign(allWarmingComments, comments);
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
   // Upsert prospects into DB
   for (const prospect of allProspects) {
     const outreachMethod = prospect.email ? 'email' : 'dm';
     const personalizedDM = allDMs[prospect.handle] || null;
     const emailContent = allEmails[prospect.handle] || null;
+    const warmingComments = allWarmingComments[prospect.handle] || null;
 
     try {
       await prisma.creatorProspect.upsert({
@@ -450,6 +550,7 @@ export async function runCreatorScout(): Promise<void> {
           personalizedDM,
           emailSubject: emailContent?.subject,
           emailBody: emailContent?.body,
+          warmingComments,
           searchQuery: prospect.searchQuery,
           batchDate,
         },

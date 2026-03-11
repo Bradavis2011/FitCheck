@@ -2,6 +2,20 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 import { prisma } from '../utils/prisma.js';
 import { getWeatherForCity } from './weather.service.js';
 
+// ─── Active Stylist Prompt (versioned) ───────────────────────────────────────
+
+/** Get the active stylist system prompt from PromptVersion table, falling back to hardcoded. */
+async function getActiveStylistVoice(): Promise<{ voice: string; version: string | null }> {
+  try {
+    const pv = await prisma.promptVersion.findFirst({
+      where: { promptType: 'stylist_chat', isActive: true, isCandidate: false },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (pv) return { voice: pv.promptText, version: pv.version };
+  } catch { /* fall through to default */ }
+  return { voice: STYLIST_VOICE, version: null };
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const DAILY_LIMITS: Record<string, number> = {
@@ -10,7 +24,7 @@ const DAILY_LIMITS: Record<string, number> = {
   pro: Infinity,
 };
 
-const STYLIST_VOICE = `You are Noa, the AI personal stylist at Or This?. You speak like a SoHo stylist who charges $400/hour: direct, specific, and worth every word.
+export const STYLIST_VOICE = `You are Noa, the AI personal stylist at Or This?. You speak like a SoHo stylist who charges $400/hour: direct, specific, and worth every word.
 
 Voice rules (non-negotiable):
 - Be decisive. Name the specific garment. Say "the navy trousers" not "your bottoms."
@@ -192,10 +206,12 @@ export async function handleStylistMessage(
     }
   }
 
+  const { voice: activeStylistVoice, version: stylistPromptVersion } = await getActiveStylistVoice();
+
   const systemPrompt =
     contextParts.length > 0
-      ? `${STYLIST_VOICE}\n\n---\n\n${contextParts.join('\n\n')}`
-      : STYLIST_VOICE;
+      ? `${activeStylistVoice}\n\n---\n\n${contextParts.join('\n\n')}`
+      : activeStylistVoice;
 
   // Load conversation history (last 10 turns = 20 messages)
   const recentChats = await prisma.stylistChat.findMany({
@@ -229,11 +245,11 @@ export async function handleStylistMessage(
   const aiText = result.response.text();
   if (!aiText) throw new Error('Empty response from stylist AI');
 
-  // Save both messages
+  // Save both messages (tag model response with prompt version for learning)
   await prisma.stylistChat.createMany({
     data: [
       { userId, role: 'user', content: message },
-      { userId, role: 'model', content: aiText },
+      { userId, role: 'model', content: aiText, promptVersion: stylistPromptVersion ?? undefined },
     ],
   });
 

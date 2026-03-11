@@ -1,5 +1,6 @@
 import { prisma } from '../utils/prisma.js';
 import { entitlementToTier } from '../constants/tiers.js';
+import { accrueCommissionForUser } from './creator-commission.service.js';
 
 interface RevenueCatWebhookEvent {
   type: string;
@@ -64,6 +65,10 @@ export async function processWebhookEvent(payload: RevenueCatWebhookPayload): Pr
         },
       });
       console.log(`[Subscription] User ${userId} upgraded to ${newTier}`);
+      // Accrue affiliate commission if this user was referred by a Creator
+      if (['INITIAL_PURCHASE', 'RENEWAL'].includes(event.type)) {
+        await accrueCommissionForUser(userId, event.type, event.product_id).catch(() => {});
+      }
       break;
 
     case 'CANCELLATION':

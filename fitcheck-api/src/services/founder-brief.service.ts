@@ -37,7 +37,7 @@ export async function runFounderBrief(): Promise<void> {
     const ago7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const ago14d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary, asoSummary, attributionEntry, uptimeSummary, infraSummary, e2eSummary, churnSummary, supportSummary] = await Promise.all([
+    const [metrics, aiQuality, revenue, newUsersThisWeek, newUsersPriorWeek, securitySummary, codeReviewSummary, asoSummary, attributionEntry, uptimeSummary, infraSummary, e2eSummary, churnSummary, supportSummary, qualityAlertEntry, competitiveEntry, orchestratorEntry, creatorScoutEntry, growthInternEntry, productFeedbackEntry] = await Promise.all([
       getMetricsSnapshot(),
       getAiQualitySummary(),
       getRevenueSummary(),
@@ -52,6 +52,12 @@ export async function runFounderBrief(): Promise<void> {
       getE2eSummary(),
       getChurnSummary(),
       getSupportSummary(),
+      getLatestBusEntry('quality_alert'),
+      getLatestBusEntry('competitive_intel'),
+      getLatestBusEntry('orchestrator_run'),
+      getLatestBusEntry('creator_scout_metrics'),
+      getLatestBusEntry('growth_intern_metrics'),
+      getLatestBusEntry('product_feedback'),
     ]);
 
     const userGrowthPct = newUsersPriorWeek > 0
@@ -88,6 +94,50 @@ export async function runFounderBrief(): Promise<void> {
     if (e2eSummary && !e2eSummary.lastRunPassed) risks.push(`E2E tests failing: ${e2eSummary.failureCount} endpoint(s) down`);
     if (churnSummary.highRiskCount > 0) risks.push(`${churnSummary.highRiskCount} paid user(s) at high churn risk — retention emails triggered`);
     if (supportSummary.escalated7d > 0) risks.push(`${supportSummary.escalated7d} support ticket(s) escalated this week`);
+
+    // Quality alert from AI quality monitor
+    const qaPayload = qualityAlertEntry?.payload as Record<string, unknown> | null;
+    if (qaPayload?.alerts && Array.isArray(qaPayload.alerts) && qaPayload.alerts.length > 0) {
+      risks.push(`AI quality alert: ${(qaPayload.alerts as string[]).slice(0, 2).join('; ')}`);
+    }
+
+    // Orchestrator FQI trend
+    const orchPayload = orchestratorEntry?.payload as Record<string, unknown> | null;
+    if (orchPayload) {
+      const fqiAfter = orchPayload.fqiAfter as number | null;
+      const delta = orchPayload.fqiDelta as number | null;
+      if (fqiAfter !== null && fqiAfter !== undefined) {
+        const sign = delta !== null && delta >= 0 ? '+' : '';
+        highlights.push(`Learning system FQI: ${fqiAfter.toFixed(4)} (${sign}${(delta ?? 0).toFixed(4)}) — ${orchPayload.multiLoopCount ?? 0} overnight mutations`);
+      }
+    }
+
+    // Competitive intel highlight
+    const compPayload = competitiveEntry?.payload as Record<string, unknown> | null;
+    if (compPayload?.summary && typeof compPayload.summary === 'string') {
+      highlights.push(`Competitive intel: ${compPayload.summary.slice(0, 120)}`);
+    }
+
+    // Creator scout metrics
+    const scoutPayload = creatorScoutEntry?.payload as Record<string, unknown> | null;
+    if (scoutPayload?.totalSaved && (scoutPayload.totalSaved as number) > 0) {
+      highlights.push(`Creator scout: ${scoutPayload.totalSaved} new prospects found (${scoutPayload.emailTrackCount ?? 0} email-track, ${scoutPayload.dmTrackCount ?? 0} DM-track)`);
+    }
+
+    // Product feedback themes
+    const pfPayload = productFeedbackEntry?.payload as Record<string, unknown> | null;
+    const pfThemes = pfPayload?.themes;
+    if (pfPayload && pfPayload.criticalBugsCount && (pfPayload.criticalBugsCount as number) > 0) {
+      risks.push(`Product feedback: ${pfPayload.criticalBugsCount} critical bug report(s) from user feedback analysis`);
+    } else if (pfThemes && Array.isArray(pfThemes) && pfThemes.length > 0) {
+      highlights.push(`Product feedback themes: ${(pfThemes as string[]).slice(0, 2).join(', ')}`);
+    }
+
+    // Growth intern metrics
+    const giPayload = growthInternEntry?.payload as Record<string, unknown> | null;
+    if (giPayload?.summary && typeof giPayload.summary === 'string') {
+      highlights.push(`Growth intel: ${giPayload.summary.slice(0, 100)}`);
+    }
 
     // ASO keyword alerts
     if (asoSummary) {
@@ -204,6 +254,19 @@ export async function runFounderBrief(): Promise<void> {
               statRow(s.source || 'unknown', `${s.count} signup(s)`)
             ).join('')}
             ${statRow('Total Attributed', `${(attrPayload.totalAttributed as number) || 0}`)}
+            ` : ''}
+
+            ${orchPayload ? `
+            ${sectionHeader('System Intelligence — Overnight Learning')}
+            ${statRow('FQI After', orchPayload.fqiAfter != null ? (orchPayload.fqiAfter as number).toFixed(4) : '—', orchPayload.fqiDelta != null ? `<span style="color:${(orchPayload.fqiDelta as number) >= 0 ? '#10B981' : '#EF4444'};font-size:12px;">${(orchPayload.fqiDelta as number) >= 0 ? '▲' : '▼'} ${Math.abs(orchPayload.fqiDelta as number).toFixed(4)}</span>` : '')}
+            ${statRow('Overnight Mutations', `${orchPayload.multiLoopCount ?? 0}`)}
+            ${orchPayload.emergencyRevert ? statRow('Emergency Revert', '⚠️ triggered', '<span style="color:#EF4444;font-size:12px;">candidate reverted</span>') : ''}
+            ` : ''}
+
+            ${pfPayload && pfThemes && Array.isArray(pfThemes) && pfThemes.length > 0 ? `
+            ${sectionHeader('Product Feedback — User Themes')}
+            ${(pfThemes as string[]).slice(0, 4).map((t, i) => statRow(`Theme ${i + 1}`, String(t).slice(0, 60))).join('')}
+            ${statRow('Sentiment', pfPayload.sentiment ? String(pfPayload.sentiment) : '—')}
             ` : ''}
           </table>
         </div>

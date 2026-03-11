@@ -292,6 +292,20 @@ export async function distillLearningMemory(): Promise<string> {
         bullets.push(p.topInsight);
       }
     }
+
+    // 5. A7: High-confidence fashion rules from recursive-improvement's discovered_knowledge
+    const discoveredEntries = await readFromIntelligenceBus(
+      'learning-memory',
+      'discovered_knowledge',
+      { limit: 10, sinceDate: critiqueDays }
+    );
+
+    for (const entry of discoveredEntries.slice(0, 3)) {
+      const p = entry.payload;
+      if (p.rule && typeof p.rule === 'string' && typeof p.confidence === 'number' && p.confidence >= 0.7) {
+        bullets.push(p.rule);
+      }
+    }
   } catch (err) {
     console.error('[LearningMemory] Error reading from bus:', err);
   }

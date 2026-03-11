@@ -17,6 +17,7 @@ import { getTrendData } from './content-calendar.service.js';
 import { getLatestFashionTrendText } from './fashion-trends.service.js';
 import { getGrowthSummary } from './growth-dashboard.service.js';
 import { getAsoKeywordHint } from './aso-intelligence.service.js';
+import { getLatestBusEntry } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -690,7 +691,7 @@ Suggested format: [e.g., "POV", "Hot take", "Unpopular opinion", "Story time"]`;
 export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [trends, trendText, weekStats, topRule] = await Promise.all([
+  const [trends, trendText, weekStats, topRule, trendSignalEntry] = await Promise.all([
     getTrendData().catch(() => ({ topStyles: [], popularOccasions: [], colorTrends: [] })),
     getLatestFashionTrendText().catch(() => null),
     prisma.outfitCheck.aggregate({
@@ -702,6 +703,7 @@ export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
       where: { confidence: { gte: 0.65 } },
       orderBy: { confidence: 'desc' },
     }).catch(() => null),
+    getLatestBusEntry('trend_signal').catch(() => null),
   ]);
 
   const totalChecks = weekStats._count.id;
@@ -713,6 +715,12 @@ export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
     return [];
   }
 
+  // Inject external trend signal data if available
+  const trendSignalPayload = trendSignalEntry?.payload as Record<string, unknown> | null;
+  const externalTrendLine = trendSignalPayload && Array.isArray(trendSignalPayload.trendingStyles)
+    ? `Broader fashion platform trends: ${(trendSignalPayload.trendingStyles as string[]).slice(0, 3).join(', ')}`
+    : null;
+
   const dataContext = [
     `${totalChecks} outfit checks submitted this week`,
     trends.topStyles.length > 0 ? `Top styles: ${trends.topStyles.slice(0, 3).join(', ')}` : '',
@@ -720,6 +728,7 @@ export async function generateCommunitySpotlight(): Promise<GeneratedPost[]> {
     trends.colorTrends.length > 0 ? `Trending colors: ${trends.colorTrends.slice(0, 3).join(', ')}` : '',
     avgScore ? `Average confidence score: ${avgScore}/10` : '',
     trendText ? `Broader fashion context: ${trendText.slice(0, 200)}` : '',
+    externalTrendLine,
     topRule ? `Community insight (AI-discovered): ${topRule.rule} (${Math.round(topRule.confidence * 100)}% confidence, n=${topRule.sampleSize})` : '',
   ].filter(Boolean).join('\n');
 

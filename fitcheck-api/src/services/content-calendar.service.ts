@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend';
 import { prisma } from '../utils/prisma.js';
+import { getLatestBusEntry } from './intelligence-bus.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -104,15 +105,28 @@ export async function runContentCalendar(): Promise<void> {
     return;
   }
 
-  const trendData = await getTrendData();
+  const [trendData, trendSignalEntry] = await Promise.all([
+    getTrendData(),
+    getLatestBusEntry('trend_signal').catch(() => null),
+  ]);
   const weekStart = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Inject external trend data from fashion-trends agent if available
+  const trendSignalPayload = trendSignalEntry?.payload as Record<string, unknown> | null;
+  const externalTrendBlock = trendSignalPayload
+    ? `External fashion trends (from trend signal agent):
+- Trending styles globally: ${Array.isArray(trendSignalPayload.trendingStyles) ? (trendSignalPayload.trendingStyles as string[]).slice(0, 4).join(', ') : 'n/a'}
+- Seasonal colors: ${Array.isArray(trendSignalPayload.seasonalColors) ? (trendSignalPayload.seasonalColors as string[]).slice(0, 4).join(', ') : 'n/a'}
+- Key pieces this season: ${Array.isArray(trendSignalPayload.keyPieces) ? (trendSignalPayload.keyPieces as string[]).slice(0, 3).join(', ') : 'n/a'}
+- Fading trends to avoid: ${Array.isArray(trendSignalPayload.fadingTrends) ? (trendSignalPayload.fadingTrends as string[]).slice(0, 2).join(', ') : 'n/a'}`
+    : '';
 
   const prompt = `You are a social media strategist for "Or This?" — an AI-powered outfit feedback app where users get style scores and personalized fashion advice.
 
 App data from the past week:
 - Top style archetypes users wear: ${trendData.topStyles.join(', ')}
 - Most popular occasions: ${trendData.popularOccasions.join(', ')}
-- Trending colors: ${trendData.colorTrends.join(', ')}
+- Trending colors: ${trendData.colorTrends.join(', ')}${externalTrendBlock ? `\n\n${externalTrendBlock}` : ''}
 
 Brand voice: Warm, confident, aspirational. Tagline: "Confidence in every choice."
 Target audience: Fashion-curious people aged 18-35 who want to look their best.

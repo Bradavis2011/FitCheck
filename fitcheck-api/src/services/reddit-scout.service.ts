@@ -13,7 +13,9 @@ const SUBREDDITS = [
   'malefashionadvice',
   'femalefashionadvice',
   'outfits',
+  'OUTFITS',
   'streetwear',
+  'womensstreetwear',
   'WDYWT',
   'fashion',
   'fashionadvice',
@@ -32,6 +34,9 @@ const SEARCH_QUERIES = [
   'style advice needed',
   'fashion feedback',
   'AI fashion',
+  'how does this look',
+  'does this outfit work',
+  'outfit of the day feedback',
 ];
 
 const MAX_DAILY_POSTS = 5;
@@ -102,24 +107,44 @@ async function getRedditOAuthToken(): Promise<string | null> {
 
 // ─── Thread Discovery ─────────────────────────────────────────────────────────
 
+function extractImageUrl(post: any): string | null {
+  // Direct image URL
+  if (post.url && /\.(jpg|jpeg|png|webp)$/i.test(post.url)) return post.url;
+  // Reddit-hosted image
+  if (post.post_hint === 'image' && post.url) return post.url;
+  // i.redd.it
+  if (post.url && post.url.startsWith('https://i.redd.it/')) return post.url;
+  // preview image
+  if (post.preview?.images?.[0]?.source?.url) {
+    return post.preview.images[0].source.url.replace(/&amp;/g, '&');
+  }
+  return null;
+}
+
 async function fetchSubredditThreads(subreddit: string): Promise<Array<{
   id: string; title: string; url: string; selfText: string;
   upvotes: number; commentCount: number; author: string;
+  imageUrl: string | null; hasImage: boolean;
 }>> {
   try {
     const data = await redditFetch(`https://www.reddit.com/r/${subreddit}/new.json?limit=25`);
 
     return (data.data?.children || [])
       .filter((post: any) => post.kind === 't3')
-      .map((post: any) => ({
-        id: post.data.id,
-        title: post.data.title,
-        url: `https://www.reddit.com${post.data.permalink}`,
-        selfText: (post.data.selftext || '').slice(0, 1000),
-        upvotes: post.data.ups || 0,
-        commentCount: post.data.num_comments || 0,
-        author: post.data.author || '',
-      }));
+      .map((post: any) => {
+        const imageUrl = extractImageUrl(post.data);
+        return {
+          id: post.data.id,
+          title: post.data.title,
+          url: `https://www.reddit.com${post.data.permalink}`,
+          selfText: (post.data.selftext || '').slice(0, 1000),
+          upvotes: post.data.ups || 0,
+          commentCount: post.data.num_comments || 0,
+          author: post.data.author || '',
+          imageUrl,
+          hasImage: imageUrl !== null,
+        };
+      });
   } catch (err) {
     console.warn(`[RedditScout] Failed to fetch r/${subreddit}:`, err);
     return [];
@@ -129,6 +154,7 @@ async function fetchSubredditThreads(subreddit: string): Promise<Array<{
 async function searchRedditThreads(query: string): Promise<Array<{
   id: string; title: string; url: string; selfText: string;
   upvotes: number; commentCount: number; author: string; subreddit: string;
+  imageUrl: string | null; hasImage: boolean;
 }>> {
   try {
     const data = await redditFetch(
@@ -137,16 +163,21 @@ async function searchRedditThreads(query: string): Promise<Array<{
 
     return (data.data?.children || [])
       .filter((post: any) => post.kind === 't3')
-      .map((post: any) => ({
-        id: post.data.id,
-        title: post.data.title,
-        url: `https://www.reddit.com${post.data.permalink}`,
-        selfText: (post.data.selftext || '').slice(0, 1000),
-        upvotes: post.data.ups || 0,
-        commentCount: post.data.num_comments || 0,
-        author: post.data.author || '',
-        subreddit: post.data.subreddit || '',
-      }));
+      .map((post: any) => {
+        const imageUrl = extractImageUrl(post.data);
+        return {
+          id: post.data.id,
+          title: post.data.title,
+          url: `https://www.reddit.com${post.data.permalink}`,
+          selfText: (post.data.selftext || '').slice(0, 1000),
+          upvotes: post.data.ups || 0,
+          commentCount: post.data.num_comments || 0,
+          author: post.data.author || '',
+          subreddit: post.data.subreddit || '',
+          imageUrl,
+          hasImage: imageUrl !== null,
+        };
+      });
   } catch (err) {
     console.warn(`[RedditScout] Search failed for "${query}":`, err);
     return [];
@@ -206,11 +237,65 @@ Use the thread number as id (1, 2, 3...).`;
 
 async function generateThreadResponse(
   genAI: any,
-  thread: { subreddit: string; title: string; selfText: string; category: string },
-): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
+  thread: {
+    subreddit: string; title: string; selfText: string; category: string;
+    imageUrl?: string | null; hasImage?: boolean;
+    threadId?: string;
+  },
+): Promise<{ text: string; analysisUsed: boolean }> {
   const isBetaOrDiscovery = ['betatesting', 'SideProject', 'indiehackers', 'AndroidApps'].includes(thread.subreddit);
+
+  // Phase 4: Check for ops-learning-generated improved comment style
+  let learnedStyleBlock = '';
+  try {
+    const variant = await prisma.socialPromptVariant.findUnique({
+      where: { contentType: 'reddit_outfit_comment' },
+    });
+    if (variant?.isActive && variant.promptText) {
+      learnedStyleBlock = `\n\nLearned style guidance from top-performing comments:\n${variant.promptText}`;
+    }
+  } catch { /* non-fatal */ }
+
+  // Phase 2: AI outfit analysis for image posts
+  if (thread.hasImage && thread.imageUrl && thread.category === 'outfit_feedback' && !isBetaOrDiscovery) {
+    try {
+      const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const utmLink = `https://apps.apple.com/app/id6759472490?utm_source=reddit&utm_medium=comment&utm_campaign=outfit_analysis&utm_content=${thread.threadId || 'unknown'}`;
+
+      const analysisPrompt = `You are a knowledgeable fashion Redditor responding to someone sharing their outfit photo.
+
+Analyze this outfit photo. Write a Reddit comment that:
+1. Opens with 2-3 specific, genuine observations about what works (proportions, colors, silhouette, texture, fit)
+2. Gives one actionable suggestion — specific, not generic
+3. Ends with a natural 1-sentence mention: "I've been using an AI app called Or This? that does this kind of scoring automatically — it actually caught [mention one specific detail from your analysis]. Free on iOS: ${utmLink}"
+
+Rules:
+- Be specific to what you actually see in the image — no generic fashion advice
+- Sound like a knowledgeable Redditor, not a brand
+- Under 130 words total
+- No emojis${learnedStyleBlock}
+
+Write ONLY the comment text:`;
+
+      const imageResponse = await fetch(thread.imageUrl);
+      if (imageResponse.ok) {
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const base64Image = Buffer.from(imageBuffer).toString('base64');
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+        const result = await visionModel.generateContent([
+          analysisPrompt,
+          { inlineData: { mimeType: contentType, data: base64Image } },
+        ]);
+        return { text: result.response.text().trim(), analysisUsed: true };
+      }
+    } catch (err) {
+      console.warn('[RedditScout] Image analysis failed, falling back to text:', err);
+    }
+  }
+
+  // Text-based response (existing logic, enhanced with learned style)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const prompt = `Write a Reddit comment for r/${thread.subreddit}.
 
@@ -229,18 +314,24 @@ ${isBetaOrDiscovery
 - Match r/${thread.subreddit} community tone exactly`}
 - Under 120 words total
 - Sound like a real helpful Redditor, not a brand
-- Don't be overly promotional
+- Don't be overly promotional${learnedStyleBlock}
 
 Write ONLY the comment text (no JSON, no formatting markers):`;
 
   try {
     const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    return { text: result.response.text().trim(), analysisUsed: false };
   } catch {
     if (isBetaOrDiscovery) {
-      return `Hey! Just launched Or This? — an AI that scores your outfits 1-10 with specific style feedback. Would love some beta testers to try it out. It's free on iOS. Would really appreciate feedback from this community!`;
+      return {
+        text: `Hey! Just launched Or This? — an AI that scores your outfits 1-10 with specific style feedback. Would love some beta testers to try it out. It's free on iOS. Would really appreciate feedback from this community!`,
+        analysisUsed: false,
+      };
     }
-    return `${thread.category === 'outfit_feedback' ? 'Great question! ' : ''}I'd also recommend trying Or This? — it's an AI that gives you a 1-10 score on your outfit with specific feedback. Really helpful for exactly this kind of situation.`;
+    return {
+      text: `${thread.category === 'outfit_feedback' ? 'Great question! ' : ''}I'd also recommend trying Or This? — it's an AI that gives you a 1-10 score on your outfit with specific feedback. Really helpful for exactly this kind of situation.`,
+      analysisUsed: false,
+    };
   }
 }
 
@@ -305,7 +396,8 @@ async function checkPostedCommentKarma(): Promise<void> {
     if (!thread.redditCommentId) continue;
 
     try {
-      const response = await fetch(
+      // Fetch comment info
+      const commentResponse = await fetch(
         `https://oauth.reddit.com/api/info?id=t1_${thread.redditCommentId}`,
         {
           headers: {
@@ -315,12 +407,50 @@ async function checkPostedCommentKarma(): Promise<void> {
         }
       );
 
-      if (!response.ok) continue;
-      const data: any = await response.json();
-      const commentData = data?.data?.children?.[0]?.data;
+      if (!commentResponse.ok) continue;
+      const commentApiData: any = await commentResponse.json();
+      const commentData = commentApiData?.data?.children?.[0]?.data;
       if (!commentData) continue;
 
       const karma = commentData.score || 0;
+
+      // Check if author replied to our comment (fetch thread replies)
+      let authorReplied = false;
+      try {
+        const urlMatch = thread.url.match(/comments\/([a-z0-9]+)\//);
+        if (urlMatch) {
+          const threadResponse = await fetch(
+            `https://oauth.reddit.com/comments/${urlMatch[1]}.json?limit=50`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'User-Agent': 'OrThisApp/1.0 (fashion app; contact: hello@orthis.app)',
+              },
+            }
+          );
+          if (threadResponse.ok) {
+            const threadApiData: any = await threadResponse.json();
+            // threadApiData[1] = comments listing
+            const comments = threadApiData?.[1]?.data?.children || [];
+            // Find our comment and check its replies
+            for (const c of comments) {
+              if (c.data?.id === thread.redditCommentId) {
+                const replies = c.data?.replies?.data?.children || [];
+                authorReplied = replies.some((r: any) =>
+                  r.data?.author === (thread as any).authorName
+                );
+                break;
+              }
+            }
+          }
+        }
+      } catch { /* non-fatal */ }
+
+      // Store karma + authorReplied
+      await prisma.redditThread.update({
+        where: { id: thread.id },
+        data: { commentKarma: karma, authorReplied },
+      }).catch(() => {});
 
       if (karma < -2) {
         negativeFlagged++;
@@ -360,6 +490,7 @@ export async function runRedditDiscovery(): Promise<void> {
   const allThreads: Array<{
     id: string; subreddit: string; title: string; url: string;
     selfText: string; upvotes: number; commentCount: number; author: string;
+    imageUrl: string | null; hasImage: boolean;
   }> = [];
 
   for (const subreddit of SUBREDDITS) {
@@ -423,7 +554,10 @@ export async function runRedditDiscovery(): Promise<void> {
 
   for (const thread of relevantThreads) {
     try {
-      const response = await generateThreadResponse(genAI, thread);
+      const { text: response, analysisUsed } = await generateThreadResponse(genAI, {
+        ...thread,
+        threadId: thread.id,
+      });
 
       await prisma.redditThread.create({
         data: {
@@ -439,6 +573,9 @@ export async function runRedditDiscovery(): Promise<void> {
           category: thread.category,
           suggestedResponse: response,
           status: 'response_ready',
+          imageUrl: thread.imageUrl,
+          hasImage: thread.hasImage,
+          analysisUsed,
         },
       });
 
