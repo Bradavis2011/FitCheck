@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { requireAdmin } from '../utils/admin.js';
 import {
   listCreators,
   addCreator,
@@ -26,14 +27,16 @@ router.post('/:id/posts', asyncHandler(addCreatorPost));
 router.patch('/:id/posts/:postId', asyncHandler(updateCreatorPost));
 router.post('/:id/posts/:postId/flag-viral', asyncHandler(flagPostViral));
 
-// Phase 1: Affiliate earnings endpoints
-router.get('/:id/earnings', asyncHandler(async (req, res) => {
+// Phase 1: Affiliate earnings endpoints (admin-only — matches all other routes on this router)
+router.get('/:id/earnings', asyncHandler(async (req: any, res) => {
+  requireAdmin(req);
   const earnings = await getCreatorEarnings(req.params.id);
   if (!earnings) { res.status(404).json({ error: 'Creator not found' }); return; }
   res.json(earnings);
 }));
 
-router.get('/:id/dashboard', asyncHandler(async (req, res) => {
+router.get('/:id/dashboard', asyncHandler(async (req: any, res) => {
+  requireAdmin(req);
   const dashboard = await getCreatorDashboard(req.params.id);
   if (!dashboard) { res.status(404).json({ error: 'Creator not found' }); return; }
   res.json(dashboard);
