@@ -38,13 +38,6 @@ export default function ClientNav() {
           >
             Learn
           </Link>
-          <Link
-            href="/journal"
-            className="text-sm font-medium transition-colors"
-            style={{ color: "rgba(26,26,26,0.5)" }}
-          >
-            Journal
-          </Link>
           <a
             href="#waitlist"
             onClick={scrollToWaitlist}

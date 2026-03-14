@@ -9,6 +9,13 @@ const MONOREPO_ROOT = path.resolve(__dirname, "..");
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: MONOREPO_ROOT,
+  async redirects() {
+    return [
+      // Journal is merged into Learn — all journal traffic redirects permanently
+      { source: '/journal', destination: '/learn', permanent: true },
+      { source: '/journal/:slug', destination: '/learn', permanent: true },
+    ];
+  },
   webpack(config) {
     // Allow .js imports to resolve .ts/.tsx files (required for moduleResolution: "bundler")
     config.resolve.extensionAlias = {

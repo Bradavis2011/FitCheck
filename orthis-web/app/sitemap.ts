@@ -1,5 +1,4 @@
 import { MetadataRoute } from 'next';
-import { getPostMeta } from '../content/journal/index.js';
 
 const API_URL = process.env.API_URL || 'https://fitcheck-production-0f92.up.railway.app';
 
@@ -23,10 +22,7 @@ async function fetchLearnSlugs(): Promise<LearnItem[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [posts, learnItems] = await Promise.all([
-    Promise.resolve(getPostMeta()),
-    fetchLearnSlugs(),
-  ]);
+  const learnItems = await fetchLearnSlugs();
 
   const learnUrls: MetadataRoute.Sitemap = learnItems.map((item) => ({
     url: `https://orthis.app/learn/${item.slug}`,
@@ -35,6 +31,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: item.contentType === 'style_guide' ? 0.8 : 0.7,
   }));
 
+  // Niche landing pages — transition moments content hub
+  const nichePages: MetadataRoute.Sitemap = [
+    { url: 'https://orthis.app/back-to-work', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: 'https://orthis.app/dating-again', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: 'https://orthis.app/back-to-office', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: 'https://orthis.app/postpartum-style', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: 'https://orthis.app/career-change', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: 'https://orthis.app/reinvention', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+  ];
+
   return [
     { url: 'https://orthis.app', lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
     { url: 'https://orthis.app/rush', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
@@ -42,14 +48,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: 'https://orthis.app/learn/trends', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: 'https://orthis.app/learn/guides', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: 'https://orthis.app/learn/tips', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.7 },
+    ...nichePages,
     ...learnUrls,
-    { url: 'https://orthis.app/journal', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
-    ...posts.map((post) => ({
-      url: `https://orthis.app/journal/${post.slug}`,
-      lastModified: new Date(post.date),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    })),
     { url: 'https://orthis.app/privacy', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: 'https://orthis.app/terms', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: 'https://orthis.app/support', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },

@@ -375,7 +375,51 @@ export default async function Home({
           </div>
         </section>
 
-        {/* ── 5b. Download / TestFlight ── */}
+        {/* ── 5b. Style Guides — niche landing page links ── */}
+        <section className="py-24 sm:py-32 bg-white">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="mb-14 fade-in-up">
+              <span
+                className="editorial-rule mb-8"
+                style={{ backgroundColor: "#E85D4C", display: "block", width: 40 }}
+              />
+              <p className="section-label mb-4" style={{ color: "rgba(26,26,26,0.4)" }}>
+                Style Guides
+              </p>
+              <h2 className="pull-quote text-4xl sm:text-5xl text-clarity leading-tight">
+                Dressed for the moment.
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-100 fade-in-up">
+              {[
+                { href: "/back-to-work", label: "Back to Work", sub: "After time away with kids" },
+                { href: "/dating-again", label: "Dating Again", sub: "After divorce or a long relationship" },
+                { href: "/back-to-office", label: "Back to Office", sub: "After years of working remote" },
+                { href: "/postpartum-style", label: "Postpartum Style", sub: "Dressing your changing body" },
+                { href: "/career-change", label: "Career Change", sub: "First day in a new industry" },
+                { href: "/reinvention", label: "Reinvention", sub: "Starting a new chapter after 40" },
+              ].map((guide) => (
+                <Link
+                  key={guide.href}
+                  href={guide.href}
+                  className="group block bg-white px-8 py-10 transition-colors hover:bg-cream"
+                >
+                  <p
+                    className="text-base font-medium mb-1 transition-colors group-hover:text-coral"
+                    style={{ color: "#1A1A1A" }}
+                  >
+                    {guide.label} →
+                  </p>
+                  <p className="text-sm" style={{ color: "rgba(26,26,26,0.4)" }}>
+                    {guide.sub}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── 5c. Download / TestFlight ── */}
         <DownloadSection />
 
         {/* ── 6. Early Access — Black bg ── */}
@@ -476,7 +520,7 @@ export default async function Home({
         {/* ── 9. Footer — White ── */}
         <footer className="border-t py-14 bg-white" style={{ borderColor: "rgba(26,26,26,0.1)" }}>
           <div className="max-w-6xl mx-auto px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-6 mb-10">
               <div>
                 <Logo />
                 <p className="text-sm mt-3 max-w-xs" style={{ color: "rgba(26,26,26,0.3)" }}>
@@ -489,8 +533,8 @@ export default async function Home({
                 <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "rgba(26,26,26,0.3)" }}>
                   Company
                 </p>
-                <Link href="/journal" className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
-                  Journal
+                <Link href="/learn" className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
+                  Learn
                 </Link>
                 <Link href="/privacy" className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
                   Privacy Policy
@@ -504,6 +548,23 @@ export default async function Home({
                 <Link href="/delete-account" className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
                   Delete Account
                 </Link>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "rgba(26,26,26,0.3)" }}>
+                  Style Guides
+                </p>
+                {[
+                  { href: "/back-to-work", label: "Back to Work" },
+                  { href: "/dating-again", label: "Dating Again" },
+                  { href: "/back-to-office", label: "Back to Office" },
+                  { href: "/postpartum-style", label: "Postpartum Style" },
+                  { href: "/career-change", label: "Career Change" },
+                  { href: "/reinvention", label: "Reinvention" },
+                ].map((g) => (
+                  <Link key={g.href} href={g.href} className="text-sm transition-colors hover:text-clarity" style={{ color: "rgba(26,26,26,0.4)" }}>
+                    {g.label}
+                  </Link>
+                ))}
               </div>
               <div className="flex flex-col gap-2.5">
                 <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "rgba(26,26,26,0.3)" }}>
