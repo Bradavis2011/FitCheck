@@ -1590,3 +1590,41 @@ model FashionEvent {
   @@index([city, date])
   @@map("fashion_events")
 }
+
+// ─── SEO Intelligence ─────────────────────────────────────────────────────────
+
+model SeoSnapshot {
+  id               String   @id @default(uuid())
+  period           String   @unique // "2026-W11"
+  totalClicks      Int      @default(0) @map("total_clicks")
+  totalImpressions Int      @default(0) @map("total_impressions")
+  avgPosition      Float    @default(0) @map("avg_position")
+  avgCtr           Float    @default(0) @map("avg_ctr")
+  topQueries       Json     @default("[]") @map("top_queries")
+  opportunities    Json     @default("[]") @map("opportunities")
+  pageMetrics      Json     @default("[]") @map("page_metrics")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("seo_snapshots")
+}
+
+model TargetKeyword {
+  id              String   @id @default(uuid())
+  keyword         String   @unique
+  niche           String   @default("general") // "rush" | "postpartum" | "dating" | "general"
+  intent          String   @default("informational") // "transactional" | "informational"
+  difficulty      String   @default("medium") // "low" | "medium" | "high"
+  status          String   @default("identified") // "identified" | "content_created" | "ranking" | "archived"
+  targetPageSlug  String?  @map("target_page_slug")
+  currentPosition Float?   @map("current_position")
+  impressions     Int      @default(0)
+  clicks          Int      @default(0)
+  contentBrief    Json?    @map("content_brief")
+  sourceData      Json?    @map("source_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([niche, status])
+  @@index([status])
+  @@map("target_keywords")
+}
