@@ -28,7 +28,7 @@ try { Sharing = require('expo-sharing'); } catch { /* unavailable in Expo Go */ 
 import { useAppStore, type RevisionSource } from '../src/stores/auth';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { Colors, Spacing, Fonts, BorderRadius, getScoreColor } from '../src/constants/theme';
-import { APP_STORE_URL, WEB_BASE_URL } from '../src/constants/urls';
+import { WEB_BASE_URL } from '../src/constants/urls';
 import AdBanner from '../src/components/AdBanner';
 import { recordOutfitCheck } from '../src/lib/adManager';
 import AffiliateCard from '../src/components/AffiliateCard';
@@ -886,7 +886,6 @@ export default function FeedbackScreen() {
               summary={normalized?.editorialSummary || (feedback as any)?.summary || ''}
               occasion={outfit.occasions?.[0]}
               username={user?.name || undefined}
-              ctaUrl={isPublic ? `${WEB_BASE_URL}/s/${outfit.id}` : APP_STORE_URL}
             />
           </ViewShot>
         </View>

@@ -270,6 +270,25 @@ app.get('/g/prospect/:id/responded', asyncHandler(async (req, res) => {
   </body></html>`);
 }));
 
+// Phase 4: Mark Done — combines commented + contacted in one click
+app.get('/g/prospect/:id/done', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { t } = req.query as { t?: string };
+  const { verifyGrowthToken, markProspectDone } = await import('./services/growth-intern.service.js');
+  if (!t || !verifyGrowthToken(id, 'done', t)) {
+    res.status(403).send('Invalid token.');
+    return;
+  }
+  const ok = await markProspectDone(id);
+  res.send(`<!DOCTYPE html><html><body style="font-family:Arial;text-align:center;padding:60px;background:#FBF7F4;">
+    <div style="max-width:400px;margin:0 auto;background:#fff;padding:40px;">
+      <div style="font-size:48px;">${ok ? '✅' : '⚠️'}</div>
+      <h2 style="color:#E85D4C;">${ok ? 'Done! Comment + DM recorded.' : 'Already updated'}</h2>
+      <p style="color:#2D2D2D;margin-top:8px;">Prospect marked as contacted.</p>
+    </div>
+  </body></html>`);
+}));
+
 // Phase 3: Comment tracking — marks a warming comment posted on a prospect
 app.get('/g/prospect/:id/commented', asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -312,6 +331,65 @@ app.get('/g/thread/:id/posted', asyncHandler(async (req, res) => {
       <p style="color:#2D2D2D;">Reddit thread status updated.</p>
     </div>
   </body></html>`);
+}));
+
+// ─── Creator Affiliate One-Click Onboarding ───────────────────────────────────
+// Creator clicks "GET YOUR AFFILIATE LINK" in outreach email → auto-onboarded
+app.get('/creator/join/:prospectId', asyncHandler(async (req, res) => {
+  const { prospectId } = req.params;
+  const { t } = req.query as { t?: string };
+
+  const { verifyGrowthToken } = await import('./services/growth-intern.service.js');
+  if (!t || !verifyGrowthToken(prospectId, 'join', t)) {
+    res.status(403).send('Invalid or expired link. Please contact brandon@orthis.app.');
+    return;
+  }
+
+  const { handleCreatorJoinLink } = await import('./services/creator-outreach.service.js');
+  const result = await handleCreatorJoinLink(prospectId);
+
+  if (!result) {
+    res.status(404).send('Prospect not found. Please contact brandon@orthis.app.');
+    return;
+  }
+
+  const { buildCreatorConfirmationPage } = await import('./templates/creator-signup-page.js');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(buildCreatorConfirmationPage(result.handle, result.referralCode));
+}));
+
+// ─── Self-Serve Creator/Affiliate Signup Page ─────────────────────────────────
+// GET /creator — signup form
+// POST /creator/signup — process form submission
+import { waitlistLimiter } from './middleware/rateLimiter.js';
+
+app.get('/creator', (_req, res) => {
+  import('./templates/creator-signup-page.js').then(({ buildCreatorSignupPage }) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(buildCreatorSignupPage());
+  }).catch(() => res.status(500).send('Server error'));
+});
+
+app.post('/creator/signup', waitlistLimiter, asyncHandler(async (req, res) => {
+  const { handle, email, platform } = req.body as Record<string, string>;
+
+  const { handleCreatorSignup } = await import('./services/creator-outreach.service.js');
+  const result = await handleCreatorSignup(
+    (handle || '').trim(),
+    (email || '').trim(),
+    (platform || '').trim(),
+  );
+
+  if (!result.success) {
+    const { buildCreatorSignupPage } = await import('./templates/creator-signup-page.js');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(buildCreatorSignupPage(result.error));
+    return;
+  }
+
+  const { buildCreatorConfirmationPage } = await import('./templates/creator-signup-page.js');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(buildCreatorConfirmationPage(result.handle, result.referralCode));
 }));
 
 // Email unsubscribe (unauthenticated — link from email)

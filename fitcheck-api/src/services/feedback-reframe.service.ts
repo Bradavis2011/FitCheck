@@ -84,7 +84,7 @@ export async function getFeedbackReframeContext(userId: string): Promise<Reframe
       .map(cat => `[${cat.toUpperCase()} REFRAME]: ${REFRAME_INSTRUCTIONS[cat]}`)
       .join('\n\n');
 
-    const promptAddition = `\n\nUSER-SPECIFIC REFRAME INSTRUCTIONS (override default advice for these categories):\n${instructions}\n\nFrequency: For stuck categories, reduce advice frequency (mention only every 3rd check, not every check).`;
+    const promptAddition = `\n\nUSER-SPECIFIC REFRAME INSTRUCTIONS (override default advice for these categories):\n${instructions}\n\nFrequency: For stuck categories, reduce advice frequency (mention only every 3rd check, not every check).\n\nIMPORTANT: Reframing affects ADVICE TONE only, not scoring. If fit is genuinely poor, score fitScore accordingly even if you are reframing the advice. Do not inflate scores to match a positive reframe.`;
 
     return { stuckCategories, promptAddition };
   } catch (err) {

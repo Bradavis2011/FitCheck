@@ -8,6 +8,7 @@
  */
 
 import { Resend } from 'resend';
+import { createHmac } from 'crypto';
 import { prisma } from '../utils/prisma.js';
 import { publishToIntelligenceBus } from './intelligence-bus.service.js';
 
@@ -15,6 +16,20 @@ const DAILY_EMAIL_LIMIT = 50; // Increased from 30 — scale to 100 when domain 
 const FROM_EMAIL = process.env.CREATOR_FROM_EMAIL || 'brandon@orthis.app';
 const FROM_NAME = 'Brandon from Or This?';
 const APP_STORE_URL = 'https://apps.apple.com/app/id6759472490';
+const BASE_URL = process.env.API_BASE_URL || 'https://fitcheck-production-0f92.up.railway.app';
+
+// ─── Join URL Helpers ──────────────────────────────────────────────────────────
+
+function generateJoinToken(prospectId: string): string {
+  const secret = process.env.FOLLOW_UP_HMAC_SECRET;
+  if (!secret) return '';
+  return createHmac('sha256', secret).update(`${prospectId}:join`).digest('hex');
+}
+
+function buildJoinUrl(prospectId: string): string {
+  const token = generateJoinToken(prospectId);
+  return token ? `${BASE_URL}/creator/join/${prospectId}?t=${token}` : '';
+}
 // ─── Gemini Helper ────────────────────────────────────────────────────────────
 
 async function getGemini() {
@@ -129,6 +144,11 @@ ${APP_STORE_URL}`;
 export async function runEmailOutreach(): Promise<void> {
   console.log('[CreatorOutreach] Running email outreach...');
 
+  if (process.env.ENABLE_EMAIL_OUTREACH !== 'true') {
+    console.log('[CreatorOutreach] ENABLE_EMAIL_OUTREACH not set to true — skipping');
+    return;
+  }
+
   const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
   if (!resend) {
     console.log('[CreatorOutreach] RESEND_API_KEY not set — skipping');
@@ -157,11 +177,12 @@ export async function runEmailOutreach(): Promise<void> {
     if (!prospect.email || !prospect.emailBody) continue;
 
     try {
+      const joinUrl = buildJoinUrl(prospect.id);
       await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: prospect.email,
         subject: prospect.emailSubject || 'Quick idea for your content',
-        html: buildOutreachEmailHtml(prospect.emailBody, prospect.handle),
+        html: buildOutreachEmailHtml(prospect.emailBody, prospect.handle, joinUrl),
         replyTo: FROM_EMAIL,
         tags: [
           { name: 'prospect_id', value: prospect.id },
@@ -197,6 +218,11 @@ export async function runEmailOutreach(): Promise<void> {
 
 export async function runEmailFollowUp(): Promise<void> {
   console.log('[CreatorOutreach] Running email follow-up...');
+
+  if (process.env.ENABLE_EMAIL_OUTREACH !== 'true') {
+    console.log('[CreatorOutreach] ENABLE_EMAIL_OUTREACH not set to true — skipping');
+    return;
+  }
 
   if (!process.env.GEMINI_API_KEY) {
     console.log('[CreatorOutreach] GEMINI_API_KEY not set — skipping follow-up generation');
@@ -255,12 +281,13 @@ export async function runEmailFollowUp(): Promise<void> {
 
     try {
       const { subject, body } = await generateFollowUpEmail(genAI, prospect, 1);
+      const joinUrl = buildJoinUrl(prospect.id);
 
       await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: prospect.email,
         subject,
-        html: buildOutreachEmailHtml(body, prospect.handle),
+        html: buildOutreachEmailHtml(body, prospect.handle, joinUrl),
         replyTo: FROM_EMAIL,
         tags: [
           { name: 'prospect_id', value: prospect.id },
@@ -300,12 +327,13 @@ export async function runEmailFollowUp(): Promise<void> {
 
     try {
       const { subject, body } = await generateFollowUpEmail(genAI, prospect, 2);
+      const joinUrl = buildJoinUrl(prospect.id);
 
       await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: prospect.email,
         subject,
-        html: buildOutreachEmailHtml(body, prospect.handle),
+        html: buildOutreachEmailHtml(body, prospect.handle, joinUrl),
         replyTo: FROM_EMAIL,
         tags: [
           { name: 'prospect_id', value: prospect.id },
@@ -433,7 +461,7 @@ export async function handleCreatorResponse(prospectId: string): Promise<void> {
 
 // ─── Email HTML Builder ────────────────────────────────────────────────────────
 
-function buildOutreachEmailHtml(bodyText: string, _handle: string): string {
+function buildOutreachEmailHtml(bodyText: string, _handle: string, joinUrl?: string): string {
   // Convert plain text to basic HTML paragraphs
   const htmlBody = bodyText
     .split('\n\n')
@@ -441,6 +469,14 @@ function buildOutreachEmailHtml(bodyText: string, _handle: string): string {
     .filter(Boolean)
     .map(p => `<p style="color:#1A1A1A;font-size:15px;line-height:1.6;margin:0 0 14px;">${p.replace(/\n/g, '<br>')}</p>`)
     .join('');
+
+  const joinCtaHtml = joinUrl ? `
+            <div style="margin:24px 0 0;padding:20px 0 0;border-top:1px solid #F5EDE7;text-align:center;">
+              <a href="${joinUrl}" style="display:inline-block;background:#E85D4C;color:#fff;text-decoration:none;padding:14px 28px;font-size:13px;font-weight:700;letter-spacing:0.5px;">
+                GET YOUR AFFILIATE LINK →
+              </a>
+              <p style="color:#9CA3AF;font-size:11px;margin:10px 0 0;line-height:1.5;">30% recurring commission · One click to activate · Takes 10 seconds</p>
+            </div>` : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -457,6 +493,7 @@ function buildOutreachEmailHtml(bodyText: string, _handle: string): string {
                 Download Or This? on the App Store →
               </a>
             </p>
+            ${joinCtaHtml}
           </td>
         </tr>
         <tr>
@@ -480,6 +517,7 @@ function buildOutreachEmailHtml(bodyText: string, _handle: string): string {
 export async function handleCreatorEmailWebhook(
   eventType: string,
   tags: Array<{ name: string; value: string }>,
+  clickedUrl?: string,
 ): Promise<void> {
   const prospectTag = tags.find(t => t.name === 'prospect_id');
   if (!prospectTag) return;
@@ -497,6 +535,15 @@ export async function handleCreatorEmailWebhook(
         where: { id: prospectId, emailClickedAt: null },
         data: { emailClickedAt: new Date() },
       });
+      // Belt-and-suspenders: if they clicked the affiliate join link, auto-mark as responded
+      // even before they land on the confirmation page (handles browser close mid-flow)
+      if (clickedUrl && clickedUrl.includes('/creator/join/')) {
+        await prisma.creatorProspect.updateMany({
+          where: { id: prospectId, status: { in: ['contacted', 'followed_up', 'dm_ready'] } },
+          data: { status: 'responded', respondedAt: new Date() },
+        });
+        console.log(`[CreatorOutreach] Webhook: auto-responded prospect ${prospectId} via join-link click`);
+      }
     }
   } catch (err) {
     console.warn('[CreatorOutreach] Webhook update failed:', err);
@@ -744,6 +791,169 @@ The path to meaningful income: post consistently, track what drives your install
 I'm watching your metrics — reply if you want a strategy call.
 
 — Brandon from Or This?`;
+}
+
+// ─── One-Click Affiliate Join (from email CTA link) ───────────────────────────
+
+export async function handleCreatorJoinLink(
+  prospectId: string,
+): Promise<{ handle: string; referralCode: string } | null> {
+  const prospect = await prisma.creatorProspect.findUnique({ where: { id: prospectId } });
+  if (!prospect) return null;
+
+  // Already onboarded — return existing referral code
+  if (['responded', 'onboarded', 'posted'].includes(prospect.status)) {
+    const existing = await prisma.creator.findFirst({
+      where: { handle: prospect.handle },
+      select: { referralCode: true },
+    }).catch(() => null);
+    if (existing?.referralCode) {
+      return { handle: prospect.handle, referralCode: existing.referralCode };
+    }
+  }
+
+  // Build referral code from handle (dedup if needed)
+  const baseCode = prospect.handle.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 28)
+    || `creator_${prospectId.slice(0, 8)}`;
+
+  let referralCode = baseCode;
+  let suffix = 2;
+  while (await prisma.creator.findUnique({ where: { referralCode } }).catch(() => null)) {
+    referralCode = `${baseCode}${suffix}`;
+    suffix++;
+    if (suffix > 99) { referralCode = `cr_${prospectId.slice(0, 12)}`; break; }
+  }
+
+  // Create Creator record
+  await prisma.creator.upsert({
+    where: { referralCode },
+    update: { status: 'accepted', email: prospect.email ?? undefined },
+    create: {
+      name: prospect.displayName || prospect.handle,
+      handle: prospect.handle,
+      platform: prospect.platform,
+      status: 'accepted',
+      email: prospect.email ?? undefined,
+      referralCode,
+      acceptedAt: new Date(),
+      notes: `Self-onboarded via email join link (prospectId: ${prospectId})`,
+    },
+  });
+
+  // Update prospect status
+  await prisma.creatorProspect.update({
+    where: { id: prospectId },
+    data: { status: 'onboarded', respondedAt: new Date() },
+  });
+
+  // Send creator kit email (non-blocking — UX shouldn't wait)
+  if (prospect.email && process.env.GEMINI_API_KEY) {
+    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+    if (resend) {
+      getGemini()
+        .then(genAI => generateCreatorKit(genAI, prospect))
+        .then(kitBody => resend.emails.send({
+          from: `${FROM_NAME} <${FROM_EMAIL}>`,
+          to: prospect.email!,
+          subject: 'Your Or This? creator playbook',
+          html: buildOutreachEmailHtml(kitBody, prospect.handle),
+          replyTo: FROM_EMAIL,
+        }))
+        .catch(err => console.warn('[CreatorOutreach] Join-link kit email failed:', err));
+    }
+  }
+
+  console.log(`[CreatorOutreach] One-click onboarded @${prospect.handle} (code: ${referralCode})`);
+  return { handle: prospect.handle, referralCode };
+}
+
+// ─── Self-Serve Creator Signup (from orthis.app/creator form) ─────────────────
+
+export async function handleCreatorSignup(
+  handle: string,
+  email: string,
+  platform: string,
+): Promise<{ success: true; referralCode: string; handle: string } | { success: false; error: string }> {
+  const cleanHandle = handle.replace(/^@/, '').trim();
+
+  if (!cleanHandle || !/^[a-zA-Z0-9._-]{2,50}$/.test(cleanHandle)) {
+    return { success: false, error: 'Please enter a valid handle (2-50 characters, letters/numbers/._- only).' };
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+  const validPlatforms = ['tiktok', 'instagram', 'youtube', 'lemon8'];
+  if (!validPlatforms.includes(platform)) {
+    return { success: false, error: 'Please select a valid platform.' };
+  }
+
+  // Already in program — return existing code
+  const existingCreator = await prisma.creator.findFirst({
+    where: { OR: [{ email }, { handle: cleanHandle }] },
+    select: { referralCode: true, handle: true },
+  }).catch(() => null);
+  if (existingCreator?.referralCode) {
+    return { success: true, referralCode: existingCreator.referralCode, handle: existingCreator.handle };
+  }
+
+  // Build referral code
+  const baseCode = cleanHandle.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 28)
+    || `creator_${Date.now().toString(36)}`;
+
+  let referralCode = baseCode;
+  let suffix = 2;
+  while (await prisma.creator.findUnique({ where: { referralCode } }).catch(() => null)) {
+    referralCode = `${baseCode}${suffix}`;
+    suffix++;
+    if (suffix > 99) break;
+  }
+
+  // Create Creator record
+  await prisma.creator.create({
+    data: {
+      name: cleanHandle,
+      handle: cleanHandle,
+      platform,
+      status: 'accepted',
+      email,
+      referralCode,
+      acceptedAt: new Date(),
+      notes: 'Self-signed via orthis.app/creator',
+    },
+  });
+
+  // Create CreatorProspect for pipeline tracking (non-fatal if handle already exists)
+  await prisma.creatorProspect.create({
+    data: {
+      platform,
+      handle: cleanHandle,
+      email,
+      status: 'onboarded',
+      outreachMethod: 'email',
+      respondedAt: new Date(),
+      notes: 'Self-signed via orthis.app/creator',
+    },
+  }).catch(() => {});
+
+  // Send creator kit email (non-blocking)
+  if (process.env.GEMINI_API_KEY) {
+    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+    if (resend) {
+      getGemini()
+        .then(genAI => generateCreatorKit(genAI, { handle: cleanHandle, platform, niche: null }))
+        .then(kitBody => resend.emails.send({
+          from: `${FROM_NAME} <${FROM_EMAIL}>`,
+          to: email,
+          subject: 'Your Or This? creator playbook',
+          html: buildOutreachEmailHtml(kitBody, cleanHandle),
+          replyTo: FROM_EMAIL,
+        }))
+        .catch(err => console.warn('[CreatorOutreach] Self-serve kit email failed:', err));
+    }
+  }
+
+  console.log(`[CreatorOutreach] Self-served signup: @${cleanHandle} (code: ${referralCode})`);
+  return { success: true, referralCode, handle: cleanHandle };
 }
 
 function buildWhatsWorkingEmail(

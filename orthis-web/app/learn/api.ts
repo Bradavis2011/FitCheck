@@ -18,6 +18,7 @@ export interface LearnItemFull extends LearnItem {
   ogTitle?: string | null;
   scriptData?: Record<string, string> | null;
   sourceRuleIds?: string[];
+  sourceData?: Record<string, unknown> | null;
 }
 
 export interface LearnContentResponse {

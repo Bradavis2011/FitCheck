@@ -37,7 +37,8 @@ import { runChurnPrediction } from './churn-prediction.service.js';
 import { measureAffiliateMetrics, computeUserAffiliatePreferences } from './affiliate.service.js';
 import { runFashionEventDiscovery, runFashionEventNudge } from './fashion-events.service.js';
 import { runFeedbackAnalyst } from './feedback-analyst.service.js';
-import { runSeoContentAgent } from './seo-content.service.js';
+import { runSeoContentAgent, generateRushContentBlitz, refreshRushContent } from './seo-content.service.js';
+import { runSeoIntelligence, trackKeywordPositions } from './seo-intelligence.service.js';
 import { runInfraMonitor } from './infra-monitor.service.js';
 import { runOnboardingOptimizer } from './onboarding-optimizer.service.js';
 import { runCompetitiveIntel } from './competitive-intel.service.js';
@@ -765,10 +766,9 @@ export function initializeScheduler(): void {
   { timezone: 'UTC' });
 
   // ── Affiliate Metrics — Daily 7am UTC ─────────────────────────────────────
-  cron.schedule('0 7 * * *', async () => {
-    try { await measureAffiliateMetrics(); }
-    catch (err) { console.error('[Scheduler] Affiliate metrics failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 7 * * *', () =>
+    guardedRun('affiliate', '🛍️ [Scheduler] Running affiliate metrics...', measureAffiliateMetrics),
+  { timezone: 'UTC' });
 
   // ── Affiliate Preference Learning — Daily 4am UTC (before nudge hour computation) ─
   cron.schedule('0 4 * * *', () =>
@@ -796,11 +796,36 @@ export function initializeScheduler(): void {
   { timezone: 'UTC' });
 
   // ── Tier 2: SEO Content Agent — Friday 7am UTC ────────────────────────────
-  cron.schedule('0 7 * * 5', async () => {
-    console.log('📝 [Scheduler] Running SEO content agent...');
-    try { await runSeoContentAgent(); }
-    catch (err) { console.error('[Scheduler] SEO content agent failed:', err); }
-  }, { timezone: 'UTC' });
+  cron.schedule('0 7 * * 5', () =>
+    guardedRun('seo-content', '📝 [Scheduler] Running SEO content agent...', runSeoContentAgent),
+  { timezone: 'UTC' });
+
+  // ── SEO Intelligence — Monday 7:30am UTC ──────────────────────────────────
+  cron.schedule('30 7 * * 1', () =>
+    guardedRun('seo-intelligence', '🔍 [Scheduler] Running SEO intelligence...', runSeoIntelligence),
+  { timezone: 'UTC' });
+
+  // ── SEO Position Tracker — Daily 6am UTC (only runs if SERPER_API_KEY set) ──
+  // Reads TargetKeyword records with status=content_created, checks each in Serper,
+  // writes real currentPosition. Runs before the 6:30am blitz so positions are fresh.
+  cron.schedule('0 6 * * *', () =>
+    guardedRun('seo-intelligence', '📍 [Scheduler] Tracking keyword positions...', trackKeywordPositions),
+  { timezone: 'UTC' });
+
+  // ── Rush Content Blitz — Tuesday + Friday 6:30am UTC (March–August) ───────
+  // Generates 2 rush articles per run from the keyword seed list.
+  cron.schedule('30 6 * * 2', () =>
+    guardedRun('seo-content', '🎀 [Scheduler] Running rush content blitz (Tuesday)...', generateRushContentBlitz),
+  { timezone: 'UTC' });
+
+  cron.schedule('30 6 * * 5', () =>
+    guardedRun('seo-content', '🎀 [Scheduler] Running rush content blitz (Friday)...', generateRushContentBlitz),
+  { timezone: 'UTC' });
+
+  // ── Rush Content Refresh — 1st of each month, 8am UTC ─────────────────────
+  cron.schedule('0 8 1 * *', () =>
+    guardedRun('seo-content', '🔄 [Scheduler] Running rush content refresh...', refreshRushContent),
+  { timezone: 'UTC' });
 
   // ── Tier 3: Infra Monitor — Every 30 minutes ─────────────────────────────
   cron.schedule('*/30 * * * *', () =>
@@ -860,5 +885,5 @@ export function initializeScheduler(): void {
     guardedRun('content-factory', '📧 [Scheduler] Sending founder content digest...', sendFounderContentDigest);
   }, { timezone: 'UTC' });
 
-  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest + Growth Intern + Creator Install Attribution)');
+  console.log('✅ [Scheduler] All cron jobs registered (Agents 1-16 + Operator Workforce + AI Intelligence + Recursive Self-Improvement + Relationship System + Self-Improving StyleDNA Engine + Ops Learning Loops + RSI Learning System + Security Auditor + Code Reviewer + ASO Intelligence + UGC Creator Program + Learning Center + Founder Content Digest + Growth Intern + Creator Install Attribution + SEO Intelligence + SEO Position Tracker + Rush Content Blitz)');
 }

@@ -19,7 +19,7 @@ export function getAiCounters() { return { success: _aiSuccessCount, fallback: _
 export function resetAiCounters() { _aiSuccessCount = 0; _aiFallbackCount = 0; }
 
 // Prompt versioning — increment when SYSTEM_PROMPT or analysis logic changes significantly
-export const PROMPT_VERSION = 'v3.2';
+export const PROMPT_VERSION = 'v4.0';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -298,6 +298,62 @@ Outfit: Black compression leggings, oversized gray cotton tee, neon green runnin
   "editorialSummary": "The foundation is functional but reads default rather than intentional. An athletic outfit still benefits from coordination — match the shoe to the palette, upgrade the tee to technical fabric, and this moves from 'grabbed what was clean' to gym-floor polish."
 }
 
+Example 6 - Wrong Occasion Outfit (SCORE 3 — occasion mismatch, no intentional styling for context):
+Occasion: Nice restaurant date
+Outfit: Cargo shorts, flip-flops, graphic band tee, backwards baseball cap
+
+{
+  "overallScore": 3,
+  "whatsRight": [
+    "The graphic tee has a clear aesthetic identity — there's a style here, just not for this occasion."
+  ],
+  "couldImprove": [
+    "Cargo shorts and flip-flops at a nice restaurant is a hard occasion miss — this reads casual day-off, not date-night.",
+    "The backwards cap adds a third layer of informality on top of already casual pieces."
+  ],
+  "takeItFurther": [
+    "Swap the shorts for dark chinos, the flip-flops for clean loafers, lose the cap — the graphic tee becomes a statement rather than a problem."
+  ],
+  "editorialSummary": "The occasion is doing a lot of work here, and the outfit isn't meeting it. Cargo shorts and flip-flops to a nice restaurant isn't a style choice — it's a mismatch. The pieces aren't the problem; the context is. Dress for the room."
+}
+
+Example 7 - Below-Average Casual (SCORE 4 — ill-fitting, uncoordinated, no intentional choices):
+Occasion: Casual outing
+Outfit: Baggy gray sweatpants, faded oversized hoodie (shoulder seams past natural shoulder point), mismatched-color running shoes
+
+{
+  "overallScore": 4,
+  "whatsRight": [
+    "The monochrome gray base is a valid starting point — there's a neutral palette here."
+  ],
+  "couldImprove": [
+    "The hoodie reads unintentionally large — shoulder seams are well past the natural point, which is ill-fitting, not oversized.",
+    "Running shoe colors (mixed red and blue accents) create visual noise against a neutral-gray palette — reads mismatched, not curated."
+  ],
+  "takeItFurther": [
+    "Replace with a properly-fitted hoodie — even a relaxed-fit version reads intentional when the shoulder seam sits correctly."
+  ],
+  "editorialSummary": "This is the outfit equivalent of 'grabbed what was clean.' The pieces don't clash, but nothing is coordinated — gray on gray with no proportion play and mismatched shoe accents. A properly-fitting hoodie and a single-color sneaker would move this from default to considered."
+}
+
+Example 8 - Exceptional Outfit (SCORE 10 — every decision is intentional and correct):
+Occasion: Evening gallery opening
+Outfit: Tailored wide-leg ivory trousers, structured black silk blouse (subtle sheen), black pointed-toe mules, single large sculptural gold cuff
+
+{
+  "overallScore": 10,
+  "whatsRight": [
+    "The ivory/black contrast is executed with architectural precision — wide-leg volume below against structured silk above creates a perfect visual thirds play.",
+    "The single sculptural gold cuff is a confident editorial choice — one focal point, nothing competing with it.",
+    "Pointed-toe mules at the base visually extend the column line without breaking the palette."
+  ],
+  "couldImprove": [],
+  "takeItFurther": [
+    "This is complete. Nothing to add."
+  ],
+  "editorialSummary": "Stop. This is the look. The wide-leg silhouette, the structured silk, the calculated restraint of a single statement piece — every decision is intentional and correct. This is what it looks like when proportion, palette, and occasion alignment all land at once."
+}
+
 ═══════════════════════════════════════════════════════════════════
 
 ANALYSIS APPROACH:
@@ -363,16 +419,25 @@ IMPORTANT RULES:
 - Each bullet is one complete, specific thought — not a label, not a category
 
 SCORING GUIDE (1-10):
-- 1-3: Significant issues — clashing palette, wrong occasion, proportion failure, multiple problems at once
-- 4-5: Needs rethinking — foundation present but clear fixes required before this works
-- 6: Has potential — one or two specific changes would substantially improve the look
-- 7: Solid — intentional choices that mostly work; minor refinements available
-- 8: Strong — well-executed with clear personal style; only polish-level changes left
-- 9: Excellent — editorial-ready, impressive across all dimensions
-- 10: Perfect — stop-you-on-the-street exceptional
+- 5: THE TRUE MIDPOINT — functional but no intentional styling. Pieces don't clash, but nothing is working together either. Default score when "nothing is notably right or wrong."
+- 1-2: Severe problems — clashing palette, completely wrong occasion, major proportion failure, unwearable
+- 3-4: Needs rethinking — clear issues with coordination, fit, or occasion; foundation present but broken
+- 6: One or two specific changes would substantially improve the look; foundation is there
+- 7: HARD TO EARN — requires demonstrable intentional styling choices visible in the photo. If you'd describe this as "fine," "normal," or "inoffensive," it is NOT a 7. A 7 must have at least two clear, purposeful decisions (e.g., tonal palette, considered layering, deliberate proportion contrast). Ask yourself: "What did this person intentionally choose?" If you cannot name at least two specific visible choices, the score is 5 or 6, not 7.
+- 8: Well-executed with clear personal style — only polish-level changes remain
+- 9: Editorial-ready, impressive across all dimensions
+- 10: Stop-you-on-the-street exceptional — every decision is correct and intentional
 
-Score what you actually see. Use the full range — a 5 or 6 with specific, actionable advice
-is more useful than an unearned 7. Do not anchor to 7 as a default.`;
+SCORING DISCIPLINE (REQUIRED — do not skip):
+Before assigning any score above 5, you MUST identify specific intentional choices that justify it.
+- Score 6 requires: at least one clear positive AND one specific improvable element
+- Score 7 requires: two or more demonstrable intentional styling decisions
+- Score 8+ requires: clear evidence of style mastery and deliberate execution
+"I couldn't find anything wrong" is NOT a reason to score above 5 — absence of problems = 5.
+Score what you actually see. Use the full range. Scores of 3, 4, 8, and 9 should appear regularly.
+
+SUB-SCORE VARIANCE:
+colorScore, fitScore, proportionScore, and coherenceScore measure DIFFERENT dimensions and MUST vary independently. An outfit can have strong color but poor fit — colorScore 8, fitScore 4 is correct and expected. All four sub-scores landing within 1 point of each other is extremely unlikely. If all four sub-scores are equal or within 1 point of each other, you have not evaluated them independently — re-examine each dimension separately.`;
 
 // Standard tier prompt suffix — keeps responses within 4096 tokens
 const STANDARD_PROMPT_SUFFIX = `RESPONSE LENGTH — Standard tier:
@@ -599,6 +664,43 @@ async function getRatingCalibration(userId: string): Promise<string | null> {
   }
 }
 
+// ─── Score history anti-clustering ───────────────────────────────────────────
+
+async function getScoreHistoryContext(userId: string): Promise<string | null> {
+  try {
+    const recent = await prisma.outfitCheck.findMany({
+      where: { userId, aiScore: { not: null } },
+      select: { aiScore: true },
+      orderBy: { createdAt: 'desc' },
+      take: 8,
+    });
+
+    if (recent.length < 4) return null;
+
+    const scores = recent.map(r => r.aiScore as number);
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+    const stddev = Math.sqrt(variance);
+
+    // Check for identical streaks
+    const last3 = scores.slice(0, 3);
+    const allIdentical = last3.every(s => s === last3[0]);
+
+    if (allIdentical) {
+      return `CRITICAL SCORE VARIANCE WARNING: This user's last 3 scores are all exactly ${last3[0]}. This strongly indicates score anchoring. You MUST score this outfit independently on its own merits. If it is genuinely a ${last3[0]}, explain specifically why. If it is different, score it differently.`;
+    }
+
+    if (stddev < 0.8) {
+      return `Score variance warning: This user's last ${scores.length} scores cluster tightly (stddev ${stddev.toFixed(2)}, mean ${mean.toFixed(1)}). Real outfits vary more than this. Score this outfit purely on what you see — do not anchor to prior scores.`;
+    }
+
+    return null;
+  } catch (err) {
+    console.error('[AI] getScoreHistoryContext failed (non-fatal):', err);
+    return null;
+  }
+}
+
 // ─── Cold-start personalization ───────────────────────────────────────────────
 
 // Profile-based insights when there's no StyleDNA history yet
@@ -737,6 +839,7 @@ export function buildUserPrompt(
     trendContext?: string | null;
     userCalibrationContext?: string | null;
     ratingCalibration?: string | null;
+    scoreHistoryContext?: string | null;   // Score clustering warning
     revisionContext?: string | null;
     weatherContext?: string | null;        // From weather.service.ts
     reframeContext?: string | null;        // From feedback-reframe.service.ts
@@ -876,6 +979,11 @@ export function buildUserPrompt(
     parts.push('', `Feedback quality note: ${options.ratingCalibration}`);
   }
 
+  // Score history anti-clustering warning
+  if (options?.scoreHistoryContext) {
+    parts.push('', options.scoreHistoryContext);
+  }
+
   // Weather context — affects layering, fabric, and footwear advice
   if (options?.weatherContext) {
     parts.push('', `Weather context: ${options.weatherContext}`);
@@ -937,7 +1045,7 @@ export function repairTruncatedJSON(raw: string): string | null {
 
 export function fillMissingFeedbackFields(feedback: Partial<OutfitFeedbackV3>): OutfitFeedbackV3 {
   const filled = { ...feedback } as OutfitFeedbackV3;
-  if (filled.overallScore == null) filled.overallScore = 6;
+  if (filled.overallScore == null) filled.overallScore = 5;
   if (!filled.whatsRight || !Array.isArray(filled.whatsRight)) filled.whatsRight = ['Your color choices are consistent.'];
   if (!filled.couldImprove || !Array.isArray(filled.couldImprove)) filled.couldImprove = ['Consider the overall proportions of the outfit.'];
   if (!filled.takeItFurther || !Array.isArray(filled.takeItFurther)) filled.takeItFurther = [];
@@ -1110,6 +1218,7 @@ export async function analyzeOutfit(
   let userCalibrationContext: string | null = null;
   let ratingCalibration: string | null = null;
   let trendContext: string | null = null;
+  let scoreHistoryContext: string | null = null;
   let revisionContext: string | null = null;
   let weatherContext: string | null = null;
   let reframeContext: string | null = null;
@@ -1173,11 +1282,12 @@ export async function analyzeOutfit(
         }
       }
 
-      [calibrationContext, userCalibrationContext, ratingCalibration, trendContext] = await Promise.all([
+      [calibrationContext, userCalibrationContext, ratingCalibration, trendContext, scoreHistoryContext] = await Promise.all([
         getCalibrationContext(),
         getUserCalibrationContext(outfitCheck.userId),
         getRatingCalibration(outfitCheck.userId),
         getLatestFashionTrendText(),
+        getScoreHistoryContext(outfitCheck.userId),
       ]);
 
       // Weather context (requires city on user profile)
@@ -1277,6 +1387,7 @@ export async function analyzeOutfit(
           trendContext,
           userCalibrationContext,
           ratingCalibration,
+          scoreHistoryContext,
           revisionContext,
           weatherContext,
           reframeContext,
@@ -1568,7 +1679,7 @@ export async function analyzeOutfit(
   // Fallback response if all retries failed
   console.error('All AI feedback attempts failed, using fallback');
   const fallbackFeedback: OutfitFeedbackV3 = {
-    overallScore: 6,
+    overallScore: 5,
     whatsRight: [
       'Your outfit is put together and appropriate for the occasion.',
     ],
@@ -1587,10 +1698,10 @@ export async function analyzeOutfit(
       garments: [],
       patterns: [],
       textures: [],
-      colorScore: 7,
-      proportionScore: 7,
-      fitScore: 7,
-      coherenceScore: 7,
+      colorScore: null,
+      proportionScore: null,
+      fitScore: null,
+      coherenceScore: null,
     },
   };
 

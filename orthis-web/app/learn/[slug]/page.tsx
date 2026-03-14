@@ -71,6 +71,19 @@ export default async function LearnContentPage({ params }: Props) {
   const gateThreshold = getGateThreshold(item.contentType);
   const schemaType = getSchemaType(item.contentType);
   const typeLabel = typeLabels[item.contentType] || "Article";
+
+  // FAQ items from sourceData (populated by niche content generator)
+  interface FaqItem { question: string; answer: string }
+  const faqItems: FaqItem[] = (() => {
+    try {
+      const sd = item.sourceData as Record<string, unknown> | null | undefined;
+      if (!sd) return [];
+      const items = sd.faqItems;
+      if (Array.isArray(items) && items.length > 0) return items as FaqItem[];
+      return [];
+    } catch { return []; }
+  })();
+
   const dateStr = item.publishedAt
     ? new Date(item.publishedAt).toLocaleDateString("en-US", {
         month: "long",
@@ -113,6 +126,24 @@ export default async function LearnContentPage({ params }: Props) {
           ],
         }}
       />
+
+      {/* FAQ rich snippet — only when article has FAQ data */}
+      {faqItems.length > 0 && (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqItems.map((faq) => ({
+              "@type": "Question",
+              name: faq.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: faq.answer,
+              },
+            })),
+          }}
+        />
+      )}
 
       <LearnNav />
 

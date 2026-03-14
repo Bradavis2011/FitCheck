@@ -42,6 +42,7 @@ export const metadata: Metadata = {
     siteName: "Or This?",
     type: "website",
     locale: "en_US",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Or This? — AI outfit feedback app" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -50,6 +51,7 @@ export const metadata: Metadata = {
       "Or This? is the AI outfit feedback app that tells you the truth. Snap a photo, get a score out of 10, and know what to wear — before you walk out the door.",
     site: "@OrThisApp",
     creator: "@OrThisApp",
+    images: ["/opengraph-image"],
   },
 };
 

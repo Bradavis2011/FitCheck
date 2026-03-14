@@ -19,10 +19,6 @@ const SUBREDDITS = [
   'WDYWT',
   'fashion',
   'fashionadvice',
-  'AndroidApps',
-  'betatesting',
-  'SideProject',
-  'indiehackers',
 ];
 
 const SEARCH_QUERIES = [
@@ -198,7 +194,7 @@ async function scoreThreads(
     `${i + 1}. [${t.subreddit}] "${t.title}" — ${t.selfText.slice(0, 100)}`
   ).join('\n');
 
-  const prompt = `Score the relevance of these Reddit threads for Or This?, an AI outfit scoring app.
+  const prompt = `Score the relevance of these Reddit threads for genuine fashion advice comments.
 
 Threads:
 ${threadList}
@@ -206,11 +202,10 @@ ${threadList}
 Scoring criteria (0.0 to 1.0):
 - Directly asking for outfit feedback/rating: 0.9-1.0
 - Asking for fashion advice/what to wear: 0.7-0.9
-- General fashion discussion where app could help: 0.5-0.7
-- Beta testing / app discovery subreddits: 0.6-0.8
+- General fashion discussion where advice is welcome: 0.5-0.7
 - Off-topic: 0.0-0.3
 
-Also assign a category: "outfit_feedback", "fashion_advice", "app_discovery", "general_fashion", "off_topic"
+Also assign a category: "outfit_feedback", "fashion_advice", "general_fashion", "off_topic"
 
 Return ONLY JSON array:
 [{"id": "1", "relevanceScore": 0.85, "category": "outfit_feedback"}]
@@ -241,11 +236,10 @@ async function generateThreadResponse(
     subreddit: string; title: string; selfText: string; category: string;
     imageUrl?: string | null; hasImage?: boolean;
     threadId?: string;
+    upvotes?: number;
   },
 ): Promise<{ text: string; analysisUsed: boolean }> {
-  const isBetaOrDiscovery = ['betatesting', 'SideProject', 'indiehackers', 'AndroidApps'].includes(thread.subreddit);
-
-  // Phase 4: Check for ops-learning-generated improved comment style
+  // Check for ops-learning-generated improved comment style
   let learnedStyleBlock = '';
   try {
     const variant = await prisma.socialPromptVariant.findUnique({
@@ -256,24 +250,22 @@ async function generateThreadResponse(
     }
   } catch { /* non-fatal */ }
 
-  // Phase 2: AI outfit analysis for image posts
-  if (thread.hasImage && thread.imageUrl && thread.category === 'outfit_feedback' && !isBetaOrDiscovery) {
+  // AI outfit analysis for image posts
+  if (thread.hasImage && thread.imageUrl && thread.category === 'outfit_feedback') {
     try {
       const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const utmLink = `https://apps.apple.com/app/id6759472490?utm_source=reddit&utm_medium=comment&utm_campaign=outfit_analysis&utm_content=${thread.threadId || 'unknown'}`;
 
       const analysisPrompt = `You are a knowledgeable fashion Redditor responding to someone sharing their outfit photo.
 
 Analyze this outfit photo. Write a Reddit comment that:
 1. Opens with 2-3 specific, genuine observations about what works (proportions, colors, silhouette, texture, fit)
 2. Gives one actionable suggestion — specific, not generic
-3. Ends with a natural 1-sentence mention: "I've been using an AI app called Or This? that does this kind of scoring automatically — it actually caught [mention one specific detail from your analysis]. Free on iOS: ${utmLink}"
 
 Rules:
 - Be specific to what you actually see in the image — no generic fashion advice
 - Sound like a knowledgeable Redditor, not a brand
-- Under 130 words total
-- No emojis${learnedStyleBlock}
+- Under 120 words total
+- No emojis, no app mentions, no self-promotion of any kind${learnedStyleBlock}
 
 Write ONLY the comment text:`;
 
@@ -294,7 +286,7 @@ Write ONLY the comment text:`;
     }
   }
 
-  // Text-based response (existing logic, enhanced with learned style)
+  // Text-based response
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const prompt = `Write a Reddit comment for r/${thread.subreddit}.
@@ -304,17 +296,11 @@ Thread content: "${thread.selfText.slice(0, 300)}"
 Category: ${thread.category}
 
 Rules:
-${isBetaOrDiscovery
-  ? `- This is a beta testing / indie hacker sub, so a more direct pitch about Or This? AI outfit app is appropriate
-- Mention it's available on iOS (App Store) and Android is coming soon
-- Mention free tier available, looking for beta testers`
-  : `- FIRST: Actually answer their question with genuine, specific fashion advice (2-3 sentences)
-- THEN: Naturally mention Or This? — "I've also been using an AI outfit scorer called Or This? for exactly this kind of feedback" — only if it flows naturally
-- Keep the mention short and organic, not salesy
-- Match r/${thread.subreddit} community tone exactly`}
+- Answer their question with genuine, specific fashion advice (2-3 sentences)
+- Match r/${thread.subreddit} community tone exactly
 - Under 120 words total
-- Sound like a real helpful Redditor, not a brand
-- Don't be overly promotional${learnedStyleBlock}
+- Sound like a real helpful Redditor
+- No app mentions, no self-promotion, no links of any kind${learnedStyleBlock}
 
 Write ONLY the comment text (no JSON, no formatting markers):`;
 
@@ -322,14 +308,8 @@ Write ONLY the comment text (no JSON, no formatting markers):`;
     const result = await model.generateContent(prompt);
     return { text: result.response.text().trim(), analysisUsed: false };
   } catch {
-    if (isBetaOrDiscovery) {
-      return {
-        text: `Hey! Just launched Or This? — an AI that scores your outfits 1-10 with specific style feedback. Would love some beta testers to try it out. It's free on iOS. Would really appreciate feedback from this community!`,
-        analysisUsed: false,
-      };
-    }
     return {
-      text: `${thread.category === 'outfit_feedback' ? 'Great question! ' : ''}I'd also recommend trying Or This? — it's an AI that gives you a 1-10 score on your outfit with specific feedback. Really helpful for exactly this kind of situation.`,
+      text: `${thread.category === 'outfit_feedback' ? 'Great fit overall! ' : ''}The proportions look balanced — I'd focus on making sure the silhouette reads clearly at a distance. Specific to your piece, the color palette is working well together.`,
       analysisUsed: false,
     };
   }

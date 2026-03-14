@@ -160,10 +160,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Today's Look — AI outfit from wardrobe + weather (Plus/Pro) or lookbook (free) */}
-        <DailyLookCard />
-
-        {/* Lookbook strip — shown for free tier as fallback (DailyLookCard returns null for paid) */}
+        {/* Lookbook strip — Fabian editorial images (free tier) */}
         {tier === 'free' && (
           <View style={styles.lookbookSection}>
             <ScrollView
@@ -180,6 +177,9 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Today's Look — AI outfit from wardrobe + weather (Plus/Pro) */}
+        <DailyLookCard />
 
         {/* Stylist Card — agent activity + narrative + Ask Noa link */}
         <StylistCard />

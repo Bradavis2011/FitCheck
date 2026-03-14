@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius, getScoreColor, Fonts } from '../constants/theme';
@@ -8,19 +9,18 @@ type Props = {
   summary: string;
   occasion?: string;
   username?: string;
-  /** URL shown in the image footer — Android shares only get the image, so the URL must be visible */
-  ctaUrl?: string;
 };
 
 /**
- * ShareableScoreCard — 400×600px branded PNG for social sharing.
+ * ShareableScoreCard — 400×680px branded PNG for social sharing.
  * Captured via react-native-view-shot (off-screen rendering).
- * Every share is a branded ad: "Or This? · orthis.app" in the footer.
+ * Every share is a branded ad: "Or This? · ORTHIS.APP" in the footer.
  */
-export default function ShareableScoreCard({ score, imageUri, summary, occasion, username, ctaUrl }: Props) {
+export default function ShareableScoreCard({ score, imageUri, summary, occasion, username }: Props) {
   const scoreColor = getScoreColor(score);
+  const [imageError, setImageError] = useState(false);
 
-  const validImageUri = imageUri && imageUri.trim().length > 0 ? imageUri : null;
+  const validImageUri = imageUri && imageUri.trim().length > 0 && !imageError ? imageUri : null;
 
   return (
     <View style={styles.container}>
@@ -42,7 +42,10 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
                 source={{ uri: validImageUri }}
                 style={styles.image}
                 resizeMode="cover"
-                onError={(e) => console.error('ShareableScoreCard image error:', e.nativeEvent.error)}
+                onError={(e) => {
+                  console.error('ShareableScoreCard image error:', e.nativeEvent.error);
+                  setImageError(true);
+                }}
               />
             </View>
           ) : (
@@ -59,7 +62,7 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
 
           {/* Summary */}
           <View style={styles.summaryContainer}>
-            <Text style={styles.summary} numberOfLines={3}>
+            <Text style={styles.summary} numberOfLines={5}>
               {summary}
             </Text>
           </View>
@@ -80,7 +83,7 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
               <Text style={styles.footerLogoOr}>Or </Text>
               <Text style={styles.footerLogoThis}>This?</Text>
             </Text>
-            <Text style={styles.footerUrl}>{ctaUrl ? ctaUrl.replace(/^https?:\/\//, '') : 'ORTHIS.APP'}</Text>
+            <Text style={styles.footerUrl}>ORTHIS.APP</Text>
           </View>
           {username && (
             <Text style={styles.username}>shared by @{username}</Text>
@@ -94,7 +97,7 @@ export default function ShareableScoreCard({ score, imageUri, summary, occasion,
 const styles = StyleSheet.create({
   container: {
     width: 400,
-    height: 600,
+    height: 680,
     backgroundColor: Colors.primary,
   },
   gradient: {
@@ -135,7 +138,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: 200,
-    height: 240,
+    height: 200,
     borderRadius: BorderRadius.sm, // 4px — barely rounded per editorial spec
     overflow: 'hidden',
     borderWidth: 2,
