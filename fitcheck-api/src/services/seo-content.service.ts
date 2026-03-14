@@ -13,6 +13,7 @@ import { hasLearningBudget, reserveTokens, recordTokenUsage } from './token-budg
 import { executeOrQueue } from './agent-manager.service.js';
 import { getTrendData } from './content-calendar.service.js';
 import { searchSerper } from './seo-intelligence.service.js';
+import { submitToIndexNow } from './indexnow.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -373,11 +374,12 @@ async function saveDraftAndQueue(
       'medium',
       { blogDraftId: created.id, slug, title: draft.title },
       async (payload) => {
-        const p = payload as { blogDraftId: string };
+        const p = payload as { blogDraftId: string; slug: string };
         await prisma.blogDraft.update({
           where: { id: p.blogDraftId },
           data: { status: 'published', publishedAt: new Date() },
         });
+        await submitToIndexNow(p.slug);
         return { published: true, draftId: p.blogDraftId };
       },
       draft.title + ' ' + draft.metaDescription,

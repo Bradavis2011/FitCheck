@@ -13,6 +13,27 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+const INDEXNOW_KEY = '13334acc9b0f8e60c3cf48d4c1364a28';
+async function pingIndexNow(slug: string) {
+  try {
+    const url = `https://orthis.app/learn/${slug}`;
+    await fetch('https://api.indexnow.org/indexnow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        host: 'orthis.app',
+        key: INDEXNOW_KEY,
+        keyLocation: `https://orthis.app/${INDEXNOW_KEY}.txt`,
+        urlList: [url],
+      }),
+      signal: AbortSignal.timeout(8_000),
+    });
+    console.log(`  📡 IndexNow pinged for ${url}`);
+  } catch {
+    console.warn('  ⚠️  IndexNow ping failed (non-fatal)');
+  }
+}
+
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -284,6 +305,7 @@ async function main() {
     });
 
     const url = `https://orthis.app/learn/${saved.slug}`;
+    await pingIndexNow(saved.slug);
     console.log(`  ✅ Published → ${url}\n`);
     results.push({ keyword: kw.keyword, slug: saved.slug, url });
   }
