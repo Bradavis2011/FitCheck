@@ -64,6 +64,24 @@ interface BlogPostDraft {
   faqItems?: Array<{ question: string; answer: string }>;
 }
 
+// ─── Internal link injection ──────────────────────────────────────────────────
+
+async function getInternalLinkContext(): Promise<string> {
+  try {
+    const recent = await prisma.blogDraft.findMany({
+      where: { status: 'published' },
+      orderBy: { publishedAt: 'desc' },
+      take: 10,
+      select: { title: true, slug: true },
+    });
+    if (recent.length === 0) return '';
+    const list = recent.map(a => `- [${a.title}](/learn/${a.slug})`).join('\n');
+    return `\n\nWhen relevant, link to these existing guides on our site:\n${list}\nInclude 2-3 as natural inline links in your content.`;
+  } catch {
+    return '';
+  }
+}
+
 // ─── Generic blog post (occasions/trends) ─────────────────────────────────────
 
 async function generateBlogPost(topic: string, category: string): Promise<BlogPostDraft | null> {
@@ -79,7 +97,9 @@ async function generateBlogPost(topic: string, category: string): Promise<BlogPo
     generationConfig: { maxOutputTokens: 2000, temperature: 0.7 },
   });
 
-  const prompt = `You are a fashion content writer for "Or This?" — an AI outfit feedback app. Write a blog post for the following topic.
+  const internalLinks = await getInternalLinkContext();
+
+  const prompt = `You are a fashion content writer for "Or This?" — an AI outfit feedback app. Write a blog post for the following topic.${internalLinks}
 
 TOPIC: ${topic}
 CATEGORY: ${category}
@@ -129,6 +149,9 @@ async function generateNicheArticle(
     console.log(`[SeoContent] Token reservation failed for keyword: ${keyword}`);
     return null;
   }
+
+  // ── Fetch internal link context ────────────────────────────────────────────
+  const internalLinkNote = await getInternalLinkContext();
 
   // ── Fetch real SERP data to write against what's actually ranking ──────────
   let serpContext = '';
@@ -181,6 +204,8 @@ Your article MUST outperform what's currently ranking. Be more specific, more ac
     generationConfig: { maxOutputTokens: 4000, temperature: 0.7 },
   });
 
+  const MID_CTA = `\n\n> **Not sure about your outfit?** Get instant AI feedback — [Try Or This? free →](https://orthis.app)\n\n`;
+
   const nicheContext: Record<string, string> = {
     rush: `You are writing for women preparing for sorority rush week. The audience is college-aged women (18-22) who are anxious about their outfits. They are TikTok-native, shop at Zara, Revolve, Madewell, and Free People, and care deeply about making a good first impression.
 
@@ -191,6 +216,60 @@ IMPORTANT:
 - Include SPECIFIC outfit recommendations with real brands/stores (Zara, Revolve, Abercrombie, Princess Polly, etc.)
 - Include specific items like "white linen midi dress from Madewell" not vague "a nice dress"
 - CTA at end: "Still not sure? Snap a photo of your outfit and get instant AI feedback with Or This? — know you nailed it before you walk in." with App Store link https://apps.apple.com/app/or-this/id6742406265`,
+
+    sahm_rto: `You are writing for stay-at-home moms returning to the workplace after time away with kids.
+
+Tone: Practical, no judgment, budget-aware — like a friend who's been through this. Acknowledge that rebuilding a work wardrobe on a budget is real, and that confidence matters more than perfection.
+
+IMPORTANT:
+- The app is called "Or This?" and gives AI feedback — do NOT mention community voting
+- Include specific, affordable brand recommendations (Target, LOFT, Banana Republic Factory, Thrift, Poshmark)
+- CTA at end: "Heading back to the office? Get AI feedback on your outfit before day one." with link https://orthis.app`,
+
+    dating_restart: `You are writing for women dating again after divorce, a long relationship ending, or a major life transition.
+
+Tone: Warm, encouraging, zero pressure — confidence-first, not trend-first. Never prescriptive. Acknowledge that this is emotionally loaded.
+
+IMPORTANT:
+- The app is called "Or This?" and gives AI feedback — do NOT mention community voting
+- Focus on outfits that feel like the reader, not a performance
+- CTA at end: "Not sure how your outfit reads? Get instant AI feedback before your date." with link https://orthis.app`,
+
+    wfh_rto: `You are writing for women returning to office after years of remote work — the sweatpants-to-slacks transition is real.
+
+Tone: Direct, relatable, a little humorous. Acknowledge the wardrobe whiplash without being condescending.
+
+IMPORTANT:
+- The app is called "Or This?" and gives AI feedback — do NOT mention community voting
+- Focus on what "business casual" actually means in 2026 — be specific and practical
+- CTA at end: "Back in the office soon? Snap your outfit for instant AI feedback." with link https://orthis.app`,
+
+    postpartum: `You are writing for new moms navigating their changing body and finding outfits that work postpartum.
+
+Tone: Gentle, body-positive, never prescriptive about hiding anything. Supportive and practical.
+
+IMPORTANT:
+- The app is called "Or This?" and gives AI feedback — do NOT mention community voting
+- Include nursing-friendly and comfortable options; never use language like "get your body back"
+- CTA at end: "Getting dressed with a new baby is hard enough. Let AI give you instant outfit feedback." with link https://orthis.app`,
+
+    career_change: `You are writing for women pivoting to a new industry or starting a new career.
+
+Tone: Professional but approachable — feeling ready matters more than performing. Acknowledge imposter syndrome.
+
+IMPORTANT:
+- The app is called "Or This?" and gives AI feedback — do NOT mention community voting
+- Include specific advice on reading a new industry's dress code
+- CTA at end: "Starting a new chapter? Get AI feedback on your interview or first-day outfit." with link https://orthis.app`,
+
+    reinvention: `You are writing for women in midlife reinvention — post-kids, post-divorce, or simply ready for a new chapter.
+
+Tone: Celebratory, not patronizing — this is exciting, not a problem to fix. Never use language like "age-appropriate."
+
+IMPORTANT:
+- The app is called "Or This?" and gives AI feedback — do NOT mention community voting
+- Celebrate personal style discovery; avoid generic "timeless" advice
+- CTA at end: "Reinventing your style? Get instant AI feedback on your outfits." with link https://orthis.app`,
   };
 
   const contextNote = nicheContext[niche] || 'Write for an audience anxious about their outfit choices.';
@@ -203,13 +282,15 @@ IMPORTANT:
 
   const refreshNote = refreshHint ? (refreshInstructions[refreshHint] ?? '') : '';
 
-  const prompt = `${contextNote}${refreshNote}
+  const prompt = `${contextNote}${refreshNote}${internalLinkNote}
 
 Write a comprehensive SEO article targeting the following keyword.${serpContext}
 
 TARGET KEYWORD: "${keyword}"
 SEARCH INTENT: ${intent}
 
+STRUCTURE REQUIREMENT: After your second ## section, insert this exact callout block on its own line:
+${MID_CTA}
 Return ONLY a JSON object with this exact shape (no markdown, no code fence):
 {
   "title": "Title 50-60 chars, include keyword naturally",
@@ -217,7 +298,7 @@ Return ONLY a JSON object with this exact shape (no markdown, no code fence):
   "ogTitle": "Open Graph title under 60 chars for sharing",
   "excerpt": "2-3 sentence summary for article listings",
   "seoKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
-  "content": "Full article body 1200-1800 words, proper markdown with ## and ### headings. Open with empathy. Include Do's and Don'ts section. Be specific with brand/item recommendations. End with CTA.",
+  "content": "Full article body 1200-1800 words, proper markdown with ## and ### headings. Open with empathy. Include Do's and Don'ts section. Be specific with brand/item recommendations. Include the mid-content callout after the 2nd ## section. End with CTA.",
   "faqItems": [
     {"question": "Question 1?", "answer": "Detailed answer."},
     {"question": "Question 2?", "answer": "Detailed answer."},
@@ -312,24 +393,26 @@ async function saveDraftAndQueue(
 
 // ─── Rush Content Blitz ────────────────────────────────────────────────────────
 
+const ALL_NICHES = ['rush', 'sahm_rto', 'dating_restart', 'wfh_rto', 'postpartum', 'career_change', 'reinvention'];
+
 export async function generateRushContentBlitz(): Promise<void> {
-  console.log('[SeoContent] Starting rush content blitz...');
+  console.log('[SeoContent] Starting niche content blitz (all niches)...');
 
   const budgetOk = await hasLearningBudget(3);
   if (!budgetOk) {
-    console.log('[SeoContent] Insufficient token budget — skipping rush blitz');
+    console.log('[SeoContent] Insufficient token budget — skipping blitz');
     return;
   }
 
-  // Find next 2 uncovered rush keywords (in priority order)
+  // Find next 2 uncovered keywords across ALL niches (oldest first)
   const keywords = await prisma.targetKeyword.findMany({
-    where: { niche: 'rush', status: 'identified' },
+    where: { niche: { in: ALL_NICHES }, status: 'identified' },
     orderBy: { createdAt: 'asc' },
     take: 2,
   });
 
   if (keywords.length === 0) {
-    console.log('[SeoContent] All rush keywords have content — skipping blitz');
+    console.log('[SeoContent] All niche keywords have content — running refresh');
     await refreshRushContent();
     return;
   }
@@ -339,14 +422,13 @@ export async function generateRushContentBlitz(): Promise<void> {
     const draft = await generateNicheArticle(kw.keyword, kw.niche, kw.intent);
     if (!draft) continue;
 
-    const savedId = await saveDraftAndQueue(draft, 'rush', {
+    const savedId = await saveDraftAndQueue(draft, kw.niche, {
       targetKeyword: kw.keyword,
       keywordId: kw.id,
       niche: kw.niche,
     });
 
     if (savedId) {
-      // Mark keyword as having content
       await prisma.targetKeyword.update({
         where: { id: kw.id },
         data: { status: 'content_created', targetPageSlug: draft.slug },
@@ -355,17 +437,19 @@ export async function generateRushContentBlitz(): Promise<void> {
     }
   }
 
+  const remaining = await prisma.targetKeyword.count({ where: { niche: { in: ALL_NICHES }, status: 'identified' } });
+
   try {
     await publishToIntelligenceBus('seo-content', 'seo_metrics', {
-      blitzType: 'rush',
+      blitzType: 'all_niches',
       articlesCreated: created,
-      keywordsRemaining: await prisma.targetKeyword.count({ where: { niche: 'rush', status: 'identified' } }),
+      keywordsRemaining: remaining,
     });
   } catch (err) {
     console.error('[SeoContent] Failed to publish blitz metrics:', err);
   }
 
-  console.log(`[SeoContent] Rush blitz done — ${created} article(s) created`);
+  console.log(`[SeoContent] Niche blitz done — ${created} article(s) created, ${remaining} keywords remaining`);
 }
 
 // ─── Rush Content Refresh (monthly) ───────────────────────────────────────────

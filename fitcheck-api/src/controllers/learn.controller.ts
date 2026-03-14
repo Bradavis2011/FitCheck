@@ -72,6 +72,7 @@ export async function getLearnContentBySlug(req: Request, res: Response): Promis
       ogTitle: true,
       scriptData: true,
       sourceRuleIds: true,
+      sourceData: true,
     },
   });
 
@@ -81,6 +82,48 @@ export async function getLearnContentBySlug(req: Request, res: Response): Promis
   }
 
   res.json(item);
+}
+
+// GET /api/learn/content/:slug/related
+export async function getRelatedContent(req: Request, res: Response): Promise<void> {
+  const { slug } = req.params;
+
+  // Find the current article to get its category and contentType
+  const current = await prisma.blogDraft.findFirst({
+    where: { slug, status: 'published' },
+    select: { id: true, category: true, contentType: true },
+  });
+
+  if (!current) {
+    res.json([]);
+    return;
+  }
+
+  // Query up to 4 related articles by same category or contentType, excluding current
+  const related = await prisma.blogDraft.findMany({
+    where: {
+      status: 'published',
+      slug: { not: slug },
+      OR: [
+        ...(current.category ? [{ category: current.category }] : []),
+        { contentType: current.contentType },
+      ],
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: 4,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      contentType: true,
+      category: true,
+      excerpt: true,
+      seoKeywords: true,
+      publishedAt: true,
+    },
+  });
+
+  res.json(related);
 }
 
 // GET /api/learn/trends/latest

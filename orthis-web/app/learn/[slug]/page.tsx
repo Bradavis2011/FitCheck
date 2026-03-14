@@ -5,7 +5,8 @@ import { JsonLd } from "../../components/JsonLd";
 import LearnNav from "../components/LearnNav";
 import ContentGate from "../components/ContentGate";
 import MarkdownRenderer from "../components/MarkdownRenderer";
-import { fetchLearnContentBySlug, fetchLearnContent } from "../api";
+import { fetchLearnContentBySlug, fetchLearnContent, fetchRelatedContent } from "../api";
+import ContentCard from "../components/ContentCard";
 
 export const revalidate = 3600;
 
@@ -64,7 +65,10 @@ const typeLabels: Record<string, string> = {
 
 export default async function LearnContentPage({ params }: Props) {
   const { slug } = await params;
-  const item = await fetchLearnContentBySlug(slug);
+  const [item, relatedItems] = await Promise.all([
+    fetchLearnContentBySlug(slug),
+    fetchRelatedContent(slug),
+  ]);
 
   if (!item) notFound();
 
@@ -214,6 +218,29 @@ export default async function LearnContentPage({ params }: Props) {
               </span>
             ))}
           </div>
+        )}
+
+        {/* Related Articles */}
+        {relatedItems.length > 0 && (
+          <section className="mt-14 pt-10" style={{ borderTop: "1px solid rgba(26,26,26,0.08)" }}>
+            <p className="text-xs font-medium uppercase tracking-widest mb-6" style={{ color: "rgba(26,26,26,0.4)" }}>
+              Related Reading
+            </p>
+            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+              {relatedItems.map((rel) => (
+                <ContentCard
+                  key={rel.id}
+                  title={rel.title}
+                  slug={rel.slug}
+                  excerpt={rel.excerpt}
+                  contentType={rel.contentType}
+                  category={rel.category}
+                  publishedAt={rel.publishedAt}
+                  size="sm"
+                />
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Bottom CTA */}

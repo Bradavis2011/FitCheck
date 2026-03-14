@@ -70,6 +70,14 @@ export async function fetchLearnTips(limit = 10): Promise<LearnItem[]> {
   return res.json();
 }
 
+export async function fetchRelatedContent(slug: string): Promise<LearnItem[]> {
+  const res = await fetch(`${API_URL}/api/learn/content/${slug}/related`, {
+    next: { revalidate: 3600 },
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function fetchLearnGuides(): Promise<Record<string, LearnItem[]>> {
   const res = await fetch(`${API_URL}/api/learn/guides`, {
     next: { revalidate: 86400 },

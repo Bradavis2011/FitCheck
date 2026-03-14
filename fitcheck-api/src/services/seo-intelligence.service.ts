@@ -643,6 +643,48 @@ const RUSH_KEYWORD_SEEDS: Array<{ keyword: string; intent: 'transactional' | 'in
   { keyword: 'sorority rush outfits SEC schools', intent: 'informational', difficulty: 'low' },
 ];
 
+// ─── Transition Niche Keyword Seeds ───────────────────────────────────────────
+
+type SeedEntry = { keyword: string; intent: 'transactional' | 'informational'; difficulty: 'low' | 'medium' | 'high' };
+
+const TRANSITION_NICHE_SEEDS: Array<SeedEntry & { niche: string }> = [
+  // sahm_rto — stay-at-home mom returning to work
+  { niche: 'sahm_rto', keyword: 'stay at home mom returning to work outfits', intent: 'informational', difficulty: 'low' },
+  { niche: 'sahm_rto', keyword: 'what to wear first day back at work after kids', intent: 'informational', difficulty: 'low' },
+  { niche: 'sahm_rto', keyword: 'rebuilding professional wardrobe mom', intent: 'informational', difficulty: 'low' },
+  { niche: 'sahm_rto', keyword: 'sahm to working mom style', intent: 'informational', difficulty: 'low' },
+
+  // dating_restart — dating after divorce / breakup
+  { niche: 'dating_restart', keyword: 'what to wear first date after divorce', intent: 'informational', difficulty: 'low' },
+  { niche: 'dating_restart', keyword: 'dating again outfit ideas over 30', intent: 'informational', difficulty: 'low' },
+  { niche: 'dating_restart', keyword: 'rebuilding confidence style after breakup', intent: 'informational', difficulty: 'low' },
+  { niche: 'dating_restart', keyword: 'first date outfit single mom', intent: 'informational', difficulty: 'low' },
+
+  // wfh_rto — return to office after remote work
+  { niche: 'wfh_rto', keyword: 'return to office outfit ideas 2026', intent: 'informational', difficulty: 'medium' },
+  { niche: 'wfh_rto', keyword: 'what to wear back to office after working from home', intent: 'informational', difficulty: 'low' },
+  { niche: 'wfh_rto', keyword: 'business casual after years remote', intent: 'informational', difficulty: 'low' },
+  { niche: 'wfh_rto', keyword: 'rto wardrobe rebuild', intent: 'informational', difficulty: 'low' },
+
+  // postpartum — dressing after having a baby
+  { niche: 'postpartum', keyword: 'postpartum outfit ideas that fit', intent: 'informational', difficulty: 'low' },
+  { niche: 'postpartum', keyword: 'dressing postpartum body confidence', intent: 'informational', difficulty: 'low' },
+  { niche: 'postpartum', keyword: 'stylish nursing friendly outfits', intent: 'informational', difficulty: 'low' },
+  { niche: 'postpartum', keyword: 'mom style after baby', intent: 'informational', difficulty: 'low' },
+
+  // career_change — wardrobe for a new career
+  { niche: 'career_change', keyword: 'what to wear first day new career', intent: 'informational', difficulty: 'low' },
+  { niche: 'career_change', keyword: 'professional wardrobe career change budget', intent: 'informational', difficulty: 'low' },
+  { niche: 'career_change', keyword: 'interview outfit career pivot', intent: 'informational', difficulty: 'low' },
+  { niche: 'career_change', keyword: 'dressing for a new industry', intent: 'informational', difficulty: 'low' },
+
+  // reinvention — midlife style reset
+  { niche: 'reinvention', keyword: 'finding style again after 40', intent: 'informational', difficulty: 'low' },
+  { niche: 'reinvention', keyword: 'wardrobe reset new chapter', intent: 'informational', difficulty: 'low' },
+  { niche: 'reinvention', keyword: 'updating wardrobe after kids leave', intent: 'informational', difficulty: 'low' },
+  { niche: 'reinvention', keyword: 'style refresh midlife', intent: 'informational', difficulty: 'low' },
+];
+
 async function seedRushKeywords(): Promise<void> {
   for (const seed of RUSH_KEYWORD_SEEDS) {
     await prisma.targetKeyword.upsert({
@@ -660,6 +702,23 @@ async function seedRushKeywords(): Promise<void> {
   console.log(`[SeoIntelligence] Seeded ${RUSH_KEYWORD_SEEDS.length} rush keywords`);
 }
 
+async function seedTransitionNicheKeywords(): Promise<void> {
+  for (const seed of TRANSITION_NICHE_SEEDS) {
+    await prisma.targetKeyword.upsert({
+      where: { keyword: seed.keyword },
+      update: {},
+      create: {
+        keyword: seed.keyword,
+        niche: seed.niche,
+        intent: seed.intent,
+        difficulty: seed.difficulty,
+        status: 'identified',
+      },
+    });
+  }
+  console.log(`[SeoIntelligence] Seeded ${TRANSITION_NICHE_SEEDS.length} transition niche keywords across 6 niches`);
+}
+
 // ─── Runner ───────────────────────────────────────────────────────────────────
 
 export async function runSeoIntelligence(): Promise<void> {
@@ -671,8 +730,9 @@ export async function runSeoIntelligence(): Promise<void> {
     return;
   }
 
-  // Ensure rush keyword seeds exist
+  // Ensure all keyword seeds exist
   await seedRushKeywords();
+  await seedTransitionNicheKeywords();
 
   const now = new Date();
   const year = now.getFullYear();
@@ -704,6 +764,38 @@ export async function runSeoIntelligence(): Promise<void> {
     }).catch(() => {}); // ignore duplicate keyword constraint errors
   }
   console.log(`[SeoIntelligence] Discovered ${allDiscovered.length} new keyword candidates (${rushKeywords.length} SERP + ${trendingKeywords.length} trending)`);
+
+  // 3b. Discover transition niche keywords — one Serper call per niche seed phrase
+  const transitionNicheSeeds: Array<{ niche: string; seed: string }> = [
+    { niche: 'sahm_rto',       seed: 'stay at home mom returning to work outfits' },
+    { niche: 'dating_restart', seed: 'what to wear first date after divorce' },
+    { niche: 'wfh_rto',        seed: 'return to office outfit ideas 2026' },
+    { niche: 'postpartum',     seed: 'postpartum outfit ideas that fit' },
+    { niche: 'career_change',  seed: 'what to wear first day new career' },
+    { niche: 'reinvention',    seed: 'finding style again after 40' },
+  ];
+  if (process.env.SERPER_API_KEY) {
+    for (const { niche, seed } of transitionNicheSeeds) {
+      try {
+        const result = await searchSerper(seed, 10);
+        const discovered = [
+          ...result.relatedSearches.map(r => r.query).filter(Boolean),
+          ...result.peopleAlsoAsk.map(r => r.question).filter(Boolean),
+        ];
+        let added = 0;
+        for (const kw of discovered.slice(0, 8)) {
+          await prisma.targetKeyword.create({
+            data: { keyword: kw.toLowerCase(), niche, intent: 'informational', difficulty: 'low', status: 'identified' },
+          }).catch(() => {}); // ignore duplicate
+          added++;
+        }
+        console.log(`[SeoIntelligence] ${niche}: discovered ${added} keywords via Serper`);
+        await new Promise(r => setTimeout(r, 300));
+      } catch (err) {
+        console.error(`[SeoIntelligence] Transition niche discovery failed for ${niche}:`, err);
+      }
+    }
+  }
 
   // 4. PageSpeed checks
   const pagesToCheck = [
