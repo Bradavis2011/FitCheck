@@ -302,6 +302,15 @@ export async function triggerAgent(req: AuthenticatedRequest, res: Response) {
       const { runMorningBrief } = await import('../services/growth-intern.service.js');
       await runMorningBrief();
     },
+    // ── SEO ───────────────────────────────────────────────────────────────
+    'seo-intelligence': async () => {
+      const { runSeoIntelligence } = await import('../services/seo-intelligence.service.js');
+      await runSeoIntelligence();
+    },
+    'seo-content': async () => {
+      const { generateRushContentBlitz } = await import('../services/seo-content.service.js');
+      await generateRushContentBlitz();
+    },
   };
 
   const agentFn = agentMap[name];
