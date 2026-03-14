@@ -65,7 +65,9 @@ export type BusEntryType =
   | 'reddit_growth_metrics'
   | 'creator_funnel_metrics'
   // Overnight Orchestrator
-  | 'orchestrator_run';
+  | 'orchestrator_run'
+  // SEO Intelligence
+  | 'seo_opportunities';
 
 /** Publish an entry to the bus */
 export async function publishToIntelligenceBus(
