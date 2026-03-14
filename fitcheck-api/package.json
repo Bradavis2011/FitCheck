@@ -18,6 +18,7 @@
     "generate:training-data": "tsx scripts/generate-training-data.ts",
     "test:brand-voice": "tsx -e \"import { brandVoiceValidator } from './src/validators/brand-voice-validator.js'; const result = brandVoiceValidator.validate('You\\'ve got this! The dress is stunning.'); console.log(result);\"",
     "train:ai": "tsx scripts/train/index.ts",
+    "keywords:discover": "tsx scripts/keyword-discovery.ts",
     "launch:check": "tsx scripts/pre-launch-check.ts",
     "test": "vitest run",
     "test:watch": "vitest",
