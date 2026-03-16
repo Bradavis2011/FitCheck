@@ -743,6 +743,28 @@ export async function runSeoIntelligence(): Promise<void> {
   const rows = await fetchSearchAnalytics(28);
   console.log(`[SeoIntelligence] Fetched ${rows.length} GSC rows`);
 
+  // 1b. Write GSC performance data back to TargetKeyword rows
+  if (rows.length > 0) {
+    try {
+      const allKeywords = await prisma.targetKeyword.findMany({ select: { id: true, keyword: true } });
+      const kwMap = new Map(allKeywords.map(k => [k.keyword.toLowerCase(), k.id]));
+      let updated = 0;
+      for (const row of rows) {
+        const kwId = kwMap.get(row.query.toLowerCase());
+        if (kwId) {
+          await prisma.targetKeyword.update({
+            where: { id: kwId },
+            data: { impressions: row.impressions, clicks: row.clicks, currentPosition: row.position },
+          }).catch(() => {});
+          updated++;
+        }
+      }
+      console.log(`[SeoIntelligence] GSC writeback: ${updated} keyword(s) updated`);
+    } catch (err) {
+      console.error('[SeoIntelligence] GSC writeback failed:', err);
+    }
+  }
+
   // 2. Identify opportunities
   const opps = await identifyKeywordOpportunities(rows);
 

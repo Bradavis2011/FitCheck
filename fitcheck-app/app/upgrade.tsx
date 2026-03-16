@@ -54,15 +54,39 @@ export default function UpgradeScreen() {
     }
   };
 
+  const handleMicroPurchase = async (productId: string, label: string) => {
+    const currentOffering = offerings?.current;
+    const pkg = currentOffering?.availablePackages.find(
+      (p) => p.product.identifier === productId
+    );
+    if (!pkg) {
+      Alert.alert('Not Available', `${label} is not available right now. Please try again later.`);
+      return;
+    }
+    setIsPurchasing(true);
+    try {
+      const success = await purchase(pkg);
+      if (success) {
+        await syncWithBackend();
+        track('micro_purchase_completed', { product_id: productId });
+        Alert.alert('Done.', `${label} is now active.`, [{ text: 'Good.', onPress: () => router.back() }]);
+      }
+    } catch (error: any) {
+      Alert.alert('Purchase Failed', error.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   const handleRestore = async () => {
     setIsRestoring(true);
     try {
       const customerInfo = await restore();
       if (customerInfo) {
         await syncWithBackend();
-        Alert.alert('Purchases Restored', 'Your subscription has been restored!');
+        Alert.alert('Purchases Restored', 'Your purchases have been restored!');
       } else {
-        Alert.alert('No Purchases Found', 'No active subscriptions to restore.');
+        Alert.alert('No Purchases Found', 'No active purchases to restore.');
       }
     } catch (error: any) {
       Alert.alert('Restore Failed', error.message || 'Could not restore purchases.');
@@ -86,24 +110,12 @@ export default function UpgradeScreen() {
   const plusAnnual = currentOffering?.availablePackages.find(
     (p) => p.product.identifier === 'fitcheck_plus_annual'
   );
-  // LAUNCH: Pro tier hidden — re-enable when expert reviews, event planning, style DNA go live
-  // const proMonthly = currentOffering?.availablePackages.find(
-  //   (p) => p.product.identifier === 'fitcheck_pro_monthly'
-  // );
-  // const proAnnual = currentOffering?.availablePackages.find(
-  //   (p) => p.product.identifier === 'fitcheck_pro_annual'
-  // );
 
-  // Fallback prices if offerings haven't loaded
   const plusPrice = isAnnual
     ? plusAnnual?.product.priceString || '$49.99/yr'
     : plusMonthly?.product.priceString || '$5.99/mo';
-  // const proPrice = isAnnual
-  //   ? proAnnual?.product.priceString || '$119.99/yr'
-  //   : proMonthly?.product.priceString || '$14.99/mo';
 
   const plusPackage = isAnnual ? plusAnnual : plusMonthly;
-  // const proPackage = isAnnual ? proAnnual : proMonthly;
 
   // If already subscribed, show current plan
   if (tier !== 'free') {
@@ -225,14 +237,55 @@ export default function UpgradeScreen() {
               onPress={() => plusPackage && handlePurchase(plusPackage)}
               disabled={!plusPackage}
             >
-              <Text style={styles.purchaseButtonText}>Start Free Trial</Text>
+              <Text style={styles.purchaseButtonText}>Step Inside</Text>
             </TouchableOpacity>
           )}
           <Text style={styles.trialNote}>7 days free, then {plusPrice}</Text>
           <Text style={styles.cancelNote}>Cancel anytime · Settings → Apple ID → Subscriptions</Text>
         </View>
 
-        {/* LAUNCH: Pro tier hidden — re-enable when expert reviews, event planning, style DNA go live */}
+        {/* Just Visiting section */}
+        <View style={styles.sectionDivider}>
+          <View style={styles.sectionRule} />
+          <Text style={styles.sectionLabel}>Just Visiting?</Text>
+          <View style={styles.sectionRule} />
+        </View>
+
+        {/* The Session */}
+        <MicroCard
+          title="The Session"
+          price="$2.99"
+          period="24 hours"
+          tagline="The room is yours."
+          description="Unlimited checks for a full day. Walk into any event with confidence."
+          productId="orthis_session_24h"
+          onPurchase={handleMicroPurchase}
+          isLoading={isPurchasing}
+        />
+
+        {/* The Edit */}
+        <MicroCard
+          title="The Edit"
+          price="$9.99"
+          period="7 days"
+          tagline="Seven days. Every decision covered."
+          description="A week of unlimited checks. Perfect for trips, events, or a wardrobe reset."
+          productId="orthis_edit_7d"
+          onPurchase={handleMicroPurchase}
+          isLoading={isPurchasing}
+        />
+
+        {/* The Collection */}
+        <MicroCard
+          title="The Collection"
+          price="$7.99"
+          period="25 checks"
+          tagline="Decisions, whenever you need them."
+          description="25 check credits. Use them at your own pace — they never expire."
+          productId="orthis_collection_25"
+          onPurchase={handleMicroPurchase}
+          isLoading={isPurchasing}
+        />
 
         {/* Restore Purchases */}
         <TouchableOpacity onPress={handleRestore} disabled={isRestoring} style={styles.restoreLink}>
@@ -276,6 +329,53 @@ function Feature({
     <View style={styles.feature}>
       <Ionicons name={iconName as any} size={20} color={iconColor} />
       <Text style={[styles.featureText, muted && styles.featureTextMuted]}>{text}</Text>
+    </View>
+  );
+}
+
+function MicroCard({
+  title,
+  price,
+  period,
+  tagline,
+  description,
+  productId,
+  onPurchase,
+  isLoading,
+}: {
+  title: string;
+  price: string;
+  period: string;
+  tagline: string;
+  description: string;
+  productId: string;
+  onPurchase: (productId: string, label: string) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <View style={styles.microCard}>
+      <View style={styles.microCardTop}>
+        <View>
+          <Text style={styles.microTitle}>{title}</Text>
+          <Text style={styles.microTagline}>{tagline}</Text>
+        </View>
+        <View style={styles.microPriceBlock}>
+          <Text style={styles.microPrice}>{price}</Text>
+          <Text style={styles.microPeriod}>{period}</Text>
+        </View>
+      </View>
+      <Text style={styles.microDescription}>{description}</Text>
+      <TouchableOpacity
+        style={styles.microButton}
+        onPress={() => onPurchase(productId, title)}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color={Colors.primary} />
+        ) : (
+          <Text style={styles.microButtonText}>Acquire</Text>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -380,22 +480,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
-  proBadge: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.sharp,
-  },
-  proBadgeText: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: 9,
-    color: Colors.white,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
   planName: {
     fontFamily: Fonts.serif,
     fontSize: FontSize.xl,
@@ -480,6 +564,85 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 16,
+  },
+  // "Just Visiting" section divider
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  sectionRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  // Micro-purchase cards
+  microCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  microCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  microTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  microTagline: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+  },
+  microPriceBlock: {
+    alignItems: 'flex-end',
+  },
+  microPrice: {
+    fontFamily: Fonts.serif,
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  microPeriod: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  microDescription: {
+    fontFamily: Fonts.sans,
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  microButton: {
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.sharp,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  microButtonText: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   restoreLink: {
     paddingVertical: Spacing.md,

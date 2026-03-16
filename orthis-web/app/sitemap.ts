@@ -43,6 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: 'https://orthis.app', lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
+    { url: 'https://orthis.app/try', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.95 },
     { url: 'https://orthis.app/rush', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
     { url: 'https://orthis.app/learn', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
     { url: 'https://orthis.app/learn/trends', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },

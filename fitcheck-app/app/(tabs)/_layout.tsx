@@ -1,12 +1,61 @@
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
 import { Colors, Fonts } from '../../src/constants/theme';
+import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
+
+function SessionTimer() {
+  const { sessionExpiresAt, isSessionActive } = useSubscriptionStore();
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSessionActive || !sessionExpiresAt) {
+      setLabel(null);
+      return;
+    }
+    const update = () => {
+      const msLeft = sessionExpiresAt.getTime() - Date.now();
+      if (msLeft <= 0) { setLabel(null); return; }
+      const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
+      setLabel(`Your session · ${hoursLeft}h remaining`);
+    };
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, [sessionExpiresAt, isSessionActive]);
+
+  if (!label) return null;
+
+  return (
+    <View style={sessionTimerStyles.container}>
+      <Text style={sessionTimerStyles.text}>{label}</Text>
+    </View>
+  );
+}
+
+const sessionTimerStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: Colors.white,
+  },
+  text: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: Colors.textMuted,
+    letterSpacing: 0.3,
+  },
+});
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   return (
+    <View style={{ flex: 1 }}>
+      <SessionTimer />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -75,6 +124,7 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }
 

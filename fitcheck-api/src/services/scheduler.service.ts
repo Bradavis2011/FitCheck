@@ -812,14 +812,10 @@ export function initializeScheduler(): void {
     guardedRun('seo-intelligence', '📍 [Scheduler] Tracking keyword positions...', trackKeywordPositions),
   { timezone: 'UTC' });
 
-  // ── Rush Content Blitz — Tuesday + Friday 6:30am UTC (March–August) ───────
-  // Generates 2 rush articles per run from the keyword seed list.
-  cron.schedule('30 6 * * 2', () =>
-    guardedRun('seo-content', '🎀 [Scheduler] Running rush content blitz (Tuesday)...', generateRushContentBlitz),
-  { timezone: 'UTC' });
-
-  cron.schedule('30 6 * * 5', () =>
-    guardedRun('seo-content', '🎀 [Scheduler] Running rush content blitz (Friday)...', generateRushContentBlitz),
+  // ── Niche Content Blitz — Daily 6:30am UTC ────────────────────────────────
+  // Generates 2 articles per run (1 per least-covered niche) — up to 14/week.
+  cron.schedule('30 6 * * *', () =>
+    guardedRun('seo-content', '[Scheduler] Running niche content blitz (daily)...', generateRushContentBlitz),
   { timezone: 'UTC' });
 
   // ── Rush Content Refresh — 1st of each month, 8am UTC ─────────────────────

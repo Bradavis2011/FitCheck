@@ -49,6 +49,33 @@ export async function processWebhookEvent(payload: RevenueCatWebhookPayload): Pr
 
   // Handle event types
   switch (event.type) {
+    case 'NON_RENEWING_PURCHASE': {
+      // Micro-monetization products (session pass, edit pass, credit pack)
+      const now = new Date();
+      if (event.product_id === 'orthis_session_24h') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { sessionExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) },
+        });
+        console.log(`[Subscription] User ${userId} activated 24h session`);
+      } else if (event.product_id === 'orthis_edit_7d') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { sessionExpiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+        });
+        console.log(`[Subscription] User ${userId} activated 7-day edit pass`);
+      } else if (event.product_id === 'orthis_collection_25') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { creditsRemaining: { increment: 25 } },
+        });
+        console.log(`[Subscription] User ${userId} received 25 check credits`);
+      } else {
+        console.log(`[Subscription] Unknown non-renewing product: ${event.product_id}`);
+      }
+      break;
+    }
+
     case 'INITIAL_PURCHASE':
     case 'RENEWAL':
     case 'UNCANCELLATION':

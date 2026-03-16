@@ -92,8 +92,16 @@ export async function getSubscriptionStatus(req: AuthenticatedRequest, res: Resp
   const user = req.user!;
   const limits = getTierLimits(user.tier);
 
+  // Fetch session/credits from DB (req.user may not have new fields if fetched before migration)
+  const freshUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { sessionExpiresAt: true, creditsRemaining: true },
+  });
+
   res.json({
     tier: user.tier,
+    sessionExpiresAt: freshUser?.sessionExpiresAt ?? null,
+    creditsRemaining: freshUser?.creditsRemaining ?? 0,
     limits: {
       dailyChecks: limits.dailyChecks === Infinity ? -1 : limits.dailyChecks,
       followUpsPerCheck: limits.followUpsPerCheck,

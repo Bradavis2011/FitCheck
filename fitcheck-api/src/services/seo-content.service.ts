@@ -14,6 +14,7 @@ import { executeOrQueue } from './agent-manager.service.js';
 import { getTrendData } from './content-calendar.service.js';
 import { searchSerper } from './seo-intelligence.service.js';
 import { submitToIndexNow } from './indexnow.service.js';
+import { queuePinterestPin } from './pinterest.service.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -340,6 +341,17 @@ async function saveDraftAndQueue(
   extraData: Record<string, unknown> = {},
 ): Promise<string | null> {
   try {
+    // Title dedup: skip if any existing draft starts with the same 40 chars
+    const titlePrefix = draft.title.slice(0, 40);
+    const duplicate = await prisma.blogDraft.findFirst({
+      where: { title: { startsWith: titlePrefix, mode: 'insensitive' } },
+      select: { id: true, title: true },
+    });
+    if (duplicate) {
+      console.warn(`[SeoContent] Skipping near-duplicate title: "${draft.title}" (matches "${duplicate.title}")`);
+      return null;
+    }
+
     const baseSlug = draft.slug;
     let slug = baseSlug;
     let attempt = 0;
@@ -372,7 +384,7 @@ async function saveDraftAndQueue(
       'seo-content',
       'publish_draft',
       'medium',
-      { blogDraftId: created.id, slug, title: draft.title },
+      { blogDraftId: created.id, slug, title: draft.title, metaDescription: draft.metaDescription, category },
       async (payload) => {
         const p = payload as { blogDraftId: string; slug: string };
         await prisma.blogDraft.update({
@@ -380,6 +392,16 @@ async function saveDraftAndQueue(
           data: { status: 'published', publishedAt: new Date() },
         });
         await submitToIndexNow(p.slug);
+        // Pinterest pin — non-fatal, queued via operator agent
+        const pinPayload = payload as { blogDraftId: string; slug: string; title: string; metaDescription?: string; category?: string };
+        if (pinPayload.title) {
+          await queuePinterestPin(
+            p.slug,
+            pinPayload.title,
+            pinPayload.metaDescription || pinPayload.title,
+            pinPayload.category || 'general',
+          ).catch((err) => console.error('[SeoContent] Pinterest queue failed:', err));
+        }
         return { published: true, draftId: p.blogDraftId };
       },
       draft.title + ' ' + draft.metaDescription,
@@ -406,12 +428,38 @@ export async function generateRushContentBlitz(): Promise<void> {
     return;
   }
 
-  // Find next 2 uncovered keywords across ALL niches (oldest first)
-  const keywords = await prisma.targetKeyword.findMany({
-    where: { niche: { in: ALL_NICHES }, status: 'identified' },
-    orderBy: { createdAt: 'asc' },
-    take: 2,
+  // Niche-rotation: pick 1 keyword from each of the 2 least-covered niches
+  const nicheCounts = await prisma.blogDraft.groupBy({
+    by: ['category'],
+    where: { status: 'published', category: { in: ALL_NICHES } },
+    _count: { id: true },
   });
+
+  const coverageMap = new Map<string, number>(ALL_NICHES.map(n => [n, 0]));
+  for (const row of nicheCounts) {
+    coverageMap.set(row.category, row._count.id);
+  }
+
+  // Sort niches by published article count ascending (least-covered first), take 2
+  const targetNiches = [...coverageMap.entries()]
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, 2)
+    .map(([niche]) => niche);
+
+  const difficultyOrder: Record<string, number> = { low: 0, medium: 1, high: 2 };
+  const keywords = [];
+  for (const niche of targetNiches) {
+    const candidates = await prisma.targetKeyword.findMany({
+      where: { niche, status: 'identified' },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (candidates.length === 0) continue;
+    // Sort by difficulty ASC (low first), createdAt already ASC from DB
+    candidates.sort((a, b) =>
+      (difficultyOrder[a.difficulty] ?? 1) - (difficultyOrder[b.difficulty] ?? 1)
+    );
+    keywords.push(candidates[0]);
+  }
 
   if (keywords.length === 0) {
     console.log('[SeoContent] All niche keywords have content — running refresh');
@@ -457,19 +505,19 @@ export async function generateRushContentBlitz(): Promise<void> {
 // ─── Rush Content Refresh (monthly) ───────────────────────────────────────────
 
 export async function refreshRushContent(): Promise<void> {
-  console.log('[SeoContent] Running rush content refresh...');
+  console.log('[SeoContent] Running all-niche content refresh...');
 
   const budgetOk = await hasLearningBudget(4);
   if (!budgetOk) return;
 
-  // Fetch all rush keywords that have content, ordered by last updated (oldest first)
+  // Fetch all keywords (all niches) that have content, ordered by last updated (oldest first)
   const keywords = await prisma.targetKeyword.findMany({
-    where: { niche: 'rush', status: 'content_created' },
+    where: { niche: { in: ALL_NICHES }, status: 'content_created' },
     orderBy: { updatedAt: 'asc' },
   });
 
   if (keywords.length === 0) {
-    console.log('[SeoContent] No rush keywords with content yet — skipping refresh');
+    console.log('[SeoContent] No keywords with content yet — skipping refresh');
     return;
   }
 
@@ -514,7 +562,7 @@ export async function refreshRushContent(): Promise<void> {
     const draft = await generateNicheArticle(kw.keyword, kw.niche, kw.intent, refreshHint);
     if (!draft) continue;
 
-    await saveDraftAndQueue(draft, 'rush', {
+    await saveDraftAndQueue(draft, kw.niche, {
       targetKeyword: kw.keyword,
       keywordId: kw.id,
       niche: kw.niche,
@@ -528,7 +576,7 @@ export async function refreshRushContent(): Promise<void> {
     if (refreshed >= 2) break;
   }
 
-  console.log(`[SeoContent] Rush content refresh done — ${refreshed} article(s) queued for refresh`);
+  console.log(`[SeoContent] All-niche content refresh done — ${refreshed} article(s) queued for refresh`);
 }
 
 // ─── Main weekly runner (general occasions + trends) ──────────────────────────

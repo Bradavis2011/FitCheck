@@ -203,6 +203,14 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
     if (isAdmin(userId)) {
       // Admin/founder accounts are always unlimited — skip limit check
     } else {
+    const now = new Date();
+    // Active session: purchased 24h or 7d pass — bypass limit entirely
+    const hasActiveSession = user.sessionExpiresAt != null && user.sessionExpiresAt > now;
+
+    // Credits: consumable checks purchased in packs — bypass limit, deduct after creation
+    const hasCredits = (user.creditsRemaining ?? 0) > 0;
+
+    if (!hasActiveSession && !hasCredits) {
     const limits = getTierLimits(user.tier);
     let effectiveDailyLimit = limits.dailyChecks;
     if (effectiveDailyLimit !== Infinity) {
@@ -226,6 +234,7 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       trackServerEvent(userId, 'daily_limit_hit', { source: 'server', tier: user.tier });
       throw new AppError(429, 'Daily limit reached. Upgrade to Plus for unlimited checks!');
     }
+    } // end limit check (no session, no credits)
     } // end admin bypass else
 
     // Validate revisedFromId — must exist, belong to user, and be analyzed
@@ -397,13 +406,22 @@ export async function submitOutfitCheck(req: AuthenticatedRequest, res: Response
       }
     }
 
-    // Increment daily checks
+    // Increment daily checks; if user had credits, deduct one (optimistic lock: only if > 0)
+    const nowForCredit = new Date();
+    const stillHasActiveSession = user.sessionExpiresAt != null && user.sessionExpiresAt > nowForCredit;
+    if (!stillHasActiveSession && (user.creditsRemaining ?? 0) > 0) {
+      await prisma.user.updateMany({
+        where: { id: userId, creditsRemaining: { gt: 0 } },
+        data: { creditsRemaining: { decrement: 1 }, dailyChecksUsed: { increment: 1 } },
+      });
+    } else {
     await prisma.user.update({
       where: { id: userId },
       data: {
         dailyChecksUsed: { increment: 1 },
       },
     });
+    }
 
     // Update user streak and points
     await updateUserStreakAndPoints(userId);

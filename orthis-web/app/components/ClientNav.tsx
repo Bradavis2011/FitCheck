@@ -32,6 +32,13 @@ export default function ClientNav() {
         <Logo />
         <div className="flex items-center gap-6">
           <Link
+            href="/try"
+            className="text-sm font-medium transition-colors"
+            style={{ color: "rgba(26,26,26,0.5)" }}
+          >
+            Try
+          </Link>
+          <Link
             href="/learn"
             className="text-sm font-medium transition-colors"
             style={{ color: "rgba(26,26,26,0.5)" }}

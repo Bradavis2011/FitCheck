@@ -38,6 +38,10 @@ model User {
   subscriptionProductId String?   @map("subscription_product_id")
   subscriptionStore     String?   @map("subscription_store")
 
+  // Micro-monetization (non-renewing purchases)
+  sessionExpiresAt  DateTime? @map("session_expires_at")  // active session: bypass daily limit
+  creditsRemaining  Int       @default(0) @map("credits_remaining") // consumable check credits
+
   // Usage tracking
   dailyChecksUsed    Int      @default(0) @map("daily_checks_used")
   dailyChecksResetAt DateTime @default(now()) @map("daily_checks_reset_at") @db.Date

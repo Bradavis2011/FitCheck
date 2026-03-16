@@ -48,6 +48,7 @@ import weekRoutes from './routes/week.routes.js';
 import insightsRoutes from './routes/insights.routes.js';
 import stylistChatRoutes from './routes/stylist-chat.routes.js';
 import homeRoutes from './routes/home.routes.js';
+import webCheckRoutes from './routes/web-check.routes.js';
 import { prisma } from './utils/prisma.js';
 
 // Load environment variables
@@ -160,6 +161,9 @@ app.get('/.well-known/assetlinks.json', (_req, res) => {
 // Public outfit score sharing page — BEFORE rate limiter and helmet CSP
 // Serves OG-tagged HTML for social link previews + App Store download buttons
 app.use('/s', shareRoutes);
+
+// Web outfit check — unauthenticated, has its own per-IP limiter (before global limiter)
+app.use('/api/web-check', webCheckRoutes);
 
 // RevenueCat webhook (before rate limiter - RevenueCat may send bursts)
 app.post('/api/webhooks/revenuecat', asyncHandler(handleWebhook));

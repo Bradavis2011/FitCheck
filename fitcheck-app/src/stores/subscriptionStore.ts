@@ -9,6 +9,13 @@ interface SubscriptionState {
   offerings: PurchasesOfferings | null;
   customerInfo: CustomerInfo | null;
 
+  // Micro-monetization
+  sessionExpiresAt: Date | null;  // active session pass expiry
+  creditsRemaining: number;       // consumable check credits
+
+  // Derived
+  isSessionActive: boolean;       // sessionExpiresAt > now
+
   // Derived limits (from backend)
   limits: {
     dailyChecks: number;
@@ -31,6 +38,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   isLoaded: false,
   offerings: null,
   customerInfo: null,
+  sessionExpiresAt: null,
+  creditsRemaining: 0,
+  isSessionActive: false,
   limits: null,
 
   initialize: async (userId: string) => {
@@ -49,9 +59,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         // fall back to backend as source of truth
         try {
           const status = await subscriptionService.getSubscriptionStatus();
+          const sessionExpiresAt = status.sessionExpiresAt ? new Date(status.sessionExpiresAt) : null;
           set({
             tier: (status.tier as 'free' | 'plus' | 'pro') || 'free',
             limits: status.limits,
+            sessionExpiresAt,
+            creditsRemaining: status.creditsRemaining ?? 0,
+            isSessionActive: sessionExpiresAt != null && sessionExpiresAt > new Date(),
             isLoaded: true,
           });
         } catch {
@@ -121,7 +135,14 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       }
       // Always fetch limits from backend regardless of RC state
       const status = await subscriptionService.getSubscriptionStatus();
-      set({ limits: status.limits });
+      const sessionExpiresAt = status.sessionExpiresAt ? new Date(status.sessionExpiresAt) : null;
+      const isSessionActive = sessionExpiresAt != null && sessionExpiresAt > new Date();
+      set({
+        limits: status.limits,
+        sessionExpiresAt,
+        creditsRemaining: status.creditsRemaining ?? 0,
+        isSessionActive,
+      });
     } catch (error) {
       console.error('[SubscriptionStore] Backend sync failed:', error);
     }

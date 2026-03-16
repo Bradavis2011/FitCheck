@@ -39,3 +39,13 @@ export const wardrobeAiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Web check endpoint — 3 per 24h per IP (unauthenticated, public-facing)
+export const webCheckLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 3,
+  message: JSON.stringify({ error: 'Daily limit reached. Download the app for unlimited checks.' }),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || 'unknown',
+});
