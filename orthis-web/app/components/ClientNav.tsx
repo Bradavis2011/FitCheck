@@ -54,7 +54,7 @@ export default function ClientNav() {
             Join
           </a>
           <a
-            href="https://apps.apple.com/ca/app/or-this/id6759472490"
+            href="https://apps.apple.com/app/or-this/id6742406265"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm font-semibold text-white px-4 py-2 transition-opacity hover:opacity-80"

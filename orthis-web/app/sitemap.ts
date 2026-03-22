@@ -10,7 +10,7 @@ interface LearnItem {
 
 async function fetchLearnSlugs(): Promise<LearnItem[]> {
   try {
-    const res = await fetch(`${API_URL}/api/learn/content?limit=100`, {
+    const res = await fetch(`${API_URL}/api/learn/content?limit=200`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];

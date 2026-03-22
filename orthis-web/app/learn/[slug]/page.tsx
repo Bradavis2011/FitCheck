@@ -16,7 +16,7 @@ interface Props {
 
 // Pre-generate paths for all published content at build time
 export async function generateStaticParams() {
-  const data = await fetchLearnContent(undefined, undefined, 1, 100);
+  const data = await fetchLearnContent(undefined, undefined, 1, 200);
   return data.items.map((item) => ({ slug: item.slug }));
 }
 
@@ -264,11 +264,13 @@ export default async function LearnContentPage({ params }: Props) {
             Theory is useful. But Or This? tells you exactly how your specific outfit scores — snap a photo, get a score out of 10.
           </p>
           <a
-            href="https://orthis.app#waitlist"
+            href="https://apps.apple.com/app/or-this/id6742406265"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block text-xs font-medium uppercase tracking-wider px-8 py-4"
             style={{ backgroundColor: "#E85D4C", color: "#fff" }}
           >
-            Join the Waitlist — Free
+            Download the App — Free
           </a>
         </div>
 

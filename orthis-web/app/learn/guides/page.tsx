@@ -71,8 +71,8 @@ export default async function LearnGuidesPage() {
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <p style={{ color: "#9B9B9B", fontSize: "14px" }}>
               Style guides are being generated. Check back soon — or{" "}
-              <Link href="https://orthis.app#waitlist" style={{ color: "#E85D4C" }}>
-                join the waitlist
+              <Link href="https://apps.apple.com/app/or-this/id6742406265" target="_blank" rel="noopener noreferrer" style={{ color: "#E85D4C" }}>
+                download the app
               </Link>{" "}
               to be notified.
             </p>

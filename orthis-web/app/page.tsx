@@ -22,7 +22,7 @@ function Logo() {
 }
 
 function DownloadSection() {
-  const appStoreUrl = "https://apps.apple.com/ca/app/or-this/id6759472490";
+  const appStoreUrl = "https://apps.apple.com/app/or-this/id6742406265";
   const testFlightUrl = process.env.NEXT_PUBLIC_TESTFLIGHT_URL;
   const playStoreUrl = process.env.NEXT_PUBLIC_PLAYSTORE_URL;
 
@@ -166,7 +166,7 @@ export default async function Home({
             muted
             loop
             playsInline
-            preload="auto"
+            preload="none"
             poster="/video/hero-poster.jpg"
             className="absolute inset-0 w-full h-full object-cover"
           >
@@ -189,7 +189,7 @@ export default async function Home({
             </div>
             <div className="mt-8 fade-in-up">
               <a
-                href="https://apps.apple.com/ca/app/or-this/id6759472490"
+                href="https://apps.apple.com/app/or-this/id6742406265"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Download on the App Store"

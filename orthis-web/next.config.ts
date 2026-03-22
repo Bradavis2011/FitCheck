@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     return [
       // Journal is merged into Learn — all journal traffic redirects permanently
       { source: '/journal', destination: '/learn', permanent: true },
-      { source: '/journal/:slug', destination: '/learn', permanent: true },
+      { source: '/journal/:slug', destination: '/learn/:slug', permanent: true },
     ];
   },
   webpack(config) {

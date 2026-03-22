@@ -222,11 +222,13 @@ export default async function LearnHubPage() {
             These guides are universal. Or This? gives you personalised feedback on your specific outfit — snap a photo, get a score out of 10, and honest style advice before you walk out the door.
           </p>
           <a
-            href="https://orthis.app#waitlist"
+            href="https://apps.apple.com/app/or-this/id6742406265"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block text-xs font-medium uppercase tracking-wider px-8 py-4"
             style={{ backgroundColor: "#E85D4C", color: "#fff" }}
           >
-            Join the Waitlist — Free
+            Download the App — Free
           </a>
         </section>
 

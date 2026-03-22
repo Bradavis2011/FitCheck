@@ -2,6 +2,7 @@ import Link from "next/link";
 import { JsonLd } from "../components/JsonLd";
 import { fetchLearnContent } from "../learn/api";
 import type { LearnItem } from "../learn/api";
+import SiteFooter from "../components/SiteFooter";
 
 export const revalidate = 3600;
 
@@ -177,20 +178,34 @@ export default async function PostpartumStylePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-10" style={{ borderColor: "rgba(26,26,26,0.08)", backgroundColor: "#FBF7F4" }}>
-        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between flex-wrap gap-4">
-          <Link href="/" className="text-xl font-medium">
-            <span className="font-sans font-medium" style={{ color: "#1A1A1A" }}>Or </span>
-            <span className="font-display italic" style={{ color: "#E85D4C" }}>This?</span>
-          </Link>
-          <div className="flex gap-6 text-xs uppercase tracking-wider" style={{ color: "rgba(26,26,26,0.4)" }}>
-            <Link href="/learn">Style Hub</Link>
-            <Link href="/privacy">Privacy</Link>
-          </div>
-          <p className="text-xs" style={{ color: "rgba(26,26,26,0.3)" }}>&copy; {new Date().getFullYear()} Or This?</p>
+      {/* More Style Guides */}
+      <section className="max-w-4xl mx-auto px-6 mb-12">
+        <p className="text-xs font-medium uppercase tracking-widest mb-6" style={{ color: "#9B9B9B" }}>More Style Guides</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          {[
+            { href: "/back-to-work", label: "Back to Work" },
+            { href: "/back-to-office", label: "Back to Office" },
+            { href: "/dating-again", label: "Dating Again" },
+            { href: "/postpartum-style", label: "Postpartum Style" },
+            { href: "/career-change", label: "Career Change" },
+            { href: "/reinvention", label: "Style Reinvention" },
+            { href: "/rush", label: "Sorority Rush" },
+            { href: "/try", label: "Score Your Outfit" },
+            { href: "/learn", label: "Style Hub" },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-xs font-medium uppercase tracking-wider px-4 py-2"
+              style={{ border: "1px solid rgba(26,26,26,0.15)", color: "rgba(26,26,26,0.6)" }}
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

@@ -14,7 +14,7 @@ const PAGE_SIZE = 10;
 export async function getLearnContent(req: Request, res: Response): Promise<void> {
   const { type, category, page = '1', limit = String(PAGE_SIZE) } = req.query as Record<string, string>;
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
-  const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || PAGE_SIZE));
+  const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || PAGE_SIZE));
   const skip = (pageNum - 1) * limitNum;
 
   const where: Record<string, unknown> = { status: 'published' };

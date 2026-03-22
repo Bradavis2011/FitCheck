@@ -133,11 +133,13 @@ export default async function LearnTipsPage() {
             Snap a photo of your actual outfit and get a score out of 10 with specific, honest feedback in seconds.
           </p>
           <a
-            href="https://orthis.app#waitlist"
+            href="https://apps.apple.com/app/or-this/id6742406265"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block text-xs font-medium uppercase tracking-wider px-8 py-4"
             style={{ backgroundColor: "#E85D4C", color: "#fff" }}
           >
-            Join the Waitlist — Free
+            Download the App — Free
           </a>
         </div>
 
