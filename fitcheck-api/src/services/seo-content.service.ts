@@ -437,7 +437,7 @@ export async function generateRushContentBlitz(): Promise<void> {
 
   const coverageMap = new Map<string, number>(ALL_NICHES.map(n => [n, 0]));
   for (const row of nicheCounts) {
-    coverageMap.set(row.category, row._count.id);
+    if (row.category) coverageMap.set(row.category, row._count.id);
   }
 
   // Sort niches by published article count ascending (least-covered first), take 2

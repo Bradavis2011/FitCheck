@@ -15,7 +15,6 @@ import { z } from 'zod';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const OCCASIONS = ['Work', 'Date Night', 'Casual', 'Interview', 'Event', 'Weekend'] as const;
-type Occasion = typeof OCCASIONS[number];
 
 const WebCheckSchema = z.object({
   imageBase64: z.string().min(100),
