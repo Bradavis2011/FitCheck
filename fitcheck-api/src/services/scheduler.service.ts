@@ -79,7 +79,13 @@ function isEmailOutreachEnabled(): boolean {
 
 /** Run a cron handler with kill-switch check + observability recording. */
 async function guardedRun(agentName: string, label: string, fn: () => Promise<unknown>): Promise<void> {
-  if (!(await isAgentEnabled(agentName))) return;
+  try {
+    if (!(await isAgentEnabled(agentName))) return;
+  } catch (err) {
+    // DB unreachable — skip this run rather than crashing the server
+    console.warn(`[Scheduler] ${agentName} isAgentEnabled check failed (DB issue?):`, err);
+    return;
+  }
   if (label) console.log(label);
   try {
     await fn();
@@ -87,7 +93,11 @@ async function guardedRun(agentName: string, label: string, fn: () => Promise<un
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`[Scheduler] ${agentName} failed:`, err);
-    await recordAgentRun(agentName, errMsg);
+    try {
+      await recordAgentRun(agentName, errMsg);
+    } catch (recordErr) {
+      console.error(`[Scheduler] ${agentName} recordAgentRun also failed:`, recordErr);
+    }
   }
 }
 
