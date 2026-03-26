@@ -374,11 +374,10 @@ export function initializeScheduler(): void {
     guardedRun('calibration-snapshot', '📐 [Scheduler] Running calibration snapshot...', runCalibrationSnapshot),
   { timezone: 'UTC' });
 
-  // ── Daily Social Digest — 8am UTC ─────────────────────────────────────────
-  // Daily digest of ready-to-copy social posts.
+  // ── Weekly Social Digest — Monday 8am UTC ────────────────────────────────
   // getTrendData() (from content-calendar) is still used by other services (SEO, social engine).
-  cron.schedule('0 8 * * *', () =>
-    guardedRun('social-media-manager', '📱 [Scheduler] Sending daily social digest...', sendWeeklySocialDigest),
+  cron.schedule('0 8 * * 1', () =>
+    guardedRun('social-media-manager', '📱 [Scheduler] Sending weekly social digest...', sendWeeklySocialDigest),
   { timezone: 'UTC' });
 
   // ── Agent 11: Growth Dashboard — Daily 9am UTC ───────────────────────────
@@ -527,10 +526,7 @@ export function initializeScheduler(): void {
     guardedRun('content-factory', '🎬 [Scheduler] Running content factory...', runLearningContentAgent),
   { timezone: 'UTC' });
 
-  // ── Daily Script Email — 6:15am UTC (15 min after generation) ───────────────
-  cron.schedule('15 6 * * *', () =>
-    guardedRun('content-factory', '📧 [Scheduler] Sending daily script email...', sendDailyScriptEmail),
-  { timezone: 'UTC' });
+  // Daily script email removed — scripts are included in Monday founder digest
 
   // ── Ops Learning Loop — Daily Measurers (6am UTC, DB only, $0) ──────────────
   cron.schedule('0 6 * * *', () =>
@@ -885,9 +881,9 @@ export function initializeScheduler(): void {
   // NOTE: generateWeeklyTrendReport() is called inside runLearningContentAgent()
   // only on Tuesdays (guarded by day-of-week check in the function itself).
 
-  // ── Founder Content Digest — Daily 10am UTC ──────────────────────────────
-  // Sent daily after content is generated. Includes video scripts, trend report, tips, pending posts.
-  cron.schedule('0 10 * * *', () => {
+  // ── Founder Content Digest — Monday 10am UTC ─────────────────────────────
+  // Weekly digest of video scripts, trend report, tips, pending posts.
+  cron.schedule('0 10 * * 1', () => {
     guardedRun('content-factory', '📧 [Scheduler] Sending founder content digest...', sendFounderContentDigest);
   }, { timezone: 'UTC' });
 
