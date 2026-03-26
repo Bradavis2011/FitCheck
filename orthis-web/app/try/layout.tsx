@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     siteName: "Or This?",
     images: [
       {
-        url: "https://orthis.app/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
       },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Score Your Outfit in 10 Seconds",
     description: "Free AI outfit scoring — no app required.",
-    images: ["https://orthis.app/og-image.png"],
+    images: ["/opengraph-image"],
   },
   alternates: {
     canonical: "https://orthis.app/try",

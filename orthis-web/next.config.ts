@@ -9,6 +9,7 @@ const MONOREPO_ROOT = path.resolve(__dirname, "..");
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: MONOREPO_ROOT,
+  trailingSlash: false,
   async redirects() {
     return [
       // Journal is merged into Learn — all journal traffic redirects permanently
